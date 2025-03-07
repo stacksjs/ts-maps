@@ -20,7 +20,7 @@ const component: Component = defineComponent({
   },
 
   setup(props, { expose }) {
-    const listeners = {}
+    const listeners: { [key: string]: any } = {}
     const map = shallowRef()
     const instance = getCurrentInstance()
     const uid = `__vm__${instance?.uid}`
