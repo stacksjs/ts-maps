@@ -4,18 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "library:dev": "pnpm run --filter=jsvectormap dev",
-    "playground:dev": "vite",
-    "dev": "npm-run-all2 -p 'playground:dev' 'library:dev'",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "npm-run-all2": "^6.1.2",
-    "vite": "^5.2.0"
+    "vite": "^6.2.0"
   },
   "dependencies": {
-    "jsvectormap": "workspace:*",
-    "jsvectormap-maps": "*"
+    "ts-maps": "workspace:*"
   }
 }

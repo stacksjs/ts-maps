@@ -1,18 +1,19 @@
-import jsVectorMap from 'jsvectormap'
-import 'jsvectormap/dist/maps/world-merc'
-import 'jsvectormap/dist/jsvectormap.css'
+import { VectorMap } from 'ts-maps'
+import 'ts-maps/maps/world-merc'
+import 'ts-maps/scss/vector-map.scss'
+import type { MarkerConfig } from 'ts-maps'
 
 const markers = [
   { name: 'Russia', coords: [61, 105] },
-  { name: 'Geenland', coords: [72, -42] },
+  { name: 'Greenland', coords: [72, -42] },
   { name: 'Canada', coords: [56.1304, -106.3468] },
   { name: 'Palestine', coords: [31.5, 34.8] },
   { name: 'Brazil', coords: [-14.2350, -51.9253] },
 ]
 
-const map = new jsVectorMap({
-  map: 'world_merc',
-  selector: document.querySelector('#map'),
+const map = new VectorMap({
+  map: { name: 'world_merc', projection: 'mercator' },
+  selector: '#map',
   zoomButtons: false,
 
   regionsSelectable: true,
@@ -26,7 +27,7 @@ const map = new jsVectorMap({
   // Labels
   labels: {
     markers: {
-      render: function(marker) {
+      render: function(marker: MarkerConfig) {
         return marker.name
       },
     },

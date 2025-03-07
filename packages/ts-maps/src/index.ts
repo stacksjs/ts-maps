@@ -2,6 +2,8 @@ import type { MapOptions } from './types'
 import Map from './map'
 import '../scss/vector-map.scss'
 
+export * from './types'
+
 export class VectorMap {
   constructor(options: MapOptions = {} as MapOptions) {
     if (!options.selector) {

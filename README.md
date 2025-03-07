@@ -6,14 +6,11 @@
 <!-- [![npm downloads][npm-downloads-src]][npm-downloads-href] -->
 <!-- [![Codecov][codecov-src]][codecov-href] -->
 
-# The Post
+# ts-maps
 
-> Finally a mail server that can be managed.
+> Modern & pretty vector maps for your next project.
 
 Perfect for local development and testing environments. _Production-ready release coming soon!_
-
-> [!NOTE]
-> While this mail server works in a zero-setup & zero-config way, you still have to maintain the infrastructure that the server is deployed & running on. To automate it, including pretty server metrics visualizations & alerting, you may want to check out [Stacks](https://github.com/stacksjs/stacks), as it ships a full-featured mail server with a management interface/dashboard.
 
 ## Features
 
