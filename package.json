@@ -1,0 +1,77 @@
+{
+  "name": "post",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A modern mail server & utilities.",
+  "author": "Chris Breuer <chris@stacksjs.org>",
+  "license": "MIT",
+  "homepage": "https://github.com/stacksjs/post",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stacksjs/post.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stacksjs/post/issues"
+  },
+  "keywords": [
+    "mail",
+    "server",
+    "utilities",
+    "development",
+    "mailtrap",
+    "nodemailer",
+    "bun",
+    "stacks",
+    "typescript",
+    "javascript"
+  ],
+  "exports": {
+    ".": {
+      "import": "./packages/post/dist/src/index.js"
+    }
+  },
+  "module": "./packages/post/dist/src/index.js",
+  "types": "./packages/post/dist/index.d.ts",
+  "bin": {
+    "post": "./packages/post/dist/bin/cli.js"
+  },
+  "files": ["README.md", "packages/post/dist"],
+  "scripts": {
+    "build": "bun --filter './packages/*' build",
+    "lint": "bunx --bun eslint .",
+    "lint:fix": "bunx --bun eslint . --fix",
+    "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
+    "changelog": "changelogen --output CHANGELOG.md",
+    "prepublishOnly": "bun --bun run build",
+    "release": "bun run changelog && bumpp package.json --all",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit",
+    "dev:docs": "bun --bun vitepress dev docs",
+    "build:docs": "bun --bun vitepress build docs",
+    "preview:docs": "bun --bun vitepress preview docs"
+  },
+  "devDependencies": {
+    "@stacksjs/docs": "^0.69.3",
+    "@stacksjs/eslint-config": "^4.2.1-beta.1",
+    "@types/bun": "^1.2.2",
+    "bumpp": "^10.0.3",
+    "bun-plugin-dtsx": "^0.21.9",
+    "bunfig": "^0.7.0",
+    "cac": "^6.7.14",
+    "changelogen": "^0.5.7",
+    "typescript": "^5.8.2"
+  },
+  "overrides": {
+    "unconfig": "0.3.10"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "bunx lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,ts}": "bunx eslint . --fix"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
