@@ -75,7 +75,8 @@
   "explorer.confirmDragAndDrop": false,
   "todo-tree.highlights.enabled": true,
   "cSpell.ignorePaths": [
-    "node_modules"
+    "node_modules",
+    "packages/ts-maps/src/maps"
   ],
   "cSpell.dictionaries": [
     "custom-dictionary"
@@ -97,7 +98,8 @@
     "**/*.txt"
   ],
   "grammarly.files.exclude": [
-    "**/dictionary.txt"
+    "**/dictionary.txt",
+    "**/maps"
   ],
   "cSpell.words": [
     "unconfig"
