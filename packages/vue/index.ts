@@ -1,9 +1,10 @@
 import Component, { Namespace } from './component'
-import 'jsvectormap/src/scss/jsvectormap.scss'
+import type { App } from 'vue'
+import 'ts-maps/scss/vector-map.scss'
 
 export default {
-  install(app, options = {}) {
+  install(app: App, options = {}): void {
     app.config.globalProperties[Namespace] = options
-    app.component('vuevectormap', Component)
+    app.component('vue-vector-map', Component)
   }
 }
