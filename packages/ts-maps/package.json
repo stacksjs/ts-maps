@@ -1,0 +1,57 @@
+{
+  "name": "ts-maps",
+  "type": "module",
+  "version": "0.0.0",
+  "description": "A modern mail server & utilities.",
+  "author": "Chris Breuer <chris@stacksjs.org>",
+  "license": "MIT",
+  "homepage": "https://github.com/stacksjs/ts-maps#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stacksjs/ts-maps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stacksjs/ts-maps/issues"
+  },
+  "keywords": [
+    "maps",
+    "interactive",
+    "typescript",
+    "javascript",
+    "utility"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./*": {
+      "import": "./dist/*"
+    }
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun --bun build.ts",
+    "lint": "bunx --bun eslint .",
+    "lint:fix": "bunx --bun eslint . --fix",
+    "prepublishOnly": "bun --bun run build",
+    "release": "bun publish --access public",
+    "test": "bun test",
+    "typecheck": "bun --bun tsc --noEmit"
+  },
+  "devDependencies": {
+    "bun-plugin-dtsx": "^0.21.9",
+    "bunfig": "^0.8.2",
+    "lint-staged": "^15.4.3",
+    "simple-git-hooks": "^2.11.1",
+    "typescript": "^5.7.3"
+  },
+  "lint-staged": {
+    "*.{js,ts}": "bunx --bun eslint . --fix"
+  }
+}
