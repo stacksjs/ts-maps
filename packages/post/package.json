@@ -66,12 +66,12 @@
     "ts-punycode": "^0.1.0"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.2",
+    "@types/bun": "^1.2.4",
     "bun-plugin-dtsx": "^0.21.9",
-    "bunfig": "^0.7.0",
+    "bunfig": "^0.8.2",
     "lint-staged": "^15.4.3",
     "simple-git-hooks": "^2.11.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.2"
   },
   "lint-staged": {
     "*.{js,ts}": "bunx --bun eslint . --fix"
