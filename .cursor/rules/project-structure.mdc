@@ -1,0 +1,15 @@
+---
+description: Project structure information
+globs: 
+---
+## Project Structure
+
+
+- the `./packages/*` directory is all the monorepo packages are stored
+- the `./packages/post/src` the source of the `post` library  
+- the `./packages/post/test` directory is the test code
+- the `./packages/post/bin` directory is the command-line code
+  - you can also call the CLI via `./mail-server ...`
+- the `./packages/vue` wip
+- the `./packages/react` wip
+- the `./docs` directory is the documentation
