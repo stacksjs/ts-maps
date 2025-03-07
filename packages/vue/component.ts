@@ -1,11 +1,12 @@
-import { defineComponent, getCurrentInstance, useAttrs, onMounted, h, onUnmounted, shallowRef } from 'vue'
-import jsVectorMap from 'ts-maps'
+import { defineComponent, getCurrentInstance, useAttrs, onMounted, h, onUnmounted, shallowRef, type Component } from 'vue'
+import { VectorMap } from 'ts-maps'
 
 export const Namespace = '$VUE_VECTOR_MAP'
 
-export default defineComponent({
-  name: 'vuevectormap',
+const component: Component = defineComponent({
+  name: 'vue-vector-map',
   inheritAttrs: false,
+
   props: {
     options: Object,
     width: {
@@ -17,12 +18,13 @@ export default defineComponent({
       default: 350,
     },
   },
+
   setup(props, { expose }) {
     const listeners = {}
     const map = shallowRef()
     const instance = getCurrentInstance()
-    const uid = `__vm__${instance.uid}`
-    const globals = instance.appContext.config.globalProperties[Namespace]
+    const uid = `__vm__${instance?.uid}`
+    const globals = instance?.appContext.config.globalProperties[Namespace]
 
     for (const [name, fn] of Object.entries(useAttrs())) {
       if (name.startsWith('on')) {
@@ -31,7 +33,7 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      map.value = new jsVectorMap({
+      map.value = new VectorMap({
         selector: `#${uid}`,
         ...globals,
         ...props.options,
@@ -54,3 +56,5 @@ export default defineComponent({
     })
   }
 })
+
+export default component
