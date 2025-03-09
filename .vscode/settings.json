@@ -103,5 +103,6 @@
   ],
   "cSpell.words": [
     "unconfig"
-  ]
+  ],
+  "editor.maxTokenizationLineLength": 1000000
 }

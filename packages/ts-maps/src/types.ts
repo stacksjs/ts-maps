@@ -1,5 +1,3 @@
-/// <reference lib="dom" />
-
 import type { Tooltip } from './components/tooltip'
 
 export interface MapOptions {
@@ -146,15 +144,62 @@ export interface DataVisualizationOptions {
   values: Record<string, number | string> // Region code to value mapping
 }
 
+/**
+ * Type definitions for Italy map data
+ */
+
+/**
+ * Geographic coordinate point
+ */
+export interface GeoPoint {
+  x: number
+  y: number
+}
+
+/**
+ * Bounding box coordinates
+ */
+export interface BBox {
+  bbox: [GeoPoint, GeoPoint]
+}
+
+/**
+ * Inset properties for the map
+ */
+export interface Inset extends BBox {
+  width: number
+  top: number
+  height: number
+  left: number
+}
+
+/**
+ * Region properties
+ */
+export interface Region {
+  path: string
+  name: string
+}
+
+/**
+ * Map of regions by their code
+ */
+export interface RegionMap {
+  [regionCode: string]: Region
+}
+
+/**
+ * Map data properties
+ */
 export interface MapData {
-  paths: {
-    [code: string]: {
-      path: string
-      name?: string
-      [key: string]: any
-    }
+  insets: Inset[]
+  paths: RegionMap
+  height: number
+  projection: {
+    type: string
+    centralMeridian: number
   }
-  [key: string]: any
+  width: number
 }
 
 export interface MapInterface {
