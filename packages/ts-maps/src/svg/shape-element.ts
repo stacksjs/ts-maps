@@ -25,6 +25,16 @@ class SVGShapeElement extends SVGElement {
     this.updateStyle()
   }
 
+  hover(state: boolean): void {
+    this.isHovered = state
+    this.updateStyle()
+  }
+
+  select(state: boolean): void {
+    this.isSelected = state
+    this.updateStyle()
+  }
+
   setStyle(property: string | Record<string, string | number>, value?: string | number): void {
     if (typeof property === 'object') {
       merge(this.style.current!, property)

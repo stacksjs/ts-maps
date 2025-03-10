@@ -1,6 +1,6 @@
 import type { MapOptions } from './types'
 import Map from './map'
-import '../scss/vector-map.scss'
+import './scss/vector-map.scss'
 
 export * from './types'
 

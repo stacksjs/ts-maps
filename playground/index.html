@@ -2,22 +2,254 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/assets/css/style.css" />
-    <title>ts-maps (Workspace)</title>
+    <title>ts-maps</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f8fafc;
+      }
+
+      #map {
+        width: 100%;
+        height: 600px;
+        margin: 0 auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #f1f5f9;
+        position: relative;
+      }
+
+      /* Ensure SVG fills the container */
+      #map svg {
+        width: 100% !important;
+        height: 100% !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      /* Hide all text elements on the map */
+      #map text {
+        display: none !important;
+      }
+
+      /* Fix for the zoom buttons */
+      #map .jvm-zoom-btn {
+        position: absolute;
+        right: 10px;
+        z-index: 10;
+      }
+
+      #map .jvm-zoomin {
+        top: 10px;
+      }
+
+      #map .jvm-zoomout {
+        top: 50px;
+      }
+
+      .workspace-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      /* Improved tooltip styling */
+      .jvm-tooltip {
+        background-color: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #1e293b;
+        pointer-events: none;
+        border: 1px solid #e2e8f0;
+        z-index: 1000;
+        max-width: 250px;
+        min-width: 120px;
+        text-align: center;
+        position: fixed !important; /* Use fixed positioning to ensure it stays in place */
+        transition: none !important; /* Prevent any transitions */
+        transform: translate3d(0,0,0) !important; /* Force hardware acceleration */
+        will-change: top, left !important; /* Optimize for animations */
+      }
+
+      /* Tooltip arrow */
+      .jvm-tooltip:after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 12px;
+        height: 12px;
+        background: white;
+        border-right: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        margin: 0 0 10px 0;
+        color: #1e293b;
+      }
+
+      header p {
+        margin: 0;
+        color: #64748b;
+        line-height: 1.5;
+      }
+
+      header a {
+        padding: 10px 20px;
+        background-color: #4f46e5;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+
+      header a:hover {
+        background-color: #4338ca;
+      }
+
+      /* Map control buttons styling */
+      .jvm-zoom-btn {
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        color: #4f46e5;
+        width: 30px;
+        height: 30px;
+        border-radius: 4px;
+        line-height: 30px;
+        text-align: center;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .jvm-zoom-btn:hover {
+        background-color: #f8fafc;
+      }
+    </style>
   </head>
   <body>
     <div class="workspace-wrapper">
       <header>
         <div>
-          <h1>ts-maps workspace.</h1>
+          <h1>ts-maps</h1>
           <p>Here you can test the maps and find out how it works if you want to contribute to ts-maps fork this repository<br>then clone it, commit your changes, push it to your forked version and finally you can open a pull request.</p>
         </div>
-        <a href="#">Github Repository</a>
+        <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
       </header>
       <div id="map"></div>
     </div>
-    <script type="module" src="/main.js"></script>
+    <script type="module" src="./main.ts"></script>
+    <script>
+      // Direct tooltip positioning override
+      document.addEventListener('DOMContentLoaded', function() {
+        // Function to set up tooltip positioning
+        function setupTooltip() {
+          const mapContainer = document.getElementById('map');
+          const tooltip = document.querySelector('.jvm-tooltip');
+
+          if (!mapContainer || !tooltip) {
+            // If elements aren't ready yet, try again in 500ms
+            setTimeout(setupTooltip, 500);
+            console.log('Waiting for map and tooltip elements...');
+            return;
+          }
+
+          // Add a style to ensure tooltip is visible when active
+          const styleElement = document.createElement('style');
+          styleElement.textContent = `
+            .jvm-tooltip.active {
+              display: block !important;
+              visibility: visible !important;
+              opacity: 1 !important;
+            }
+          `;
+          document.head.appendChild(styleElement);
+
+          // Create a function to position the tooltip
+          function positionTooltip(e) {
+            // Only position the tooltip if it's visible
+            if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+              // Get the map container's position
+              const mapRect = mapContainer.getBoundingClientRect();
+
+              // Calculate tooltip position
+              const tooltipWidth = tooltip.offsetWidth;
+              const tooltipHeight = tooltip.offsetHeight;
+
+              // Get cursor position relative to the viewport
+              const cursorX = e.clientX;
+              const cursorY = e.clientY;
+
+              // Calculate position to place tooltip directly above cursor
+              const offsetY = 15; // Distance above cursor
+
+              // Set tooltip position
+              tooltip.style.left = (cursorX - tooltipWidth / 2) + 'px';
+              tooltip.style.top = (cursorY - tooltipHeight - offsetY) + window.scrollY + 'px';
+            }
+          }
+
+          // Override the built-in tooltip positioning
+          mapContainer.addEventListener('mousemove', positionTooltip);
+
+          // Also handle scroll events to keep tooltip positioned correctly
+          window.addEventListener('scroll', function() {
+            // Use the last known mouse position
+            const lastEvent = window.lastMouseEvent;
+            if (lastEvent) {
+              positionTooltip(lastEvent);
+            }
+          });
+
+          // Store the last mouse event for reference
+          mapContainer.addEventListener('mousemove', function(e) {
+            window.lastMouseEvent = e;
+          });
+
+          // Use MutationObserver to detect when the tooltip becomes visible
+          const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (mutation.type === 'attributes' &&
+                  (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+                // If the tooltip is now visible, position it using the last mouse event
+                if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+                  if (window.lastMouseEvent) {
+                    positionTooltip(window.lastMouseEvent);
+                  }
+                }
+              }
+            });
+          });
+
+          // Start observing the tooltip for attribute changes
+          observer.observe(tooltip, { attributes: true });
+
+          console.log('Custom tooltip positioning applied successfully');
+        }
+
+        // Start the setup process
+        setupTooltip();
+      });
+    </script>
   </body>
 </html>

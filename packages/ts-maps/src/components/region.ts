@@ -74,9 +74,32 @@ class Region extends BaseComponent {
     }
   }
 
+  getLabelText(key: string, label?: any): string | undefined {
+    if (!label) {
+      return undefined
+    }
+
+    if (typeof label.render === 'function') {
+      return label.render(key)
+    }
+
+    return key
+  }
+
+  getLabelOffsets(key: string, label?: any): [number, number] {
+    if (label && typeof label.offsets === 'function') {
+      return label.offsets(key)
+    }
+
+    // If offsets are an array of offsets e.g offsets: [ [0, 25], [10, 15] ]
+    if (label && Array.isArray(label.offsets)) {
+      return label.offsets[key as any] || [0, 0]
+    }
+
+    return [0, 0]
+  }
+
   // Methods from Interactable that will be inherited
-  getLabelText!: (key: string, label?: any) => string | undefined
-  getLabelOffsets!: (key: string, label?: any) => [number, number]
   setStyle!: (property: string, value: any) => void
   remove!: () => void
   hover!: (state: boolean) => void

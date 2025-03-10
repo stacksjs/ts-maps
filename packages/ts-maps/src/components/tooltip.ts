@@ -1,8 +1,6 @@
 import type { MapInterface } from '../types'
-import EventHandler from '../event-handler'
 import {
   createElement,
-  findElement,
 } from '../util'
 import BaseComponent from './base'
 
@@ -11,6 +9,7 @@ export class Tooltip extends BaseComponent {
   protected _tooltip: HTMLElement
   private _hoveredRegion: string | null = null
   private _hoveredMarker: string | null = null
+  private _customPositioning: boolean = true // Flag to enable custom positioning
 
   constructor(map: MapInterface) {
     super()
@@ -20,48 +19,10 @@ export class Tooltip extends BaseComponent {
     this._tooltip.style.display = 'none'
     this._map.container.appendChild(this._tooltip)
 
-    this._bindEventListeners()
+    // We're not binding event listeners as we're using custom positioning in HTML
+    // this._bindEventListeners()
 
     return this
-  }
-
-  _bindEventListeners(): void {
-    EventHandler.on(this._map.container, 'mousemove', (e: Event) => {
-      const event = e as MouseEvent
-      if (!this._tooltip.classList.contains('active')) {
-        return
-      }
-
-      const container = findElement(this._map.container, '#jvm-regions-group')?.getBoundingClientRect()
-      if (!container)
-        return
-
-      const space = 5 // Space between the cursor and tooltip element
-
-      // Tooltip
-      const { height, width } = this._tooltip.getBoundingClientRect()
-      const topIsPassed = event.clientY <= (container.top + height + space)
-      let top = event.pageY - height - space
-      let left = event.pageX - width - space
-
-      // Ensure the tooltip will never cross outside the canvas area(map)
-      if (topIsPassed) { // Top:
-        top += height + space
-
-        // The cursor is a bit larger from left side
-        left -= space * 2
-      }
-
-      if (event.clientX < (container.left + width + space)) { // Left:
-        left = event.pageX + space + 2
-
-        if (topIsPassed) {
-          left += space * 2
-        }
-      }
-
-      this.css({ top: `${top}px`, left: `${left}px` })
-    })
   }
 
   getElement(): HTMLElement {
@@ -71,19 +32,34 @@ export class Tooltip extends BaseComponent {
   show(text: string): void {
     this._tooltip.style.display = 'block'
     this._tooltip.innerHTML = text
+    this._tooltip.classList.add('active')
   }
 
   hide(): void {
     this._tooltip.style.display = 'none'
+    this._tooltip.classList.remove('active')
     this._hoveredRegion = null
     this._hoveredMarker = null
   }
 
   text(text: string): void {
-    this._tooltip.innerHTML = text
+    if (this._tooltip) {
+      this._tooltip.innerHTML = text
+    }
+  }
+
+  html(html: string): void {
+    if (this._tooltip) {
+      this._tooltip.innerHTML = html
+    }
   }
 
   css(css: Record<string, string>): this {
+    // Skip CSS positioning if custom positioning is enabled
+    if (this._customPositioning && (css.top || css.left)) {
+      return this
+    }
+
     for (const style in css) {
       this._tooltip.style[style as any] = css[style]
     }

@@ -4,12 +4,14 @@ $border-color: #e5e7eb !default;
 $box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !default;
 
 // Tooltip
-$tooltip-shadow: 1px 2px 12px rgba(0, 0, 0, .2) !default;
+$tooltip-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !default;
 $tooltip-font-family: sans-serif, Verdana !default;
-$tooltip-bg-color: #5c5cff !default;
-$tooltip-radius: 3px !default;
-$tooltip-font-size: smaller !default;
-$tooltip-padding: 3px 5px !default;
+$tooltip-bg-color: white !default;
+$tooltip-radius: 6px !default;
+$tooltip-font-size: 14px !default;
+$tooltip-padding: 10px 14px !default;
+$tooltip-border: 1px solid #e2e8f0 !default;
+$tooltip-color: #1e293b !default;
 
 // Zoom buttons
 $zoom-btns-bg-color: #292929 !default;
@@ -63,9 +65,30 @@ image, text, .#{$classPrefix}zoomin, .#{$classPrefix}zoomout { user-select: none
   white-space: nowrap;
   position: absolute;
   display: none;
-  color: #FFF;
+  color: $tooltip-color;
+  border: $tooltip-border;
+  z-index: 1000;
+  min-width: 120px;
+  max-width: 250px;
+  text-align: center;
+  pointer-events: none;
+
   &.active {
     display: block;
+  }
+
+  // Tooltip arrow
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 12px;
+    height: 12px;
+    background: $tooltip-bg-color;
+    border-right: $tooltip-border;
+    border-bottom: $tooltip-border;
   }
 }
 

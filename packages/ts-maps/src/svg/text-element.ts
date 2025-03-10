@@ -7,7 +7,16 @@ class SVGTextElement extends SVGShapeElement {
   }
 
   applyAttr(attr: string, value: string | number): void {
-    attr === 'text' ? this.node.textContent = String(value) : super.applyAttr(attr, value)
+    if (attr === 'text') {
+      this.node.textContent = String(value)
+    }
+    else if (attr === 'x' || attr === 'y' || attr === 'cx' || attr === 'cy') {
+      // Ensure these attributes have proper length values
+      this.node.setAttribute(attr, `${value}`)
+    }
+    else {
+      super.applyAttr(attr, value)
+    }
   }
 }
 

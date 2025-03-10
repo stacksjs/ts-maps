@@ -74,10 +74,11 @@ export class Map implements MapInterface {
 
     // Throw an error if the given map name doesn't match
     // the map that was set in map file
-    const mapName = this.params.map
+    const mapParam = this.params.map
+    const mapName = typeof mapParam === 'string' ? mapParam : mapParam.name
     const mapData = Map.maps[mapName]
     if (!mapData) {
-      throw new Error(`Attempt to use map which was not loaded: ${options.map}`)
+      throw new Error(`Attempt to use map which was not loaded: ${mapName}`)
     }
 
     this._mapData = mapData
@@ -121,20 +122,20 @@ export class Map implements MapInterface {
     // Otherwise the lines will be drawn on top of the markers.
     if (options.lines?.elements) {
       const group = this._canvasImpl.createGroup(LINES_GROUP_ID)
-      if (!(group instanceof SVGGElement)) {
+      if (!group) {
         throw new TypeError('Failed to create lines group')
       }
-      this._linesGroup = group
+      this._linesGroup = group.node
     }
 
     if (options.markers) {
       const markersGroup = this._canvasImpl.createGroup(MARKERS_GROUP_ID)
       const labelsGroup = this._canvasImpl.createGroup(MARKERS_LABELS_GROUP_ID)
-      if (!(markersGroup instanceof SVGGElement && labelsGroup instanceof SVGGElement)) {
+      if (!markersGroup || !labelsGroup) {
         throw new TypeError('Failed to create markers groups')
       }
-      this._markersGroup = markersGroup
-      this._markerLabelsGroup = labelsGroup
+      this._markersGroup = markersGroup.node
+      this._markerLabelsGroup = labelsGroup.node
     }
 
     // Create markers
@@ -260,10 +261,23 @@ export class Map implements MapInterface {
   removeMarkers(markers?: string[]): void {
     const toRemove = markers || Object.keys(this._markers)
     toRemove.forEach((index) => {
-      // Remove the element from the DOM
-      this._markers[index].element.remove()
-      // Remove the element from markers object
-      delete this._markers[index]
+      const marker = this._markers[index] as any
+      if (marker) {
+        // Remove the marker using its own remove method
+        if (typeof marker.remove === 'function') {
+          marker.remove()
+        }
+        else if (marker.shape) {
+          // Remove the shape
+          marker.shape.remove()
+          // Remove the label if it exists
+          if (marker.label) {
+            marker.label.remove()
+          }
+        }
+        // Remove the element from markers object
+        delete this._markers[index]
+      }
     })
   }
 

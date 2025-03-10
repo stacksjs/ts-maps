@@ -87,7 +87,13 @@ class SVGCanvasElement extends SVGElement {
   // Add some element to a specific group or the root element if the group isn't given
   protected _add<T extends SVGElement>(element: T, group?: SVGElement): T {
     group = group || this._rootElement
-    group.node.appendChild(element.node)
+    if (group && group.node) {
+      group.node.appendChild(element.node)
+    }
+    else {
+      // Fallback to the root element if group or group.node is undefined
+      this._rootElement.node.appendChild(element.node)
+    }
     return element
   }
 }
