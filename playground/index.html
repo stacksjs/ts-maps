@@ -94,6 +94,41 @@
         border-bottom: 1px solid #e2e8f0;
       }
 
+      /* Map legend */
+      .map-legend {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background-color: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 12px;
+        z-index: 100;
+        border: 1px solid #e2e8f0;
+        max-width: 200px;
+      }
+
+      .map-legend h4 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #1e293b;
+      }
+
+      .legend-gradient {
+        height: 20px;
+        width: 100%;
+        margin-bottom: 5px;
+        background: linear-gradient(to right, #e2e8f0, rgb(40, 70, 200));
+        border-radius: 3px;
+      }
+
+      .legend-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #64748b;
+      }
+
       header {
         display: flex;
         justify-content: space-between;
@@ -156,7 +191,17 @@
         </div>
         <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
       </header>
-      <div id="map"></div>
+      <div id="map">
+        <!-- Legend will be added here -->
+        <div class="map-legend">
+          <h4>Visitor Count</h4>
+          <div class="legend-gradient"></div>
+          <div class="legend-labels">
+            <span>Low</span>
+            <span>High</span>
+          </div>
+        </div>
+      </div>
     </div>
     <script type="module" src="./main.ts"></script>
     <script>
