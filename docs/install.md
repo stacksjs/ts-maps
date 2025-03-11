@@ -1,116 +1,92 @@
-# Install
+# Installation
 
-Installing `mail-server` is easy. Simply pull it in via your package manager of choice, or download the binary directly.
+Installing `ts-maps` is straightforward. You can install it via your preferred package manager.
 
 ## Package Managers
 
-Choose your package manager of choice:
+Choose your preferred package manager:
 
 ::: code-group
 
 ```sh [npm]
-npm install --save-dev @stacksjs/mail-server
-# npm i -d @stacksjs/mail-server
+# Install the package
+npm install @stacksjs/ts-maps
 
-# or, install globally via
-npm i -g @stacksjs/mail-server
-```
-
-```sh [bun]
-bun install --dev @stacksjs/mail-server
-# bun add --dev @stacksjs/mail-server
-# bun i -d @stacksjs/mail-server
-
-# or, install globally via
-bun add --global @stacksjs/mail-server
+# Or install with TypeScript development dependencies
+npm install @stacksjs/ts-maps typescript @types/node --save-dev
 ```
 
 ```sh [pnpm]
-pnpm add --save-dev @stacksjs/mail-server
-# pnpm i -d @stacksjs/mail-server
+# Install the package
+pnpm add @stacksjs/ts-maps
 
-# or, install globally via
-pnpm add --global @stacksjs/mail-server
+# Or install with TypeScript development dependencies
+pnpm add @stacksjs/ts-maps typescript @types/node -D
 ```
 
 ```sh [yarn]
-yarn add --dev @stacksjs/mail-server
-# yarn i -d @stacksjs/mail-server
+# Install the package
+yarn add @stacksjs/ts-maps
 
-# or, install globally via
-yarn global add @stacksjs/mail-server
+# Or install with TypeScript development dependencies
+yarn add @stacksjs/ts-maps typescript @types/node --dev
 ```
 
-```sh [brew]
-brew install mail-server # coming soon
-```
+```sh [bun]
+# Install the package
+bun add @stacksjs/ts-maps
 
-```sh [pkgx]
-pkgx mail-server # coming soon
+# Or install with TypeScript development dependencies
+bun add -d @stacksjs/ts-maps typescript @types/node
 ```
 
 :::
 
-Read more about how to use it in the Usage section of the documentation.
+## TypeScript Configuration
 
-## Binaries
+ts-maps is built with TypeScript and includes type definitions. For the best development experience, ensure your `tsconfig.json` includes:
 
-Choose the binary that matches your platform and architecture:
-
-::: code-group
-
-```sh [macOS (arm64)]
-# Download the binary
-curl -L https://github.com/stacksjs/mail-server/releases/download/v0.9.1/mail-server-darwin-arm64 -o mail-server
-
-# Make it executable
-chmod +x mail-server
-
-# Move it to your PATH
-mv mail-server /usr/local/bin/mail-server
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
 ```
 
-```sh [macOS (x64)]
-# Download the binary
-curl -L https://github.com/stacksjs/mail-server/releases/download/v0.9.1/mail-server-darwin-x64 -o mail-server
+## Quick Start
 
-# Make it executable
-chmod +x mail-server
+After installation, you can import and use ts-maps in your TypeScript project:
 
-# Move it to your PATH
-mv mail-server /usr/local/bin/mail-server
+```typescript
+import { VectorMap } from '@stacksjs/ts-maps'
+
+// Create a new map instance
+const map = new VectorMap({
+  container: 'map-container',
+  map: 'world',
+  theme: 'light',
+})
+
+// Add interactivity
+map.on('regionClick', (event, region) => {
+  console.log(`Clicked region: ${region.id}`)
+})
 ```
 
-```sh [Linux (arm64)]
-# Download the binary
-curl -L https://github.com/stacksjs/mail-server/releases/download/v0.9.1/mail-server-linux-arm64 -o mail-server
+## Requirements
 
-# Make it executable
-chmod +x mail-server
+- Node.js 16.x or higher
+- TypeScript 4.7 or higher
 
-# Move it to your PATH
-mv mail-server /usr/local/bin/mail-server
-```
+## Next Steps
 
-```sh [Linux (x64)]
-# Download the binary
-curl -L https://github.com/stacksjs/mail-server/releases/download/v0.9.1/mail-server-linux-x64 -o mail-server
-
-# Make it executable
-chmod +x mail-server
-
-# Move it to your PATH
-mv mail-server /usr/local/bin/mail-server
-```
-
-```sh [Windows (x64)]
-# Download the binary
-curl -L https://github.com/stacksjs/mail-server/releases/download/v0.9.1/mail-server-windows-x64.exe -o mail-server.exe
-
-# Move it to your PATH (adjust the path as needed)
-move mail-server.exe C:\Windows\System32\mail-server.exe
-```
-
-::: tip
-You can also find the `mail-server` binaries in GitHub [releases](https://github.com/stacksjs/mail-server/releases).
-:::
+- Check out the [Usage Guide](/usage) to learn how to use ts-maps
+- View [Examples](/examples) for common mapping scenarios
+- Explore the [API Reference](/api) for detailed documentation

@@ -22,7 +22,7 @@ const nav = [
   { text: 'News', link: 'https://stacksjs.org/news' },
   {
     text: 'Changelog',
-    link: 'https://github.com/stacksjs/mail-server/blob/main/CHANGELOG.md',
+    link: 'https://github.com/stacksjs/ts-maps/blob/main/CHANGELOG.md',
   },
   // { text: 'Blog', link: 'https://updates.ow3.org' },
   {
@@ -56,18 +56,18 @@ const sidebar = [
       { text: 'Intro', link: '/intro' },
       { text: 'Install', link: '/install' },
       { text: 'Usage', link: '/usage' },
-      { text: 'Config', link: '/config' },
+      // { text: 'Demo', link: '/demo' },
     ],
   },
   { text: 'Showcase', link: '/Showcase' },
 ]
-const description = 'A modern, fast reverse proxy. For a better local development environment.'
-const title = 'mail-server | A modern, fast reverse proxy. For a better local development environment.'
+const description = 'Modern & lightweight Typescript library. Easily create pretty & interactive vector maps.'
+const title = 'ts-maps | Beautiful Vector Maps Made Simple'
 
 export default withPwa(
   defineConfig({
     lang: 'en-US',
-    title: 'mail-server',
+    title: 'ts-maps',
     description,
     metaChunk: true,
     cleanUrls: true,
@@ -82,7 +82,7 @@ export default withPwa(
       ['meta', { name: 'author', content: 'Stacks.js, Inc.' }],
       ['meta', {
         name: 'tags',
-        content: 'mail-server, stacksjs, reverse proxy, modern, lightweight, zero-config, local development',
+        content: 'ts-maps, typescript, mapping, type-safe, react, vue, framework-agnostic, zero-dependencies',
       }],
 
       ['meta', { property: 'og:type', content: 'website' }],
@@ -90,9 +90,9 @@ export default withPwa(
       ['meta', { property: 'og:title', content: title }],
       ['meta', { property: 'og:description', content: description }],
 
-      ['meta', { property: 'og:site_name', content: 'mail-server' }],
-      ['meta', { property: 'og:image', content: './images/og-image.jpg' }],
-      ['meta', { property: 'og:url', content: 'https://reverse-proxy.sh/' }],
+      ['meta', { property: 'og:site_name', content: 'ts-maps' }],
+      ['meta', { property: 'og:image', content: './images/og-image.png' }],
+      ['meta', { property: 'og:url', content: 'ts-maps.netlify.app/' }],
       // ['script', { 'src': 'https://cdn.usefathom.com/script.js', 'data-site': '', 'data-spa': 'auto', 'defer': '' }],
       ...analyticsHead,
     ],
@@ -116,13 +116,13 @@ export default withPwa(
 
       footer: {
         message: 'Released under the MIT License.',
-        copyright: 'Copyright © 2025-present Stacks.js, Inc.',
+        copyright: 'Copyright © 2024-present Stacks.js, Inc.',
       },
 
       socialLinks: [
         { icon: 'twitter', link: 'https://twitter.com/stacksjs' },
         { icon: 'bluesky', link: 'https://bsky.app/profile/chrisbreuer.dev' },
-        { icon: 'github', link: 'https://github.com/stacksjs/mail-server' },
+        { icon: 'github', link: 'https://github.com/stacksjs/ts-maps' },
         { icon: 'discord', link: 'https://discord.gg/stacksjs' },
       ],
 

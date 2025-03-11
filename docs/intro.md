@@ -1,57 +1,134 @@
-<p align="center"><img src="https://github.com/stacksjs/mail-server/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of this repo"></p>
+<p align="center"><img src="https://github.com/stacksjs/ts-maps/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of this repo"></p>
 
-# A Better Developer Experience
+# Introduction to ts-maps
 
-> A zero-config reverse proxy for local development with SSL support, custom domains, and more.
+> Modern & lightweight Typescript library. Easily create pretty & interactive vector maps.
 
 ## Features
 
-- Simple, lightweight Reverse Proxy
-- Custom Domains _(with wildcard support)_
-- Zero-Config Setup
-- SSL Support _(HTTPS by default)_
-- Auto HTTP-to-HTTPS Redirection
-- Self `/etc/hosts` Management
+- **Vector Maps**
+  - Interactive SVG-based maps
+  - Custom projections support
+  - Responsive and scalable design
+  - Built-in map collections
 
-## Changelog
+- **Data Visualization**
+  - Choropleth maps
+  - Heat maps
+  - Data markers and bubbles
+  - Custom legends and scales
 
-Please see our [releases](https://github.com/stacksjs/stacks/releases) page for more information on what has changed recently.
+- **Framework Integration**
+  - React components and hooks
+  - Vue components and composables
+  - Framework-agnostic core library
 
-## Contributing
+- **Developer Experience**
+  - Full TypeScript support
+  - Type-safe APIs
+  - Comprehensive documentation
+  - Zero dependencies
 
-Please review the [Contributing Guide](https://github.com/stacksjs/contributing) for details.
+## Quick Example
+
+```typescript
+import { VectorMap } from '@stacksjs/ts-maps'
+
+// Create a new map instance
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
+  theme: 'light',
+})
+
+// Add data visualization
+map.choropleth({
+  data: [
+    { id: 'US', value: 100 },
+    { id: 'CA', value: 80 },
+    // ... more data
+  ],
+  scale: {
+    min: 0,
+    max: 100,
+    colors: ['#e5f5f9', '#2ca25f'],
+  },
+})
+
+// Add interactivity
+map.on('regionClick', (event, region) => {
+  console.log(`Clicked region: ${region.id}`)
+})
+```
+
+## Framework Examples
+
+### React
+
+```tsx
+import { useVectorMap } from '@stacksjs/ts-maps-react'
+
+function WorldMap() {
+  const { map, isLoading } = useVectorMap({
+    map: 'world',
+    theme: 'light',
+  })
+
+  return (
+    <div>
+      {isLoading
+        ? (
+            <div>Loading map...</div>
+          )
+        : (
+            <div id="map" style={{ width: '100%', height: '400px' }} />
+          )}
+    </div>
+  )
+}
+```
+
+### Vue
+
+```vue
+<script setup lang="ts">
+import { useVectorMap } from '@stacksjs/ts-maps-vue'
+
+const { map, isLoading } = useVectorMap({
+  map: 'world',
+  theme: 'light',
+})
+</script>
+
+<template>
+  <div>
+    <div v-if="isLoading">
+      Loading map...
+    </div>
+    <div v-else id="map" style="width: 100%; height: 400px;" />
+  </div>
+</template>
+```
+
+## Next Steps
+
+- Check out the [Installation Guide](/install) to get started
+- Explore the [Usage Guide](/usage) for more examples
+- View the [API Reference](/api) for detailed documentation
 
 ## Community
 
 For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-[Discussions on GitHub](https://github.com/stacksjs/stacks/discussions)
+[Discussions on GitHub](https://github.com/stacksjs/ts-maps/discussions)
 
 For casual chit-chat with others using this package:
 
 [Join the Stacks Discord Server](https://discord.gg/stacksjs)
 
-## Postcardware
-
-Two things are true: Stacks OSS will always stay open-source, and we do love to receive postcards from wherever Stacks is used! 🌍 _We also publish them on our website. And thank you, Spatie_
-
-Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094
-
-## Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
-
-- [JetBrains](https://www.jetbrains.com/)
-- [The Solana Foundation](https://solana.com/)
-
-## Credits
-
-- [Chris Breuer](https://github.com/chrisbbreuer)
-- [All Contributors](https://github.com/stacksjs/mail-server/graphs/contributors)
-
 ## License
 
-The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/stacks/tree/main/LICENSE.md) for more information.
+The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md) for more information.
 
 Made with 💙
 

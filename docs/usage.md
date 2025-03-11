@@ -1,105 +1,235 @@
-# Get Started
+# Usage Guide
 
-There are two ways of using this reverse proxy: _as a library or as a CLI._
+ts-maps provides a powerful way to create interactive vector maps with data visualization capabilities. This guide covers the core features and usage patterns.
 
-## Library
+## Basic Usage
 
-Given the npm package is installed:
+### Creating a Vector Map
 
-```ts
-import type { TlsConfig } from '@stacksjs/mail-server'
-import { startProxy } from '@stacksjs/mail-server'
+```typescript
+import { VectorMap } from '@stacksjs/ts-maps'
 
-export interface CleanupConfig {
-  hosts: boolean // clean up /etc/hosts, defaults to false
-  certs: boolean // clean up certificates, defaults to false
-}
-
-export interface ReverseProxyConfig {
-  from: string // domain to proxy from, defaults to localhost:3000
-  to: string // domain to proxy to, defaults to stacks.localhost
-  cleanUrls?: boolean // removes the .html extension from URLs, defaults to false
-  https: boolean | TlsConfig // automatically uses https, defaults to true, also redirects http to https
-  cleanup?: boolean | CleanupConfig // automatically cleans up /etc/hosts, defaults to false
-  verbose: boolean // log verbose output, defaults to false
-}
-
-const config: ReverseProxyOptions = {
-  from: 'localhost:3000',
-  to: 'my-docs.localhost',
-  cleanUrls: true,
-  https: true,
-  cleanup: false,
-}
-
-startProxy(config)
+const map = new VectorMap({
+  container: 'map-container', // ID of the container element
+  map: 'world', // Built-in world map
+  theme: 'light', // 'light' or 'dark' theme
+})
 ```
 
-In case you are trying to start multiple proxies, you may use this configuration:
+### Map Configuration
 
-```ts
-// mail-server.config.{ts,js}
-import type { ReverseProxyOptions } from '@stacksjs/mail-server'
-import os from 'node:os'
-import path from 'node:path'
-
-const config: ReverseProxyOptions = {
-  https: { // https: true -> also works with sensible defaults
-    caCertPath: path.join(os.homedir(), '.stacks', 'ssl', `stacks.localhost.ca.crt`),
-    certPath: path.join(os.homedir(), '.stacks', 'ssl', `stacks.localhost.crt`),
-    keyPath: path.join(os.homedir(), '.stacks', 'ssl', `stacks.localhost.crt.key`),
-  },
-
-  cleanup: {
-    hosts: true,
-    certs: false,
-  },
-
-  proxies: [
-    {
-      from: 'localhost:5173',
-      to: 'my-app.localhost',
-      cleanUrls: true,
+```typescript
+const map = new VectorMap({
+  container: 'map-container',
+  map: 'world',
+  options: {
+    zoom: {
+      enabled: true,
+      min: 1,
+      max: 5,
+      step: 0.5,
     },
-    {
-      from: 'localhost:5174',
-      to: 'my-api.local',
+    pan: {
+      enabled: true,
     },
+    responsive: true,
+  },
+})
+```
+
+## Data Visualization
+
+### Choropleth Maps
+
+```typescript
+// Create a choropleth map with data
+map.choropleth({
+  data: [
+    { id: 'US', value: 100 },
+    { id: 'CA', value: 80 },
+    { id: 'GB', value: 65 },
   ],
-
-  verbose: true,
-}
-
-export default config
+  scale: {
+    type: 'linear',
+    min: 0,
+    max: 100,
+    colors: ['#e5f5f9', '#2ca25f'],
+  },
+})
 ```
 
-## CLI
+### Heat Maps
 
-```bash
-mail-server --from localhost:3000 --to my-project.localhost
-mail-server --from localhost:8080 --to my-project.test --keyPath ./key.pem --certPath ./cert.pem
-mail-server --help
-mail-server --version
-```
-
-## HMR
-
-In order to use Hot Module Replacement (HMR) with Vite and `mail-server`, you need to set these HMR options:
-
-```ts
-// vite.config.ts
-import { defineConfig } from 'vite'
-
-export default defineConfig({
-  server: {
-    hmr: {
-      host: 'stacks.localhost',
-      port: 443,
+```typescript
+// Create a heat map with point data
+map.heatmap({
+  data: [
+    { lat: 40.7128, lng: -74.0060, value: 100 }, // New York
+    { lat: 51.5074, lng: -0.1278, value: 80 }, // London
+    { lat: 35.6762, lng: 139.6503, value: 90 }, // Tokyo
+  ],
+  options: {
+    radius: 20,
+    blur: 15,
+    gradient: {
+      0.4: 'blue',
+      0.6: 'cyan',
+      0.8: 'lime',
+      0.9: 'yellow',
+      1.0: 'red',
     },
   },
 })
 ```
 
-We are soon looking to improve `mail-server` to seamlessly work with Vite and other tools. Stay tuned & follow along on [GitHub](https://github.com/stacksjs/mail-server/issues/26).
+## Map Projections
 
-Continue reading the documentation to learn more about the [configuration](./config.md) options.
+```typescript
+import { Projections } from '@stacksjs/ts-maps'
+
+// Using different map projections
+const map = new VectorMap({
+  container: 'map-container',
+  projection: Projections.mercator({
+    center: [0, 40],
+    scale: 200,
+  }),
+})
+
+// Or use other available projections
+const equalEarthMap = new VectorMap({
+  container: 'map-container',
+  projection: Projections.equalEarth(),
+})
+```
+
+## Event Handling
+
+```typescript
+// Click events
+map.on('regionClick', (event, region) => {
+  console.log(`Clicked region: ${region.id}`)
+  console.log(`Properties:`, region.properties)
+})
+
+// Hover events
+map.on('regionHover', (event, region) => {
+  console.log(`Hovering over: ${region.id}`)
+})
+
+// Zoom events
+map.on('zoom', (event, level) => {
+  console.log(`Current zoom level: ${level}`)
+})
+
+// Pan events
+map.on('pan', (event, position) => {
+  console.log(`Pan position:`, position)
+})
+```
+
+## Styling and Customization
+
+### Basic Styling
+
+```typescript
+const map = new VectorMap({
+  container: 'map-container',
+  style: {
+    regions: {
+      default: {
+        fill: '#e4e4e4',
+        stroke: '#ffffff',
+        strokeWidth: 1,
+      },
+      hover: {
+        fill: '#2ca25f',
+        stroke: '#ffffff',
+        strokeWidth: 2,
+      },
+      selected: {
+        fill: '#2ca25f',
+        stroke: '#ffffff',
+        strokeWidth: 2,
+      },
+    },
+  },
+})
+```
+
+### Custom Legend
+
+```typescript
+map.setLegend({
+  title: 'Population Density',
+  position: 'bottom-right',
+  scale: {
+    type: 'linear',
+    min: 0,
+    max: 100,
+    steps: 5,
+    colors: ['#e5f5f9', '#2ca25f'],
+  },
+  labels: {
+    format: value => `${value}M`,
+  },
+})
+```
+
+## Series and Data Management
+
+```typescript
+import { Series } from '@stacksjs/ts-maps'
+
+// Create a data series
+const populationSeries = new Series({
+  name: 'Population',
+  data: [
+    { id: 'US', value: 331002651 },
+    { id: 'CN', value: 1439323776 },
+    { id: 'IN', value: 1380004385 },
+  ],
+  scale: {
+    type: 'logarithmic',
+    colors: ['#fee5d9', '#a50f15'],
+  },
+})
+
+// Apply the series to the map
+map.addSeries(populationSeries)
+```
+
+## API Reference
+
+### VectorMap Options
+
+```typescript
+interface VectorMapOptions {
+  container: string | HTMLElement
+  map: string | MapData
+  theme?: 'light' | 'dark' | ThemeOptions
+  projection?: ProjectionOptions
+  style?: StyleOptions
+  interactive?: boolean
+  zoom?: ZoomOptions
+  pan?: PanOptions
+  legend?: LegendOptions
+  series?: Series[]
+}
+```
+
+### Event Types
+
+```typescript
+type MapEventType =
+  | 'regionClick'
+  | 'regionHover'
+  | 'regionMouseEnter'
+  | 'regionMouseLeave'
+  | 'zoom'
+  | 'pan'
+  | 'load'
+  | 'error'
+```
+
+For more detailed information about specific features and advanced usage, check out our [API Reference](/api).
