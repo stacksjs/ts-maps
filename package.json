@@ -1,27 +1,25 @@
 {
-  "name": "post",
+  "name": "ts-maps",
   "type": "module",
   "version": "0.0.1",
   "private": true,
-  "description": "A modern mail server & utilities.",
+  "description": "A modern vector map library.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
-  "homepage": "https://github.com/stacksjs/post",
+  "homepage": "https://github.com/stacksjs/ts-maps",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/stacksjs/post.git"
+    "url": "git+https://github.com/stacksjs/ts-maps.git"
   },
   "bugs": {
-    "url": "https://github.com/stacksjs/post/issues"
+    "url": "https://github.com/stacksjs/ts-maps/issues"
   },
   "keywords": [
-    "mail",
-    "server",
-    "utilities",
+    "maps",
+    "vector",
+    "map",
     "development",
-    "mailtrap",
-    "nodemailer",
-    "bun",
+    "typescript",
     "stacks",
     "typescript",
     "javascript"
@@ -43,7 +41,6 @@
     "lint:fix": "bunx --bun eslint . --fix",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "changelog": "changelogen --output CHANGELOG.md",
-    "prepublishOnly": "bun --bun run build",
     "release": "bun run changelog && bumpp package.json --all",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit",

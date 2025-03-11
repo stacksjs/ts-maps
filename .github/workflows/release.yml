@@ -30,7 +30,7 @@ jobs:
         run: bun install
 
       - name: Publish workspace packages to npm
-        run: bun publish --access public
+        run: bun --filter './packages/*' run publish
         env:
           BUN_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 

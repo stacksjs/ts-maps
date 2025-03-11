@@ -2,7 +2,7 @@
   "name": "vue-interactive-maps",
   "type": "module",
   "version": "0.1.0",
-  "description": "A modern mail server & utilities. Vue components.",
+  "description": "Vue components for interactive maps.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/vue#readme",
