@@ -30,7 +30,10 @@ jobs:
         run: bun install
 
       - name: Publish workspace packages to npm
-        run: bun --filter 'packages/*' run publish
+        run: |
+          cd packages/ts-maps && bun run release
+          cd ../react && bun run release
+          cd ../vue && bun run release
         env:
           BUN_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
