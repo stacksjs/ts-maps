@@ -1,5 +1,6 @@
-import { defineComponent, getCurrentInstance, useAttrs, onMounted, h, onUnmounted, shallowRef, type Component } from 'vue'
+import type { Component } from 'vue'
 import { VectorMap } from 'ts-maps'
+import { defineComponent, getCurrentInstance, h, onMounted, onUnmounted, shallowRef, useAttrs } from 'vue'
 
 export const Namespace = '$VUE_VECTOR_MAP'
 
@@ -54,7 +55,7 @@ const component: Component = defineComponent({
         width: `${props.width}px`,
       },
     })
-  }
+  },
 })
 
 export default component

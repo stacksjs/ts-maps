@@ -1,4 +1,4 @@
-import type { MapData, MapInterface, MarkerConfig } from 'ts-maps'
+import type { MapData, MarkerConfig } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
 // import world from '../packages/ts-maps/src/maps/world'
 // Try using world-merc instead as it might have better projection
