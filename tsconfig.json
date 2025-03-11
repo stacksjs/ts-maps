@@ -5,6 +5,9 @@
     "moduleDetection": "force",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "paths": {
+      "ts-maps": ["./packages/ts-maps/src"]
+    },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "strict": true,
@@ -18,9 +21,6 @@
     "isolatedDeclarations": true,
     "verbatimModuleSyntax": true,
     "skipDefaultLibCheck": true,
-    "skipLibCheck": true,
-    "paths": {
-      "ts-maps": ["./packages/ts-maps/src"],
-    }
+    "skipLibCheck": true
   }
 }

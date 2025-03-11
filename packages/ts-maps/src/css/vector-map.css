@@ -1,0 +1,188 @@
+/* Vector Map CSS */
+
+/* Global resets */
+svg {
+  touch-action: none;
+}
+
+image, text, .jvm-zoomin, .jvm-zoomout {
+  user-select: none;
+}
+
+/* VectorMap container */
+.jvm-container {
+  touch-action: none;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+/* Tooltip */
+.jvm-tooltip {
+  border-radius: 6px;
+  background-color: white;
+  font-family: sans-serif, Verdana;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 10px 14px;
+  white-space: nowrap;
+  position: absolute;
+  display: none;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  z-index: 1000;
+  min-width: 120px;
+  max-width: 250px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.jvm-tooltip.active {
+  display: block;
+}
+
+/* Tooltip arrow */
+.jvm-tooltip:after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Zoom buttons */
+.jvm-zoom-btn {
+  border-radius: 3px;
+  background-color: #292929;
+  padding: 3px;
+  box-sizing: border-box;
+  position: absolute;
+  line-height: 10px;
+  cursor: pointer;
+  color: #FFF;
+  height: 15px;
+  width: 15px;
+  left: 10px;
+}
+
+.jvm-zoom-btn.jvm-zoomout {
+  top: 30px;
+}
+
+.jvm-zoom-btn.jvm-zoomin {
+  top: 10px;
+}
+
+/* Series */
+.jvm-series-container {
+  right: 15px;
+  position: absolute;
+}
+
+/* Horizontal series */
+.jvm-series-container.jvm-series-h {
+  bottom: 15px;
+}
+
+/* Vertical series */
+.jvm-series-container.jvm-series-v {
+  top: 15px;
+}
+
+/* Legends */
+.jvm-series-container .jvm-legend {
+  background-color: #FFF;
+  border: 1px solid #e5e7eb;
+  margin-left: 0.75rem;
+  border-radius: 0.25rem;
+  padding: 0.6rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  float: left;
+}
+
+.jvm-series-container .jvm-legend .jvm-legend-title {
+  line-height: 1;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.575rem;
+  text-align: left;
+}
+
+.jvm-series-container .jvm-legend .jvm-legend-inner {
+  overflow: hidden;
+}
+
+.jvm-series-container .jvm-legend .jvm-legend-inner .jvm-legend-tick {
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.jvm-series-container .jvm-legend .jvm-legend-inner .jvm-legend-tick:not(:first-child) {
+  margin-top: 0.575rem;
+}
+
+.jvm-series-container .jvm-legend .jvm-legend-inner .jvm-legend-tick .jvm-legend-tick-sample {
+  border-radius: 4px;
+  margin-right: 0.65rem;
+  height: 16px;
+  width: 16px;
+  float: left;
+}
+
+.jvm-series-container .jvm-legend .jvm-legend-inner .jvm-legend-tick .jvm-legend-tick-text {
+  font-size: 12px;
+  text-align: center;
+  float: left;
+}
+
+/* Line animation */
+.jvm-line[animation="true"] {
+  -webkit-animation: jvm-line-animation 10s linear forwards infinite;
+  animation: jvm-line-animation 10s linear forwards infinite;
+}
+
+@keyframes jvm-line-animation {
+  from {
+    stroke-dashoffset: 250;
+  }
+}
+
+/* Region and marker styles */
+.jvm-region {
+  fill: #e2e8f0;
+  stroke: #cbd5e1;
+  stroke-width: 0.5;
+}
+
+.jvm-region:hover {
+  fill: #a5b4fc;
+  stroke: #6366f1;
+  stroke-width: 0.5;
+}
+
+.jvm-region.jvm-selected {
+  fill: #818cf8;
+  stroke: #4f46e5;
+  stroke-width: 0.5;
+}
+
+/* Marker styles */
+.jvm-marker {
+  fill: #4f46e5;
+  stroke: #ffffff;
+  stroke-width: 1;
+}
+
+.jvm-marker:hover {
+  fill: #4338ca;
+}
+
+.jvm-marker.jvm-selected {
+  fill: #312e81;
+}

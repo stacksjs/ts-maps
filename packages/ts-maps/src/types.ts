@@ -1,3 +1,4 @@
+import type { VectorMap } from 'ts-maps'
 import type { Tooltip } from './components/tooltip'
 
 export interface MapOptions {
@@ -449,4 +450,11 @@ export interface SeriesInstance {
   scale: string[]
   values: Record<string, number>
   attribute: string
+}
+
+// Add to window object if in browser environment
+declare global {
+  interface Window {
+    VectorMap: typeof VectorMap
+  }
 }

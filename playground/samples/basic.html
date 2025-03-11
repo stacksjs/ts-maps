@@ -1,29 +1,29 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Jsvectormap (Basic)</title>
-  <link rel="stylesheet" href="../assets/css/style.css" />
-  <link rel="stylesheet" href="../dist/css/jsvectormap.css" />
-  <script src="../dist/js/jsvectormap.min.js"></script>
-  <script src="../dist/maps/world.js"></script>
-    <style>
-      .map-wrapper {
-        border: 1px solid #EEE;
-        padding: 1rem;
-        width: 700px;
-        margin: auto
-      }
-    </style>
+  <title>Vector Map (Basic)</title>
+  <!-- <link rel="stylesheet" href="../assets/css/style.css" /> -->
+  <!-- <link rel="stylesheet" href="../../packages/ts-maps/src/css/vector-map.css" /> -->
+  <style>
+    .map-wrapper {
+      border: 1px solid #EEE;
+      padding: 1rem;
+      width: 700px;
+      margin: auto
+    }
+  </style>
 </head>
 <body>
   <div id="map" style="width: 750px; height: 400px; margin: auto; border: 1px solid #EEE"></div>
   <button id="focus">Focus</button>
-  <script>
-    var map = new jsVectorMap({
+  <script type="module">
+    // import { VectorMap } from 'ts-maps'
+    import { VectorMap } from '../../packages/ts-maps/src/index.ts'
+
+    const map = new VectorMap({
       map: 'world',
       selector: '#map',
     })
