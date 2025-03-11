@@ -1,7 +1,7 @@
 {
   "name": "post",
   "type": "module",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "A modern mail server & utilities.",
   "author": "Chris Breuer <chris@stacksjs.org>",
