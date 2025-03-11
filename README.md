@@ -1,4 +1,4 @@
-<p align="center"><img src="https://github.com/stacksjs/mail-server/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of this repo"></p>
+<p align="center"><img src="https://github.com/stacksjs/ts-maps/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of this repo"></p>
 
 [![npm version][npm-version-src]][npm-version-href]
 [![GitHub Actions][github-actions-src]][github-actions-href]
@@ -26,11 +26,17 @@ A modern & lightweight TypeScript library for creating interactive vector maps. 
 ## Install
 
 ```bash
+# Using npm
 npm install @stacksjs/ts-maps
-# or
+
+# Using yarn
 yarn add @stacksjs/ts-maps
-# or
+
+# Using pnpm
 pnpm add @stacksjs/ts-maps
+
+# Using bun
+bun add @stacksjs/ts-maps
 ```
 
 ## Quick Start
@@ -91,41 +97,174 @@ const series = new Series({
 map.addSeries(series)
 ```
 
-## Documentation
+## API Reference
 
-For detailed documentation, visit our [documentation site](https://ts-maps.dev/).
+### VectorMap
 
-- [Getting Started](https://ts-maps.dev/intro)
-- [Installation](https://ts-maps.dev/install)
-- [Basic Usage](https://ts-maps.dev/usage)
-- [API Reference](https://ts-maps.dev/api)
-- [Examples](https://ts-maps.dev/demo)
+The main class for creating and managing vector maps.
+
+```typescript
+interface VectorMapOptions {
+  container: string | HTMLElement;  // Container element or ID
+  map: string;                     // Map type ('world', 'usa', etc.)
+  theme?: 'light' | 'dark';        // Map theme
+  backgroundColor?: string;        // Background color
+  zoomOnScroll?: boolean;         // Enable zoom on scroll
+  zoomMax?: number;               // Maximum zoom level
+  zoomMin?: number;               // Minimum zoom level
+  projection?: 'mercator' | 'miller'; // Map projection type
+  style?: {                       // Map styling options
+    regions?: {
+      default?: RegionStyle;      // Default region style
+      hover?: RegionStyle;        // Hover state style
+      selected?: RegionStyle;     // Selected state style
+    };
+  };
+}
+
+interface RegionStyle {
+  fill?: string;                  // Fill color
+  stroke?: string;                // Stroke color
+  strokeWidth?: number;           // Stroke width
+  cursor?: string;                // Cursor style
+}
+
+// Methods
+map.addMarkers(markers: Marker[]);              // Add markers to the map
+map.removeMarkers();                            // Remove all markers
+map.addSeries(series: Series);                  // Add data series
+map.removeSeries();                             // Remove all series
+map.addLines(lines: Line[]);                    // Add connection lines
+map.removeLines();                              // Remove all lines
+map.setZoom(scale: number);                     // Set zoom level
+map.getSelectedRegions(): string[];             // Get selected region codes
+map.clearSelectedRegions();                     // Clear region selection
+map.destroy();                                  // Clean up resources
+```
+
+### Series
+
+Class for creating data visualizations on the map.
+
+```typescript
+interface SeriesOptions {
+  name: string // Series name
+  data: Record<string, number> | Array<{ id: string, value: number }>
+  scale?: {
+    type: 'linear' | 'logarithmic'
+    colors: string[] // Color scale
+    min?: number // Minimum value
+    max?: number // Maximum value
+    steps?: number // Number of color steps
+  }
+  normalizeFunction?: 'linear' | 'polynomial'
+  legend?: {
+    title?: string
+    position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  }
+}
+```
+
+### Events
+
+Available events that can be listened to:
+
+```typescript
+// Region events
+map.on('regionClick', (event: MouseEvent, code: string) => void);
+map.on('regionHover', (event: MouseEvent, code: string) => void);
+map.on('regionSelected', (event: MouseEvent, code: string) => void);
+
+// Marker events
+map.on('markerClick', (event: MouseEvent, index: number) => void);
+map.on('markerHover', (event: MouseEvent, index: number) => void);
+
+// Map events
+map.on('zoom', (scale: number) => void);
+map.on('pan', (x: number, y: number) => void);
+```
+
+### Markers
+
+Interface for adding markers to the map:
+
+```typescript
+interface Marker {
+  coords: [number, number] // Latitude and longitude
+  name?: string // Marker name
+  style?: {
+    fill?: string // Marker fill color
+    stroke?: string // Marker stroke color
+    strokeWidth?: number // Marker stroke width
+    r?: number // Marker radius
+  }
+  hover?: {
+    fill?: string // Hover fill color
+    r?: number // Hover radius
+  }
+}
+```
+
+### Lines
+
+Interface for adding connection lines:
+
+```typescript
+interface Line {
+  from: [number, number] // Starting coordinates
+  to: [number, number] // Ending coordinates
+  style?: {
+    stroke?: string // Line color
+    strokeWidth?: number // Line width
+    dashArray?: string // Dash pattern
+    animation?: boolean // Enable animation
+    animationSpeed?: number // Animation speed
+  }
+}
+```
+
+For more detailed documentation and examples, visit our [documentation site](https://ts-maps.netlify.sh/).
+
+## Changelog
+
+Please see our [releases](https://github.com/stackjs/ts-maps/releases) page for more information on what has changed recently.
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](https://github.com/stacksjs/ts-maps/blob/main/CONTRIBUTING.md) for details.
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
 
 ## Community
 
-- [Discussions](https://github.com/stacksjs/ts-maps/discussions)
-- [Discord Server](https://discord.gg/stacksjs)
+For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-## License
+[Discussions on GitHub](https://github.com/stacksjs/ts-maps/discussions)
 
-[MIT](./LICENSE.md) License © 2024 [Stacks.js](https://github.com/stacksjs)
+For casual chit-chat with others using this package:
+
+[Join the Stacks Discord Server](https://discord.gg/stacksjs)
+
+## Postcardware
+
+"Software that is free, but hopes for a postcard." We love receiving postcards from around the world showing where `ts-maps` is being used! We showcase them on our website too.
+
+Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United States 🌎
 
 ## Sponsors
 
-<p align="center">
-  <a href="https://github.com/sponsors/stacksjs">
-    <img src="https://raw.githubusercontent.com/stacksjs/branding/main/assets/sponsors.svg">
-  </a>
-</p>
+We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
 
-## Credits
+- [JetBrains](https://www.jetbrains.com/)
+- [The Solana Foundation](https://solana.com/)
 
-- [Chris Breuer](https://github.com/chrisbbreuer)
-- [All Contributors](../../contributors)
+## Credit
+
+Many thanks for the libraries that laid the groundwork:
+
+- **countries**: <https://github.com/rinvex/countries>
+
+## License
+
+The MIT License (MIT). Please see [LICENSE](LICENSE.md) for more information.
 
 Made with 💙
 

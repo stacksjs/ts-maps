@@ -19,48 +19,32 @@ const analyticsHead: HeadConfig[] = [
 ]
 
 const nav = [
-  { text: 'News', link: 'https://stacksjs.org/news' },
-  {
-    text: 'Changelog',
-    link: 'https://github.com/stacksjs/ts-maps/blob/main/CHANGELOG.md',
-  },
-  // { text: 'Blog', link: 'https://updates.ow3.org' },
-  {
-    text: 'Resources',
-    items: [
-      { text: 'Team', link: '/team' },
-      { text: 'Sponsors', link: '/sponsors' },
-      { text: 'Partners', link: '/partners' },
-      { text: 'Postcardware', link: '/postcardware' },
-      { text: 'License', link: '/license' },
-      {
-        items: [
-          {
-            text: 'Awesome Stacks',
-            link: 'https://github.com/stacksjs/awesome-stacks',
-          },
-          {
-            text: 'Contributing',
-            link: 'https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md',
-          },
-        ],
-      },
-    ],
-  },
+  { text: 'Home', link: '/' },
+  { text: 'Guide', link: '/intro' },
+  { text: 'Playground', link: '/playground' },
 ]
 
 const sidebar = [
   {
-    text: 'Get Started',
+    text: 'Guide',
     items: [
-      { text: 'Intro', link: '/intro' },
-      { text: 'Install', link: '/install' },
+      { text: 'Introduction', link: '/intro' },
+      { text: 'Installation', link: '/install' },
       { text: 'Usage', link: '/usage' },
-      // { text: 'Demo', link: '/demo' },
     ],
   },
-  { text: 'Showcase', link: '/Showcase' },
+  {
+    text: 'Playground',
+    items: [
+      { text: 'Overview', link: '/playground' },
+      { text: 'Basic Examples', link: '/playground#basic-examples' },
+      { text: 'Interactive Features', link: '/playground#interactive-features' },
+      { text: 'Data Visualization', link: '/playground#data-visualization' },
+      { text: 'Advanced Usage', link: '/playground#advanced-usage' },
+    ],
+  },
 ]
+
 const description = 'Modern & lightweight Typescript library. Easily create pretty & interactive vector maps.'
 const title = 'ts-maps | Beautiful Vector Maps Made Simple'
 
@@ -120,10 +104,7 @@ export default withPwa(
       },
 
       socialLinks: [
-        { icon: 'twitter', link: 'https://twitter.com/stacksjs' },
-        { icon: 'bluesky', link: 'https://bsky.app/profile/chrisbreuer.dev' },
         { icon: 'github', link: 'https://github.com/stacksjs/ts-maps' },
-        { icon: 'discord', link: 'https://discord.gg/stacksjs' },
       ],
 
       // algolia: services.algolia,
