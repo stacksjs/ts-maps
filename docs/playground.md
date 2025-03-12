@@ -205,6 +205,94 @@ const markers = {
 map.addMarkers(markers)
 ```
 
+## Real-World Examples
+
+### Reflect User Location
+
+This example shows how to automatically detect and display the user's location on the map using the IP Geolocation API.
+
+```typescript
+import { VectorMap } from '@stacksjs/ts-maps'
+
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
+  async onLoaded(map) {
+    try {
+      const response = await fetch('https://ipinfo.io/geo')
+      const data = await response.json()
+
+      // Split the coordinates string into an array
+      const coords = data.loc.split(',').map(Number)
+
+      map.addMarkers([{
+        coords,
+        name: `${data.city} - ${data.country} (${data.ip})`,
+        style: {
+          fill: '#3699ff',
+          stroke: '#ffffff',
+          strokeWidth: 2,
+          r: 6
+        },
+        hover: {
+          fill: '#33ff57',
+          r: 8
+        }
+      }])
+    }
+    catch (error) {
+      console.error('Error fetching location:', error)
+    }
+  }
+})
+```
+
+::: details View Full Example
+
+```html
+<!-- location.html -->
+<div id="map" style="width: 800px; height: 500px;"></div>
+<script type="module">
+  import { VectorMap } from '@stacksjs/ts-maps'
+
+  new VectorMap({
+    container: 'map',
+    map: 'world',
+    backgroundColor: '#fff',
+    zoomOnScroll: true,
+    async onLoaded(map) {
+      try {
+        const response = await fetch('https://ipinfo.io/geo')
+        const data = await response.json()
+
+        const coords = data.loc.split(',').map(Number)
+
+        map.addMarkers([{
+          coords: coords,
+          name: `${data.city} - ${data.country} (${data.ip})`,
+          style: {
+            fill: '#3699ff',
+            stroke: '#ffffff',
+            strokeWidth: 2,
+            r: 6
+          },
+          hover: {
+            fill: '#33ff57',
+            r: 8
+          }
+        }])
+      } catch (error) {
+        console.error('Error fetching location:', error)
+      }
+    }
+  })
+</script>
+```
+
+:::
+
+Note: This example uses the [ipinfo.io](https://ipinfo.io) API to get the user's location. You may need to sign up for an API key for production use.
+
 ## Running the Playground
 
 To run these examples locally:
@@ -219,28 +307,50 @@ cd ts-maps
 2. Install dependencies:
 
 ```bash
-npm install
+bun install
 ```
 
 3. Start the playground server:
 
 ```bash
-npm run playground
+bun run playground
 ```
 
-4. Open your browser and navigate to `http://localhost:5173`
+4. Open your browser and navigate to `http://localhost:3000`
 
 ## Playground Structure
 
-The playground includes several example files:
+The playground includes a comprehensive set of example files to help you learn and experiment with ts-maps:
 
-- `basic.html` - Basic map implementation
-- `pretty.html` - Styled map example
-- `events.html` - Event handling demonstrations
-- `markers.html` - Marker usage examples
-- `series.html` - Data visualization with series
-- `lines.html` - Line drawing examples
-- `advanced.html` - Advanced usage scenarios
-- `addmarkers.html` - Dynamic marker manipulation
+### Basic Examples
 
-Each example file is self-contained and includes all necessary code to run the demonstration. Feel free to modify these examples and experiment with different configurations!
+- `basic.html` - Basic map implementation with minimal configuration
+- `pretty.html` - Styled map example with custom colors and hover effects
+
+### Interactive Examples
+
+- `events.html` - Event handling demonstrations (clicks, hovers, zooms)
+- `markers.html` - Basic marker usage and customization
+- `addmarkers.html` - Dynamic marker manipulation and interaction
+
+### Data Visualization
+
+- `series.html` - Data visualization with series and choropleth maps
+- `lines.html` - Drawing connections and paths between locations
+
+### Advanced Usage
+
+- `advanced.html` - Advanced usage scenarios and complex configurations
+- `location.html` - Real-time user location detection and display
+- `other.html` - Additional examples and experimental features
+
+Each example file is self-contained and includes all necessary code to run the demonstration. The examples are designed to be:
+
+- Easy to understand with clear, documented code
+- Ready to run without additional configuration
+- Modifiable for experimentation and learning
+- Practical for real-world use cases
+
+Feel free to modify these examples and experiment with different configurations to learn how ts-maps works!
+
+To access any example, simply navigate to `http://localhost:3000/samples/[example-name]` after starting the playground server.
