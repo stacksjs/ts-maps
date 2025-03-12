@@ -84,9 +84,10 @@ export default function setupElementEvents(this: MapInterface): void {
         }
 
         if (showTooltip && tooltip) {
-          tooltip.text(data.tooltipText)
-          tooltip.show(data.tooltipText)
-          this._emit(data.event, [e, tooltip.getElement(), data.code])
+          this._emit(data.event, [data.event, tooltip, data.code])
+          if (!e.defaultPrevented) {
+            tooltip.show(data.tooltipText)
+          }
         }
       }
       else {
