@@ -22,7 +22,7 @@ const server = serve({
 
     // Default to index.html if path is '/'
     if (path === '/') {
-      path = '/samples/basic.html'
+      path = '/index.html'
     }
 
     try {

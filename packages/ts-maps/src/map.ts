@@ -16,6 +16,7 @@ import DataVisualization from './data-visualization'
 import Events from './defaults/events'
 import Defaults from './defaults/options'
 import EventHandler from './event-handler'
+import Projection from './projection'
 import SVGCanvasElement from './svg/canvas-element'
 import {
   createElement,
@@ -384,13 +385,17 @@ export class Map implements MapInterface {
   // Required by MapInterface
   mercator = {
     convert: (lat: number, lng: number): false | { x: number, y: number } => {
-      return { x: lng, y: lat } // Simplified implementation
+      const centralMeridian = this._mapData.projection?.centralMeridian || 0
+      const result = Projection.merc(lat, lng, centralMeridian)
+      return result
     },
   }
 
   miller = {
     convert: (lat: number, lng: number): false | { x: number, y: number } => {
-      return { x: lng, y: lat } // Simplified implementation
+      const centralMeridian = this._mapData.projection?.centralMeridian || 0
+      const result = Projection.mill(lat, lng, centralMeridian)
+      return result
     },
   }
 

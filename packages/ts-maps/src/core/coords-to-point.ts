@@ -24,11 +24,13 @@ export default function coordsToPoint(this: MapInterface, lat: number, lng: numb
     return false
   }
 
-  const x = inset.leftLng + ((coords.x - inset.leftLng) / (inset.rightLng - inset.leftLng)) * inset.width
-  const y = inset.topLat + ((coords.y - inset.topLat) / (inset.bottomLat - inset.topLat)) * inset.height
+  const { bbox } = inset
+
+  const x = (coords.x - bbox[0].x) / (bbox[1].x - bbox[0].x) * inset.width * this.scale
+  const y = (coords.y - bbox[0].y) / (bbox[1].y - bbox[0].y) * inset.height * this.scale
 
   return {
-    x,
-    y,
+    x: x + this.transX * this.scale + inset.left * this.scale,
+    y: y + this.transY * this.scale + inset.top * this.scale,
   }
 }

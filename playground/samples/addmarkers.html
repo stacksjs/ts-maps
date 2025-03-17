@@ -1,90 +1,498 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Jsvectormap (Add markers)</title>
-    <link rel="stylesheet" href="../assets/css/style.css" />
-    <link rel="stylesheet" href="../dist/css/jsvectormap.css" />
-    <script src="../dist/js/jsvectormap.min.js"></script>
-    <script src="../dist/maps/world.js"></script>
-    <style>
-      input {height: 40px; border: none; background-color: #EEE; display: block;width: 100%}
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>ts-maps Marker Example</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+    }
+
+    .workspace-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      margin: 0 0 10px 0;
+      color: #1e293b;
+    }
+
+    header p {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    header a {
+      padding: 10px 20px;
+      background-color: #4f46e5;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    header a:hover {
+      background-color: #4338ca;
+    }
+
+    #map {
+      width: 100%;
+      height: 600px;
+      margin: 0 auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      position: relative;
+    }
+
+    /* Ensure SVG fills the container */
+    #map svg {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Hide all text elements on the map */
+    #map text {
+      display: none !important;
+    }
+
+    /* Fix for the zoom buttons */
+    #map .jvm-zoom-btn {
+      position: absolute;
+      right: 10px;
+      z-index: 10;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      color: #4f46e5;
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      line-height: 30px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    #map .jvm-zoomin {
+      top: 10px;
+    }
+
+    #map .jvm-zoomout {
+      top: 50px;
+    }
+
+    #map .jvm-zoom-btn:hover {
+      background-color: #f8fafc;
+    }
+
+    /* Improved tooltip styling */
+    .jvm-tooltip {
+      background-color: white;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1e293b;
+      pointer-events: none;
+      border: 1px solid #e2e8f0;
+      z-index: 1000;
+      max-width: 250px;
+      min-width: 120px;
+      text-align: center;
+      position: fixed !important;
+      transition: none !important;
+      transform: translate3d(0,0,0) !important;
+      will-change: top, left !important;
+    }
+
+    /* Tooltip arrow */
+    .jvm-tooltip:after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .controls button {
+      padding: 10px 20px;
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .controls button:hover {
+      background-color: #4338ca;
+    }
+
+    .info-panel {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .info-panel h3 {
+      margin: 0 0 10px 0;
+      color: #1e293b;
+      font-size: 16px;
+    }
+
+    #region-info {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    /* Map legend */
+    .map-legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background-color: white;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 12px;
+      z-index: 100;
+      border: 1px solid #e2e8f0;
+      max-width: 200px;
+    }
+
+    .map-legend h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #1e293b;
+    }
+
+    .legend-gradient {
+      height: 20px;
+      width: 100%;
+      margin-bottom: 5px;
+      background: linear-gradient(to right, #e2e8f0, rgb(40, 70, 200));
+      border-radius: 3px;
+    }
+
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
 </head>
 <body>
-  <div class="map">
-    <div
-      id="map"
-      style="height: 400px;margin: auto">
+  <div class="workspace-wrapper">
+    <header>
+      <div>
+        <h1>ts-maps Marker Example</h1>
+        <p>Add markers to the map by clicking the button or entering coordinates.<br>
+           Try different locations and see them appear on the map instantly.</p>
+      </div>
+      <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+    </header>
+
+    <div id="map"></div>
+
+    <div class="controls">
+      <button id="add-marker">Add Sample Marker</button>
+      <div style="margin: 20px 0">
+        <h3>Add Custom Marker</h3>
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+          <input type="text" id="coords" placeholder="Coords (e.g., 28, 30)" style="padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;" />
+          <input type="text" id="label" placeholder="Location name" style="padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;" />
+          <button id="add">Add Marker</button>
+        </div>
+      </div>
     </div>
-    <button id="add-marker">Add marker</button>
-    <h2 style="margin: 20px 0">Add marker</h2>
-    <input type="text" id="coords"  placeholder="Coords seprated by (,) 28, 30" /><br>
-    <input type="text" id="label" placeholder="Region label" />
-    <button id="add">Add</button>
+
+    <div class="info-panel">
+      <h3>Region Information</h3>
+      <div id="region-info">Click on a region to see its information</div>
+    </div>
   </div>
-  <script>
-    var markers = [
+
+  <script type="module">
+    import { VectorMap } from 'ts-maps'
+    import worldMercator from '../../packages/ts-maps/src/maps/world-merc'
+
+    // Register the map
+    VectorMap.addMap('worldMercator', worldMercator)
+
+    // Function to set the default blue-gray color for all regions
+    function setDefaultRegionColors(map) {
+      const defaultColor = '#e2e8f0' // Light blue-gray color
+
+      // Get all regions
+      const regions = map.regions
+
+      // Apply the default color to all regions
+      Object.keys(regions).forEach((code) => {
+        try {
+          const region = regions[code]
+          if (region && region.element && region.element.shape && region.element.shape.node) {
+            // Set fill color directly on the SVG node
+            region.element.shape.node.setAttribute('fill', defaultColor)
+            region.element.shape.node.style.fill = defaultColor
+
+            // Update the style object if it exists
+            if (region.element.shape.style && region.element.shape.style.initial) {
+              region.element.shape.style.initial.fill = defaultColor
+            }
+          }
+        }
+        catch (e) {
+          console.error(`Error setting default color for ${code}:`, e)
+        }
+      })
+
+      // Update the default region style to ensure new regions get colored properly
+      if (map.params.regionStyle.initial) {
+        map.params.regionStyle.initial.fill = defaultColor
+      }
+    }
+
+    // Initial markers
+    const initialMarkers = [
       {
-        name: 'Geenland',
+        name: 'Greenland',
         coords: [72, -42],
+        style: {
+          r: '8px',
+          fill: '#10b981', // Green
+          stroke: '#ffffff',
+          strokeWidth: '2px',
+        }
       },
       {
         name: 'Canada',
         coords: [56, -106],
+        style: {
+          r: '8px',
+          fill: '#f59e0b', // Amber
+          stroke: '#ffffff',
+          strokeWidth: '2px',
+        }
       },
       {
         name: 'Palestine',
         coords: [31.5, 34.8],
+        style: {
+          r: '8px',
+          fill: '#ef4444', // Red
+          stroke: '#ffffff',
+          strokeWidth: '2px',
+        }
       },
       {
         name: 'Brazil',
         coords: [-14.2350, -51.9253],
-        offset: [10, 15]
-      },
-    ];
+        style: {
+          r: '8px',
+          fill: '#8b5cf6', // Purple
+          stroke: '#ffffff',
+          strokeWidth: '2px',
+        }
+      }
+    ]
 
-    var map = new jsVectorMap({
-      map: 'world',
+    // Create map instance
+    const map = new VectorMap({
+      map: { name: 'worldMercator', projection: 'mercator' },
       selector: '#map',
-      labels: {
-        markers: {
-          render: function(marker) {
-            return marker.name;
-          },
-          offsets: function (index) {
-            return markers[index].offset || [0,0]
-          }
-        },
-      },
-      markers: markers,
+      backgroundColor: '#f8fafc',
+
+      // Set default dimensions
+      defaultWidth: 1200,
+      defaultHeight: 600,
+
+      // Enable zoom controls
+      zoomButtons: true,
+      zoomOnScroll: true,
+      zoomOnScrollSpeed: 1.2,
+      zoomMin: 1,
+      zoomMax: 12,
+
+      // Enable selection
+      regionsSelectable: true,
+      markersSelectable: true,
+      markersSelectableOne: true,
+
+      // Configure markers
+      markers: initialMarkers,
       markerStyle: {
         initial: {
-          fill: '#ff9251'
+          fill: '#4f46e5',
+          r: '6px',
+          stroke: '#ffffff',
+          strokeWidth: '1px',
+        },
+        hover: {
+          fill: '#4338ca',
+          r: '8px',
+        },
+        selected: {
+          fill: '#312e81',
+          r: '8px',
         }
       },
+
+      // Configure region style with the default color
+      regionStyle: {
+        initial: {
+          fill: '#e2e8f0',
+          stroke: '#cbd5e1',
+          strokeWidth: 0.5,
+        },
+        hover: {
+          fill: '#a5b4fc',
+          stroke: '#6366f1',
+          strokeWidth: 0.5,
+        },
+        selected: {
+          fill: '#818cf8',
+          stroke: '#4f46e5',
+          strokeWidth: 0.5,
+        }
+      },
+
+      // Configure labels
+      labels: {
+        markers: {
+          render: (marker) => marker.name,
+          offsets: {
+            x: 0,
+            y: 0
+          }
+        },
+        regions: null
+      },
+
+      // Event handlers
+      onLoaded: function() {
+        console.log('Map loaded')
+        // Set default colors for all regions
+        setDefaultRegionColors(this)
+
+        // Ensure all markers are properly positioned
+        if (this.markers) {
+          Object.values(this.markers).forEach(marker => {
+            if (marker.element) {
+              const coords = this.latLngToPoint(marker.config.coords[0], marker.config.coords[1])
+              marker.element.set({
+                cx: `${coords.x}px`,
+                cy: `${coords.y}px`
+              })
+            }
+          })
+        }
+      },
+
+      onMarkerSelected: (event, code, isSelected, selectedMarkers) => {
+        console.log('Marker selected:', code, isSelected, selectedMarkers)
+
+        const marker = map._markers?.[code]
+        if (marker?.config?.name && isSelected) {
+          const regionInfo = document.getElementById('region-info')
+          if (regionInfo) {
+            regionInfo.innerHTML = `
+              <div style="padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;">
+                <div style="font-weight: 600; color: #4f46e5; margin-bottom: 8px;">${marker.config.name}</div>
+                <div style="color: #64748b; font-size: 12px;">
+                  Location: ${marker.config.coords.join(', ')}
+                </div>
+              </div>
+            `
+          }
+        }
+      }
     })
 
-    document.querySelector('#add-marker').addEventListener('click', function () {
+    // Make map instance globally accessible
+    window._map = map
+
+    // Add sample marker button handler
+    document.querySelector('#add-marker')?.addEventListener('click', () => {
       map.addMarker({
-        name: 'Russia',
-        coords: [61, 105],
-        // These are special..
-        offsets: [15, 10]
+        name: 'New Location',
+        coords: [0, 0],
+        style: {
+          r: '8px',
+          fill: '#4f46e5',
+          stroke: '#ffffff',
+          strokeWidth: '2px',
+        }
       })
     })
 
-    document.querySelector('#add').addEventListener('click', function () {
-      var coords = document.querySelector('#coords').value.split(","),
-          label = document.querySelector('#label').value
+    // Add custom marker button handler
+    document.querySelector('#add')?.addEventListener('click', () => {
+      const coordsInput = document.querySelector('#coords')
+      const labelInput = document.querySelector('#label')
+
+      if (!coordsInput || !labelInput) return
+
+      const coords = coordsInput.value.split(',').map(n => parseFloat(n.trim()))
+      const label = labelInput.value.trim()
+
+      if (coords.length !== 2 || coords.some(n => isNaN(n)) || !label) {
+        alert('Please enter valid coordinates (e.g., 28, 30) and a location name')
+        return
+      }
 
       map.addMarker({
         name: label,
-        coords: [coords[0], coords[1]],
-        offsets: [0, 10]
+        coords: coords,
+        style: {
+          r: '8px',
+          fill: '#4f46e5',
+          stroke: '#ffffff',
+          strokeWidth: '2px',
+        }
       })
+
+      // Clear inputs
+      coordsInput.value = ''
+      labelInput.value = ''
     })
   </script>
 </body>

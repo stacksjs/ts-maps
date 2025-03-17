@@ -4,33 +4,528 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Vector Map (Basic)</title>
-  <!-- <link rel="stylesheet" href="../assets/css/style.css" /> -->
-  <!-- <link rel="stylesheet" href="../../packages/ts-maps/src/css/vector-map.css" /> -->
+  <title>ts-maps Basic Example</title>
   <style>
-    .map-wrapper {
-      border: 1px solid #EEE;
-      padding: 1rem;
-      width: 700px;
-      margin: auto
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+    }
+
+    .workspace-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      margin: 0 0 10px 0;
+      color: #1e293b;
+    }
+
+    header p {
+      margin: 0;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    header a {
+      padding: 10px 20px;
+      background-color: #4f46e5;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    header a:hover {
+      background-color: #4338ca;
+    }
+
+    #map {
+      width: 100%;
+      height: 600px;
+      margin: 0 auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #f1f5f9;
+      position: relative;
+    }
+
+    /* Ensure SVG fills the container */
+    #map svg {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Hide all text elements on the map */
+    #map text {
+      display: none !important;
+    }
+
+    /* Fix for the zoom buttons */
+    #map .jvm-zoom-btn {
+      position: absolute;
+      right: 10px;
+      z-index: 10;
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      color: #4f46e5;
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      line-height: 30px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    #map .jvm-zoomin {
+      top: 10px;
+    }
+
+    #map .jvm-zoomout {
+      top: 50px;
+    }
+
+    #map .jvm-zoom-btn:hover {
+      background-color: #f8fafc;
+    }
+
+    /* Improved tooltip styling */
+    .jvm-tooltip {
+      background-color: white;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1e293b;
+      pointer-events: none;
+      border: 1px solid #e2e8f0;
+      z-index: 1000;
+      max-width: 250px;
+      min-width: 120px;
+      text-align: center;
+      position: fixed !important;
+      transition: none !important;
+      transform: translate3d(0,0,0) !important;
+      will-change: top, left !important;
+    }
+
+    /* Tooltip arrow */
+    .jvm-tooltip:after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .controls button {
+      padding: 10px 20px;
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .controls button:hover {
+      background-color: #4338ca;
+    }
+
+    .info-panel {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .info-panel h3 {
+      margin: 0 0 10px 0;
+      color: #1e293b;
+      font-size: 16px;
+    }
+
+    #region-info {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    /* Map legend */
+    .map-legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background-color: white;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 12px;
+      z-index: 100;
+      border: 1px solid #e2e8f0;
+      max-width: 200px;
+    }
+
+    .map-legend h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #1e293b;
+    }
+
+    .legend-gradient {
+      height: 20px;
+      width: 100%;
+      margin-bottom: 5px;
+      background: linear-gradient(to right, #e2e8f0, rgb(40, 70, 200));
+      border-radius: 3px;
+    }
+
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #64748b;
     }
   </style>
 </head>
 <body>
-  <div id="map" style="width: 750px; height: 400px; margin: auto; border: 1px solid #EEE"></div>
-  <button id="focus">Focus</button>
-  <script type="module">
-    // import { VectorMap } from 'ts-maps'
-    import { VectorMap } from '../../packages/ts-maps/src/index.ts'
+  <div class="workspace-wrapper">
+    <header>
+      <div>
+        <h1>ts-maps Basic Example</h1>
+        <p>Here you can test the basic features of ts-maps and learn how to use them.<br>
+           Click on regions to see their information and use the buttons to focus on specific areas.</p>
+      </div>
+      <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+    </header>
 
-    const map = new VectorMap({
-      map: 'world',
-      selector: '#map',
-    })
+    <div id="map">
 
-    document.querySelector('#focus').addEventListener('click', () => {
-      map.setFocus({ region: 'RU', animate: true })
-    })
+    </div>
+
+    <div class="controls">
+      <button id="focus-mexico">Focus Mexico</button>
+      <button id="focus-canada">Focus Canada</button>
+      <button id="reset">Reset View</button>
+    </div>
+
+    <div class="info-panel">
+      <h3>Region Information</h3>
+      <div id="region-info">Click on a region to see its information</div>
+    </div>
+  </div>
+
+  <script type="module" src="./sample-map.ts"></script>
+  <script>
+    // Mock visitor data
+    const visitorData = {
+      'MX': 180000, // Mexico
+      'CA': 95000,
+      'GB': 85000,
+      'FR': 75000,
+      'DE': 80000,
+      'CN': 200000,
+      'JP': 90000,
+      'AU': 60000,
+      'BR': 70000,
+      'IN': 180000
+    };
+
+    // Function to calculate color based on visitor count
+    function getColorForVisitorCount(count) {
+      if (count === 0) {
+        return '#e2e8f0';
+      }
+
+      const maxVisitors = Math.max(...Object.values(visitorData));
+      const intensity = Math.max(0.2, Math.min(0.9, count / maxVisitors));
+
+      const r = Math.floor(120 - (80 * intensity));
+      const g = Math.floor(150 - (100 * intensity));
+      const b = Math.floor(240 - (40 * intensity));
+
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // Create legend element
+    function createLegend() {
+      const legend = document.createElement('div');
+      legend.className = 'map-legend';
+      legend.innerHTML = `
+        <h4>Visitor Count</h4>
+        <div class="legend-gradient"></div>
+        <div class="legend-labels">
+          <span>0</span>
+          <span>${Math.max(...Object.values(visitorData)).toLocaleString()}</span>
+        </div>
+      `;
+      document.getElementById('map').appendChild(legend);
+    }
+
+    // Function to apply visitor colors to regions
+    function applyVisitorColors(map) {
+      const regions = map.regions;
+      const defaultColor = '#e2e8f0';
+
+      // Set default color for all regions
+      Object.keys(regions).forEach(code => {
+        const region = regions[code];
+        if (region && region.element && region.element.shape) {
+          region.element.shape.node.setAttribute('fill', defaultColor);
+          region.element.shape.node.style.fill = defaultColor;
+
+          // Also update the style object if it exists
+          if (region.element.shape.style && region.element.shape.style.initial) {
+            region.element.shape.style.initial.fill = defaultColor;
+          }
+        }
+      });
+
+      // Apply colors based on visitor data
+      Object.entries(visitorData).forEach(([code, count]) => {
+        const region = regions[code];
+        if (region && region.element && region.element.shape) {
+          const color = getColorForVisitorCount(count);
+          region.element.shape.node.setAttribute('fill', color);
+          region.element.shape.node.style.fill = color;
+
+          // Also update the style object if it exists
+          if (region.element.shape.style && region.element.shape.style.initial) {
+            region.element.shape.style.initial.fill = color;
+          }
+        }
+      });
+
+      // Update the default region style to ensure new regions get colored properly
+      if (map.params && map.params.regionStyle && map.params.regionStyle.initial) {
+        map.params.regionStyle.initial.fill = defaultColor;
+      }
+    }
+
+    // Wait for the map to be initialized
+    document.addEventListener('DOMContentLoaded', function() {
+      // Function to get the map instance
+      function getMap() {
+        // The map instance is stored in window._map by the sample-map.ts
+        return window._map;
+      }
+
+      // Add event listeners to buttons
+      document.getElementById('focus-mexico').addEventListener('click', () => {
+        const map = getMap();
+        if (map) {
+          // Reset view first
+          map.reset();
+
+          // Then focus on Mexico
+          setTimeout(() => {
+            map.setFocus({
+              region: 'MX',
+              animate: true,
+              scale: 2
+            });
+          }, 100);
+        }
+      });
+
+      document.getElementById('focus-canada').addEventListener('click', () => {
+        const map = getMap();
+        if (map) {
+          // Reset view first
+          map.reset();
+
+          // Then focus on Canada
+          setTimeout(() => {
+            map.setFocus({
+              region: 'CA',
+              animate: true,
+              scale: 2
+            });
+          }, 100);
+        }
+      });
+
+      document.getElementById('reset').addEventListener('click', () => {
+        const map = getMap();
+        if (map) {
+          map.reset();
+          document.getElementById('region-info').textContent = 'Click on a region to see its information';
+        }
+      });
+
+      // Set up tooltip positioning
+      function setupTooltip() {
+        const mapContainer = document.getElementById('map');
+        const tooltip = document.querySelector('.jvm-tooltip');
+
+        if (!mapContainer || !tooltip) {
+          // If elements aren't ready yet, try again in 500ms
+          setTimeout(setupTooltip, 500);
+          return;
+        }
+
+        // Add a style to ensure tooltip is visible when active
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+          .jvm-tooltip.active {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+        `;
+        document.head.appendChild(styleElement);
+
+        // Create a function to position the tooltip
+        function positionTooltip(e) {
+          // Only position the tooltip if it's visible
+          if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+            // Get the map container's position
+            const mapRect = mapContainer.getBoundingClientRect();
+
+            // Calculate tooltip position
+            const tooltipWidth = tooltip.offsetWidth;
+            const tooltipHeight = tooltip.offsetHeight;
+
+            // Get cursor position relative to the viewport
+            const cursorX = e.clientX;
+            const cursorY = e.clientY;
+
+            // Calculate position to place tooltip directly above cursor
+            const offsetY = 15; // Distance above cursor
+
+            // Set tooltip position
+            tooltip.style.left = (cursorX - tooltipWidth / 2) + 'px';
+            tooltip.style.top = (cursorY - tooltipHeight - offsetY) + window.scrollY + 'px';
+          }
+        }
+
+        // Override the built-in tooltip positioning
+        mapContainer.addEventListener('mousemove', positionTooltip);
+
+        // Also handle scroll events to keep tooltip positioned correctly
+        window.addEventListener('scroll', function() {
+          // Use the last known mouse position
+          const lastEvent = window.lastMouseEvent;
+          if (lastEvent) {
+            positionTooltip(lastEvent);
+          }
+        });
+
+        // Store the last mouse event for reference
+        mapContainer.addEventListener('mousemove', function(e) {
+          window.lastMouseEvent = e;
+        });
+
+        // Update tooltip content to include visitor count
+        const map = getMap();
+        if (map) {
+          map.params.onRegionTooltipShow = function(_event, tooltip, code) {
+            // Get region name from map data
+            const mapData = map._mapData;
+            let regionName = code;
+            if (mapData.paths && typeof mapData.paths === 'object' && code in mapData.paths) {
+              regionName = mapData.paths[code]?.name || code;
+            }
+
+            // Get visitor count for this region
+            const visitorCount = visitorData[code] || 0;
+            const formattedCount = visitorCount.toLocaleString();
+
+            // Create tooltip content
+            let tooltipContent = `
+              <div style="text-align: center;">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${regionName}</div>
+            `;
+
+            if (visitorCount > 0) {
+              tooltipContent += `
+                <div style="font-size: 14px; color: #4f46e5; font-weight: 600; margin-bottom: 3px;">
+                  ${formattedCount} visitors
+                </div>
+              `;
+            } else {
+              tooltipContent += `
+                <div style="font-size: 13px; color: #94a3b8; margin-bottom: 3px;">
+                  No visitor data
+                </div>
+              `;
+            }
+
+            tooltipContent += `
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                  Code: ${code}
+                </div>
+              </div>
+            `;
+
+            tooltip.html(tooltipContent);
+          };
+        }
+
+        // Use MutationObserver to detect when the tooltip becomes visible
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' &&
+                (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+              // If the tooltip is now visible, position it using the last mouse event
+              if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+                if (window.lastMouseEvent) {
+                  positionTooltip(window.lastMouseEvent);
+                }
+              }
+            }
+          });
+        });
+
+        // Start observing the tooltip for attribute changes
+        observer.observe(tooltip, { attributes: true });
+      }
+
+      // Start the tooltip setup process
+      setupTooltip();
+
+      // Initialize visitor colors and legend
+      const map = getMap();
+      if (map) {
+        // Wait for the map to be fully loaded
+        setTimeout(() => {
+          applyVisitorColors(map);
+          createLegend();
+        }, 1000);
+      }
+    });
   </script>
 </body>
 </html>
