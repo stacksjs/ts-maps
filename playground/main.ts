@@ -140,8 +140,6 @@ function applyVisitorColors(map: any): void {
         if (typeof region.element.setStyle === 'function') {
           region.element.setStyle('fill', color)
         }
-
-        console.error(`Applied color ${color} to region ${code}`)
       }
     }
     catch (e) {
@@ -210,22 +208,7 @@ const _map = new VectorMap({
 
   // Marker and label style
   markers,
-  markerStyle: {
-    initial: {
-      fill: '#4f46e5',
-      r: 6,
-      stroke: '#ffffff',
-      strokeWidth: 1,
-    },
-    hover: {
-      fill: '#4338ca',
-      r: 8,
-    },
-    selected: {
-      fill: '#312e81',
-      r: 8,
-    },
-  },
+  markerStyle: { initial: { fill: '#66F' } },
 
   // Event handling
   onLoaded(): void {

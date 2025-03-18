@@ -56,7 +56,7 @@ function merge<T extends Record<string, any>>(target: T, source: Record<string, 
     return DeepMerge(target, source) as T
   }
 
-  return Object.assign({}, target, source) as T
+  return Object.assign(target, source) as T
 }
 
 function keys<T extends Record<string, any>>(object: T): Array<keyof T> {
