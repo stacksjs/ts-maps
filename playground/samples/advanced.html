@@ -4,245 +4,254 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>JsVectorMap (Workspace)</title>
-    <link rel="stylesheet" href="../assets/css/style.css" />
-    <link rel="stylesheet" href="../dist/css/jsvectormap.css" />
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
-    <script src="../dist/js/jsvectormap.js"></script>
-    <script src="../dist/maps/world.js"></script>
+    <title>ts-maps Advanced Example</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .workspace-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            margin: 0 0 10px 0;
+            color: #1e293b;
+        }
+
+        header p {
+            margin: 0;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        header a {
+            padding: 10px 20px;
+            background-color: #4f46e5;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        header a:hover {
+            background-color: #4338ca;
+        }
+
+        #map {
+            width: 100%;
+            height: 600px;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #f1f5f9;
+            position: relative;
+        }
+
+        /* Ensure SVG fills the container */
+        #map svg {
+            width: 100% !important;
+            height: 100% !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Hide all text elements on the map */
+        #map text {
+            display: none !important;
+        }
+
+        /* Fix for the zoom buttons */
+        #map .jvm-zoom-btn {
+            position: absolute;
+            right: 10px;
+            z-index: 10;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            color: #4f46e5;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            line-height: 30px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        #map .jvm-zoomin {
+            top: 10px;
+        }
+
+        #map .jvm-zoomout {
+            top: 50px;
+        }
+
+        #map .jvm-zoom-btn:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Improved tooltip styling */
+        .jvm-tooltip {
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+            pointer-events: none;
+            border: 1px solid #e2e8f0;
+            z-index: 1000;
+            max-width: 250px;
+            min-width: 120px;
+            text-align: center;
+            position: fixed !important;
+            transition: none !important;
+            transform: translate3d(0,0,0) !important;
+            will-change: top, left !important;
+        }
+
+        /* Tooltip arrow */
+        .jvm-tooltip:after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%) rotate(45deg);
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .controls button:hover {
+            background-color: #4338ca;
+        }
+
+        .info-panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            color: #1e293b;
+            font-size: 16px;
+        }
+
+        #region-info {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        /* Map legend */
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 12px;
+            z-index: 100;
+            border: 1px solid #e2e8f0;
+            max-width: 200px;
+        }
+
+        .map-legend h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .legend-gradient {
+            height: 20px;
+            width: 100%;
+            margin-bottom: 5px;
+            background: linear-gradient(to right, #e2e8f0, rgb(40, 70, 200));
+            border-radius: 3px;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
 </head>
 <body>
-  <div class="text-center mt-4">
+    <div class="workspace-wrapper">
+        <header>
+            <div>
+                <h1>ts-maps Advanced Example</h1>
+                <p>Here you can test the advanced features of ts-maps and learn how to use them.<br>
+                   Click on regions to see their information and use the buttons to control the map.</p>
+            </div>
+            <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+        </header>
 
-    <div id="map-wrapper" style="width: 750px; height: 400px; margin: auto; border: 1px solid #EEE"></div>
+        <div id="map"></div>
 
-    <div class="container mt-4">
-      <button id="change-bg-color" class="btn btn-primary">Change bg color randomly</button>
-      <button id="reset" class="btn btn-primary">Reset Map</button>
-      <button id="get-regions" class="btn btn-primary">Get selected regions</button>
-      <button id="clear-regions" class="btn btn-primary">Clear selected regions</button>
+        <div class="controls">
+            <button id="change-bg-color">Change bg color</button>
+            <button id="reset">Reset Map</button>
+            <button id="get-regions">Get selected regions</button>
+            <button id="clear-regions">Clear selected regions</button>
+            <button id="get-markers">Get selected markers</button>
+            <button id="clear-markers">Clear selected markers</button>
+            <button id="add-marker">Add Marker</button>
+        </div>
+
+        <div class="info-panel">
+            <h3>Region Information</h3>
+            <div id="region-info">Click on a region to see its information</div>
+        </div>
     </div>
 
-    <div class="container mt-1">
-      <button id="get-markers" class="btn btn-primary">Get selected markers</button>
-      <button id="clear-markers" class="btn btn-primary">Clear selected markers</button>
-      <button id="add-marker" class="btn btn-primary">Add Marker</button>
-    </div>
-  </div>
-
-  <script>
-    var markers = [{
-        name: 'Russia',
-        coords: [61, 105],
-        style: {
-          r: 10
-        }
-      },
-      {
-        name: 'Geenland',
-        coords: [72, -42],
-        style: {
-          r: 11,
-        }
-      },
-      {
-        name: 'Canada',
-        coords: [56, -106],
-        style: {
-          r: 15,
-        }
-      },
-      {
-        name: 'Palestine',
-        coords: [31.5, 34.8],
-        style: {
-          r: 7,
-        }
-      },
-      {
-        name: 'Brazil',
-        coords: [-14.2350, -51.9253],
-      },
-      {
-        name: 'China',
-        coords: [35.8617, 104.1954],
-        style: {
-          image: "../assets/images/pin.png"
-        },
-        offsets: [2, 2]
-      },
-    ];
-
-    var map = new jsVectorMap({
-      map: 'world',
-      selector: '#map-wrapper',
-
-      regionsSelectable: true,
-      markersSelectable: true,
-
-      // -------- Events --------
-      onRegionSelected: function (index, isSelected, selectedRegions) {
-        console.log(index, isSelected, selectedRegions);
-      },
-      onMarkerSelected: function (code, isSelected, selectedMarkers) {
-        console.log(code, isSelected, selectedMarkers)
-      },
-      onRegionTooltipShow: function (event, tooltip, code) {
-        if (code === 'RU') {
-          tooltip.getElement().innerHTML = tooltip.text() + ' <b>(Hello Russia)</b>'
-        }
-      },
-      onMarkerTooltipShow: function (event, tooltip, index) {
-        tooltip.getElement().innerHTML = '<h5 class="mb-0">'+tooltip.text()+'</h5>' + '<p class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.</p><small class="mb-0">Lorem ipsum dolor sit amet consectetur adipisicing elit.</small>'
-      },
-
-      // -------- Labels --------
-      labels: {
-        markers: {
-          render: function(marker) {
-            return marker.name;
-          },
-          offsets: function(index) {
-            return markers[index].offsets || [0, 0]
-          }
-        },
-        regions: {
-          render: function(code) {
-            var codes = ['EG', 'KZ', 'CN']
-
-            if (codes.indexOf(code) > -1) {
-              return ''
-            }
-          },
-        }
-      },
-
-      // -------- Region and label style --------
-      regionStyle: {
-        selected: {
-          fill: "#5c5cff"
-        }
-      },
-      regionLabelStyle: {},
-
-      // -------- Marker and label style --------
-      markers: markers,
-      markerStyle: {
-        initial: {
-          fill: '#ff5566'
-        },
-        hover: {
-          stroke: "#676767",
-          fillOpacity: 1,
-          strokeWidth: 2.5,
-          fill: '#ff5566'
-        },
-        selected: {
-          fill: '#ff9251'
-        }
-      },
-      markerLabelStyle: {
-        initial: {
-          fontFamily: 'Poppins',
-          fontSize: 13,
-          fontWeight: 500,
-          fill: '#35373e',
-        },
-      },
-
-      // -------- Series --------
-      series: {
-        markers: [
-          {
-            attribute: "fill",
-            legend: {
-              title: "Something (marker)",
-              // vertical: true,
-            },
-            scale: {
-              "Criteria one": "#ffd400",
-              "Criteria two": "#4761ff"
-            },
-            values: {
-              0: "Criteria one",
-              1: "Criteria two",
-              2: "Criteria two"
-            }
-          },
-        ],
-
-        // ---------- Region series ----------
-        regions: [
-          {
-            attribute: 'fill',
-            attributes: {
-              // EG: 'red'
-            },
-            legend: {
-              title: 'Some title (region)',
-              vertical: true,
-            },
-            scale: {
-              "Criteria": "#4bdc77",
-              "Another Criteria": "#ff5566"
-            },
-            values: {
-              GB: "Another Criteria",
-              MX: "Criteria",
-              // LY: "Criteria",
-            },
-          },
-        ]
-      },
-    })
-
-    function $(selector) {
-      return document.querySelector(selector)
-    }
-
-    $('#reset').addEventListener('click', function () {
-      map.reset()
-    })
-
-    $('#get-regions').addEventListener('click', function () {
-      if (! map.getSelectedRegions().length) {
-        alert('No regions selected')
-      } else {
-        alert(map.getSelectedRegions())
-      }
-    })
-
-    $('#clear-regions').addEventListener('click', function () {
-      map.clearSelectedRegions()
-    })
-
-    $('#get-markers').addEventListener('click', function () {
-      var selectedMarkers = map.getSelectedMarkers()
-
-      if (! selectedMarkers.length) {
-        alert('No regions markers')
-      } else {
-        alert(selectedMarkers)
-      }
-    })
-
-    $('#clear-markers').addEventListener('click', function () {
-      map.clearSelectedMarkers()
-    })
-
-    $('#add-marker').addEventListener('click', function () {
-      map.addMarkers({
-        name: 'Egypt',
-        coords: [26.8, 30],
-        offsets: [0, 0]
-      })
-    })
-
-    $('#change-bg-color').addEventListener('click', function () {
-      var colors = ['#5c5cff', '#ff9251', '#56de80', '#FFF', '#000', '#f5d4f5'],
-        index = Math.floor((Math.random() * colors.length - 1) + 1)
-      map.setBackgroundColor(colors[index])
-    })
-  </script>
+    <script type="module" src="./sample-map.ts"></script>
+    <script>
+        //TODO
+    </script>
 </body>
 </html>

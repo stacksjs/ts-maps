@@ -2,11 +2,11 @@ import type { MapData, MarkerConfig } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
 // import world from '../packages/ts-maps/src/maps/world'
 // Try using world-merc instead as it might have better projection
-import world from '../../packages/ts-maps/src/maps/world'
+import worldMerc from '../../packages/ts-maps/src/maps/world-merc'
 
 // Register the map data
 // VectorMap.addMap('world', world)
-VectorMap.addMap('world', world)
+VectorMap.addMap('worldMerc', worldMerc)
 
 // Function to set the default blue-gray color for all regions
 function setDefaultRegionColors(map: any): void {
@@ -43,7 +43,7 @@ function setDefaultRegionColors(map: any): void {
 
 // Create the map instance
 const map = new VectorMap({
-  map: { name: 'world', projection: 'mercator' },
+  map: { name: 'worldMerc', projection: 'mercator' },
   selector: '#map',
   zoomButtons: true,
   backgroundColor: '#f8fafc',
@@ -96,43 +96,7 @@ const map = new VectorMap({
   },
 
   // Default markers array
-  markers: [{
-    name: 'Mexico City',
-    coords: [19.4326, -99.1332],
-    style: {
-      r: 10,
-      fill: '#10b981', // Green color
-      stroke: '#ffffff',
-      strokeWidth: 2,
-    },
-  }, {
-    name: 'Cancun',
-    coords: [21.1619, -86.8515],
-    style: {
-      r: 8,
-      fill: '#f59e0b', // Amber color
-      stroke: '#ffffff',
-      strokeWidth: 2,
-    },
-  }, {
-    name: 'Guadalajara',
-    coords: [20.6597, -103.3496],
-    style: {
-      r: 8,
-      fill: '#ef4444', // Red color
-      stroke: '#ffffff',
-      strokeWidth: 2,
-    },
-  }, {
-    name: 'Canada',
-    coords: [56, -106],
-    style: {
-      r: 8,
-    },
-  }, {
-    name: 'Brazil',
-    coords: [-14.2350, -51.9253],
-  }],
+  markers: [],
 
   // Marker style configuration
   markerStyle: {

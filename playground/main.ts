@@ -69,14 +69,7 @@ Object.entries(visitorData).forEach(([code, count]) => {
   regionColors[code] = getColorForVisitorCount(count)
 })
 
-const markers: MarkerConfig[] = [
-  { name: 'Russia', coords: [61, 105] as [number, number] },
-  { name: 'Greenland', coords: [72, -42] as [number, number] },
-  { name: 'Canada', coords: [56.1304, -106.3468] as [number, number] },
-  { name: 'Palestine', coords: [31.5, 34.8] as [number, number] },
-  { name: 'Brazil', coords: [-14.2350, -51.9253] as [number, number] },
-  { name: 'Turkey', coords: [39.0, 35.0] as [number, number] },
-]
+const markers: MarkerConfig[] = []
 
 // Function to apply visitor colors to regions
 function applyVisitorColors(map: any): void {
@@ -224,30 +217,28 @@ const _map = new VectorMap({
     this._height = containerHeight
     this.canvas.setSize(containerWidth, containerHeight)
 
-    // Force resize to ensure proper display
+    // Force resize to ensure proper displayf
     this.updateSize()
 
-    // Set timeout to ensure the map has fully rendered before adjusting
+    // // Set timeout to ensure the map has fully rendered before adjusting
     setTimeout(() => {
-      // Reset to default view
-      this.reset()
 
-      // Set the scale to show the entire world
-      this._setScale(1)
+        // Set the scale to show the entire world
+        this._setScale(1)
 
-      // Center the map
-      this.transX = 0
-      this.transY = 0
+        // Center the map
+        this.transX = 0
+        this.transY = 0
 
-      // Apply the transform
-      this._applyTransform()
+        // Apply the transform
+        this._applyTransform()
 
-      // Apply custom colors based on visitor data
-      applyVisitorColors(this)
+        // Apply custom colors based on visitor data
+        applyVisitorColors(this)
 
-      // Force redraw of the map
-      this.updateSize()
-      this._applyTransform()
+        // Force redraw of the map
+        this.updateSize()
+        this._applyTransform()
 
       // Update the legend with visitor count information
       updateLegend()
