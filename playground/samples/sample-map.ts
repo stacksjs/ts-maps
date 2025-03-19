@@ -57,7 +57,6 @@ const map = new VectorMap({
   zoomMax: 12,
   zoomOnScroll: true,
   zoomOnScrollSpeed: 1.2,
-
   // Initial focus settings
   focus: {
     regions: ['MX'],
@@ -119,45 +118,6 @@ const map = new VectorMap({
   // Event handling
   onLoaded(): void {
     console.warn('Map loaded:', this)
-
-    // Get container dimensions
-    const containerWidth = this.container.clientWidth || 1200
-    const containerHeight = this.container.clientHeight || 600
-
-    // Set SVG dimensions to match container
-    this._width = containerWidth
-    this._height = containerHeight
-    this.canvas.setSize(containerWidth, containerHeight)
-
-    // Store default dimensions for reference
-    this.defaultWidth = containerWidth
-    this.defaultHeight = containerHeight
-
-    // Force resize to ensure proper display
-    this.updateSize()
-
-    // Set timeout to ensure the map has fully rendered
-    setTimeout(() => {
-      // Reset to default view
-      this.reset()
-
-      // Set the scale to show the entire world
-      this._setScale(1)
-
-      // Center the map
-      this.transX = 0
-      this.transY = 0
-
-      // Apply the transform
-      this._applyTransform()
-
-      // Set default colors for all regions
-      setDefaultRegionColors(this)
-
-      // Force redraw of the map
-      this.updateSize()
-      this._applyTransform()
-    }, 100)
   },
 
   onViewportChange: (x: number, y: number, z: number): void => {
