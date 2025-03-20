@@ -19,8 +19,8 @@ export default function setScale(
   let transXDiff: number
   let transYStart: number
   let transYDiff: number
-  let transX = this.transX
-  let transY = this.transY
+  let transX: number
+  let transY: number
 
   const zoomMax = this.params.zoomMax ?? 8
   const zoomMin = this.params.zoomMin ?? 1

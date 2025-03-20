@@ -69,7 +69,15 @@ Object.entries(visitorData).forEach(([code, count]) => {
   regionColors[code] = getColorForVisitorCount(count)
 })
 
-const markers: MarkerConfig[] = []
+const markers: MarkerConfig[] = [
+  {
+    name: 'Russia',
+    coords: [61, 105],
+    style: {
+      r: 10,
+    },
+  },
+]
 
 // Function to apply visitor colors to regions
 function applyVisitorColors(map: any): void {
@@ -208,41 +216,37 @@ const _map = new VectorMap({
     // eslint-disable-next-line no-console
     console.log('Map loaded:', this)
 
-    // Get container dimensions
-    const containerWidth = this.container.clientWidth
-    const containerHeight = this.container.clientHeight
+    // // Get container dimensions
+    // const containerWidth = this.container.clientWidth
+    // const containerHeight = this.container.clientHeight
 
-    // Set SVG dimensions to match container
-    this._width = containerWidth
-    this._height = containerHeight
-    this.canvas.setSize(containerWidth, containerHeight)
+    // // Set SVG dimensions to match container
+    // this._width = containerWidth
+    // this._height = containerHeight
+    // this.canvas.setSize(containerWidth, containerHeight)
 
-    // Force resize to ensure proper displayf
-    this.updateSize()
+    // // Force resize to ensure proper displayf
+    // this.updateSize()
 
-    // // Set timeout to ensure the map has fully rendered before adjusting
-    setTimeout(() => {
+    // // // Set timeout to ensure the map has fully rendered before adjusting
+    // setTimeout(() => {
+    //   // Center the map
+    //   this.transX = 0
+    //   this.transY = 0
 
-        // Set the scale to show the entire world
-        this._setScale(1)
+    //   // Apply the transform
+    //   this._applyTransform()
 
-        // Center the map
-        this.transX = 0
-        this.transY = 0
+    //   // Apply custom colors based on visitor data
+    applyVisitorColors(this)
 
-        // Apply the transform
-        this._applyTransform()
+    //   // Force redraw of the map
+    //   this.updateSize()
+    //   this._applyTransform()
 
-        // Apply custom colors based on visitor data
-        applyVisitorColors(this)
-
-        // Force redraw of the map
-        this.updateSize()
-        this._applyTransform()
-
-      // Update the legend with visitor count information
-      updateLegend()
-    }, 100)
+    //   // Update the legend with visitor count information
+    //   updateLegend()
+    // }, 100)
   },
 
   onViewportChange: (x: number, y: number, z: number): void => {

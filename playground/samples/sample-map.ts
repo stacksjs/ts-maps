@@ -1,12 +1,12 @@
 import type { MapData, MarkerConfig } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
+import worldMerc from '../../packages/ts-maps/src/maps/world-merc'
 // import world from '../packages/ts-maps/src/maps/world'
 // Try using world-merc instead as it might have better projection
-import worldMerc from '../../packages/ts-maps/src/maps/world-merc'
 
 // Register the map data
 // VectorMap.addMap('world', world)
-VectorMap.addMap('worldMerc', worldMerc)
+VectorMap.addMap('world_merc', worldMerc)
 
 // Function to set the default blue-gray color for all regions
 function setDefaultRegionColors(map: any): void {
@@ -43,14 +43,10 @@ function setDefaultRegionColors(map: any): void {
 
 // Create the map instance
 const map = new VectorMap({
-  map: { name: 'worldMerc', projection: 'mercator' },
+  map: { name: 'world_merc', projection: 'mercator' },
   selector: '#map',
   zoomButtons: true,
   backgroundColor: '#f8fafc',
-
-  // Set default dimensions
-  defaultWidth: 1200,
-  defaultHeight: 600,
 
   // Set zoom limits for better Plasta Vista viewing
   zoomMin: 1,
@@ -95,7 +91,48 @@ const map = new VectorMap({
   },
 
   // Default markers array
-  markers: [],
+  markers: [
+    {
+      name: 'Russia',
+      coords: [61, 105],
+      style: {
+        r: 10,
+      },
+    },
+    {
+      name: 'Geenland',
+      coords: [72, -42],
+      style: {
+        r: 11,
+      },
+    },
+    {
+      name: 'Canada',
+      coords: [56, -106],
+      style: {
+        r: 15,
+      },
+    },
+    {
+      name: 'Palestine',
+      coords: [31.5, 34.8],
+      style: {
+        r: 7,
+      },
+    },
+    {
+      name: 'Brazil',
+      coords: [-14.2350, -51.9253],
+    },
+    {
+      name: 'China',
+      coords: [35.8617, 104.1954],
+      style: {
+        image: '../assets/images/pin.png',
+      },
+      offsets: [2, 2],
+    },
+  ],
 
   // Marker style configuration
   markerStyle: {

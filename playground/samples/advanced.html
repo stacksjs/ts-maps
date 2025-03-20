@@ -52,13 +52,9 @@
         }
 
         #map {
-            width: 100%;
-            height: 600px;
-            margin: 0 auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            overflow: hidden;
-            background-color: #f1f5f9;
+            width: 1200px;
+            height: 580px;
+            margin: auto;
             position: relative;
         }
 
@@ -264,14 +260,49 @@
 
               // Define major cities with their coordinates and details
               const initialMarkers = [
-                { name: 'Greenland', coords: [72, -42] },
-                { name: 'Canada', coords: [56.1304, -106.3468] },
-                { name: 'Palestine', coords: [31.5, 34.8] },
-                { name: 'Brazil', coords: [-14.2350, -51.9253] },
-                { name: 'Turkey', coords: [39.0, 35.0] },
+                {
+                  name: 'Greenland',
+                  coords: [72, -42],
+                  style: {
+                    fill: '#4f46e5',
+                    r: 5,
+                    stroke: '#fff',
+                    'stroke-width': 1
+                  }
+                },
+                {
+                  name: 'Canada',
+                  coords: [56.1304, -106.3468],
+                  style: {
+                    fill: '#4f46e5',
+                    r: 5,
+                    stroke: '#fff',
+                    'stroke-width': 1
+                  }
+                },
+                {
+                  name: 'Palestine',
+                  coords: [31.5, 34.8],
+                  style: {
+                    fill: '#4f46e5',
+                    r: 5,
+                    stroke: '#fff',
+                    'stroke-width': 1
+                  }
+                },
+                {
+                  name: 'Brazil',
+                  coords: [-14.2350, -51.9253],
+                  style: {
+                    fill: '#4f46e5',
+                    r: 5,
+                    stroke: '#fff',
+                    'stroke-width': 1
+                  }
+                },
               ];
 
-              // map.addMarkers(initialMarkers);
+              map.addMarkers(initialMarkers);
           }, 1000); // Wait for 1 second to ensure map is fully loaded
 
           // Change background color

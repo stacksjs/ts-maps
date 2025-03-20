@@ -326,6 +326,7 @@ export interface SVGCanvasElement {
   createImage: (config: Record<string, any>) => SVGElement
   createText: (config: Record<string, any>) => SVGElement
   applyTransformParams: (scale: number, transX: number, transY: number) => void
+  setSize: (width: number, height: number) => void
 }
 
 export interface LegendOptions {
