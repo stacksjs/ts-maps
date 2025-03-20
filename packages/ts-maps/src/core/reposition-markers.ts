@@ -6,7 +6,8 @@ export default function repositionMarkers(this: MapInterface): void {
 
   for (const index in this._markers) {
     const marker = this._markers[index] as any
-    if (!marker || !marker.shape)
+
+    if (!marker || !marker.element || !marker.element.shape)
       continue
 
     const point = this.getMarkerPosition(marker.config)
@@ -17,15 +18,10 @@ export default function repositionMarkers(this: MapInterface): void {
       const cy = Number.isNaN(point.y) ? 0 : point.y
 
       // Update marker position through its shape property
-      marker.shape.set({
+      marker.element.shape.set({
         cx,
         cy,
       })
-
-      // Update label position if it exists
-      if (marker.label) {
-        marker.updateLabelPosition()
-      }
     }
   }
 }

@@ -51,7 +51,6 @@ export default function createMarkers(
       this.removeMarkers([index])
     }
 
-    this._markers = this._markers || {}
     this._markers[index] = {
       _uid: uid,
       config,

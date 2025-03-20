@@ -243,7 +243,7 @@ export interface MapInterface {
   _baseScale: number
   _baseTransX: number
   _baseTransY: number
-  _markers?: Record<string, Marker>
+  _markers: Record<string, Marker>
   _lines?: Record<string, any>
   _linesGroup?: any
   _markersGroup?: any

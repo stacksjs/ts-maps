@@ -18,6 +18,7 @@ import Defaults from './defaults/options'
 import EventHandler from './event-handler'
 import Projection from './projection'
 import SVGCanvasElement from './svg/canvas-element'
+import SVGElement from './svg/base-element'
 import {
   createElement,
   getElement,
@@ -64,9 +65,9 @@ export class Map implements MapInterface {
   _baseTransX: number = 0
   _baseTransY: number = 0
   _tooltip?: Tooltip
-  _linesGroup?: SVGGElement
-  _markersGroup?: SVGGElement
-  _markerLabelsGroup?: SVGGElement
+  _linesGroup?: SVGElement
+  _markersGroup?: SVGElement
+  _markerLabelsGroup?: SVGElement
   _canvasImpl!: SVGCanvasElement
 
   constructor(options: MapOptions = {} as MapOptions) {
@@ -126,7 +127,7 @@ export class Map implements MapInterface {
       if (!group) {
         throw new TypeError('Failed to create lines group')
       }
-      this._linesGroup = group.node
+      this._linesGroup = group
     }
 
     if (options.markers) {
@@ -135,8 +136,9 @@ export class Map implements MapInterface {
       if (!markersGroup || !labelsGroup) {
         throw new TypeError('Failed to create markers groups')
       }
-      this._markersGroup = markersGroup.node
-      this._markerLabelsGroup = labelsGroup.node
+
+      this._markersGroup = markersGroup
+      this._markerLabelsGroup = labelsGroup
     }
 
     // Create markers
@@ -256,7 +258,7 @@ export class Map implements MapInterface {
 
   addMarkers(config: MarkerConfig | MarkerConfig[]): void {
     const configs = Array.isArray(config) ? config : [config]
-    this._createMarkers(configs)
+    this._createMarkers(configs, true)
   }
 
   removeMarkers(markers?: string[]): void {
@@ -478,7 +480,7 @@ export class Map implements MapInterface {
     // Implementation will be added
   }
 
-  _createMarkers(_markers: MarkerConfig[]): void {
+  _createMarkers(_markers: MarkerConfig[], isRecentlyCreated: boolean = false): void {
     // Implementation will be added
   }
 
