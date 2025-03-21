@@ -42,8 +42,15 @@ class Marker extends BaseComponent {
   private _offsets: [number, number] | null = null
   private _isImage: boolean
   public label?: any
-  public isHovered?: boolean
+  public isHovered?: boolean = false
   public isSelected: boolean = false
+
+  // Declare methods that will be bound from Interactable
+  public setStyle!: (property: string, value: any) => void
+  public remove!: () => void
+  public hover!: (state: boolean) => void
+  public select!: (state: boolean) => void
+  protected _setStatus!: (property: string, state: boolean) => void
 
   static get Name(): string {
     return NAME
@@ -55,6 +62,13 @@ class Marker extends BaseComponent {
     this._options = options
     this._style = style
     this._isImage = !!style.initial.image
+
+    // Bind Interactable methods to this instance
+    this.setStyle = Interactable.setStyle.bind(this)
+    this.remove = Interactable.remove.bind(this)
+    this.hover = Interactable.hover.bind(this)
+    this.select = Interactable.select.bind(this)
+    this._setStatus = Interactable._setStatus.bind(this)
 
     this._draw()
 
@@ -161,15 +175,7 @@ class Marker extends BaseComponent {
 
     return [0, 0]
   }
-
-  // Methods from Interactable that will be inherited
-  setStyle!: (property: string, value: any) => void
-  remove!: () => void
-  hover!: (state: boolean) => void
-  select!: (state: boolean) => void
-  _setStatus!: (property: string, state: boolean) => void
 }
 
-inherit(Marker, Interactable)
-
+// Note: We don't need inherit() anymore since we're binding methods in constructor
 export default Marker

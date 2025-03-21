@@ -30,10 +30,25 @@ class Region extends BaseComponent {
   public isSelected: boolean = false
   public shape: any
 
+  // Declare methods that will be bound from Interactable
+  public setStyle!: (property: string, value: any) => void
+  public remove!: () => void
+  public hover!: (state: boolean) => void
+  public select!: (state: boolean) => void
+  protected _setStatus!: (property: string, state: boolean) => void
+
   constructor({ map, code, path, style, label, labelStyle, labelsGroup }: RegionOptions) {
     super()
 
     this._map = map
+
+    // Bind Interactable methods to this instance
+    this.setStyle = Interactable.setStyle.bind(this)
+    this.remove = Interactable.remove.bind(this)
+    this.hover = Interactable.hover.bind(this)
+    this.select = Interactable.select.bind(this)
+    this._setStatus = Interactable._setStatus.bind(this)
+
     this.shape = this._createRegion(path, code, style)
 
     const text = this.getLabelText(code, label)
@@ -98,15 +113,6 @@ class Region extends BaseComponent {
 
     return [0, 0]
   }
-
-  // Methods from Interactable that will be inherited
-  setStyle!: (property: string, value: any) => void
-  remove!: () => void
-  hover!: (state: boolean) => void
-  select!: (state: boolean) => void
-  _setStatus!: (property: string, state: boolean) => void
 }
-
-inherit(Region, Interactable)
 
 export default Region

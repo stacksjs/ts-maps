@@ -69,15 +69,7 @@ Object.entries(visitorData).forEach(([code, count]) => {
   regionColors[code] = getColorForVisitorCount(count)
 })
 
-const markers: MarkerConfig[] = [
-  {
-    name: 'Russia',
-    coords: [61, 105],
-    style: {
-      r: 10,
-    },
-  },
-]
+const markers: MarkerConfig[] = []
 
 // Function to apply visitor colors to regions
 function applyVisitorColors(map: any): void {

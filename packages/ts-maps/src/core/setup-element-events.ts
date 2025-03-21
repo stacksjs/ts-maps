@@ -36,7 +36,7 @@ function parseEvent(map: MapInterface, selector: Element | string, isTooltip?: b
     event = isRegion ? Events.onRegionTooltipShow : Events.onMarkerTooltipShow
   }
 
-  const elementObj = isRegion ? map.regions[code] : map._markers?.[code]
+  const elementObj = isRegion ? map.regions[code].element : map._markers?.[code].element
   if (!elementObj) {
     throw new Error(`Element with code ${code} not found`)
   }
@@ -45,7 +45,7 @@ function parseEvent(map: MapInterface, selector: Element | string, isTooltip?: b
     type,
     code,
     event,
-    element: elementObj as ElementWithInteraction,
+    element: elementObj,
     tooltipText: isRegion ? map._mapData.paths[code].name || '' : (map._markers?.[code]?.config.name || ''),
   }
 }
@@ -75,6 +75,7 @@ export default function setupElementEvents(this: MapInterface): void {
   EventHandler.delegate(container, 'mouseover mouseout', '.jvm-element', ((e: Event) => {
     try {
       const data = parseEvent(this, (e.target as Element), true)
+
       const { showTooltip } = this.params
       const tooltip = this._tooltip
 

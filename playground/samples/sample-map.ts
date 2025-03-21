@@ -87,68 +87,33 @@ const map = new VectorMap({
     markers: {
       render: (marker: MarkerConfig) => marker.name,
     },
-    regions: null, // Disable region labels
   },
 
   // Default markers array
-  markers: [
-    {
-      name: 'Russia',
-      coords: [61, 105],
-      style: {
-        r: 10,
-      },
-    },
-    {
-      name: 'Geenland',
-      coords: [72, -42],
-      style: {
-        r: 11,
-      },
-    },
-    {
-      name: 'Canada',
-      coords: [56, -106],
-      style: {
-        r: 15,
-      },
-    },
-    {
-      name: 'Palestine',
-      coords: [31.5, 34.8],
-      style: {
-        r: 7,
-      },
-    },
-    {
-      name: 'Brazil',
-      coords: [-14.2350, -51.9253],
-    },
-    {
-      name: 'China',
-      coords: [35.8617, 104.1954],
-      style: {
-        image: '../assets/images/pin.png',
-      },
-      offsets: [2, 2],
-    },
-  ],
+  markers: [],
 
   // Marker style configuration
   markerStyle: {
     initial: {
-      fill: '#4f46e5',
-      r: 6,
-      stroke: '#ffffff',
-      strokeWidth: 1,
+      fill: '#5680ff',
+      pointer: 'pointer'
     },
     hover: {
-      fill: '#4338ca',
-      r: 8,
+      stroke: "#676767",
+      fillOpacity: 1,
+      strokeWidth: 2.5,
+      fill: '#ff5566',
     },
     selected: {
-      fill: '#312e81',
-      r: 8,
+      fill: '#ff9251'
+    }
+  },
+  markerLabelStyle: {
+    initial: {
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      fontWeight: 500,
+      fill: '#35373e',
     },
   },
 
@@ -166,65 +131,16 @@ const map = new VectorMap({
   },
 
   onRegionTooltipShow: (_event: Event, tooltip: any, code: string): void => {
+    console.log("tooltip: ", tooltip)
     // Get map data
-    const mapData = (map as any)._mapData as MapData
-
-    // Get region name from map data
-    let regionName = code
-    if (mapData.paths && typeof mapData.paths === 'object' && code in mapData.paths) {
-      regionName = mapData.paths[code]?.name || code
-    }
-
-    // Create tooltip content with enhanced styling
-    const tooltipContent = `
-      <div style="
-        padding: 8px;
-        min-width: 150px;
-        background: white;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      ">
-        <div style="
-          font-size: 16px;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 8px;
-          padding-bottom: 8px;
-          border-bottom: 1px solid #e2e8f0;
-        ">${regionName}</div>
-        <div style="
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 12px;
-          color: #64748b;
-        ">
-          <span>Region Code:</span>
-          <span style="
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-          ">${code}</span>
-        </div>
-      </div>
-    `
-
-    // Set tooltip content
-    if (typeof tooltip.html === 'function') {
-      tooltip.html(tooltipContent)
-    }
-    else if (tooltip.innerHTML !== undefined) {
-      tooltip.innerHTML = tooltipContent
-    }
+    tooltip.css({ backgroundColor: 'white', color: '#35373e' }).text(
+      tooltip.text() + ' (Hello World `region`)'
+    )
   },
 
-  onMarkerSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedMarkers: string[]): void => {
-    console.warn('Marker selected:', code, isSelected, selectedMarkers)
-
-    // Get the selected marker
-    if (this._markers && code in this._markers) {
-      const marker = this._markers[code]
+  onMarkerSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedMarkers: string[]): void => {    // Get the selected marker
+    if (map._markers && code in map._markers) {
+      const marker = map._markers[code]
       if (marker?.config?.name && isSelected && marker.config.coords) {
         const regionInfo = document.getElementById('region-info')
         if (regionInfo) {

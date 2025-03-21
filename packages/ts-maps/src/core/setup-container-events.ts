@@ -17,7 +17,8 @@ export default function setupContainerEvents(this: MapInterface): void {
       if (oldPageX !== undefined && oldPageY !== undefined) {
         this.transX -= (oldPageX - mouseEvent.pageX) / this.scale
         this.transY -= (oldPageY - mouseEvent.pageY) / this.scale
-        this.canvas.applyTransformParams(this.scale, this.transX, this.transY)
+
+        this._applyTransform()
       }
       oldPageX = mouseEvent.pageX
       oldPageY = mouseEvent.pageY

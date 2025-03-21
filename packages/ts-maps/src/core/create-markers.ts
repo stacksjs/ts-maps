@@ -33,7 +33,7 @@ export default function createMarkers(
       {
         index,
         map: this,
-        label: this.params.labels?.markers ? {} : undefined,
+        label: this.params.labels?.markers,
         labelsGroup: this._markerLabelsGroup,
         cx: point.x,
         cy: point.y,

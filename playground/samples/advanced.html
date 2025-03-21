@@ -67,8 +67,8 @@
             left: 0;
         }
 
-        /* Hide all text elements on the map */
-        #map text {
+        /* Only hide region labels if needed */
+        #map .jvm-region-label {
             display: none !important;
         }
 
@@ -305,6 +305,133 @@
               map.addMarkers(initialMarkers);
           }, 1000); // Wait for 1 second to ensure map is fully loaded
 
+          // Set up tooltip positioning
+          function setupTooltip() {
+              const mapContainer = document.getElementById('map');
+              const tooltip = document.querySelector('.jvm-tooltip');
+
+              if (!mapContainer || !tooltip) {
+                  // If elements aren't ready yet, try again in 500ms
+                  setTimeout(setupTooltip, 500);
+                  return;
+              }
+
+              // Add a style to ensure tooltip is visible when active
+              const styleElement = document.createElement('style');
+              styleElement.textContent = `
+                  .jvm-tooltip.active {
+                      display: block !important;
+                      visibility: visible !important;
+                      opacity: 1 !important;
+                  }
+              `;
+              document.head.appendChild(styleElement);
+
+              // Create a function to position the tooltip
+              function positionTooltip(e) {
+                  // Only position the tooltip if it's visible
+                  if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+                      // Get the map container's position
+                      const mapRect = mapContainer.getBoundingClientRect();
+
+                      // Calculate tooltip position
+                      const tooltipWidth = tooltip.offsetWidth;
+                      const tooltipHeight = tooltip.offsetHeight;
+
+                      // Get cursor position relative to the viewport
+                      const cursorX = e.clientX;
+                      const cursorY = e.clientY;
+
+                      // Calculate position to place tooltip directly above cursor
+                      const offsetY = 15; // Distance above cursor
+
+                      // Set tooltip position
+                      tooltip.style.left = (cursorX - tooltipWidth / 2) + 'px';
+                      tooltip.style.top = (cursorY - tooltipHeight - offsetY) + window.scrollY + 'px';
+                  }
+              }
+
+              // Override the built-in tooltip positioning
+              mapContainer.addEventListener('mousemove', positionTooltip);
+
+              // Also handle scroll events to keep tooltip positioned correctly
+              window.addEventListener('scroll', function() {
+                  // Use the last known mouse position
+                  const lastEvent = window.lastMouseEvent;
+                  if (lastEvent) {
+                      positionTooltip(lastEvent);
+                  }
+              });
+
+              // Store the last mouse event for reference
+              mapContainer.addEventListener('mousemove', function(e) {
+                  window.lastMouseEvent = e;
+              });
+
+              // Update tooltip content for regions
+              const map = getMap();
+              if (map) {
+                  map.params.onRegionTooltipShow = function(_event, tooltip, code) {
+                      // Get region name from map data
+                      const mapData = map._mapData;
+                      let regionName = code;
+                      if (mapData.paths && typeof mapData.paths === 'object' && code in mapData.paths) {
+                          regionName = mapData.paths[code]?.name || code;
+                      }
+
+                      // Create tooltip content
+                      let tooltipContent = `
+                          <div style="text-align: center;">
+                              <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${regionName}</div>
+                              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                                  Code: ${code}
+                              </div>
+                          </div>
+                      `;
+
+                      tooltip.html(tooltipContent);
+                  };
+
+                  // Add marker tooltip handler
+                  map.params.onMarkerTooltipShow = function(_event, tooltip, code) {
+                      const marker = map._markers[code];
+                      const markerName = marker?.config?.name || code;
+
+                      let tooltipContent = `
+                          <div style="text-align: center;">
+                              <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${markerName}</div>
+                              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                                  Marker ID: ${code}
+                              </div>
+                          </div>
+                      `;
+
+                      tooltip.html(tooltipContent);
+                  };
+              }
+
+              // Use MutationObserver to detect when the tooltip becomes visible
+              const observer = new MutationObserver(function(mutations) {
+                  mutations.forEach(function(mutation) {
+                      if (mutation.type === 'attributes' &&
+                          (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+                          // If the tooltip is now visible, position it using the last mouse event
+                          if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+                              if (window.lastMouseEvent) {
+                                  positionTooltip(window.lastMouseEvent);
+                              }
+                          }
+                      }
+                  });
+              });
+
+              // Start observing the tooltip for attribute changes
+              observer.observe(tooltip, { attributes: true });
+          }
+
+          // Start the tooltip setup process
+          setupTooltip();
+
           // Change background color
           document.getElementById('change-bg-color').addEventListener('click', () => {
               const map = getMap();
@@ -329,15 +456,23 @@
               const map = getMap();
               const selectedRegions = map.getSelectedRegions();
               const regionInfo = document.getElementById('region-info');
+
+
+
               if (regionInfo) {
                   if (selectedRegions.length === 0) {
                       regionInfo.innerHTML = 'No regions selected';
                   } else {
+                      const regions = selectedRegions.map(code => {
+                        const region = map._mapData.paths[code]
+                        return `${code} - ${region?.name}`
+                      }).join(', ')
+
                       regionInfo.innerHTML = `
                           <div style="padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;">
                               <div style="font-weight: 600; color: #4f46e5; margin-bottom: 8px;">Selected Regions</div>
                               <div style="color: #1e293b; font-size: 13px;">
-                                  ${selectedRegions.join(', ')}
+                                  ${regions}
                               </div>
                           </div>
                       `;

@@ -17,6 +17,7 @@ export default function createRegions(this: MapInterface): void {
     })
 
     this.regions[code] = {
+      config: this._mapData.paths[code],
       element: region,
     } as RegionType
   }
