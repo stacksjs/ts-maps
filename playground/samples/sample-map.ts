@@ -96,17 +96,17 @@ const map = new VectorMap({
   markerStyle: {
     initial: {
       fill: '#5680ff',
-      pointer: 'pointer'
+      pointer: 'pointer',
     },
     hover: {
-      stroke: "#676767",
+      stroke: '#676767',
       fillOpacity: 1,
       strokeWidth: 2.5,
       fill: '#ff5566',
     },
     selected: {
-      fill: '#ff9251'
-    }
+      fill: '#ff9251',
+    },
   },
   markerLabelStyle: {
     initial: {
@@ -131,14 +131,13 @@ const map = new VectorMap({
   },
 
   onRegionTooltipShow: (_event: Event, tooltip: any, code: string): void => {
-    console.log("tooltip: ", tooltip)
     // Get map data
     tooltip.css({ backgroundColor: 'white', color: '#35373e' }).text(
-      tooltip.text() + ' (Hello World `region`)'
+      `${tooltip.text()} (Hello World \`region\`)`,
     )
   },
 
-  onMarkerSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedMarkers: string[]): void => {    // Get the selected marker
+  onMarkerSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedMarkers: string[]): void => { // Get the selected marker
     if (map._markers && code in map._markers) {
       const marker = map._markers[code]
       if (marker?.config?.name && isSelected && marker.config.coords) {

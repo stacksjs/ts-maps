@@ -4,19 +4,148 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Jsvectormap (Markers)</title>
-    <link rel="stylesheet" href="../assets/css/style.css" />
-    <link rel="stylesheet" href="../dist/css/jsvectormap.css" />
-    <script src="../dist/js/jsvectormap.min.js"></script>
-    <script src="../dist/maps/world.js"></script>
+    <title>ts-maps Markers Example</title>
     <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f8fafc;
+      }
+
+      .workspace-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        margin: 0 0 10px 0;
+        color: #1e293b;
+      }
+
+      header p {
+        margin: 0;
+        color: #64748b;
+        line-height: 1.5;
+      }
+
+      header a {
+        padding: 10px 20px;
+        background-color: #4f46e5;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+
+      header a:hover {
+        background-color: #4338ca;
+      }
+
+      #map {
+        width: 1200px;
+        height: 580px;
+        margin: auto;
+        position: relative;
+      }
+
+      /* Ensure SVG fills the container */
+      #map svg {
+        width: 100% !important;
+        height: 100% !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      /* Hide all text elements on the map */
+      #map text {
+        display: none !important;
+      }
+
+      /* Fix for the zoom buttons */
+      #map .jvm-zoom-btn {
+        position: absolute;
+        right: 10px;
+        z-index: 10;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        color: #4f46e5;
+        width: 30px;
+        height: 30px;
+        border-radius: 4px;
+        line-height: 30px;
+        text-align: center;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      #map .jvm-zoomin {
+        top: 10px;
+      }
+
+      #map .jvm-zoomout {
+        top: 50px;
+      }
+
+      #map .jvm-zoom-btn:hover {
+        background-color: #f8fafc;
+      }
+
+      .info-panel {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-top: 20px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .info-panel h3 {
+        margin: 0 0 10px 0;
+        color: #1e293b;
+        font-size: 16px;
+      }
+
+      #region-info {
+        color: #64748b;
+        font-size: 14px;
+      }
+
       circle {
         transition: .25s ease-in-out;
       }
     </style>
 </head>
 <body>
-  <div id="map" style="width: 750px; height: 400px; margin: auto; border: 1px solid #EEE"></div>
+  <div class="workspace-wrapper">
+    <header>
+      <div>
+        <h1>ts-maps Markers Example</h1>
+        <p>Explore different marker styles and interactions.<br>
+           Click on markers to select them and see their information.</p>
+      </div>
+      <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+    </header>
+
+    <div id="map"></div>
+
+    <div class="info-panel">
+      <h3>Marker Information</h3>
+      <div id="region-info">Click on a marker to see its information</div>
+    </div>
+  </div>
 
   <script>
     var markers = [{
@@ -53,25 +182,50 @@
         style: {
           fill: '#000'
         }
-      },
-      /* {
-        name: 'United States',
-        coords: [37.0902, -95.7129],
-        style: {
-          image: "../assets/images/marker.png"
-        },
-        offsets: [2, 2]
-      }, */
+      }
     ];
 
     var map = new jsVectorMap({
       map: 'world',
       selector: '#map',
+      backgroundColor: '#f8fafc',
+
+      // Set default dimensions
+      defaultWidth: 1200,
+      defaultHeight: 580,
+
       markersSelectable: true,
-      // markersSelectableOne: true,
 
       onMarkerSelected(index, isSelected, selectedMarkers) {
         console.log(index, isSelected, selectedMarkers);
+        const marker = markers[index];
+        document.getElementById('region-info').innerHTML = `
+          <div style="padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;">
+            <div style="font-weight: 600; color: #4f46e5; margin-bottom: 8px;">${marker.name}</div>
+            <div style="color: #64748b; font-size: 12px;">
+              Location: ${marker.coords.join(', ')}
+            </div>
+          </div>
+        `;
+      },
+
+      // Configure region style
+      regionStyle: {
+        initial: {
+          fill: '#e2e8f0',
+          stroke: '#cbd5e1',
+          strokeWidth: 0.5,
+        },
+        hover: {
+          fill: '#a5b4fc',
+          stroke: '#6366f1',
+          strokeWidth: 0.5,
+        },
+        selected: {
+          fill: '#818cf8',
+          stroke: '#4f46e5',
+          strokeWidth: 0.5,
+        }
       },
 
       // -------- Labels --------
@@ -86,6 +240,11 @@
       // -------- Marker and label style --------
       markers: markers,
       markerStyle: {
+        initial: {
+          r: 6,
+          strokeWidth: 1,
+          stroke: '#ffffff',
+        },
         hover: {
           stroke: "#DDD",
           strokeWidth: 3,
@@ -97,7 +256,6 @@
       },
       markerLabelStyle: {
         initial: {
-          fontFamily: 'Poppins',
           fontSize: 13,
           fontWeight: 500,
           fill: '#35373e',

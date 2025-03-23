@@ -52,13 +52,9 @@
     }
 
     #map {
-      width: 100%;
-      height: 600px;
-      margin: 0 auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      overflow: hidden;
-      background-color: #f1f5f9;
+      width: 1200px;
+      height: 580px;
+      margin: auto;
       position: relative;
     }
 
@@ -72,7 +68,7 @@
     }
 
     /* Hide all text elements on the map */
-    #map text {
+    #map .jvm-region-label {
       display: none !important;
     }
 
@@ -105,83 +101,6 @@
 
     #map .jvm-zoom-btn:hover {
       background-color: #f8fafc;
-    }
-
-    /* Improved tooltip styling */
-    .jvm-tooltip {
-      background-color: white;
-      border-radius: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 10px 14px;
-      font-size: 14px;
-      font-weight: 500;
-      color: #1e293b;
-      pointer-events: none;
-      border: 1px solid #e2e8f0;
-      z-index: 1000;
-      max-width: 250px;
-      min-width: 120px;
-      text-align: center;
-      position: fixed !important;
-      transition: none !important;
-      transform: translate3d(0,0,0) !important;
-      will-change: top, left !important;
-    }
-
-    /* Tooltip arrow */
-    .jvm-tooltip:after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%) rotate(45deg);
-      width: 12px;
-      height: 12px;
-      background: white;
-      border-right: 1px solid #e2e8f0;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    .controls {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-
-    .controls button {
-      padding: 10px 20px;
-      background-color: #4f46e5;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .controls button:hover {
-      background-color: #4338ca;
-    }
-
-    .info-panel {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      margin-top: 20px;
-      border: 1px solid #e2e8f0;
-    }
-
-    .info-panel h3 {
-      margin: 0 0 10px 0;
-      color: #1e293b;
-      font-size: 16px;
-    }
-
-    #region-info {
-      color: #64748b;
-      font-size: 14px;
     }
 
     /* Map legend */
@@ -218,6 +137,136 @@
       font-size: 12px;
       color: #64748b;
     }
+
+    /* Improved tooltip styling */
+    .jvm-tooltip {
+        background-color: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #1e293b;
+        pointer-events: none;
+        border: 1px solid #e2e8f0;
+        z-index: 1000;
+        max-width: 250px;
+        min-width: 120px;
+        text-align: center;
+        position: fixed !important;
+        transition: none !important;
+        transform: translate3d(0,0,0) !important;
+        will-change: top, left !important;
+    }
+
+    /* Tooltip arrow */
+    .jvm-tooltip:after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 12px;
+        height: 12px;
+        background: white;
+        border-right: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .controls h3 {
+      margin: 0 0 15px 0;
+      color: #1e293b;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+
+    .control-section {
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .control-section h4 {
+      margin: 0 0 10px 0;
+      color: #1e293b;
+      font-size: 14px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .input-group input {
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      font-size: 14px;
+      color: #1e293b;
+      background: white;
+      transition: border-color 0.2s;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    }
+
+    .controls button {
+      padding: 8px 16px;
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-size: 14px;
+      width: 100%;
+    }
+
+    .controls button:hover {
+      background-color: #4338ca;
+    }
+
+    .info-panel {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .info-panel h3 {
+      margin: 0 0 10px 0;
+      color: #1e293b;
+      font-size: 16px;
+    }
+
+    #region-info {
+      color: #64748b;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -234,266 +283,285 @@
     <div id="map"></div>
 
     <div class="controls">
-      <button id="add-marker">Add Sample Marker</button>
-      <div style="margin: 20px 0">
-        <h3>Add Custom Marker</h3>
-        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-          <input type="text" id="coords" placeholder="Coords (e.g., 28, 30)" style="padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;" />
-          <input type="text" id="label" placeholder="Location name" style="padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;" />
-          <button id="add">Add Marker</button>
+      <div class="controls-grid">
+        <div class="control-section">
+          <h4>Quick Add</h4>
+          <button id="add-marker">Add Sample Marker</button>
+        </div>
+
+        <div class="control-section">
+          <h4>Custom Marker</h4>
+          <div class="input-group">
+            <input type="text" id="coords" placeholder="Coordinates (e.g., 28, 30)" />
+            <input type="text" id="label" placeholder="Location name" />
+            <button id="add">Add Custom Marker</button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="info-panel">
-      <h3>Region Information</h3>
-      <div id="region-info">Click on a region to see its information</div>
+      <h3>Marker Information</h3>
+      <div id="region-info">Click on a marker to see its information</div>
     </div>
   </div>
-
-  <script type="module">
-    import { VectorMap } from 'ts-maps'
-    import worldMercator from '../../packages/ts-maps/src/maps/world-merc'
-
-    // Register the map
-    VectorMap.addMap('worldMercator', worldMercator)
-
-    // Function to set the default blue-gray color for all regions
-    function setDefaultRegionColors(map) {
-      const defaultColor = '#e2e8f0' // Light blue-gray color
-
-      // Get all regions
-      const regions = map.regions
-
-      // Apply the default color to all regions
-      Object.keys(regions).forEach((code) => {
-        try {
-          const region = regions[code]
-          if (region && region.element && region.element.shape && region.element.shape.node) {
-            // Set fill color directly on the SVG node
-            region.element.shape.node.setAttribute('fill', defaultColor)
-            region.element.shape.node.style.fill = defaultColor
-
-            // Update the style object if it exists
-            if (region.element.shape.style && region.element.shape.style.initial) {
-              region.element.shape.style.initial.fill = defaultColor
-            }
-          }
-        }
-        catch (e) {
-          console.error(`Error setting default color for ${code}:`, e)
-        }
-      })
-
-      // Update the default region style to ensure new regions get colored properly
-      if (map.params.regionStyle.initial) {
-        map.params.regionStyle.initial.fill = defaultColor
-      }
+  <script type="module" src="./sample-map.ts"></script>
+  <script>
+    // Helper function to get the map instance
+    function getMap() {
+        return window._map;
     }
 
-    // Initial markers
-    const initialMarkers = [
-      {
-        name: 'Greenland',
-        coords: [72, -42],
-        style: {
-          r: '8px',
-          fill: '#10b981', // Green
-          stroke: '#ffffff',
-          strokeWidth: '2px',
-        }
-      },
-      {
-        name: 'Canada',
-        coords: [56, -106],
-        style: {
-          r: '8px',
-          fill: '#f59e0b', // Amber
-          stroke: '#ffffff',
-          strokeWidth: '2px',
-        }
-      },
-      {
-        name: 'Palestine',
-        coords: [31.5, 34.8],
-        style: {
-          r: '8px',
-          fill: '#ef4444', // Red
-          stroke: '#ffffff',
-          strokeWidth: '2px',
-        }
-      },
-      {
-        name: 'Brazil',
-        coords: [-14.2350, -51.9253],
-        style: {
-          r: '8px',
-          fill: '#8b5cf6', // Purple
-          stroke: '#ffffff',
-          strokeWidth: '2px',
-        }
-      }
-    ]
+    // Wait for DOM content to be loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set up tooltip positioning
+        function setupTooltip() {
+            const mapContainer = document.getElementById('map');
+            const tooltip = document.querySelector('.jvm-tooltip');
 
-    // Create map instance
-    const map = new VectorMap({
-      map: { name: 'worldMercator', projection: 'mercator' },
-      selector: '#map',
-      backgroundColor: '#f8fafc',
-
-      // Set default dimensions
-      defaultWidth: 1200,
-      defaultHeight: 600,
-
-      // Enable zoom controls
-      zoomButtons: true,
-      zoomOnScroll: true,
-      zoomOnScrollSpeed: 1.2,
-      zoomMin: 1,
-      zoomMax: 12,
-
-      // Enable selection
-      regionsSelectable: true,
-      markersSelectable: true,
-      markersSelectableOne: true,
-
-      // Configure markers
-      markers: initialMarkers,
-      markerStyle: {
-        initial: {
-          fill: '#4f46e5',
-          r: '6px',
-          stroke: '#ffffff',
-          strokeWidth: '1px',
-        },
-        hover: {
-          fill: '#4338ca',
-          r: '8px',
-        },
-        selected: {
-          fill: '#312e81',
-          r: '8px',
-        }
-      },
-
-      // Configure region style with the default color
-      regionStyle: {
-        initial: {
-          fill: '#e2e8f0',
-          stroke: '#cbd5e1',
-          strokeWidth: 0.5,
-        },
-        hover: {
-          fill: '#a5b4fc',
-          stroke: '#6366f1',
-          strokeWidth: 0.5,
-        },
-        selected: {
-          fill: '#818cf8',
-          stroke: '#4f46e5',
-          strokeWidth: 0.5,
-        }
-      },
-
-      // Configure labels
-      labels: {
-        markers: {
-          render: (marker) => marker.name,
-          offsets: {
-            x: 0,
-            y: 0
-          }
-        },
-        regions: null
-      },
-
-      // Event handlers
-      onLoaded: function() {
-        console.log('Map loaded')
-        // Set default colors for all regions
-        setDefaultRegionColors(this)
-
-        // Ensure all markers are properly positioned
-        if (this.markers) {
-          Object.values(this.markers).forEach(marker => {
-            if (marker.element) {
-              const coords = this.latLngToPoint(marker.config.coords[0], marker.config.coords[1])
-              marker.element.set({
-                cx: `${coords.x}px`,
-                cy: `${coords.y}px`
-              })
+            if (!mapContainer || !tooltip) {
+                // If elements aren't ready yet, try again in 500ms
+                setTimeout(setupTooltip, 500);
+                return;
             }
-          })
+
+            // Add a style to ensure tooltip is visible when active
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+                .jvm-tooltip.active {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    margin-bottom: -35px !important;
+                }
+            `;
+            document.head.appendChild(styleElement);
+
+            // Create a function to position the tooltip
+            function positionTooltip(e) {
+                // Only position the tooltip if it's visible
+                if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+                    // Get the map container's position
+                    const mapRect = mapContainer.getBoundingClientRect();
+
+                    // Calculate tooltip position
+                    const tooltipWidth = tooltip.offsetWidth;
+                    const tooltipHeight = tooltip.offsetHeight;
+
+                    // Get cursor position relative to the viewport
+                    const cursorX = e.clientX;
+                    const cursorY = e.clientY;
+
+                    // Calculate position to place tooltip directly above cursor
+                    const offsetY = 28; // Distance above cursor
+
+                    // Set tooltip position
+                    tooltip.style.left = (cursorX - tooltipWidth / 2) + 'px';
+                    tooltip.style.top = (cursorY - tooltipHeight - offsetY) + window.scrollY + 'px';
+                }
+            }
+
+            // Override the built-in tooltip positioning
+            mapContainer.addEventListener('mousemove', positionTooltip);
+
+            // Also handle scroll events to keep tooltip positioned correctly
+            window.addEventListener('scroll', function() {
+                // Use the last known mouse position
+                const lastEvent = window.lastMouseEvent;
+                if (lastEvent) {
+                    positionTooltip(lastEvent);
+                }
+            });
+
+            // Store the last mouse event for reference
+            mapContainer.addEventListener('mousemove', function(e) {
+                window.lastMouseEvent = e;
+            });
+
+            // Update tooltip content for regions
+            const map = getMap();
+            if (map) {
+                map.params.onRegionTooltipShow = function(_event, tooltip, code) {
+                    // Get region name from map data
+                    const mapData = map._mapData;
+                    let regionName = code;
+                    if (mapData.paths && typeof mapData.paths === 'object' && code in mapData.paths) {
+                        regionName = mapData.paths[code]?.name || code;
+                    }
+
+                    // Create tooltip content
+                    let tooltipContent = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${regionName}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                                Code: ${code}
+                            </div>
+                        </div>
+                    `;
+
+                    tooltip.html(tooltipContent);
+                };
+
+                // Add marker tooltip handler
+                map.params.onMarkerTooltipShow = function(_event, tooltip, code) {
+                    const marker = map._markers[code];
+                    const markerName = marker?.config?.name || code;
+
+                    let tooltipContent = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${markerName}</div>
+                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                                Marker ID: ${code}
+                            </div>
+                        </div>
+                    `;
+
+                    tooltip.html(tooltipContent);
+                };
+            }
+
+            // Use MutationObserver to detect when the tooltip becomes visible
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' &&
+                        (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+                        // If the tooltip is now visible, position it using the last mouse event
+                        if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+                            if (window.lastMouseEvent) {
+                                positionTooltip(window.lastMouseEvent);
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Start observing the tooltip for attribute changes
+            observer.observe(tooltip, { attributes: true });
         }
-      },
 
-      onMarkerSelected: (event, code, isSelected, selectedMarkers) => {
-        console.log('Marker selected:', code, isSelected, selectedMarkers)
+        // Start the tooltip setup process
+        setupTooltip();
 
-        const marker = map._markers?.[code]
-        if (marker?.config?.name && isSelected) {
-          const regionInfo = document.getElementById('region-info')
-          if (regionInfo) {
-            regionInfo.innerHTML = `
-              <div style="padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;">
-                <div style="font-weight: 600; color: #4f46e5; margin-bottom: 8px;">${marker.config.name}</div>
-                <div style="color: #64748b; font-size: 12px;">
-                  Location: ${marker.config.coords.join(', ')}
-                </div>
-              </div>
-            `
-          }
-        }
-      }
-    })
+        // Keep track of which index we're on outside the click handler
+        let currentMarkerIndex = 0;
 
-    // Make map instance globally accessible
-    window._map = map
+        // Add event listeners for the buttons
+        document.getElementById('add-marker').addEventListener('click', () => {
+            const map = getMap();
 
-    // Add sample marker button handler
-    document.querySelector('#add-marker')?.addEventListener('click', () => {
-      map.addMarker({
-        name: 'New Location',
-        coords: [0, 0],
-        style: {
-          r: '8px',
-          fill: '#4f46e5',
-          stroke: '#ffffff',
-          strokeWidth: '2px',
-        }
-      })
-    })
+            // Define 10 major regions with their coordinates
+            const regions = [
+                {
+                    name: 'New York, USA',
+                    coords: [40.7128, -74.0060]
+                },
+                {
+                    name: 'London, UK',
+                    coords: [51.5074, -0.1278]
+                },
+                {
+                    name: 'Tokyo, Japan',
+                    coords: [35.6762, 139.6503]
+                },
+                {
+                    name: 'Sydney, Australia',
+                    coords: [-33.8688, 151.2093]
+                },
+                {
+                    name: 'Rio de Janeiro, Brazil',
+                    coords: [-22.9068, -43.1729]
+                },
+                {
+                    name: 'Cairo, Egypt',
+                    coords: [30.0444, 31.2357]
+                },
+                {
+                    name: 'Cape Town, South Africa',
+                    coords: [-33.9249, 18.4241]
+                },
+                {
+                    name: 'Moscow, Russia',
+                    coords: [55.7558, 37.6173]
+                },
+                {
+                    name: 'Dubai, UAE',
+                    coords: [25.2048, 55.2708]
+                },
+                {
+                    name: 'Singapore',
+                    coords: [1.3521, 103.8198]
+                }
+            ];
 
-    // Add custom marker button handler
-    document.querySelector('#add')?.addEventListener('click', () => {
-      const coordsInput = document.querySelector('#coords')
-      const labelInput = document.querySelector('#label')
+            // Check if we've added all markers
+            if (currentMarkerIndex >= regions.length) {
+                const regionInfo = document.getElementById('region-info');
+                if (regionInfo) {
+                    regionInfo.innerHTML = 'All markers have been added! No more locations available.';
+                }
+                return;
+            }
 
-      if (!coordsInput || !labelInput) return
+            // Get the next region to add
+            const region = regions[currentMarkerIndex];
 
-      const coords = coordsInput.value.split(',').map(n => parseFloat(n.trim()))
-      const label = labelInput.value.trim()
+            // Add the marker
+            map.addMarkers({
+                name: region.name,
+                coords: region.coords,
+                style: {
+                    fill: '#4f46e5',
+                    r: 5,
+                    stroke: '#fff',
+                    'stroke-width': 1
+                }
+            });
 
-      if (coords.length !== 2 || coords.some(n => isNaN(n)) || !label) {
-        alert('Please enter valid coordinates (e.g., 28, 30) and a location name')
-        return
-      }
+            // Update the info panel
+            const regionInfo = document.getElementById('region-info');
+            if (regionInfo) {
+                regionInfo.innerHTML = `Added marker for ${region.name} (${currentMarkerIndex + 1} of ${regions.length})`;
+            }
 
-      map.addMarker({
-        name: label,
-        coords: coords,
-        style: {
-          r: '8px',
-          fill: '#4f46e5',
-          stroke: '#ffffff',
-          strokeWidth: '2px',
-        }
-      })
+            // Increment the counter for next click
+            currentMarkerIndex++;
 
-      // Clear inputs
-      coordsInput.value = ''
-      labelInput.value = ''
-    })
+            // If we've added all markers, update the button state
+            if (currentMarkerIndex >= regions.length) {
+                const addButton = document.getElementById('add-marker');
+                addButton.style.opacity = '0.5';
+                addButton.disabled = true;
+            }
+        });
+
+        document.getElementById('add').addEventListener('click', () => {
+            const map = getMap();
+            const coordsInput = document.getElementById('coords');
+            const labelInput = document.getElementById('label');
+
+            if (coordsInput && labelInput) {
+                const coords = coordsInput.value.split(',').map(n => parseFloat(n.trim()));
+                const label = labelInput.value.trim();
+
+                if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+                    map.addMarkers({
+                        name: label || 'Custom Location',
+                        coords: coords,
+                        style: {
+                            fill: '#4f46e5',
+                            r: 5,
+                            stroke: '#fff',
+                            'stroke-width': 1
+                        }
+                    });
+
+                    // Clear inputs
+                    coordsInput.value = '';
+                    labelInput.value = '';
+                }
+            }
+        });
+    });
   </script>
 </body>
 </html>

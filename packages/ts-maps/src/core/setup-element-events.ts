@@ -135,6 +135,7 @@ export default function setupElementEvents(this: MapInterface): void {
           }
 
           this._emit(data.event, [
+            data.event,
             data.code,
             element.isSelected,
             data.type === 'region'

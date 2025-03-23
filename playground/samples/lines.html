@@ -3,82 +3,402 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Jsvectormap (Lines)</title>
-    <link rel="stylesheet" href="../assets/css/style.css" />
-    <link rel="stylesheet" href="../dist/css/jsvectormap.css" />
-    <script src="../dist/js/jsvectormap.min.js"></script>
-    <script src="../dist/maps/world.js"></script>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">    <title>ts-maps Lines Example</title>
     <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f8fafc;
+      }
+
+      .workspace-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        margin: 0 0 10px 0;
+        color: #1e293b;
+      }
+
+      header p {
+        margin: 0;
+        color: #64748b;
+        line-height: 1.5;
+      }
+
+      header a {
+        padding: 10px 20px;
+        background-color: #4f46e5;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+
+      header a:hover {
+        background-color: #4338ca;
+      }
+
+      #map {
+        width: 1200px;
+        height: 580px;
+        margin: auto;
+        position: relative;
+      }
+
+      /* Ensure SVG fills the container */
+      #map svg {
+        width: 100% !important;
+        height: 100% !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      /* Hide all text elements on the map */
+      #map text {
+        display: none !important;
+      }
+
+      /* Fix for the zoom buttons */
+      #map .jvm-zoom-btn {
+        position: absolute;
+        right: 10px;
+        z-index: 10;
+        background-color: white;
+        border: 1px solid #e2e8f0;
+        color: #4f46e5;
+        width: 30px;
+        height: 30px;
+        border-radius: 4px;
+        line-height: 30px;
+        text-align: center;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      #map .jvm-zoomin {
+        top: 10px;
+      }
+
+      #map .jvm-zoomout {
+        top: 50px;
+      }
+
+      #map .jvm-zoom-btn:hover {
+        background-color: #f8fafc;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .controls button {
+        padding: 10px 20px;
+        background-color: #4f46e5;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .controls button:hover {
+        background-color: #4338ca;
+      }
+
       circle {
         transition: .25s ease-in-out;
+      }
+
+      /* Improved tooltip styling */
+      .jvm-tooltip {
+        background-color: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 10px 14px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #1e293b;
+        pointer-events: none;
+        border: 1px solid #e2e8f0;
+        z-index: 1000;
+        max-width: 250px;
+        min-width: 120px;
+        text-align: center;
+        position: fixed !important;
+        transition: none !important;
+        transform: translate3d(0,0,0) !important;
+        will-change: top, left !important;
+      }
+
+      /* Tooltip arrow */
+      .jvm-tooltip:after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+        width: 12px;
+        height: 12px;
+        background: white;
+        border-right: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
       }
     </style>
 </head>
 <body>
-  <div id="map" style="width: 750px; height: 400px; margin: auto; border: 1px solid #EEE"></div>
-    <div style="text-align: center;">
+  <div class="workspace-wrapper">
+    <header>
+      <div>
+        <h1>ts-maps Lines Example</h1>
+        <p>Connect locations on the map with animated lines.<br>
+           Click the button to add more connections between markers.</p>
+      </div>
+      <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+    </header>
+
+    <div id="map"></div>
+    <div class="controls">
       <button id="add-line">Add line</button>
     </div>
   </div>
+
+  <script type="module" src="./sample-map.ts"></script>
+
   <script>
-    var markers = [
-      { name: 'Russia', coords: [61.5240, 105.3188] },
-      { name: 'Egypt', coords: [26.8206, 30.8025] },
-      { name: 'Greenland', coords: [71.7069, -42.6043], offsets: [2, 10] },
-      { name: 'Canada', coords: [56, -106], offsets: [-7, 12] },
-    ]
+     document.addEventListener('DOMContentLoaded', function() {
+      // Function to get the map instance
+      function getMap() {
+        // The map instance is stored in window._map by the sample-map.ts
+        return window._map;
+      }
 
-    var lines = [
-      { from: 'Russia', to: 'Egypt', style: { stroke: '#abb0b7', strokeWidth: 1.5 } },
-      { from: 'Canada', to: 'Russia', style: { stroke: '#abb0b7', strokeWidth: 1.5 } },
-    ]
-
-    new jsVectorMap({
-      map: 'world',
-      selector: document.querySelector('#map'),
-
-      onLoaded(map) {
-        document.querySelector('#add-line').addEventListener('click', () => {
-          map.addLine('Canada', 'Greenland', {})
-        })
-      },
-
-      // -------- Labels --------
-      labels: {
-        markers: {
-          render: function(marker) {
-            return marker.name
+      // Initialize the map with markers when loaded
+      const map = getMap();
+      if (map) {
+        // Add initial markers for all potential connection points
+        const markers = [ {
+            // United States
+            name: 'US',
+            coords: [37.0902, -95.7129],
+            style: {
+              fill: '#4f46e5'
+            }
+          },{
+            // Great Britain
+            name: 'GB',
+            coords: [54.2361, -2.3398],
+            style: {
+              fill: '#4f46e5'
+            }
+          },{ // Japan
+            name: 'JP',
+            coords: [36.2048, 138.2529],
+            style: {
+              fill: '#10b981'
+            }
+          },{ // Australia
+            name: 'AU',
+            coords: [-25.2744, 133.7751],
+            style: {
+              fill: '#10b981'
+            }
+          },{ // Brazil
+            name: 'BR',
+            coords: [-14.2350, -51.9253],
+            style: {
+              fill: '#f59e0b'
+            }
           },
-          offsets: function (index) {
-            return markers[index].offsets || [0, 0]
-          }
-        },
-      },
+          { // South Africa
+            name: 'ZA',
+            coords: [-30.5595, 22.9375],
+            style: {
+              fill: '#f59e0b'
+            }
+          }]
+        // Add all markers to the map
+        map.addMarkers(markers);
 
-      // -------- Marker and label style --------
-      markers: markers,
-      lines: lines,
-      lineStyle: {
-        animation: true,
-        strokeDasharray: "6 3 6",
-      },
-      markerStyle: {
-        initial: {
-          r: 6,
-          fill: '#1266f1',
-          stroke: '#fff',
-          strokeWidth: 3,
+        // Set up enhanced tooltip
+        function setupTooltip() {
+          const mapContainer = document.getElementById('map');
+          const tooltip = document.querySelector('.jvm-tooltip');
+
+          if (!mapContainer || !tooltip) {
+            setTimeout(setupTooltip, 500);
+            return;
+          }
+
+          // Add style to ensure tooltip visibility
+          const styleElement = document.createElement('style');
+          styleElement.textContent = `
+            .jvm-tooltip.active {
+              display: block !important;
+              visibility: visible !important;
+              opacity: 1 !important;
+            }
+          `;
+          document.head.appendChild(styleElement);
+
+          // Position tooltip function
+          function positionTooltip(e) {
+            if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+              const tooltipWidth = tooltip.offsetWidth;
+              const tooltipHeight = tooltip.offsetHeight;
+              const cursorX = e.clientX;
+              const cursorY = e.clientY;
+              const offsetY = 15;
+
+              tooltip.style.left = (cursorX - tooltipWidth / 2) + 'px';
+              tooltip.style.top = (cursorY - tooltipHeight - offsetY) + window.scrollY + 'px';
+            }
+          }
+
+          // Event listeners for tooltip positioning
+          mapContainer.addEventListener('mousemove', positionTooltip);
+          window.addEventListener('scroll', function() {
+            const lastEvent = window.lastMouseEvent;
+            if (lastEvent) {
+              positionTooltip(lastEvent);
+            }
+          });
+
+          mapContainer.addEventListener('mousemove', function(e) {
+            window.lastMouseEvent = e;
+          });
+
+          // Custom tooltip content
+          map.params.onMarkerTooltipShow = function(_event, tooltip, code) {
+            const marker = markers.find(m => m.name === code);
+            if (!marker) return;
+
+            let connectionInfo = '';
+            const lines = map._lines || [];
+            const connections = [];
+
+            // Find connections for this marker
+            Object.values(lines).forEach(line => {
+              if (line.from === code || line.to === code) {
+                const otherEnd = line.from === code ? line.to : line.from;
+                const otherMarker = markers.find(m => m.name === otherEnd);
+                if (otherMarker) {
+                  connections.push(otherMarker.name);
+                }
+              }
+            });
+
+            if (connections.length > 0) {
+              connectionInfo = `
+                <div style="font-size: 13px; color: #64748b; margin-top: 5px;">
+                  Connected to: ${connections.join(', ')}
+                </div>
+              `;
+            }
+
+            const tooltipContent = `
+              <div style="text-align: center;">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">
+                  ${marker.name}
+                </div>
+                <div style="font-size: 13px; color: #64748b;">
+                  ${marker.coords[0].toFixed(2)}°, ${marker.coords[1].toFixed(2)}°
+                </div>
+                ${connectionInfo}
+              </div>
+            `;
+
+            tooltip.html(tooltipContent);
+          };
+
+          // Use MutationObserver for tooltip visibility
+          const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (mutation.type === 'attributes' &&
+                  (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+                if (tooltip.style.display === 'block' || tooltip.classList.contains('active')) {
+                  if (window.lastMouseEvent) {
+                    positionTooltip(window.lastMouseEvent);
+                  }
+                }
+              }
+            });
+          });
+
+          observer.observe(tooltip, { attributes: true });
         }
-      },
-      markerLabelStyle: {
-        initial: {
-          fontSize: 13,
-          fontWeight: 500,
-          fill: '#35373e',
-        },
-      },
-    })
+
+        // Initialize tooltip
+        setupTooltip();
+      }
+
+      document.getElementById('add-line').addEventListener('click', () => {
+        const map = getMap();
+        if (map) {
+          // Array of different line configurations to demonstrate various features
+          const lines = [
+            {
+              from: 'US',
+              to: 'GB',
+              style: {
+                stroke: '#4f46e5',
+                strokeWidth: 2,
+                animation: {
+                  duration: 2000,
+                  delay: 0
+                }
+              }
+            },
+            {
+              from: 'JP',
+              to: 'AU',
+              style: {
+                stroke: '#10b981',
+                strokeWidth: 3,
+                strokeDasharray: '5,5',
+                animation: {
+                  duration: 1500,
+                  delay: 500
+                }
+              }
+            },
+            {
+              from: 'BR',
+              to: 'ZA',
+              style: {
+                stroke: '#f59e0b',
+                strokeWidth: 2,
+                animation: {
+                  duration: 1800,
+                  delay: 1000
+                }
+              }
+            }
+          ];
+
+          // Add all lines with animations
+          map.addLines(lines);
+        }
+      });
+     });
   </script>
 </body>
 </html>

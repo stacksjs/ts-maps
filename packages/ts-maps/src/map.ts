@@ -1,3 +1,4 @@
+import type SVGElement from './svg/base-element'
 import type {
   FocusOnOptions,
   Line,
@@ -18,7 +19,6 @@ import Defaults from './defaults/options'
 import EventHandler from './event-handler'
 import Projection from './projection'
 import SVGCanvasElement from './svg/canvas-element'
-import SVGElement from './svg/base-element'
 import {
   createElement,
   getElement,
@@ -476,48 +476,106 @@ export class Map implements MapInterface {
   }
 
   // Core methods
+  /**
+   * Creates regions for the map.
+   * Implementation provided by core/create-regions module.
+   * @see core/create-regions.ts
+   */
   _createRegions(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Creates markers on the map.
+   * Implementation provided by core/create-markers module.
+   * @see core/create-markers.ts
+   * @param _markers - Array of marker configurations to create
+   * @param isRecentlyCreated - Flag indicating if markers were recently created
+   */
   _createMarkers(_markers: MarkerConfig[], isRecentlyCreated: boolean = false): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Creates lines on the map.
+   * Implementation provided by core/create-lines module.
+   * @see core/create-lines.ts
+   * @param _lines - Array of line configurations to create
+   */
   _createLines(_lines: LineConfig[]): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Creates series visualizations.
+   * Implementation provided by core/create-series module.
+   * @see core/create-series.ts
+   */
   _createSeries(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Repositions labels on the map.
+   * Implementation provided by core/reposition-labels module.
+   * @see core/reposition-labels.ts
+   */
   _repositionLabels(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Sets up container events.
+   * Implementation provided by core/setup-container-events module.
+   * @see core/setup-container-events.ts
+   */
   _setupContainerEvents(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Sets up element events.
+   * Implementation provided by core/setup-element-events module.
+   * @see core/setup-element-events.ts
+   */
   _setupElementEvents(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Sets up zoom buttons.
+   * Implementation provided by core/setup-zoom-buttons module.
+   * @see core/setup-zoom-buttons.ts
+   */
   _setupZoomButtons(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Sets up container touch events.
+   * Implementation provided by core/setup-container-touch-events module.
+   * @see core/setup-container-touch-events.ts
+   */
   _setupContainerTouchEvents(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Applies transformation to the map.
+   * Implementation provided by core/apply-transform module.
+   * @see core/apply-transform.ts
+   */
   _applyTransform(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
+  /**
+   * Updates the size of the map.
+   * Implementation provided by core/update-size module.
+   * @see core/update-size.ts
+   */
   updateSize(): void {
-    // Implementation will be added
+    // Implementation provided by core module
   }
 
   setFocus(_config: FocusOnOptions): void {
