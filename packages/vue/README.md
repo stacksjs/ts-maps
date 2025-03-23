@@ -293,3 +293,192 @@ Made with 💙
 
 <!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/qrx/main?style=flat-square
 [codecov-href]: https://codecov.io/gh/stacksjs/qrx -->
+
+# ts-maps-vue
+
+Vue.js components for ts-maps - Interactive Vector Maps
+
+## Installation
+
+```bash
+npm install ts-maps-vue
+```
+
+## Usage
+
+### Global Registration
+
+```typescript
+import TsMapsVue from 'ts-maps-vue'
+import { createApp } from 'vue'
+import App from './App.vue'
+
+const app = createApp(App)
+app.use(TsMapsVue)
+app.mount('#app')
+```
+
+### Local Registration
+
+```vue
+<script setup lang="ts">
+import { VectorMap } from 'ts-maps-vue'
+</script>
+
+<script setup lang="ts">
+function handleRegionClick(event: MouseEvent, code: string) {
+  console.log(`Clicked region: ${code}`)
+}
+
+function handleMapLoaded() {
+  console.log('Map has finished loading')
+}
+</script>
+
+<template>
+  <VectorMap
+    :options="{
+      map: {
+        name: 'world',
+        projection: 'mercator',
+      },
+      backgroundColor: '#4a4a4a',
+      zoomOnScroll: true,
+      zoomButtons: true,
+    }"
+    height="500px"
+    @region-click="handleRegionClick"
+    @loaded="handleMapLoaded"
+  >
+    <template #loading>
+      <div>Custom loading state...</div>
+    </template>
+  </VectorMap>
+</template>
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| options | `MapOptions` | Required | Map configuration options (excluding 'selector') |
+| width | `string` | '100%' | Width of the map container |
+| height | `string` | '400px' | Height of the map container |
+
+## Events
+
+| Event | Parameters | Description |
+|-------|------------|-------------|
+| region-click | `(event: MouseEvent, code: string)` | Emitted when a region is clicked |
+| region-selected | `(event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[])` | Emitted when a region is selected/deselected |
+| marker-click | `(event: MouseEvent, index: number)` | Emitted when a marker is clicked |
+| viewport-change | `(scale: number, transX: number, transY: number)` | Emitted when the viewport changes |
+| loaded | - | Emitted when the map has finished loading |
+| update:options | `(options: MapOptions)` | Emitted when the options are updated |
+
+## Slots
+
+| Name | Description |
+|------|-------------|
+| loading | Custom loading state content |
+
+## Advanced Usage
+
+### Data Visualization
+
+```vue
+<template>
+  <VectorMap
+    :options="{
+      map: {
+        name: 'world',
+        projection: 'mercator',
+      },
+      visualizeData: {
+        scale: ['#C8EEFF', '#0071A4'],
+        values: {
+          US: 100,
+          GB: 75,
+          FR: 80,
+          DE: 85,
+          IT: 60,
+          ES: 65,
+        },
+      },
+    }"
+  />
+</template>
+```
+
+### Custom Styling
+
+```vue
+<template>
+  <VectorMap
+    :options="{
+      map: {
+        name: 'world',
+        projection: 'mercator',
+      },
+      regionStyle: {
+        initial: {
+          fill: '#e4e4e4',
+          stroke: '#ffffff',
+          strokeWidth: 0.5,
+        },
+        hover: {
+          fill: '#ccc',
+        },
+        selected: {
+          fill: '#2ca25f',
+        },
+      },
+    }"
+  />
+</template>
+```
+
+### Adding Markers
+
+```vue
+<script setup lang="ts">
+function handleMarkerClick(event: MouseEvent, index: number) {
+  console.log(`Clicked marker at index: ${index}`)
+}
+</script>
+
+<template>
+  <VectorMap
+    :options="{
+      map: {
+        name: 'world',
+        projection: 'mercator',
+      },
+      markers: [
+        {
+          name: 'New York',
+          coords: [40.7128, -74.0060],
+          style: {
+            fill: '#ff0000',
+            stroke: '#ffffff',
+            r: 5,
+          },
+        },
+      ],
+    }"
+    @marker-click="handleMarkerClick"
+  />
+</template>
+```
+
+## TypeScript Support
+
+The package includes full TypeScript support. You can import types directly:
+
+```typescript
+import type { MapOptions } from 'ts-maps-vue'
+```
+
+## License
+
+MIT License

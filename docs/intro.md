@@ -2,133 +2,177 @@
 
 # Introduction to ts-maps
 
-> Modern & lightweight Typescript library. Easily create pretty & interactive vector maps.
+> A powerful TypeScript library for creating beautiful, interactive vector maps with advanced data visualization capabilities.
 
-## Features
+## Key Features
 
-- **Vector Maps**
-  - Interactive SVG-based maps
-  - Custom projections support
+- **Advanced Vector Mapping**
+  - Interactive SVG-based maps with smooth rendering
+  - Multiple projection support (Mercator & Miller)
   - Responsive and scalable design
   - Built-in map collections
+  - Custom region styling and interactions
 
-- **Data Visualization**
-  - Choropleth maps
-  - Heat maps
-  - Data markers and bubbles
-  - Custom legends and scales
+- **Rich Data Visualization**
+  - Comprehensive visualization options
+  - Dynamic data binding
+  - Custom scales and legends
+  - Multiple series support
+  - Marker and region-based visualizations
 
-- **Framework Integration**
-  - React components and hooks
-  - Vue components and composables
-  - Framework-agnostic core library
+- **Interactive Features**
+  - Smooth zooming and panning
+  - Region and marker selection
+  - Custom tooltips
+  - Event-driven architecture
+  - Touch device support
 
 - **Developer Experience**
-  - Full TypeScript support
-  - Type-safe APIs
+  - Framework-agnostic core library
+  - TypeScript-first development
   - Comprehensive documentation
-  - Zero dependencies
+  - Flexible configuration
 
-## Quick Example
+## Basic Usage
 
 ```typescript
-import { VectorMap } from '@stacksjs/ts-maps'
+import { VectorMap } from 'ts-maps'
 
-// Create a new map instance
+// Initialize the map
 const map = new VectorMap({
-  container: 'map',
-  map: 'world',
-  theme: 'light',
-})
-
-// Add data visualization
-map.choropleth({
-  data: [
-    { id: 'US', value: 100 },
-    { id: 'CA', value: 80 },
-    // ... more data
-  ],
-  scale: {
-    min: 0,
-    max: 100,
-    colors: ['#e5f5f9', '#2ca25f'],
+  selector: '#map',
+  map: {
+    name: 'world',
+    projection: 'mercator'
+  },
+  backgroundColor: '#4a4a4a',
+  zoomOnScroll: true,
+  zoomButtons: true,
+  // Customize region appearance
+  regionStyle: {
+    initial: {
+      fill: '#e4e4e4',
+      stroke: '#ffffff',
+      strokeWidth: 0.5,
+    },
+    hover: {
+      fill: '#ccc',
+    },
+    selected: {
+      fill: '#2ca25f',
+    },
   },
 })
 
-// Add interactivity
-map.on('regionClick', (event, region) => {
-  console.log(`Clicked region: ${region.id}`)
-})
-```
+// Add data visualization
+map.params.visualizeData = {
+  scale: ['#C8EEFF', '#0071A4'],
+  values: {
+    US: 100,
+    GB: 75,
+    FR: 80,
+    DE: 85,
+    IT: 60,
+    ES: 65,
+  },
+}
 
-## Framework Examples
+// Add markers
+map.addMarkers([
+  {
+    name: 'New York',
+    coords: [40.7128, -74.0060],
+    style: {
+      fill: '#ff0000',
+      stroke: '#ffffff',
+      r: 5,
+    },
+  },
+])
 
-### React
-
-```tsx
-import { useVectorMap } from '@stacksjs/ts-maps-react'
-
-function WorldMap() {
-  const { map, isLoading } = useVectorMap({
-    map: 'world',
-    theme: 'light',
-  })
-
-  return (
-    <div>
-      {isLoading
-        ? (
-            <div>Loading map...</div>
-          )
-        : (
-            <div id="map" style={{ width: '100%', height: '400px' }} />
-          )}
-    </div>
-  )
+// Handle interactions
+map.params.onRegionClick = (event, code) => {
+  console.log(`Clicked region: ${code}`)
 }
 ```
 
-### Vue
+## Advanced Features
 
-```vue
-<script setup lang="ts">
-import { useVectorMap } from '@stacksjs/ts-maps-vue'
+### Custom Styling
 
-const { map, isLoading } = useVectorMap({
-  map: 'world',
-  theme: 'light',
-})
-</script>
+```typescript
+// Apply custom styles to regions
+map.params.regionStyle = {
+  initial: {
+    fill: '#e4e4e4',
+    stroke: '#ffffff',
+    strokeWidth: 0.5,
+  },
+  hover: {
+    fill: '#ccc',
+  },
+  selected: {
+    fill: '#2ca25f',
+  },
+  selectedHover: {
+    fill: '#1a9850',
+  },
+}
 
-<template>
-  <div>
-    <div v-if="isLoading">
-      Loading map...
-    </div>
-    <div v-else id="map" style="width: 100%; height: 400px;" />
-  </div>
-</template>
+// Style markers
+map.params.markerStyle = {
+  initial: {
+    fill: '#ff0000',
+    stroke: '#ffffff',
+    r: 5,
+  },
+  hover: {
+    fill: '#ff5555',
+    r: 7,
+  },
+}
+```
+
+### Event Handling
+
+```typescript
+// Region events
+map.params.onRegionClick = (event, code) => {
+  console.log(`Clicked region: ${code}`)
+}
+
+map.params.onRegionSelected = (event, code, isSelected, selectedRegions) => {
+  console.log(`Region ${code} selection state: ${isSelected}`)
+  console.log('Currently selected regions:', selectedRegions)
+}
+
+// Marker events
+map.params.onMarkerClick = (event, index) => {
+  console.log(`Clicked marker: ${index}`)
+}
+
+// Viewport events
+map.params.onViewportChange = (scale, transX, transY) => {
+  console.log(`Map viewport changed: scale=${scale}, x=${transX}, y=${transY}`)
+}
 ```
 
 ## Next Steps
 
-- Check out the [Installation Guide](/install) to get started
-- Explore the [Usage Guide](/usage) for more examples
-- View the [API Reference](/api) for detailed documentation
+- Check out the [Installation Guide](/install) for setup instructions
+- Explore the [API Reference](/api) for detailed documentation
+- Visit the [Examples](/examples) section for more use cases
 
 ## Community
 
-For help, discussion about best practices, or any other conversation that would benefit from being searchable:
+Join our community to get help, share your work, and connect with other developers:
 
-[Discussions on GitHub](https://github.com/stacksjs/ts-maps/discussions)
-
-For casual chit-chat with others using this package:
-
-[Join the Stacks Discord Server](https://discord.gg/stacksjs)
+- [GitHub Discussions](https://github.com/stacksjs/ts-maps/discussions)
+- [Discord Community](https://discord.gg/stacksjs)
 
 ## License
 
-The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md) for more information.
+ts-maps is released under the MIT License. See the [LICENSE](https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md) file for more details.
 
 Made with 💙
 

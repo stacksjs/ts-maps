@@ -7,12 +7,17 @@ ts-maps provides a powerful way to create interactive vector maps with data visu
 ### Creating a Vector Map
 
 ```typescript
-import { VectorMap } from '@stacksjs/ts-maps'
+import { VectorMap } from 'ts-maps'
 
 const map = new VectorMap({
-  container: 'map-container', // ID of the container element
-  map: 'world', // Built-in world map
-  theme: 'light', // 'light' or 'dark' theme
+  selector: '#map',
+  map: {
+    name: 'world',
+    projection: 'mercator'
+  },
+  backgroundColor: '#4a4a4a',
+  zoomOnScroll: true,
+  zoomButtons: true,
 })
 ```
 
@@ -20,183 +25,185 @@ const map = new VectorMap({
 
 ```typescript
 const map = new VectorMap({
-  container: 'map-container',
-  map: 'world',
-  options: {
-    zoom: {
-      enabled: true,
-      min: 1,
-      max: 5,
-      step: 0.5,
+  selector: '#map',
+  map: {
+    name: 'world',
+    projection: 'mercator'
+  },
+  // Zoom configuration
+  zoomOnScroll: true,
+  zoomOnScrollSpeed: 1.5,
+  zoomMax: 8,
+  zoomMin: 1,
+  zoomStep: 1.5,
+  zoomAnimate: true,
+
+  // Region selection
+  regionsSelectable: true,
+  regionsSelectableOne: false, // Allow multiple selection
+
+  // Marker options
+  markersSelectable: true,
+  markersSelectableOne: true, // Single selection for markers
+
+  // General options
+  backgroundColor: '#4a4a4a',
+  draggable: true,
+  bindTouchEvents: true,
+})
+```
+
+## Styling and Customization
+
+### Region Styling
+
+```typescript
+const map = new VectorMap({
+  selector: '#map',
+  map: {
+    name: 'world',
+    projection: 'mercator'
+  },
+  regionStyle: {
+    initial: {
+      fill: '#e4e4e4',
+      stroke: '#ffffff',
+      strokeWidth: 0.5,
     },
-    pan: {
-      enabled: true,
+    hover: {
+      fill: '#ccc',
     },
-    responsive: true,
+    selected: {
+      fill: '#2ca25f',
+    },
+    selectedHover: {
+      fill: '#1a9850',
+    },
   },
 })
+```
+
+### Marker Styling
+
+```typescript
+// Define marker styles
+const map = new VectorMap({
+  selector: '#map',
+  markerStyle: {
+    initial: {
+      fill: '#ff0000',
+      stroke: '#ffffff',
+      r: 5,
+    },
+    hover: {
+      fill: '#ff5555',
+      r: 7,
+    },
+    selected: {
+      fill: '#ff9999',
+    },
+  },
+})
+
+// Add markers
+map.addMarkers([
+  {
+    name: 'New York',
+    coords: [40.7128, -74.0060],
+    style: {
+      fill: '#ff0000',
+      stroke: '#ffffff',
+      r: 5,
+    },
+  },
+  {
+    name: 'London',
+    coords: [51.5074, -0.1278],
+    style: {
+      fill: '#00ff00',
+      stroke: '#ffffff',
+      r: 5,
+    },
+  },
+])
 ```
 
 ## Data Visualization
 
-### Choropleth Maps
+### Basic Data Visualization
 
 ```typescript
-// Create a choropleth map with data
-map.choropleth({
-  data: [
-    { id: 'US', value: 100 },
-    { id: 'CA', value: 80 },
-    { id: 'GB', value: 65 },
-  ],
-  scale: {
-    type: 'linear',
-    min: 0,
-    max: 100,
-    colors: ['#e5f5f9', '#2ca25f'],
+const map = new VectorMap({
+  selector: '#map',
+  map: {
+    name: 'world',
+    projection: 'mercator'
   },
-})
-```
-
-### Heat Maps
-
-```typescript
-// Create a heat map with point data
-map.heatmap({
-  data: [
-    { lat: 40.7128, lng: -74.0060, value: 100 }, // New York
-    { lat: 51.5074, lng: -0.1278, value: 80 }, // London
-    { lat: 35.6762, lng: 139.6503, value: 90 }, // Tokyo
-  ],
-  options: {
-    radius: 20,
-    blur: 15,
-    gradient: {
-      0.4: 'blue',
-      0.6: 'cyan',
-      0.8: 'lime',
-      0.9: 'yellow',
-      1.0: 'red',
+  visualizeData: {
+    scale: ['#C8EEFF', '#0071A4'],
+    values: {
+      US: 100,
+      GB: 75,
+      FR: 80,
+      DE: 85,
+      IT: 60,
+      ES: 65,
     },
   },
 })
 ```
 
-## Map Projections
+### Custom Visualization Options
 
 ```typescript
-import { Projections } from '@stacksjs/ts-maps'
-
-// Using different map projections
 const map = new VectorMap({
-  container: 'map-container',
-  projection: Projections.mercator({
-    center: [0, 40],
-    scale: 200,
-  }),
-})
-
-// Or use other available projections
-const equalEarthMap = new VectorMap({
-  container: 'map-container',
-  projection: Projections.equalEarth(),
+  selector: '#map',
+  map: {
+    name: 'world',
+    projection: 'mercator'
+  },
+  visualizeData: {
+    scale: ['#fee5d9', '#a50f15'],
+    values: {
+      US: 100,
+      CN: 85,
+      RU: 70,
+      BR: 60,
+    },
+    scaleColors: ['#fee5d9', '#a50f15'],
+    normalizeFunction: 'linear', // or 'polynomial'
+  },
 })
 ```
 
 ## Event Handling
 
 ```typescript
-// Click events
-map.on('regionClick', (event, region) => {
-  console.log(`Clicked region: ${region.id}`)
-  console.log(`Properties:`, region.properties)
-})
+// Region click events
+map.params.onRegionClick = (event, code) => {
+  console.log(`Clicked region: ${code}`)
+}
 
-// Hover events
-map.on('regionHover', (event, region) => {
-  console.log(`Hovering over: ${region.id}`)
-})
+// Region selection events
+map.params.onRegionSelected = (event, code, isSelected, selectedRegions) => {
+  console.log(`Region ${code} selection state: ${isSelected}`)
+  console.log('Currently selected regions:', selectedRegions)
+}
 
-// Zoom events
-map.on('zoom', (event, level) => {
-  console.log(`Current zoom level: ${level}`)
-})
+// Marker events
+map.params.onMarkerClick = (event, index) => {
+  console.log(`Clicked marker: ${index}`)
+}
 
-// Pan events
-map.on('pan', (event, position) => {
-  console.log(`Pan position:`, position)
-})
-```
+// Viewport events
+map.params.onViewportChange = (scale, transX, transY) => {
+  console.log(`Map viewport changed: scale=${scale}, x=${transX}, y=${transY}`)
+}
 
-## Styling and Customization
-
-### Basic Styling
-
-```typescript
-const map = new VectorMap({
-  container: 'map-container',
-  style: {
-    regions: {
-      default: {
-        fill: '#e4e4e4',
-        stroke: '#ffffff',
-        strokeWidth: 1,
-      },
-      hover: {
-        fill: '#2ca25f',
-        stroke: '#ffffff',
-        strokeWidth: 2,
-      },
-      selected: {
-        fill: '#2ca25f',
-        stroke: '#ffffff',
-        strokeWidth: 2,
-      },
-    },
-  },
-})
-```
-
-### Custom Legend
-
-```typescript
-map.setLegend({
-  title: 'Population Density',
-  position: 'bottom-right',
-  scale: {
-    type: 'linear',
-    min: 0,
-    max: 100,
-    steps: 5,
-    colors: ['#e5f5f9', '#2ca25f'],
-  },
-  labels: {
-    format: value => `${value}M`,
-  },
-})
-```
-
-## Series and Data Management
-
-```typescript
-import { Series } from '@stacksjs/ts-maps'
-
-// Create a data series
-const populationSeries = new Series({
-  name: 'Population',
-  data: [
-    { id: 'US', value: 331002651 },
-    { id: 'CN', value: 1439323776 },
-    { id: 'IN', value: 1380004385 },
-  ],
-  scale: {
-    type: 'logarithmic',
-    colors: ['#fee5d9', '#a50f15'],
-  },
-})
-
-// Apply the series to the map
-map.addSeries(populationSeries)
+// Load event
+map.params.onLoaded = () => {
+  console.log('Map has finished loading')
+}
 ```
 
 ## API Reference
@@ -204,32 +211,43 @@ map.addSeries(populationSeries)
 ### VectorMap Options
 
 ```typescript
-interface VectorMapOptions {
-  container: string | HTMLElement
-  map: string | MapData
-  theme?: 'light' | 'dark' | ThemeOptions
-  projection?: ProjectionOptions
-  style?: StyleOptions
-  interactive?: boolean
-  zoom?: ZoomOptions
-  pan?: PanOptions
-  legend?: LegendOptions
-  series?: Series[]
+interface MapOptions {
+  selector: string
+  map: {
+    name: string
+    projection: 'mercator' | 'miller'
+  }
+  backgroundColor?: string
+  draggable?: boolean
+  zoomButtons?: boolean
+  zoomOnScroll?: boolean
+  zoomOnScrollSpeed?: number
+  zoomMax?: number
+  zoomMin?: number
+  zoomAnimate?: boolean
+  showTooltip?: boolean
+  zoomStep?: number
+  bindTouchEvents?: boolean
+  regionsSelectable?: boolean
+  regionsSelectableOne?: boolean
+  markersSelectable?: boolean
+  markersSelectableOne?: boolean
+  regionStyle?: RegionStyle
+  markerStyle?: MarkerStyle
+  visualizeData?: DataVisualizationOptions
 }
 ```
 
 ### Event Types
 
 ```typescript
-type MapEventType =
-  | 'regionClick'
-  | 'regionHover'
-  | 'regionMouseEnter'
-  | 'regionMouseLeave'
-  | 'zoom'
-  | 'pan'
-  | 'load'
-  | 'error'
+interface MapEvents {
+  onRegionClick?: (event: MouseEvent, code: string) => void
+  onRegionSelected?: (event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]) => void
+  onMarkerClick?: (event: MouseEvent, index: number) => void
+  onViewportChange?: (scale: number, transX: number, transY: number) => void
+  onLoaded?: () => void
+}
 ```
 
 For more detailed information about specific features and advanced usage, check out our [API Reference](/api).
