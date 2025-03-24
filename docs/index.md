@@ -4,8 +4,8 @@ layout: home
 
 hero:
   name: "ts-maps"
-  text: "Interactive Vector Maps for Modern Web"
-  tagline: "A powerful TypeScript library for creating beautiful, interactive vector maps with advanced data visualization capabilities"
+  text: "Beautiful Vector Maps Made Simple"
+  tagline: "Modern & lightweight Typescript library. Easily create pretty & interactive vector maps."
   image: /images/logo-white.png
   actions:
     - theme: brand
