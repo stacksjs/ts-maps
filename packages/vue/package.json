@@ -49,7 +49,6 @@
     "ts-maps": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^20.17.27",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/tsconfig": "^0.7.0",
     "typescript": "~5.8.2",

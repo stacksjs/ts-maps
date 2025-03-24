@@ -1,259 +1,214 @@
-<p align="center"><img src=".github/art/cover.jpg" alt="Social Card of this repo"></p>
+<p align="center"><img src="https://github.com/stacksjs/ts-maps/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of ts-maps"></p>
 
 [![npm version][npm-version-src]][npm-version-href]
 [![GitHub Actions][github-actions-src]][github-actions-href]
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
-<!-- [![npm downloads][npm-downloads-src]][npm-downloads-href] -->
-<!-- [![Codecov][codecov-src]][codecov-href] -->
 
-# QR & Barcode Library & CLI
+<p align="center">
+  <a href="https://npmjs.com/package/ts-maps"><img src="https://img.shields.io/npm/v/ts-maps?style=flat-square" alt="npm version"></a>
+  <a href="https://github.com/stacksjs/ts-maps/actions?query=workflow%3Aci"><img src="https://img.shields.io/github/workflow/status/stacksjs/ts-maps/ci/main?style=flat-square" alt="GitHub Actions"></a>
+  <a href="https://npmjs.com/package/ts-maps"><img src="https://img.shields.io/npm/dm/ts-maps?style=flat-square" alt="npm downloads"></a>
+  <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt="Commitizen friendly"></a>
+  <a href="https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md"><img src="https://img.shields.io/github/license/stacksjs/ts-maps.svg?style=flat-square" alt="License"></a>
+</p>
 
-> A QR & Barcode Library for Node.js/Bun, the CLI, including all major browsers.
+# ts-maps
 
-## Features
+> Modern TypeScript library for creating stunning vector maps
 
-- 🤖 **QR Code**: Customizable Generation & Reading
-- 📊 **Barcode**: `CODE128`, `EAN`, `EAN-13`, `EAN-8`, `EAN-5`, `EAN-2`, `UPC (A)`, `CODE39`, `ITF-14`, `MSI`, `Pharmacode`, `Codabar`—Generation & Reading
-- 📦 **Lightweight**: Zero dependencies
-- 🚀 **Fast**: Built with performance in mind
-- 📜 **TypeScript**: Strongly typed
-- 📚 **Simple**: Easy to use
-- 📖 **Documentation**: Well-documented
-- 🛠 **Library & CLI**: Interact in different ways
+## ✨ Features
 
-## Install
+- 🗺️ **Vector Maps**
+  - High-quality SVG-based interactive maps
+  - Multiple projection types (Mercator, Equal Earth)
+  - Built-in world maps and custom regions
 
-It's simple to install the library and CLI:
+- 📊 **Data Visualization**
+  - Choropleth maps with customizable scales
+  - Heat maps and bubble charts
+  - Interactive legends and tooltips
 
-```sh
-npm install qrx
-bun add qrx
-yarn add qrx
-pnpm add qrx
-```
+- 🎯 **Framework Agnostic**
+  - Zero dependencies
+  - Works with any framework
+  - Official React and Vue bindings
 
-_Check out the package.json scripts for more commands._
+- 🔒 **Type Safety**
+  - Full TypeScript support
+  - Strict types for better DX
+  - Comprehensive type definitions
 
-## Usage
-
-### QR Code
-
-```html
-<div id="qrcode"></div>
-
-<script type="text/javascript">
-new QRCode(document.getElementById("qrcode"), "https://stacksjs.org");
-</script>
-```
-
-If you want to customize the QR code, you can pass in an options object:
-
-```html
-<div id="qr-code"></div>
-
-<script type="text/javascript">
-var qrCode = new QRCode(document.getElementById("qr-code"), {
-  text: "https://stacksjs.org",
-  width: 128,
-  height: 128,
-  colorDark : "#000000",
-  colorLight : "#ffffff",
-  correctLevel : QRCode.CorrectLevel.H
-});
-</script>
-```
-
-You can also use methods to interact with the QR code:
-
-```ts
-qrCode.clear() // clear the code
-qrCode.makeCode('https://docs.stacksjs.org') // create another code
-```
-
-### Barcode
-
-A lightweight Barcode library with zero dependencies. It supports multiple barcode formats and works in browsers and with _Node.js & Bun_.
-
-#### Supported Formats
-
-- [CODE128](https://github.com/lindell/JsBarcode/wiki/CODE128)
-  - CODE128 (automatic mode switching)
-  - CODE128 A/B/C (force mode)
-- [EAN](https://github.com/lindell/JsBarcode/wiki/EAN)
-  - EAN-13
-  - EAN-8
-  - EAN-5
-  - EAN-2
-  - UPC (A)
-  - UPC (E)
-- [CODE39](https://github.com/lindell/JsBarcode/wiki/CODE39)
-- [ITF](https://github.com/lindell/JsBarcode/wiki/ITF-14)
-  - ITF
-  - ITF-14
-- [MSI](https://github.com/lindell/JsBarcode/wiki/MSI)
-  - MSI10
-  - MSI11
-  - MSI1010
-  - MSI1110
-- [Pharmacode](https://github.com/lindell/JsBarcode/wiki/pharmacode)
-- [Codabar](https://github.com/lindell/JsBarcode/wiki/codabar)
-
-#### Browser Example
-
-````html
-<svg id="barcode"></svg>
-<!-- or -->
-<canvas id="barcode"></canvas>
-<!-- or -->
-<img id="barcode"/>
-````
-
-##### Simple example
-
-````javascript
-Barcode('#barcode', 'Hi!')
-````
-
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/simple.svg)
-
-#### Example with options
-
-```ts
-Barcode('#barcode', '1234', {
-  format: 'pharmacode',
-  lineColor: '#0aa',
-  width: 4,
-  height: 40,
-  displayValue: false
-})
-```
-
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/advanced.svg)
-
-#### More advanced use case
-
-````javascript
-Barcode('#barcode')
-  .options({ font: 'OCR-B' }) // Will affect all barcodes
-  .EAN13('1234567890128', { fontSize: 18, textMargin: 0 })
-  .blank(20) // Create space between the barcodes
-  .EAN5('12345', { height: 85, textPosition: 'top', fontSize: 16, marginTop: 15 })
-  .render()
-````
-
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/simple.svg)
-
-#### Or define the value and options in the HTML element
-
-Use any `barcode-*` or `data-*` as attributes where `*` is any option.
-
-````html
-<svg class="barcode"
-  barcode-format="upc"
-  barcode-value="123456789012"
-  barcode-text-margin="0"
-  barcode-font-options="bold">
-</svg>
-````
-
-And then initialize it with:
-
-```ts
-Barcode('.barcode').init()
-```
-
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/init.svg)
-
-#### Retrieve the barcode values so you can render it any way you'd like
-
-Pass in an object which will be filled with data.
-
-```javascript
-const data = {}
-Barcode(data, 'text', { ...options })
-```
-
-data will be filled with a ``` encodings ``` property which has all the needed values. See docs for examples of what data looks like.
-
-#### Node.js & Bun
-
-----
-
-#### With canvas
-
-```ts
-import { Barcode } from '@stacksjs/qrx'
-import { createCanvas } from 'canvas'
-
-const canvas = createCanvas()
-
-Barcode(canvas, 'Hello')
-
-// As this is a node-canvas, you can configure it as you like:
-// see https://github.com/Automattic/node-canvas for more information
-```
-
-#### With svg
-
-```ts
-import { DOMImplementation, XMLSerializer } from 'xmldom'
-
-const xmlSerializer = new XMLSerializer()
-const document = new DOMImplementation().createDocument('http://www.w3.org/1999/xhtml', 'html', null)
-const svgNode = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-
-Barcode(svgNode, 'test', {
-  xmlDocument: document,
-})
-
-const svgText = xmlSerializer.serializeToString(svgNode)
-```
-
-#### Options
-
-For information about how to use the options, see the docs.
-
-| Option | Default value | Type |
-|--------|---------------|------|
-| [`format`](https://github.com/lindell/JsBarcode/wiki/Options#format) | `"auto" (CODE128)` | `String` |
-| [`width`](https://github.com/lindell/JsBarcode/wiki/Options#width) | `2` | `Number` |
-| [`height`](https://github.com/lindell/JsBarcode/wiki/Options#height) | `100` | `Number` |
-| [`displayValue`](https://github.com/lindell/JsBarcode/wiki/Options#display-value) | `true` | `Boolean` |
-| [`text`](https://github.com/lindell/JsBarcode/wiki/Options#text) | `undefined` | `String` |
-| [`fontOptions`](https://github.com/lindell/JsBarcode/wiki/Options#font-options) | `""` | `String` |
-| [`font`](https://github.com/lindell/JsBarcode/wiki/Options#font) | `"monospace"` | `String` |
-| [`textAlign`](https://github.com/lindell/JsBarcode/wiki/Options#text-align) | `"center"` | `String` |
-| [`textPosition`](https://github.com/lindell/JsBarcode/wiki/Options#text-position) | `"bottom"` | `String` |
-| [`textMargin`](https://github.com/lindell/JsBarcode/wiki/Options#text-margin) | `2` | `Number` |
-| [`fontSize`](https://github.com/lindell/JsBarcode/wiki/Options#font-size) | `20` | `Number` |
-| [`background`](https://github.com/lindell/JsBarcode/wiki/Options#background)  | `"#ffffff"` | `String (CSS color)` |
-| [`lineColor`](https://github.com/lindell/JsBarcode/wiki/Options#line-color) | `"#000000"` | `String (CSS color)` |
-| [`margin`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `10` | `Number` |
-| [`marginTop`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`marginBottom`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`marginLeft`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`marginRight`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`valid`](https://github.com/lindell/JsBarcode/wiki/Options#valid) | `function(valid){}` | `Function` |
-
-## Testing
+## 📦 Installation
 
 ```bash
-bun test
+# Using npm
+npm install ts-maps
+
+# Using pnpm
+pnpm add ts-maps
+
+# Using yarn
+yarn add ts-maps
+
+# Using bun
+bun add ts-maps
+```
+
+### Framework Bindings
+
+```bash
+# React
+npm install ts-maps ts-maps-react
+
+# Vue
+npm install ts-maps ts-maps-vue
+```
+
+## 🚀 Quick Start
+
+```typescript
+import type { VectorMapOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
+// Create a map instance
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
+  theme: 'light',
+  style: {
+    regions: {
+      fill: '#e4e4e4',
+      stroke: '#ffffff',
+      strokeWidth: 1,
+    },
+    hover: {
+      fill: '#2ca25f',
+    },
+  },
+})
+
+// Add interactivity
+map.on('regionClick', (event, region) => {
+  console.log(`Clicked: ${region.id}`)
+})
+```
+
+### Data Visualization
+
+```typescript
+import type { DataVisualizationOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
+})
+
+// Add data visualization
+const options: DataVisualizationOptions = {
+  scale: ['#e5f5f9', '#2ca25f'], // Color gradient from light blue to green
+  values: {
+    US: 100,
+    CA: 80,
+    GB: 65,
+  },
+}
+
+map.visualizeData(options)
+```
+
+### React Component
+
+```tsx
+import type { VectorMapProps } from 'ts-maps-react'
+import { useVectorMap } from 'ts-maps-react'
+
+function WorldMap() {
+  const { map, isLoading } = useVectorMap({
+    map: 'world',
+    theme: 'light',
+  })
+
+  return (
+    <div className="map-container">
+      {isLoading
+        ? (
+            <div>Loading...</div>
+          )
+        : (
+            <div id="map" />
+          )}
+    </div>
+  )
+}
+```
+
+### Vue Component
+
+```vue
+<script setup lang="ts">
+import type { VectorMapOptions } from 'ts-maps'
+import { useVectorMap } from 'ts-maps-vue'
+
+const { map, isLoading } = useVectorMap({
+  map: 'world',
+  theme: 'light',
+})
+</script>
+
+<template>
+  <div class="map-container">
+    <div v-if="isLoading">
+      Loading...
+    </div>
+    <div v-else id="map" />
+  </div>
+</template>
+```
+
+## 📖 Documentation
+
+- [Introduction](https://ts-maps.dev/intro)
+- [Installation](https://ts-maps.dev/install)
+- [Usage Guide](https://ts-maps.dev/usage)
+- [API Reference](https://ts-maps.dev/api)
+- [Examples](https://ts-maps.dev/examples)
+- [Playground](https://ts-maps.dev/playground)
+
+## 🧪 Development
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/stacksjs/ts-maps.git
+cd ts-maps
+```
+
+2. Install dependencies:
+
+```bash
+pnpm install
+```
+
+3. Start development:
+
+```bash
+pnpm dev
 ```
 
 ## Changelog
 
-Please see our [releases](https://github.com/stackjs/qrx/releases) page for more information on what has changed recently.
+Please see our [releases](https://github.com/stacksjs/clarity/releases) page for more information on what has changed recently.
 
 ## Contributing
 
-Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
+Please see [CONTRIBUTING](https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md) for details.
 
 ## Community
 
 For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-[Discussions on GitHub](https://github.com/stacksjs/qrx/discussions)
+[Discussions on GitHub](https://github.com/stacksjs/clarity/discussions)
 
 For casual chit-chat with others using this package:
 
@@ -261,7 +216,7 @@ For casual chit-chat with others using this package:
 
 ## Postcardware
 
-Stacks OSS will always stay open-sourced, and we will always love to receive postcards from wherever Stacks is used! _And we also publish them on our website. Thank you, Spatie._
+“Software that is free, but hopes for a postcard.” We love receiving postcards from around the world showing where `clarity` is being used! We showcase them on our website too.
 
 Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United States 🌎
 
@@ -272,213 +227,24 @@ We would like to extend our thanks to the following sponsors for funding Stacks 
 - [JetBrains](https://www.jetbrains.com/)
 - [The Solana Foundation](https://solana.com/)
 
-## Credit
+## Credits
 
-Many thanks for the libraries that laid the groundwork:
-
-- **QRCode.js**: <https://github.com/davidshimjs/qrcodejs>
-- **JsBarcode**: <https://github.com/lindell/JsBarcode>
+- [debug](https://github.com/debug-js/debug)
+- [@open-draft/logger](https://github.com/open-draft/logger)
+- [Chris Breuer](https://github.com/chrisbbreuer)
+- [All Contributors](https://github.com/stacksjs/ts-maps/contributors)
 
 ## License
 
-The MIT License (MIT). Please see [LICENSE](LICENSE.md) for more information.
+The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/clarity/blob/main/LICENSE.md) for more information.
 
 Made with 💙
 
 <!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/qrx?style=flat-square
-[npm-version-href]: https://npmjs.com/package/qrx
-[github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/qrx/ci.yml?style=flat-square&branch=main
-[github-actions-href]: https://github.com/stacksjs/qrx/actions?query=workflow%3Aci
+[npm-version-src]: https://img.shields.io/npm/v/@stacksjs/clarity?style=flat-square
+[npm-version-href]: https://npmjs.com/package/@stacksjs/clarity
+[github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/clarity/ci.yml?style=flat-square&branch=main
+[github-actions-href]: https://github.com/stacksjs/clarity/actions?query=workflow%3Aci
 
-<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/qrx/main?style=flat-square
-[codecov-href]: https://codecov.io/gh/stacksjs/qrx -->
-
-# ts-maps-vue
-
-Vue.js components for ts-maps - Interactive Vector Maps
-
-## Installation
-
-```bash
-npm install ts-maps-vue
-```
-
-## Usage
-
-### Global Registration
-
-```typescript
-import TsMapsVue from 'ts-maps-vue'
-import { createApp } from 'vue'
-import App from './App.vue'
-
-const app = createApp(App)
-app.use(TsMapsVue)
-app.mount('#app')
-```
-
-### Local Registration
-
-```vue
-<script setup lang="ts">
-import { VectorMap } from 'ts-maps-vue'
-</script>
-
-<script setup lang="ts">
-function handleRegionClick(event: MouseEvent, code: string) {
-  console.log(`Clicked region: ${code}`)
-}
-
-function handleMapLoaded() {
-  console.log('Map has finished loading')
-}
-</script>
-
-<template>
-  <VectorMap
-    :options="{
-      map: {
-        name: 'world',
-        projection: 'mercator',
-      },
-      backgroundColor: '#4a4a4a',
-      zoomOnScroll: true,
-      zoomButtons: true,
-    }"
-    height="500px"
-    @region-click="handleRegionClick"
-    @loaded="handleMapLoaded"
-  >
-    <template #loading>
-      <div>Custom loading state...</div>
-    </template>
-  </VectorMap>
-</template>
-```
-
-## Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| options | `MapOptions` | Required | Map configuration options (excluding 'selector') |
-| width | `string` | '100%' | Width of the map container |
-| height | `string` | '400px' | Height of the map container |
-
-## Events
-
-| Event | Parameters | Description |
-|-------|------------|-------------|
-| region-click | `(event: MouseEvent, code: string)` | Emitted when a region is clicked |
-| region-selected | `(event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[])` | Emitted when a region is selected/deselected |
-| marker-click | `(event: MouseEvent, index: number)` | Emitted when a marker is clicked |
-| viewport-change | `(scale: number, transX: number, transY: number)` | Emitted when the viewport changes |
-| loaded | - | Emitted when the map has finished loading |
-| update:options | `(options: MapOptions)` | Emitted when the options are updated |
-
-## Slots
-
-| Name | Description |
-|------|-------------|
-| loading | Custom loading state content |
-
-## Advanced Usage
-
-### Data Visualization
-
-```vue
-<template>
-  <VectorMap
-    :options="{
-      map: {
-        name: 'world',
-        projection: 'mercator',
-      },
-      visualizeData: {
-        scale: ['#C8EEFF', '#0071A4'],
-        values: {
-          US: 100,
-          GB: 75,
-          FR: 80,
-          DE: 85,
-          IT: 60,
-          ES: 65,
-        },
-      },
-    }"
-  />
-</template>
-```
-
-### Custom Styling
-
-```vue
-<template>
-  <VectorMap
-    :options="{
-      map: {
-        name: 'world',
-        projection: 'mercator',
-      },
-      regionStyle: {
-        initial: {
-          fill: '#e4e4e4',
-          stroke: '#ffffff',
-          strokeWidth: 0.5,
-        },
-        hover: {
-          fill: '#ccc',
-        },
-        selected: {
-          fill: '#2ca25f',
-        },
-      },
-    }"
-  />
-</template>
-```
-
-### Adding Markers
-
-```vue
-<script setup lang="ts">
-function handleMarkerClick(event: MouseEvent, index: number) {
-  console.log(`Clicked marker at index: ${index}`)
-}
-</script>
-
-<template>
-  <VectorMap
-    :options="{
-      map: {
-        name: 'world',
-        projection: 'mercator',
-      },
-      markers: [
-        {
-          name: 'New York',
-          coords: [40.7128, -74.0060],
-          style: {
-            fill: '#ff0000',
-            stroke: '#ffffff',
-            r: 5,
-          },
-        },
-      ],
-    }"
-    @marker-click="handleMarkerClick"
-  />
-</template>
-```
-
-## TypeScript Support
-
-The package includes full TypeScript support. You can import types directly:
-
-```typescript
-import type { MapOptions } from 'ts-maps-vue'
-```
-
-## License
-
-MIT License
+<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/clarity/main?style=flat-square
+[codecov-href]: https://codecov.io/gh/stacksjs/clarity -->

@@ -1,6 +1,8 @@
-# ts-maps
-
 <p align="center"><img src="https://github.com/stacksjs/ts-maps/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of ts-maps"></p>
+
+[![npm version][npm-version-src]][npm-version-href]
+[![GitHub Actions][github-actions-src]][github-actions-href]
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
 <p align="center">
   <a href="https://npmjs.com/package/ts-maps"><img src="https://img.shields.io/npm/v/ts-maps?style=flat-square" alt="npm version"></a>
@@ -9,6 +11,8 @@
   <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt="Commitizen friendly"></a>
   <a href="https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md"><img src="https://img.shields.io/github/license/stacksjs/ts-maps.svg?style=flat-square" alt="License"></a>
 </p>
+
+# ts-maps
 
 > Modern TypeScript library for creating stunning vector maps
 
@@ -192,31 +196,55 @@ pnpm install
 pnpm dev
 ```
 
-## 🤝 Contributing
+## Changelog
 
-Please read our [Contributing Guide](./CONTRIBUTING.md) before submitting a Pull Request to the project.
+Please see our [releases](https://github.com/stacksjs/clarity/releases) page for more information on what has changed recently.
 
-## 💬 Community
+## Contributing
 
-- [GitHub Discussions](https://github.com/stacksjs/ts-maps/discussions)
-- [Discord Server](https://discord.gg/stacksjs)
-- [Twitter](https://twitter.com/stacksjs)
+Please see [CONTRIBUTING](https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md) for details.
 
-## 📄 License
+## Community
 
-[MIT License](./LICENSE.md) © 2024 [Stacks.js](https://github.com/stacksjs)
+For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-## 💝 Sponsors
+[Discussions on GitHub](https://github.com/stacksjs/clarity/discussions)
 
-<p align="center">
-  <a href="https://jetbrains.com">
-    <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" alt="JetBrains" height="40">
-  </a>
-  <a href="https://solana.com">
-    <img src="https://solana.com/_next/static/media/logotype.e4df684f.svg" alt="Solana" height="40">
-  </a>
-</p>
+For casual chit-chat with others using this package:
 
-## 🙏 Credits
+[Join the Stacks Discord Server](https://discord.gg/stacksjs)
 
-- [Rinvex Countries](https://github.com/rinvex/countries)
+## Postcardware
+
+“Software that is free, but hopes for a postcard.” We love receiving postcards from around the world showing where `clarity` is being used! We showcase them on our website too.
+
+Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United States 🌎
+
+## Sponsors
+
+We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
+
+- [JetBrains](https://www.jetbrains.com/)
+- [The Solana Foundation](https://solana.com/)
+
+## Credits
+
+- [debug](https://github.com/debug-js/debug)
+- [@open-draft/logger](https://github.com/open-draft/logger)
+- [Chris Breuer](https://github.com/chrisbbreuer)
+- [All Contributors](https://github.com/stacksjs/ts-maps/contributors)
+
+## License
+
+The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/clarity/blob/main/LICENSE.md) for more information.
+
+Made with 💙
+
+<!-- Badges -->
+[npm-version-src]: https://img.shields.io/npm/v/@stacksjs/clarity?style=flat-square
+[npm-version-href]: https://npmjs.com/package/@stacksjs/clarity
+[github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/clarity/ci.yml?style=flat-square&branch=main
+[github-actions-href]: https://github.com/stacksjs/clarity/actions?query=workflow%3Aci
+
+<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/clarity/main?style=flat-square
+[codecov-href]: https://codecov.io/gh/stacksjs/clarity -->
