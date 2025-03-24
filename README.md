@@ -221,8 +221,7 @@ We would like to extend our thanks to the following sponsors for funding Stacks 
 
 ## Credits
 
-- [debug](https://github.com/debug-js/debug)
-- [@open-draft/logger](https://github.com/open-draft/logger)
+- [jsvectormap](https://github.com/themustafaomar/jsvectormap)
 - [Chris Breuer](https://github.com/chrisbbreuer)
 - [All Contributors](https://github.com/stacksjs/ts-maps/contributors)
 
