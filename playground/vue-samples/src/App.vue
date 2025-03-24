@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { VectorMap } from '../../../packages/vue/src'
+
+type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
 
 interface EventData {
   type: string
@@ -12,12 +14,22 @@ interface EventData {
 
 const isDarkTheme = ref(false)
 const lastEvent = ref<EventData | null>(null)
+const currentMap = ref<MapName>('world')
+
+const mapOptions = [
+  { value: 'world', label: 'World Map', projection: 'miller' },
+  { value: 'world-merc', label: 'World (Mercator)', projection: 'mercator' },
+  { value: 'us-merc', label: 'USA (Mercator)', projection: 'mercator' },
+  { value: 'us-mill', label: 'USA (Miller)', projection: 'miller' },
+  { value: 'us-lcc', label: 'USA (Lambert)', projection: 'lambert' },
+  { value: 'us-aea', label: 'USA (Albers)', projection: 'albers' },
+  { value: 'spain', label: 'Spain', projection: 'mercator' },
+  { value: 'italy', label: 'Italy', projection: 'mercator' },
+  { value: 'canada', label: 'Canada', projection: 'mercator' },
+  { value: 'brasil', label: 'Brasil', projection: 'mercator' },
+]
 
 const options = reactive<Omit<MapOptions, 'selector'>>({
-  map: {
-    name: 'world',
-    projection: 'mercator',
-  },
   backgroundColor: '#ffffff',
   zoomOnScroll: true,
   zoomButtons: true,
@@ -49,7 +61,7 @@ const options = reactive<Omit<MapOptions, 'selector'>>({
   },
   markers: [
     {
-      name: 'New York',
+      name: 'Sample Marker',
       coords: [40.7128, -74.0060],
       style: {
         fill: '#ff0000',
@@ -58,6 +70,13 @@ const options = reactive<Omit<MapOptions, 'selector'>>({
       },
     },
   ],
+})
+
+const currentProjection = computed(() => {
+  const selectedMap = mapOptions.find(map => map.value === currentMap.value)
+
+  options.projection = selectedMap?.projection || 'unknown'
+  return selectedMap?.projection || 'unknown'
 })
 
 function toggleTheme() {
@@ -123,6 +142,19 @@ function handleLoaded() {
     <h1>ts-maps Vue Example</h1>
 
     <div class="controls">
+      <div class="control-group">
+        <label for="map-select">Select Map:</label>
+        <select id="map-select" v-model="currentMap">
+          <option v-for="map in mapOptions" :key="map.value" :value="map.value">
+            {{ map.label }} ({{ map.projection }})
+          </option>
+        </select>
+      </div>
+
+      <div class="control-info">
+        Current Projection: <strong>{{ currentProjection }}</strong>
+      </div>
+
       <button @click="toggleTheme">
         Toggle Theme
       </button>
@@ -137,6 +169,7 @@ function handleLoaded() {
     <div class="map-container">
       <VectorMap
         :options="options"
+        :map-name="currentMap"
         height="500px"
         @region-click="handleRegionClick"
         @marker-click="handleMarkerClick"
@@ -170,10 +203,31 @@ function handleLoaded() {
   padding: 20px;
   background: #f5f5f5;
   border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.control-group label {
+  font-weight: 500;
+}
+
+.control-group select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: white;
+  min-width: 200px;
 }
 
 .controls button {
-  margin: 0 10px 10px 0;
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
@@ -207,5 +261,16 @@ function handleLoaded() {
   padding: 15px;
   background: #f9f9f9;
   border-radius: 8px;
+}
+
+.control-info {
+  padding: 8px 16px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.control-info strong {
+  color: #2ca25f;
 }
 </style>

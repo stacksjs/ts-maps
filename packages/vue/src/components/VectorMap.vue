@@ -1,12 +1,31 @@
 <script setup lang="ts">
-import type { MapOptions } from 'ts-maps'
 import type { PropType } from 'vue'
-import { VectorMap as TsVectorMap } from 'ts-maps'
+import type { MapOptions } from '../../../ts-maps/src/types'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import brasilMap from '../../../ts-maps/src/maps/brasil'
+
+import canadaMap from '../../../ts-maps/src/maps/canada'
+import italyMap from '../../../ts-maps/src/maps/italy'
+import spainMap from '../../../ts-maps/src/maps/spain'
+import usaAeaMap from '../../../ts-maps/src/maps/us-aea-en'
+import usaLccMap from '../../../ts-maps/src/maps/us-lcc-en'
+import usaMercMap from '../../../ts-maps/src/maps/us-merc-en'
+import usaMillMap from '../../../ts-maps/src/maps/us-mill-en'
+// Import available maps
+import worldMap from '../../../ts-maps/src/maps/world'
+import worldMercMap from '../../../ts-maps/src/maps/world-merc'
+import { VectorMap as TsVectorMap } from '../../../ts-maps/src/vector-map'
+
+// Map name type
+type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
 
 const props = defineProps({
   options: {
     type: Object as PropType<Omit<MapOptions, 'selector'>>,
+    required: true,
+  },
+  mapName: {
+    type: String as PropType<MapName>,
     required: true,
   },
   width: {
@@ -30,54 +49,82 @@ const emit = defineEmits<{
 
 const mapContainer = ref<HTMLElement | null>(null)
 const map = ref<TsVectorMap | null>(null)
-const loading = ref(true)
+const loading = ref<boolean>(true)
 
-const containerStyle = computed(() => ({
+const containerStyle = computed<{ width: string, height: string, position: 'relative' }>(() => ({
   width: props.width,
   height: props.height,
   position: 'relative' as const,
 }))
 
+// Map data lookup
+const mapData: Record<MapName, any> = {
+  'world': worldMap,
+  'world-merc': worldMercMap,
+  'us-merc': usaMercMap,
+  'us-mill': usaMillMap,
+  'us-lcc': usaLccMap,
+  'us-aea': usaAeaMap,
+  'spain': spainMap,
+  'italy': italyMap,
+  'canada': canadaMap,
+  'brasil': brasilMap,
+}
+
 onMounted(async () => {
   if (!mapContainer.value)
     return
 
-  // Initialize the map
+  const containerId = mapContainer.value.id || `ts-maps-${Math.random().toString(36).substr(2, 9)}`
+  mapContainer.value.id = containerId
+
+  // Add the map data
+  TsVectorMap.addMap(props.mapName, mapData[props.mapName])
+
+  // Initialize the map with the selected map
   map.value = new TsVectorMap({
     ...props.options,
-    selector: `#${mapContainer.value.id || `ts-maps-${Math.random().toString(36).substr(2, 9)}`}`,
+    map: {
+      name: props.mapName,
+      projection: props.options.projection,
+    },
+    selector: `#${containerId}`,
+    onRegionClick: (event: MouseEvent, code: string) => {
+      emit('regionClick', event, code)
+    },
+    onRegionSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]) => {
+      emit('regionSelected', event, code, isSelected, selectedRegions)
+    },
+    onMarkerClick: (event: MouseEvent, index: number) => {
+      emit('markerClick', event, index)
+    },
+    onViewportChange: (scale: number, transX: number, transY: number) => {
+      emit('viewportChange', scale, transX, transY)
+    },
+    onLoaded: () => {
+      loading.value = false
+      emit('loaded')
+    },
   })
-
-  // Set up event handlers
-  map.value.params.onRegionClick = (event, code) => {
-    emit('regionClick', event, code)
-  }
-
-  map.value.params.onRegionSelected = (event, code, isSelected, selectedRegions) => {
-    emit('regionSelected', event, code, isSelected, selectedRegions)
-  }
-
-  map.value.params.onMarkerClick = (event, index) => {
-    emit('markerClick', event, index)
-  }
-
-  map.value.params.onViewportChange = (scale, transX, transY) => {
-    emit('viewportChange', scale, transX, transY)
-  }
-
-  map.value.params.onLoaded = () => {
-    loading.value = false
-    emit('loaded')
-  }
 })
 
 // Watch for options changes
 watch(() => props.options, (newOptions) => {
   if (map.value) {
-    Object.assign(map.value.params, newOptions)
-    emit('update:options', map.value.params)
+    Object.assign(map.value, newOptions)
+    emit('update:options', map.value)
   }
 }, { deep: true })
+
+// Watch for map name changes
+watch(() => props.mapName, (newMapName) => {
+  if (map.value && mapData[newMapName]) {
+    // Add the new map data
+    TsVectorMap.addMap(newMapName, mapData[newMapName])
+    // Update the map
+    map.value.setMap(newMapName)
+  }
+})
 
 onBeforeUnmount(() => {
   if (map.value) {

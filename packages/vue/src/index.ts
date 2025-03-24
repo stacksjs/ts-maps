@@ -11,4 +11,4 @@ export default {
 }
 
 // Type exports
-export type { MapOptions } from 'ts-maps'
+export type { MapOptions } from '../../ts-maps/src/types'
