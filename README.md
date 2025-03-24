@@ -4,14 +4,6 @@
 [![GitHub Actions][github-actions-src]][github-actions-href]
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
-<p align="center">
-  <a href="https://npmjs.com/package/ts-maps"><img src="https://img.shields.io/npm/v/ts-maps?style=flat-square" alt="npm version"></a>
-  <a href="https://github.com/stacksjs/ts-maps/actions?query=workflow%3Aci"><img src="https://img.shields.io/github/workflow/status/stacksjs/ts-maps/ci/main?style=flat-square" alt="GitHub Actions"></a>
-  <a href="https://npmjs.com/package/ts-maps"><img src="https://img.shields.io/npm/dm/ts-maps?style=flat-square" alt="npm downloads"></a>
-  <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt="Commitizen friendly"></a>
-  <a href="https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md"><img src="https://img.shields.io/github/license/stacksjs/ts-maps.svg?style=flat-square" alt="License"></a>
-</p>
-
 # ts-maps
 
 > Modern TypeScript library for creating stunning vector maps
