@@ -52,7 +52,7 @@
   "devDependencies": {
     "@types/bun": "^1.2.5",
     "lint-staged": "^15.5.0",
-    "simple-git-hooks": "^2.11.1",
+    "simple-git-hooks": "^2.12.1",
     "typescript": "^5.8.2"
   },
   "lint-staged": {
