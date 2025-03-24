@@ -282,3 +282,27 @@ Made with 💙
 
 <!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/mail-server/main?style=flat-square
 [codecov-href]: https://codecov.io/gh/stacksjs/mail-server -->
+
+### Data Visualization
+
+```typescript
+import type { DataVisualizationOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
+})
+
+// Add data visualization
+const options: DataVisualizationOptions = {
+  scale: ['#e5f5f9', '#2ca25f'], // from color to color
+  values: {
+    US: 100,
+    CA: 80,
+    GB: 65,
+  },
+}
+
+map.visualizeData(options)
+```

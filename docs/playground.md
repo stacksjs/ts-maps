@@ -1,301 +1,268 @@
 # Interactive Playground
 
-Welcome to the ts-maps playground! Here you can explore various examples and learn how to use different features of the library. Each example comes with live code that you can modify and experiment with.
+Welcome to the ts-maps interactive playground! Here you can experiment with different map configurations and features in real-time.
 
 ## Basic Examples
 
 ### Simple World Map
 
-The most basic implementation of ts-maps showing a world map with default settings.
-
 ```typescript
-import { VectorMap } from '@stacksjs/ts-maps'
+import { VectorMap } from 'ts-maps'
 
-const map = new VectorMap({
-  container: 'map',
-  map: 'world'
-})
-```
-
-::: details View Full Example
-
-```html
-<!-- basic.html -->
-<div id="map" style="width: 800px; height: 500px;"></div>
-<script type="module">
-  import { VectorMap } from '@stacksjs/ts-maps'
-
-  new VectorMap({
-    container: 'map',
-    map: 'world',
-    backgroundColor: '#fff',
-    zoomOnScroll: true
-  })
-</script>
-```
-
-:::
-
-### Pretty Styling
-
-Example of a beautifully styled map with custom colors and hover effects.
-
-```typescript
 const map = new VectorMap({
   container: 'map',
   map: 'world',
+  theme: 'light',
+})
+```
+
+### Styled Map
+
+```typescript
+import type { VectorMapOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
+const options: VectorMapOptions = {
+  container: 'map',
+  map: 'world',
+  theme: 'dark',
   style: {
     regions: {
-      initial: {
-        fill: '#e4e6ef',
-        stroke: '#ffffff',
-        strokeWidth: 1
-      },
-      hover: {
-        fill: '#3699ff',
-        cursor: 'pointer'
-      }
-    }
-  }
+      fill: '#2a4858',
+      stroke: '#ffffff',
+      strokeWidth: 0.5,
+    },
+    background: '#1a1a1a',
+  },
+}
+
+const map = new VectorMap(options)
+```
+
+## Data Visualization
+
+### Choropleth Map
+
+```typescript
+import type { DataVisualizationOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
 })
+
+const visualization: DataVisualizationOptions = {
+  scale: ['#FFE5E5', '#FF0000'],
+  values: {
+    US: 100,
+    CA: 75,
+    MX: 50,
+  }
+}
+
+map.visualizeData(visualization)
+```
+
+### Heat Map
+
+```typescript
+import type { GeoPoint, HeatmapOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
+})
+
+const points: GeoPoint[] = [
+  { lat: 40.7128, lng: -74.0060, value: 100 }, // New York
+  { lat: 51.5074, lng: -0.1278, value: 80 }, // London
+  { lat: 35.6762, lng: 139.6503, value: 90 }, // Tokyo
+]
+
+const options: HeatmapOptions = {
+  data: points,
+  radius: 20,
+  blur: 15,
+  gradient: {
+    0.4: 'blue',
+    0.6: 'cyan',
+    0.8: 'lime',
+    0.9: 'yellow',
+    1.0: 'red',
+  },
+}
+
+map.heatmap(options)
 ```
 
 ## Interactive Features
 
 ### Event Handling
 
-Demonstration of various map events and how to handle them.
-
 ```typescript
+import type { Region } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
 const map = new VectorMap({
   container: 'map',
-  map: 'world'
+  map: 'world',
 })
 
-map.on('regionClick', (event, code) => {
-  console.log(`Clicked region: ${code}`)
+// Region click events
+map.on('regionClick', (event, region: Region) => {
+  console.log(`Clicked region: ${region.id}`)
 })
 
-map.on('regionHover', (event, code) => {
-  // Custom tooltip content
+// Region hover events
+map.on('regionHover', (event, region: Region) => {
+  region.style.fill = '#ff0000'
 })
 
-map.on('zoom', (scale) => {
-  console.log(`Map zoomed to scale: ${scale}`)
+// Zoom events
+map.on('zoom', (scale: number) => {
+  console.log(`Current zoom scale: ${scale}`)
 })
 ```
 
-### Markers
-
-Adding interactive markers to your map.
+### Markers and Lines
 
 ```typescript
+import type { LineOptions, MarkerOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
+
 const map = new VectorMap({
   container: 'map',
-  map: 'world'
+  map: 'world',
 })
 
-map.addMarkers([
+// Add markers
+const markerOptions: MarkerOptions[] = [
   {
-    coords: [40.7128, -74.0060],
+    coordinates: [40.7128, -74.0060],
     name: 'New York',
     style: {
-      fill: '#ff5733',
+      fill: '#ff0000',
       stroke: '#ffffff',
-      strokeWidth: 2
-    }
+      strokeWidth: 2,
+      radius: 5,
+    },
   },
   {
-    coords: [51.5074, -0.1278],
+    coordinates: [51.5074, -0.1278],
     name: 'London',
     style: {
-      fill: '#33ff57'
-    }
-  }
-])
-```
-
-## Data Visualization
-
-### Series Data
-
-Example of adding data series for choropleth maps.
-
-```typescript
-const map = new VectorMap({
-  container: 'map',
-  map: 'world'
-})
-
-const series = new Series({
-  data: {
-    US: 100,
-    GB: 75,
-    FR: 80,
-    DE: 85,
-    IT: 70
-  },
-  scale: ['#C8EEFF', '#0071A4'],
-  normalizeFunction: 'polynomial'
-})
-
-map.addSeries(series)
-```
-
-### Lines and Connections
-
-Drawing lines between points on the map.
-
-```typescript
-map.addLines([
-  {
-    from: [40.7128, -74.0060], // New York
-    to: [51.5074, -0.1278], // London
-    style: {
-      stroke: '#3699ff',
-      strokeWidth: 2,
-      dashArray: '5,5'
-    }
-  }
-])
-```
-
-## Advanced Usage
-
-### Custom Projections
-
-Example of using different map projections.
-
-```typescript
-const map = new VectorMap({
-  container: 'map',
-  map: 'world',
-  projection: 'mercator', // or 'miller'
-  backgroundColor: '#4444'
-})
-```
-
-### Advanced Markers
-
-Complex marker implementation with custom styling and events.
-
-```typescript
-const markers = {
-  cities: [
-    { latLng: [40.7128, -74.0060], name: 'New York' },
-    { latLng: [51.5074, -0.1278], name: 'London' },
-    { latLng: [35.6762, 139.6503], name: 'Tokyo' }
-  ],
-  style: {
-    initial: {
-      fill: '#ff5733',
+      fill: '#00ff00',
       stroke: '#ffffff',
-      r: 5
+      strokeWidth: 2,
+      radius: 5,
     },
-    hover: {
-      fill: '#33ff57',
-      r: 8
-    }
   },
-  onMarkerClick(event, index) {
-    console.log(`Clicked marker: ${this.cities[index].name}`)
-  }
+]
+
+map.addMarkers(markerOptions)
+
+// Add connection line
+const lineOptions: LineOptions = {
+  from: [40.7128, -74.0060],
+  to: [51.5074, -0.1278],
+  style: {
+    stroke: '#3699ff',
+    strokeWidth: 2,
+    dashArray: '5,5',
+  },
+  animate: true,
+  duration: 1000,
 }
 
-map.addMarkers(markers)
+map.drawLine(lineOptions)
 ```
 
-## Real-World Examples
+## Framework Integration
 
-### Reflect User Location
+### React Component
 
-This example shows how to automatically detect and display the user's location on the map using the IP Geolocation API.
+```tsx
+import type { VectorMapProps } from 'ts-maps-react'
+import { useVectorMap } from 'ts-maps-react'
 
-```typescript
-import { VectorMap } from '@stacksjs/ts-maps'
+interface Props {
+  onRegionClick?: (regionId: string) => void
+}
 
-const map = new VectorMap({
-  container: 'map',
-  map: 'world',
-  async onLoaded(map) {
-    try {
-      const response = await fetch('https://ipinfo.io/geo')
-      const data = await response.json()
-
-      // Split the coordinates string into an array
-      const coords = data.loc.split(',').map(Number)
-
-      map.addMarkers([{
-        coords,
-        name: `${data.city} - ${data.country} (${data.ip})`,
-        style: {
-          fill: '#3699ff',
-          stroke: '#ffffff',
-          strokeWidth: 2,
-          r: 6
-        },
-        hover: {
-          fill: '#33ff57',
-          r: 8
-        }
-      }])
-    }
-    catch (error) {
-      console.error('Error fetching location:', error)
-    }
-  }
-})
-```
-
-::: details View Full Example
-
-```html
-<!-- location.html -->
-<div id="map" style="width: 800px; height: 500px;"></div>
-<script type="module">
-  import { VectorMap } from '@stacksjs/ts-maps'
-
-  new VectorMap({
-    container: 'map',
+function WorldMap({ onRegionClick }: Props) {
+  const { map, isLoading } = useVectorMap({
     map: 'world',
-    backgroundColor: '#fff',
-    zoomOnScroll: true,
-    async onLoaded(map) {
-      try {
-        const response = await fetch('https://ipinfo.io/geo')
-        const data = await response.json()
-
-        const coords = data.loc.split(',').map(Number)
-
-        map.addMarkers([{
-          coords: coords,
-          name: `${data.city} - ${data.country} (${data.ip})`,
-          style: {
-            fill: '#3699ff',
-            stroke: '#ffffff',
-            strokeWidth: 2,
-            r: 6
-          },
-          hover: {
-            fill: '#33ff57',
-            r: 8
-          }
-        }])
-      } catch (error) {
-        console.error('Error fetching location:', error)
-      }
-    }
+    theme: 'light',
+    onReady: (mapInstance) => {
+      console.log('Map is ready')
+    },
   })
-</script>
+
+  return (
+    <div className="map-container">
+      {isLoading
+        ? (
+            <div>Loading...</div>
+          )
+        : (
+            <div id="map" className="map" />
+          )}
+    </div>
+  )
+}
+
+export default WorldMap
 ```
 
-:::
+### Vue Component
 
-Note: This example uses the [ipinfo.io](https://ipinfo.io) API to get the user's location. You may need to sign up for an API key for production use.
+```vue
+<script setup lang="ts">
+import type { VectorMapOptions } from 'ts-maps'
+import { useVectorMap } from 'ts-maps-vue'
+
+interface Props {
+  theme?: 'light' | 'dark'
+}
+
+const props = defineProps<Props>()
+
+const options: VectorMapOptions = {
+  map: 'world',
+  theme: props.theme ?? 'light',
+  onReady: (mapInstance) => {
+    console.log('Map is ready')
+  },
+}
+
+const { map, isLoading } = useVectorMap(options)
+</script>
+
+<template>
+  <div class="map-container">
+    <div v-if="isLoading">
+      Loading...
+    </div>
+    <div v-else id="map" class="map" />
+  </div>
+</template>
+
+<style scoped>
+.map-container {
+  width: 100%;
+  height: 400px;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+</style>
+```
 
 ## Running the Playground
-
-To run these examples locally:
 
 1. Clone the repository:
 
@@ -307,50 +274,37 @@ cd ts-maps
 2. Install dependencies:
 
 ```bash
-bun install
+pnpm install
 ```
 
-3. Start the playground server:
+3. Start the playground:
 
 ```bash
-bun run playground
+pnpm run playground
 ```
 
-4. Open your browser and navigate to `http://localhost:3000`
+4. Open your browser to `http://localhost:3000`
 
-## Playground Structure
+## Examples Structure
 
-The playground includes a comprehensive set of example files to help you learn and experiment with ts-maps:
+The playground includes several example files:
 
-### Basic Examples
+- `basic/`: Basic map implementations
+  - `world.ts`: Simple world map
+  - `styled.ts`: Custom styled maps
 
-- `basic.html` - Basic map implementation with minimal configuration
-- `pretty.html` - Styled map example with custom colors and hover effects
+- `visualization/`: Data visualization examples
+  - `choropleth.ts`: Choropleth maps
+  - `heatmap.ts`: Heat maps
+  - `bubble.ts`: Bubble charts
 
-### Interactive Examples
+- `interactive/`: Interactive features
+  - `events.ts`: Event handling
+  - `markers.ts`: Marker management
+  - `lines.ts`: Connection lines
 
-- `events.html` - Event handling demonstrations (clicks, hovers, zooms)
-- `markers.html` - Basic marker usage and customization
-- `addmarkers.html` - Dynamic marker manipulation and interaction
+- `frameworks/`: Framework integrations
+  - `react/`: React examples
+  - `vue/`: Vue examples
 
-### Data Visualization
-
-- `series.html` - Data visualization with series and choropleth maps
-- `lines.html` - Drawing connections and paths between locations
-
-### Advanced Usage
-
-- `advanced.html` - Advanced usage scenarios and complex configurations
-- `location.html` - Real-time user location detection and display
-- `other.html` - Additional examples and experimental features
-
-Each example file is self-contained and includes all necessary code to run the demonstration. The examples are designed to be:
-
-- Easy to understand with clear, documented code
-- Ready to run without additional configuration
-- Modifiable for experimentation and learning
-- Practical for real-world use cases
-
-Feel free to modify these examples and experiment with different configurations to learn how ts-maps works!
-
-To access any example, simply navigate to `http://localhost:3000/samples/[example-name]` after starting the playground server.
+Each example is self-contained and includes TypeScript types for better development experience.
