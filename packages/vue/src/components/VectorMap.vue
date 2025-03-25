@@ -41,7 +41,7 @@ const props = defineProps({
 const emit = defineEmits<{
   (e: 'regionClick', event: MouseEvent, code: string): void
   (e: 'regionSelected', event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]): void
-  (e: 'markerClick', event: MouseEvent, index: number): void
+  (e: 'markerClick', event: MouseEvent, index: string): void
   (e: 'viewportChange', scale: number, transX: number, transY: number): void
   (e: 'loaded'): void
   (e: 'update:options', options: MapOptions): void
@@ -95,7 +95,7 @@ onMounted(async () => {
     onRegionSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]) => {
       emit('regionSelected', event, code, isSelected, selectedRegions)
     },
-    onMarkerClick: (event: MouseEvent, index: number) => {
+    onMarkerClick: (event: MouseEvent, index: string) => {
       emit('markerClick', event, index)
     },
     onViewportChange: (scale: number, transX: number, transY: number) => {
@@ -112,17 +112,48 @@ onMounted(async () => {
 watch(() => props.options, (newOptions) => {
   if (map.value) {
     Object.assign(map.value, newOptions)
-    emit('update:options', map.value)
+    emit('update:options', {
+      ...newOptions,
+      selector: `#${mapContainer.value?.id}`,
+      map: {
+        name: props.mapName,
+        projection: newOptions.projection,
+      },
+    })
   }
 }, { deep: true })
 
 // Watch for map name changes
 watch(() => props.mapName, (newMapName) => {
-  if (map.value && mapData[newMapName]) {
+  if (mapContainer.value && mapData[newMapName]) {
     // Add the new map data
     TsVectorMap.addMap(newMapName, mapData[newMapName])
-    // Update the map
-    map.value.setMap(newMapName)
+
+    // Create a new map instance with the new map
+    map.value = new TsVectorMap({
+      ...props.options,
+      map: {
+        name: newMapName,
+        projection: props.options.projection,
+      },
+      selector: `#${mapContainer.value.id}`,
+      onRegionClick: (event: MouseEvent, code: string) => {
+        emit('regionClick', event, code)
+      },
+      onRegionSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]) => {
+        emit('regionSelected', event, code, isSelected, selectedRegions)
+      },
+      onMarkerClick: (event: MouseEvent, index: string) => {
+        emit('markerClick', event, index)
+      },
+      onViewportChange: (scale: number, transX: number, transY: number) => {
+        emit('viewportChange', scale, transX, transY)
+      },
+      onLoaded: () => {
+        loading.value = false
+        emit('loaded')
+      },
+    })
   }
 })
 

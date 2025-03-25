@@ -38,18 +38,22 @@
     "dist"
   ],
   "scripts": {
-    "build": "bun --bun build.ts",
+    "build": "bunx --bun vite build --mode lib && bun run build:types",
+    "build:types": "bunx vue-tsc -p tsconfig.build.json && bunx api-extractor run",
     "lint": "bunx --bun eslint .",
     "lint:fix": "bunx --bun eslint . --fix"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.52.1",
     "@stacksjs/docs": "^0.70.10",
     "@stacksjs/eslint-config": "^4.2.1-beta.1",
     "@types/bun": "^1.2.5",
+    "@vue/tsconfig": "^0.7.0",
     "bumpp": "^10.1.0",
     "bun-plugin-dtsx": "^0.21.9",
     "cac": "^6.7.14",
     "changelogen": "^0.6.1",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vue-tsc": "^2.2.8"
   }
 }

@@ -1,61 +1,40 @@
 {
-  "name": "react-interactive-maps",
+  "name": "ts-maps-react",
   "type": "module",
-  "version": "0.1.0",
-  "description": "A modern mail server & utilities. React components.",
-  "author": "Chris Breuer <chris@stacksjs.org>",
+  "version": "0.0.1",
+  "description": "React component for ts-maps",
+  "author": "",
   "license": "MIT",
-  "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/react#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/stacksjs/ts-maps.git"
-  },
-  "bugs": {
-    "url": "https://github.com/stacksjs/ts-maps/issues"
-  },
   "keywords": [
-    "typescript",
-    "interactive",
-    "lightweight",
-    "powerful",
-    "maps",
     "react",
-    "stacksjs"
+    "ts-maps",
+    "vector-maps",
+    "maps"
   ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./*": {
-      "import": "./dist/*"
-    }
-  },
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "files": [
-    "README.md",
     "dist"
   ],
   "scripts": {
-    "build": "echo 'coming soon'",
-    "lint": "bunx --bun eslint .",
-    "lint:fix": "bunx --bun eslint . --fix",
-    "release": "bun publish --access public",
-    "prepublishOnly": "bun --bun run build",
-    "test": "bun test",
-    "typecheck": "bun --bun tsc --noEmit"
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build",
+    "preview": "bunx --bun vite preview",
+    "typecheck": "bunx --bun tsc --noEmit"
   },
-  "dependencies": {
-    "ts-maps": "workspace:*"
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.5",
-    "lint-staged": "^15.5.0",
-    "simple-git-hooks": "^2.12.1",
-    "typescript": "^5.8.2"
-  },
-  "lint-staged": {
-    "*.{js,ts}": "bunx --bun eslint . --fix"
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vite-plugin-dts": "^3.0.0"
   }
 }

@@ -1,14 +1,13 @@
-import type { App } from 'vue'
+import type { App, Plugin } from 'vue'
 import VectorMap from './components/VectorMap.vue'
 
-export { VectorMap }
-
-// Vue plugin
-export default {
+const plugin: Plugin = {
   install: (app: App) => {
     app.component('VectorMap', VectorMap)
   },
 }
 
-// Type exports
+export default plugin
+
+export { VectorMap }
 export type { MapOptions } from '../../ts-maps/src/types'
