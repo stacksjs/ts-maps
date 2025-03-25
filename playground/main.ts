@@ -205,40 +205,9 @@ const _map = new VectorMap({
 
   // Event handling
   onLoaded(): void {
-    // eslint-disable-next-line no-console
-    console.log('Map loaded:', this)
-
-    // // Get container dimensions
-    // const containerWidth = this.container.clientWidth
-    // const containerHeight = this.container.clientHeight
-
-    // // Set SVG dimensions to match container
-    // this._width = containerWidth
-    // this._height = containerHeight
-    // this.canvas.setSize(containerWidth, containerHeight)
-
-    // // Force resize to ensure proper displayf
-    // this.updateSize()
-
-    // // // Set timeout to ensure the map has fully rendered before adjusting
-    // setTimeout(() => {
-    //   // Center the map
-    //   this.transX = 0
-    //   this.transY = 0
-
-    //   // Apply the transform
-    //   this._applyTransform()
-
     //   // Apply custom colors based on visitor data
     applyVisitorColors(this)
-
-    //   // Force redraw of the map
-    //   this.updateSize()
-    //   this._applyTransform()
-
-    //   // Update the legend with visitor count information
-    //   updateLegend()
-    // }, 100)
+    updateLegend()
   },
 
   onViewportChange: (x: number, y: number, z: number): void => {
@@ -307,7 +276,7 @@ const _map = new VectorMap({
 
   onMarkerSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedMarkers: string[]): void => {
     // eslint-disable-next-line no-console
-    console.log('Marker selected:', code, isSelected, selectedMarkers)
+    console.log('Marker selected:', event, code, isSelected, selectedMarkers)
   },
 
   onMarkerTooltipShow: (_event: Event, tooltip: any, _code: string): void => {

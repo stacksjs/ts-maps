@@ -492,7 +492,8 @@ export class Map implements MapInterface {
    * @param _markers - Array of marker configurations to create
    * @param isRecentlyCreated - Flag indicating if markers were recently created
    */
-  _createMarkers(_markers: MarkerConfig[], isRecentlyCreated: boolean = false): void {
+
+  _createMarkers(_markers: MarkerConfig[], _isRecentlyCreated: boolean = false): void {
     // Implementation provided by core module
   }
 

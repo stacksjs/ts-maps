@@ -75,8 +75,10 @@ const options = reactive<Omit<MapOptions, 'selector'>>({
 const currentProjection = computed(() => {
   const selectedMap = mapOptions.find(map => map.value === currentMap.value)
 
-  options.projection = selectedMap?.projection || 'unknown'
-  return selectedMap?.projection || 'unknown'
+  if (!selectedMap)
+    return 'unknown'
+
+  return selectedMap.projection
 })
 
 function toggleTheme() {
@@ -130,6 +132,7 @@ function handleMarkerClick(_event: MouseEvent, index: number) {
 }
 
 function handleLoaded() {
+  options.projection = currentProjection.value
   lastEvent.value = {
     type: 'Map Loaded',
     time: new Date().toLocaleTimeString(),

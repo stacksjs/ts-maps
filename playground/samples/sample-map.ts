@@ -1,4 +1,4 @@
-import type { MapData, MarkerConfig } from 'ts-maps'
+import type { MarkerConfig } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
 import worldMerc from '../../packages/ts-maps/src/maps/world-merc'
 // import world from '../packages/ts-maps/src/maps/world'
@@ -7,39 +7,6 @@ import worldMerc from '../../packages/ts-maps/src/maps/world-merc'
 // Register the map data
 // VectorMap.addMap('world', world)
 VectorMap.addMap('world_merc', worldMerc)
-
-// Function to set the default blue-gray color for all regions
-function setDefaultRegionColors(map: any): void {
-  const defaultColor = '#e2e8f0' // Light blue-gray color
-
-  // Get all regions
-  const regions = map.regions as Record<string, any>
-
-  // Apply the default color to all regions
-  Object.keys(regions).forEach((code) => {
-    try {
-      const region = regions[code]
-      if (region && region.element && region.element.shape && region.element.shape.node) {
-        // Set fill color directly on the SVG node
-        region.element.shape.node.setAttribute('fill', defaultColor)
-        region.element.shape.node.style.fill = defaultColor
-
-        // Update the style object if it exists
-        if (region.element.shape.style && region.element.shape.style.initial) {
-          region.element.shape.style.initial.fill = defaultColor
-        }
-      }
-    }
-    catch (e) {
-      console.error(`Error setting default color for ${code}:`, e)
-    }
-  })
-
-  // Update the default region style to ensure new regions get colored properly
-  if (map.params.regionStyle.initial) {
-    map.params.regionStyle.initial.fill = defaultColor
-  }
-}
 
 // Create the map instance
 const map = new VectorMap({
@@ -133,11 +100,11 @@ const map = new VectorMap({
   onRegionTooltipShow: (_event: Event, tooltip: any, code: string): void => {
     // Get map data
     tooltip.css({ backgroundColor: 'white', color: '#35373e' }).text(
-      `${tooltip.text()} (Hello World \`region\`)`,
+      `${code} ${tooltip.text()} (Hello World \`region\`)`,
     )
   },
 
-  onMarkerSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedMarkers: string[]): void => { // Get the selected marker
+  onMarkerSelected: (event: MouseEvent, _code: string, isSelected: boolean, _selectedMarkers: string[]): void => { // Get the selected marker
     if (map._markers && code in map._markers) {
       const marker = map._markers[code]
       if (marker?.config?.name && isSelected && marker.config.coords) {
