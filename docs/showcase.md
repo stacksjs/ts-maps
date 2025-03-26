@@ -1,6 +1,6 @@
 # Showcase
 
-Here are all the cool projects that people have built using `mail-server`.
+Here are all the cool projects that people have built using `ts-maps`.
 
 ## Community Projects
 
@@ -10,7 +10,7 @@ If you authored a project you’d like to showcase, please share it with us in a
 
 ## First-Party
 
-The whole Stacks ecosystem is built using `mail-server`. Here are some of the projects utilizing it:
+The whole Stacks ecosystem is built using `ts-maps`. Here are some of the projects utilizing it:
 
 - [`vite-plugin-local`](https://github.com/stacksjs/vite-plugin-local) _(A Vite plugin for pretty development URLs and HTTPS. Zero config, zero setup)_
 - [`stacks`](https://github.com/stacksjs/stacks) _(Progressive full-stack framework for Web Artisans. Develop modern apps, clouds & framework-agnostic libraries—faster.)_

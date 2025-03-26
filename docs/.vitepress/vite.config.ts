@@ -23,14 +23,6 @@ export default defineConfig({
     ],
   },
 
-  server: {
-    hmr: {
-      host: 'stacks.localhost',
-      port: 443,
-      // overlay: false,
-    },
-  },
-
   plugins: [
     // custom
     // MarkdownTransform(),

@@ -3,7 +3,7 @@ import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
 import { withPwa } from '@vite-pwa/vitepress'
 import { defineConfig } from 'vitepress'
 
-import vite from './vite.config'
+import viteConfig from './vite.config'
 
 // https://vitepress.dev/reference/site-config
 
@@ -31,7 +31,7 @@ const nav = [
       { text: 'Sponsors', link: '/sponsors' },
       { text: 'Partners', link: '/partners' },
       { text: 'Postcardware', link: '/postcardware' },
-      { text: 'Stargazes', link: '/stargazers' },
+      { text: 'Stargazers', link: '/stargazers' },
       { text: 'License', link: '/license' },
       {
         items: [
@@ -41,7 +41,7 @@ const nav = [
           },
           {
             text: 'Contributing',
-            link: 'https://github.com/stacksjs/ts-maps/blob/main/.github/CONTRIBUTING.md',
+            link: 'https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md',
           },
         ],
       },
@@ -74,6 +74,7 @@ const sidebar = [
       { text: 'Types', link: '/api/#types' },
     ],
   },
+  { text: 'Showcase', link: '/showcase' },
 ]
 
 const description = 'Modern & lightweight Typescript library. Easily create pretty & interactive vector maps.'
@@ -131,11 +132,14 @@ export default withPwa(
 
       footer: {
         message: 'Released under the MIT License.',
-        copyright: 'Copyright © 2024-present Stacks.js, Inc.',
+        copyright: 'Copyright © 2025-present Stacks.js, Inc.',
       },
 
       socialLinks: [
+        { icon: 'twitter', link: 'https://twitter.com/stacksjs' },
+        { icon: 'bluesky', link: 'https://bsky.app/profile/chrisbreuer.dev' },
         { icon: 'github', link: 'https://github.com/stacksjs/ts-maps' },
+        { icon: 'discord', link: 'https://discord.gg/stacksjs' },
       ],
 
       // algolia: services.algolia,
@@ -163,6 +167,6 @@ export default withPwa(
       ],
     },
 
-    vite,
+    vite: viteConfig,
   }),
 )
