@@ -2,7 +2,6 @@
 import type { MapOptions } from 'ts-maps'
 import type { ComputedRef, PropType, Ref } from 'vue'
 import { VectorMap as TsVectorMap } from 'ts-maps'
-import brasilMap from 'ts-maps/brasil'
 import canadaMap from 'ts-maps/canada'
 import italyMap from 'ts-maps/italy'
 import spainMap from 'ts-maps/spain'
@@ -15,7 +14,7 @@ import worldMercMap from 'ts-maps/world-merc'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 // Map name type
-type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
+type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada'
 
 const props = defineProps({
   options: {
@@ -66,14 +65,13 @@ const mapData: Record<MapName, any> = {
   'spain': spainMap,
   'italy': italyMap,
   'canada': canadaMap,
-  'brasil': brasilMap,
 }
 
 onMounted(async () => {
   if (!mapContainer.value)
     return
 
-  const containerId = mapContainer.value.id || `ts-maps-${Math.random().toString(36).substr(2, 9)}`
+  const containerId: string = mapContainer.value.id || `ts-maps-${Math.random().toString(36).substr(2, 9)}`
   mapContainer.value.id = containerId
 
   // Add the map data

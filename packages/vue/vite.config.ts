@@ -1,23 +1,25 @@
+import type { UserConfig, UserConfigExport } from 'vite'
 import { resolve } from 'node:path'
-import vue from '@vitejs/plugin-vue'
+import Vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
-export default defineConfig({
-  plugins: [vue()],
+const config: UserConfig = {
+  plugins: [Vue()],
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'TsMapsVue',
+      name: 'ts-maps-vue',
       fileName: 'index',
     },
+    outDir: 'dist',
     rollupOptions: {
-      external: ['vue', 'ts-maps'],
+      external: ['vue'],
       output: {
-        globals: {
-          'vue': 'Vue',
-          'ts-maps': 'TsMaps',
-        },
+        format: 'es',
       },
     },
   },
-})
+}
+
+const viteConfig: UserConfigExport = defineConfig(config)
+export default viteConfig

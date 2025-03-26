@@ -1,23 +1,22 @@
 {
-  "name": "ts-maps-vue-sample",
+  "name": "vue-samples",
   "type": "module",
   "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "type-check": "vue-tsc --noEmit",
+    "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "ts-maps": "workspace:*",
-    "vue": "^3.5.13"
+    "@ts-maps/vue": "workspace:*",
+    "@types/google.maps": "^3.55.4",
+    "vue": "^3.4.21"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.3",
-    "@vue/tsconfig": "^0.7.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.3",
-    "vue-tsc": "^2.2.8"
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.4",
+    "vue-tsc": "^1.8.27"
   }
 }

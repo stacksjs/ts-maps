@@ -25,20 +25,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./component": {
-      "types": "./dist/component.d.ts",
-      "import": "./dist/component.js"
     }
   },
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "README.md",
-    "dist"
-  ],
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["README.md", "dist"],
   "scripts": {
-    "build": "bunx --bun vite build --mode lib && bun run build:types",
+    "build": "bunx --bun vite build --mode lib",
     "build:types": "bunx vue-tsc -p tsconfig.build.json && bunx api-extractor run",
     "lint": "bunx --bun eslint .",
     "lint:fix": "bunx --bun eslint . --fix"
@@ -48,6 +41,7 @@
     "@stacksjs/docs": "^0.70.10",
     "@stacksjs/eslint-config": "^4.2.1-beta.1",
     "@types/bun": "^1.2.5",
+    "@types/google.maps": "^3.58.1",
     "@vue/tsconfig": "^0.7.0",
     "bumpp": "^10.1.0",
     "bun-plugin-dtsx": "^0.21.9",

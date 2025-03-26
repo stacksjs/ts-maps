@@ -10,7 +10,7 @@ export default function createRegions(this: MapInterface): void {
       map: this,
       code,
       path: this._mapData.paths[code].path,
-      style: merge({}, this.params.regionStyle || {}),
+      style: merge({ initial: {} }, this.params.regionStyle || {}),
       labelStyle: this.params.regionLabelStyle,
       labelsGroup: this._regionLabelsGroup,
       label: this.params.labels?.regions ? {} : undefined,
@@ -19,6 +19,8 @@ export default function createRegions(this: MapInterface): void {
     this.regions[code] = {
       config: this._mapData.paths[code],
       element: region,
+      path: this._mapData.paths[code].path,
+      name: code,
     } as RegionType
   }
 }

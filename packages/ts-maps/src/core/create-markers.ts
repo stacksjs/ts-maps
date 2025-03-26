@@ -41,7 +41,7 @@ export default function createMarkers(
         config,
         isRecentlyCreated,
       },
-      merge(this.params.markerStyle || {}, { ...(config.style || {}) }, true),
+      merge({ initial: {} }, merge(this.params.markerStyle || {}, { ...(config.style || {}) }, true)),
     )
 
     // Check for marker duplication

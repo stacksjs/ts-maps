@@ -7,7 +7,11 @@
     "moduleResolution": "bundler",
     "paths": {
       "ts-maps": ["./packages/ts-maps/src"],
-      "ts-maps/*": ["./packages/ts-maps/src/maps/*"]
+      "ts-maps/*": ["./packages/ts-maps/src/maps/*"],
+      "ts-maps-vue": ["./packages/vue/src"],
+      "ts-maps-vue/*": ["./packages/vue/src/*"],
+      "ts-maps-react": ["./packages/react/src"],
+      "ts-maps-react/*": ["./packages/react/src/*"]
     },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,

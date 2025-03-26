@@ -81,21 +81,25 @@ export interface MarkerConfig {
 export interface MarkerConstructorConfig {
   index: string
   map: MapInterface
-  label?: boolean
-  labelsGroup?: any
+  label?: {
+    render?: (config: any, key: string) => string
+    offsets?: ((key: string) => [number, number]) | Array<[number, number]>
+  }
+  labelsGroup?: SVGElement
   cx: number
   cy: number
-  group?: any
+  group?: SVGElement
   config: MarkerConfig
   isRecentlyCreated?: boolean
 }
 
 export interface MarkerStyle {
-  initial?: {
+  initial: {
     fill?: string
     stroke?: string
     strokeWidth?: number
     r?: number
+    image?: string
     [key: string]: any
   }
   hover?: {
@@ -177,7 +181,7 @@ export interface Inset extends BBox {
 /**
  * Region properties
  */
-export interface Region {
+export interface RegionMapData {
   path: string
   name: string
 }
@@ -186,7 +190,7 @@ export interface Region {
  * Map of regions by their code
  */
 export interface RegionMap {
-  [regionCode: string]: Region
+  [regionCode: string]: RegionMapData
 }
 
 /**
@@ -212,8 +216,8 @@ export interface MapInterface {
   canvas: SVGCanvasElement
   params: MapOptions & {
     labels?: {
-      markers?: boolean
-      regions?: boolean
+      markers?: any
+      regions?: any
     }
     series?: {
       markers?: SeriesConfig[]
