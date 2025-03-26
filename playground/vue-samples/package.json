@@ -10,13 +10,13 @@
   },
   "dependencies": {
     "@ts-maps/vue": "workspace:*",
-    "@types/google.maps": "^3.55.4",
-    "vue": "^3.4.21"
+    "@types/google.maps": "^3.58.1",
+    "vue": "^3.5.13"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.4",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.4",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "typescript": "^5.8.2",
+    "vite": "^5.4.15",
     "vue-tsc": "^2.2.8"
   }
 }
