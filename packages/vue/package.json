@@ -37,10 +37,10 @@
     "lint:fix": "bunx --bun eslint . --fix"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.1",
+    "@microsoft/api-extractor": "^7.52.2",
     "@stacksjs/docs": "^0.70.10",
     "@stacksjs/eslint-config": "^4.2.1-beta.1",
-    "@types/bun": "^1.2.5",
+    "@types/bun": "^1.2.6",
     "@types/google.maps": "^3.58.1",
     "@vue/tsconfig": "^0.7.0",
     "bumpp": "^10.1.0",
