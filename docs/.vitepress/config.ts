@@ -34,6 +34,15 @@ const sidebar = [
     ],
   },
   {
+    text: 'Features',
+    items: [
+      { text: 'Vector Maps', link: '/features/vector-map' },
+      { text: 'Markers', link: '/features/markers' },
+      { text: 'Data Visualization', link: '/features/data-visualization' },
+      { text: 'Events', link: '/features/events' },
+    ],
+  },
+  {
     text: 'Playground',
     items: [
       { text: 'Overview', link: '/playground' },
