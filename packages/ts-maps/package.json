@@ -25,6 +25,46 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./brazil": {
+      "types": "./dist/brazil.d.ts",
+      "import": "./dist/maps/brazil.js"
+    },
+    "./canada": {
+      "types": "./dist/canada.d.ts",
+      "import": "./dist/maps/canada.js"
+    },
+    "./italy": {
+      "types": "./dist/italy.d.ts",
+      "import": "./dist/maps/italy.js"
+    },
+    "./spain": {
+      "types": "./dist/spain.d.ts",
+      "import": "./dist/maps/spain.js"
+    },
+    "./us-aea-en": {
+      "types": "./dist/us-aea-en.d.ts",
+      "import": "./dist/maps/us-aea-en.js"
+    },
+    "./us-lcc-en": {
+      "types": "./dist/us-lcc-en.d.ts",
+      "import": "./dist/maps/us-lcc-en.js"
+    },
+    "./us-merc-en": {
+      "types": "./dist/us-merc-en.d.ts",
+      "import": "./dist/maps/us-merc-en.js"
+    },
+    "./us-mill-en": {
+      "types": "./dist/us-mill-en.d.ts",
+      "import": "./dist/maps/us-mill-en.js"
+    },
+    "./world": {
+      "types": "./dist/world.d.ts",
+      "import": "./dist/maps/world.js"
+    },
+    "./world-merc": {
+      "types": "./dist/world-merc.d.ts",
+      "import": "./dist/maps/world-merc.js"
+    },
     "./*": {
       "import": "./dist/*"
     }

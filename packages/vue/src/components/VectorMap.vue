@@ -1,20 +1,18 @@
 <script setup lang="ts">
-import type { PropType } from 'vue'
-import type { MapOptions } from '../../../ts-maps/src/types'
+import type { MapOptions } from 'ts-maps'
+import type { ComputedRef, PropType, Ref } from 'vue'
+import { VectorMap as TsVectorMap } from 'ts-maps'
+import brasilMap from 'ts-maps/brasil'
+import canadaMap from 'ts-maps/canada'
+import italyMap from 'ts-maps/italy'
+import spainMap from 'ts-maps/spain'
+import usaAeaMap from 'ts-maps/us-aea-en'
+import usaLccMap from 'ts-maps/us-lcc-en'
+import usaMercMap from 'ts-maps/us-merc-en'
+import usaMillMap from 'ts-maps/us-mill-en'
+import worldMap from 'ts-maps/world'
+import worldMercMap from 'ts-maps/world-merc'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import brasilMap from '../../../ts-maps/src/maps/brasil'
-
-import canadaMap from '../../../ts-maps/src/maps/canada'
-import italyMap from '../../../ts-maps/src/maps/italy'
-import spainMap from '../../../ts-maps/src/maps/spain'
-import usaAeaMap from '../../../ts-maps/src/maps/us-aea-en'
-import usaLccMap from '../../../ts-maps/src/maps/us-lcc-en'
-import usaMercMap from '../../../ts-maps/src/maps/us-merc-en'
-import usaMillMap from '../../../ts-maps/src/maps/us-mill-en'
-// Import available maps
-import worldMap from '../../../ts-maps/src/maps/world'
-import worldMercMap from '../../../ts-maps/src/maps/world-merc'
-import { VectorMap as TsVectorMap } from '../../../ts-maps/src/vector-map'
 
 // Map name type
 type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
@@ -47,11 +45,11 @@ const emit = defineEmits<{
   (e: 'update:options', options: MapOptions): void
 }>()
 
-const mapContainer = ref<HTMLElement | null>(null)
-const map = ref<TsVectorMap | null>(null)
-const loading = ref<boolean>(true)
+const mapContainer: Ref<HTMLElement | null> = ref(null)
+const map: Ref<TsVectorMap | null> = ref(null)
+const loading: Ref<boolean> = ref(true)
 
-const containerStyle = computed<{ width: string, height: string, position: 'relative' }>(() => ({
+const containerStyle: ComputedRef<{ width: string, height: string, position: 'relative' }> = computed(() => ({
   width: props.width,
   height: props.height,
   position: 'relative' as const,

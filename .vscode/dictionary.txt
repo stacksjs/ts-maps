@@ -33,6 +33,7 @@ imgx
 lmtp
 localtunnels
 lockb
+merc
 mkcert
 nosniff
 openweb

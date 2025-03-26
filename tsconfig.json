@@ -6,7 +6,8 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "paths": {
-      "ts-maps": ["./packages/ts-maps/src"]
+      "ts-maps": ["./packages/ts-maps/src"],
+      "ts-maps/*": ["./packages/ts-maps/src/maps/*"]
     },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
