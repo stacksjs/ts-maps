@@ -8,7 +8,7 @@
 
 > Modern TypeScript library for creating stunning vector maps
 
-## ✨ Features
+## Features
 
 - 🗺️ **Vector Maps**
   - High-quality SVG-based interactive maps
@@ -30,7 +30,7 @@
   - Strict types for better DX
   - Comprehensive type definitions
 
-## 📦 Installation
+## Installation
 
 ```bash
 # Using npm
@@ -56,7 +56,7 @@ npm install ts-maps ts-maps-react
 npm install ts-maps ts-maps-vue
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ```typescript
 import type { VectorMapOptions } from 'ts-maps'
@@ -158,7 +158,7 @@ const { map, isLoading } = useVectorMap({
 </template>
 ```
 
-## 📖 Documentation
+## Documentation
 
 - [Introduction](https://ts-maps.dev/intro)
 - [Installation](https://ts-maps.dev/install)
@@ -167,7 +167,7 @@ const { map, isLoading } = useVectorMap({
 - [Examples](https://ts-maps.dev/examples)
 - [Playground](https://ts-maps.dev/playground)
 
-## 🧪 Development
+## Development
 
 1. Clone the repository:
 
