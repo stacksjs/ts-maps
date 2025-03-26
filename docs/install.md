@@ -118,7 +118,7 @@ Make sure you have a container element in your HTML:
 
 - Explore the [Basic Usage Guide](/intro#basic-usage) to learn core concepts
 - Check out [Advanced Features](/intro#advanced-features) for more capabilities
-- View the [API Reference](/api) for detailed documentation
+- View the [API Reference](/api/) for detailed documentation
 
 ## Troubleshooting
 

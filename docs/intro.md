@@ -160,8 +160,7 @@ map.params.onViewportChange = (scale, transX, transY) => {
 ## Next Steps
 
 - Check out the [Installation Guide](/install) for setup instructions
-- Explore the [API Reference](/api) for detailed documentation
-- Visit the [Examples](/examples) section for more use cases
+- Explore the [API Reference](/api/) for detailed documentation
 
 ## Community
 

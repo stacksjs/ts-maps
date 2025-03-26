@@ -197,10 +197,10 @@ export interface RegionMap {
  * Map data properties
  */
 export interface MapData {
-  insets: Inset[]
+  insets?: Inset[]
   paths: RegionMap
   height: number
-  projection: {
+  projection?: {
     type: string
     centralMeridian: number
   }

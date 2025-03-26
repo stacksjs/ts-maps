@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { MapOptions } from 'ts-maps'
+import type { MapData, MapOptions } from 'ts-maps'
 import type { ComputedRef, PropType, Ref } from 'vue'
 import { VectorMap as TsVectorMap } from 'ts-maps'
 import canadaMap from 'ts-maps/canada'
@@ -55,16 +55,16 @@ const containerStyle: ComputedRef<{ width: string, height: string, position: 're
 }))
 
 // Map data lookup
-const mapData: Record<MapName, any> = {
-  'world': worldMap,
-  'world-merc': worldMercMap,
-  'us-merc': usaMercMap,
-  'us-mill': usaMillMap,
-  'us-lcc': usaLccMap,
-  'us-aea': usaAeaMap,
-  'spain': spainMap,
-  'italy': italyMap,
-  'canada': canadaMap,
+const mapData: Record<MapName, MapData> = {
+  'world': worldMap as MapData,
+  'world-merc': worldMercMap as MapData,
+  'us-merc': usaMercMap as MapData,
+  'us-mill': usaMillMap as MapData,
+  'us-lcc': usaLccMap as MapData,
+  'us-aea': usaAeaMap as MapData,
+  'spain': spainMap as MapData,
+  'italy': italyMap as MapData,
+  'canada': canadaMap as MapData,
 }
 
 onMounted(async () => {

@@ -21,6 +21,7 @@ const analyticsHead: HeadConfig[] = [
 const nav = [
   { text: 'Home', link: '/' },
   { text: 'Guide', link: '/intro' },
+  { text: 'API', link: '/api/' },
   { text: 'Playground', link: '/playground' },
 ]
 
@@ -40,6 +41,13 @@ const sidebar = [
       { text: 'Markers', link: '/features/markers' },
       { text: 'Data Visualization', link: '/features/data-visualization' },
       { text: 'Events', link: '/features/events' },
+    ],
+  },
+  {
+    text: 'API Reference',
+    items: [
+      { text: 'VectorMap', link: '/api' },
+      { text: 'Types', link: '/api/#types' },
     ],
   },
 ]

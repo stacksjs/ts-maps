@@ -13,6 +13,5 @@ declare module 'vue' {
     HomeSponsors: typeof import('./theme/components/HomeSponsors.vue')['default']
     HomeTeam: typeof import('./theme/components/HomeTeam.vue')['default']
     TeamMember: typeof import('./theme/components/TeamMember.vue')['default']
-    VectorMapDemo: typeof import('./theme/components/VectorMapDemo.vue')['default']
   }
 }
