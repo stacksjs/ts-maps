@@ -42,16 +42,6 @@ const sidebar = [
       { text: 'Events', link: '/features/events' },
     ],
   },
-  {
-    text: 'Playground',
-    items: [
-      { text: 'Overview', link: '/playground' },
-      { text: 'Basic Examples', link: '/playground#basic-examples' },
-      { text: 'Interactive Features', link: '/playground#interactive-features' },
-      { text: 'Data Visualization', link: '/playground#data-visualization' },
-      { text: 'Advanced Usage', link: '/playground#advanced-usage' },
-    ],
-  },
 ]
 
 const description = 'Modern & lightweight Typescript library. Easily create pretty & interactive vector maps.'
