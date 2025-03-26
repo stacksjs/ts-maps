@@ -12,17 +12,41 @@ const analyticsHead: HeadConfig[] = [
     'script',
     {
       'src': 'https://cdn.usefathom.com/script.js',
-      'data-site': 'DCOEHMGA',
+      'data-site': 'CNSSHCGD',
       'defer': '',
     },
   ],
 ]
 
 const nav = [
-  { text: 'Home', link: '/' },
-  { text: 'Guide', link: '/intro' },
-  { text: 'API', link: '/api/' },
-  { text: 'Playground', link: '/playground' },
+  { text: 'News', link: 'https://stacksjs.org/news' },
+  {
+    text: 'Changelog',
+    link: 'https://github.com/stacksjs/ts-maps/blob/main/CHANGELOG.md',
+  },
+  {
+    text: 'Resources',
+    items: [
+      { text: 'Team', link: '/team' },
+      { text: 'Sponsors', link: '/sponsors' },
+      { text: 'Partners', link: '/partners' },
+      { text: 'Postcardware', link: '/postcardware' },
+      { text: 'Stargazes', link: '/stargazers' },
+      { text: 'License', link: '/license' },
+      {
+        items: [
+          {
+            text: 'Awesome Stacks',
+            link: 'https://github.com/stacksjs/awesome-stacks',
+          },
+          {
+            text: 'Contributing',
+            link: 'https://github.com/stacksjs/ts-maps/blob/main/.github/CONTRIBUTING.md',
+          },
+        ],
+      },
+    ],
+  },
 ]
 
 const sidebar = [

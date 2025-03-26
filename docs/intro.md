@@ -162,6 +162,10 @@ map.params.onViewportChange = (scale, transX, transY) => {
 - Check out the [Installation Guide](/install) for setup instructions
 - Explore the [API Reference](/api/) for detailed documentation
 
+## Stargazers
+
+[![Stargazers over time](https://starchart.cc/stacksjs/ts-maps.svg?variant=adaptive)](https://starchart.cc/stacksjs/ts-maps)
+
 ## Community
 
 Join our community to get help, share your work, and connect with other developers:

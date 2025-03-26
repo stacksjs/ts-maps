@@ -190,7 +190,7 @@ pnpm dev
 
 ## Changelog
 
-Please see our [releases](https://github.com/stacksjs/clarity/releases) page for more information on what has changed recently.
+Please see our [releases](https://github.com/stacksjs/ts-maps/releases) page for more information on what has changed recently.
 
 ## Contributing
 
@@ -200,7 +200,7 @@ Please see [CONTRIBUTING](https://github.com/stacksjs/stacks/blob/main/.github/C
 
 For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-[Discussions on GitHub](https://github.com/stacksjs/clarity/discussions)
+[Discussions on GitHub](https://github.com/stacksjs/ts-maps/discussions)
 
 For casual chit-chat with others using this package:
 
@@ -208,7 +208,7 @@ For casual chit-chat with others using this package:
 
 ## Postcardware
 
-“Software that is free, but hopes for a postcard.” We love receiving postcards from around the world showing where `clarity` is being used! We showcase them on our website too.
+“Software that is free, but hopes for a postcard.” We love receiving postcards from around the world showing where `ts-maps` is being used! We showcase them on our website too.
 
 Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United States 🌎
 
