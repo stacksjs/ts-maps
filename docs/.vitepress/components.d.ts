@@ -8,10 +8,14 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    DataVisualizationDemo: typeof import('./theme/components/DataVisualizationDemo.vue')['default']
     Home: typeof import('./theme/components/Home.vue')['default']
     HomeContributors: typeof import('./theme/components/HomeContributors.vue')['default']
     HomeSponsors: typeof import('./theme/components/HomeSponsors.vue')['default']
     HomeTeam: typeof import('./theme/components/HomeTeam.vue')['default']
+    MarkersMapDemo: typeof import('./theme/components/MarkersMapDemo.vue')['default']
+    RegionMapDemo: typeof import('./theme/components/RegionMapDemo.vue')['default']
     TeamMember: typeof import('./theme/components/TeamMember.vue')['default']
+    VectorMapDemo: typeof import('./theme/components/VectorMapDemo.vue')['default']
   }
 }

@@ -26,11 +26,11 @@
   ],
   "exports": {
     ".": {
-      "import": "./packages/post/dist/src/index.js"
+      "import": "./packages/ts-maps/dist/index.js"
     }
   },
-  "module": "./packages/post/dist/src/index.js",
-  "types": "./packages/post/dist/index.d.ts",
+  "module": "./packages/ts-maps/dist/index.js",
+  "types": "./packages/ts-maps/dist/index.d.ts",
   "bin": {
     "post": "./packages/post/dist/bin/cli.js"
   },

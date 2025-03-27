@@ -25,8 +25,8 @@ ts-maps comes with a rich set of features for creating interactive maps:
 
 - [Vector Maps](./features/vector-map.md) - Create and customize vector maps with different projections
 - [Markers](./features/markers.md) - Add interactive markers to your maps
+- [Regions](./features/regions.md) - Add interactive regions to your maps
 - [Data Visualization](./features/data-visualization.md) - Visualize data with customizable color scales
-- [Events](./features/events.md) - Rich set of events for map interactions
 
 ## Configuration Options
 

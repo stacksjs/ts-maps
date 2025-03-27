@@ -25,25 +25,12 @@ const map = new VectorMap({
 })
 ```
 
-## Advanced Options
+## Live Demo
 
-```typescript
-const map = new VectorMap({
-  selector: '#map',
-  map: {
-    name: 'world',
-    projection: 'mercator'
-  },
-  visualizeData: {
-    scale: ['#fee5d9', '#a50f15'],
-    values: {
-      US: 100,
-      CN: 85,
-      RU: 70,
-      BR: 60,
-    },
-    scaleColors: ['#fee5d9', '#a50f15'],
-    normalizeFunction: 'linear', // or 'polynomial'
-  },
-})
-```
+Below is a live demo of the vector map with the configuration shown above:
+
+<DataVisualizationDemo />
+
+::: tip
+Click and drag to pan the map, use the scroll wheel or zoom buttons to zoom in/out, and click on regions to select them. Hover over markers to see their labels.
+:::

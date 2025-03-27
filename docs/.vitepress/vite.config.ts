@@ -21,6 +21,11 @@ export default defineConfig({
       'vue',
       '@vue/runtime-core',
     ],
+    alias: {
+      'ts-maps': resolve(__dirname, '../../packages/ts-maps/src'),
+      'ts-maps/world': resolve(__dirname, '../../packages/ts-maps/src/maps/world.ts'),
+      'ts-maps/world-merc': resolve(__dirname, '../../packages/ts-maps/src/maps/world-merc.ts'),
+    },
   },
 
   plugins: [
@@ -56,5 +61,6 @@ export default defineConfig({
       // 'vue',
       'body-scroll-lock',
     ],
+    include: ['ts-maps'],
   },
 })

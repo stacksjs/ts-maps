@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import GoogleMap from '../../../../packages/vue/src/components/GoogleMap.vue'
 
-const apiKey = 'AIzaSyCtD4sE0Pvyy6Ey1GSAneSFQIVJA0aBjxE'
+const apiKey = ''
 const center = ref({ lat: 37.7749, lng: -122.4194 }) // San Francisco
 const zoom = ref(12)
 const markers = ref([

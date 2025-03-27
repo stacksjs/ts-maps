@@ -2,7 +2,7 @@
   "name": "ts-maps",
   "type": "module",
   "version": "0.0.0",
-  "description": "A modern mail server & utilities.",
+  "description": "A modern vector map library.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps#readme",
@@ -23,7 +23,8 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     },
     "./brazil": {
       "types": "./dist/brazil.d.ts",
@@ -58,17 +59,20 @@
       "import": "./dist/maps/us-mill-en.js"
     },
     "./world": {
-      "types": "./dist/world.d.ts",
-      "import": "./dist/maps/world.js"
+      "types": "./dist/maps/world.d.ts",
+      "import": "./dist/maps/world.js",
+      "require": "./dist/maps/world.cjs"
     },
     "./world-merc": {
-      "types": "./dist/world-merc.d.ts",
-      "import": "./dist/maps/world-merc.js"
+      "types": "./dist/maps/world-merc.d.ts",
+      "import": "./dist/maps/world-merc.js",
+      "require": "./dist/maps/world-merc.cjs"
     },
     "./*": {
       "import": "./dist/*"
     }
   },
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

@@ -63,8 +63,8 @@ const sidebar = [
     items: [
       { text: 'Vector Maps', link: '/features/vector-map' },
       { text: 'Markers', link: '/features/markers' },
+      { text: 'Regions', link: '/features/regions' },
       { text: 'Data Visualization', link: '/features/data-visualization' },
-      { text: 'Events', link: '/features/events' },
     ],
   },
   {
