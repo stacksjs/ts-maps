@@ -93,7 +93,7 @@
     "bunfig": "^0.8.2",
     "lint-staged": "^15.5.0",
     "simple-git-hooks": "^2.12.1",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   },
   "lint-staged": {
     "*.{js,ts}": "bunx --bun eslint . --fix"
