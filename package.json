@@ -51,13 +51,13 @@
   "devDependencies": {
     "@stacksjs/docs": "^0.70.23",
     "@stacksjs/eslint-config": "^4.2.1-beta.1",
-    "@types/bun": "^1.2.10",
+    "@types/bun": "^1.2.20",
     "@types/clean-css": "^4.2.11",
-    "bumpp": "^10.1.0",
-    "bun-plugin-dtsx": "^0.21.9",
+    "bumpp": "^10.2.3",
+    "bun-plugin-dtsx": "^0.21.12",
     "cac": "^6.7.14",
-    "changelogen": "^0.6.1",
-    "typescript": "^5.8.3"
+    "changelogen": "^0.6.2",
+    "typescript": "^5.9.2"
   },
   "overrides": {
     "unconfig": "0.3.10"
