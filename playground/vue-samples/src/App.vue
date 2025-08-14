@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { computed, reactive, ref } from 'vue'
-import { VectorMap } from '../../../packages/vue/src'
+import { computed, reactive, ref, watch } from 'vue'
+import { VectorMap, UnitedStates } from '../../../packages/vue/src'
 
 type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada'
 
@@ -34,6 +34,7 @@ const options = reactive<Omit<MapOptions, 'selector'>>({
   zoomButtons: true,
   regionsSelectable: true,
   markersSelectable: true,
+
   regionStyle: {
     initial: {
       fill: '#e4e4e4',
@@ -50,12 +51,12 @@ const options = reactive<Omit<MapOptions, 'selector'>>({
   visualizeData: {
     scale: ['#C8EEFF', '#0071A4'],
     values: {
-      US: 100,
-      GB: 75,
-      FR: 80,
-      DE: 85,
-      IT: 60,
-      ES: 65,
+      'US-CA': 100, // California
+      'US-TX': 85,  // Texas
+      'US-FL': 80,  // Florida
+      'US-NY': 75,  // New York
+      'US-IL': 70,  // Illinois
+      'US-PA': 65,  // Pennsylvania
     },
   },
   markers: [
@@ -137,6 +138,10 @@ function handleLoaded() {
     time: new Date().toLocaleTimeString(),
   }
 }
+
+function handleMapChange() {
+  console.log('Map changed to:', currentMap.value)
+}
 </script>
 
 <template>
@@ -146,7 +151,7 @@ function handleLoaded() {
     <div class="controls">
       <div class="control-group">
         <label for="map-select">Select Map:</label>
-        <select id="map-select" v-model="currentMap">
+        <select id="map-select" v-model="currentMap" @change="handleMapChange">
           <option v-for="map in mapOptions" :key="map.value" :value="map.value">
             {{ map.label }} ({{ map.projection }})
           </option>
@@ -173,6 +178,7 @@ function handleLoaded() {
         :options="options"
         :map-name="currentMap"
         height="500px"
+        :key="currentMap"
         @region-click="handleRegionClick"
         @marker-click="handleMarkerClick"
         @loaded="handleLoaded"
