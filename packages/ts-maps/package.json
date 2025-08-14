@@ -1,5 +1,5 @@
 {
-  "name": "ts-maps-web",
+  "name": "ts-maps",
   "type": "module",
   "version": "0.0.1",
   "description": "A modern vector map library.",

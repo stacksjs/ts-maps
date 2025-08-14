@@ -41,7 +41,7 @@
     "lint:fix": "bunx --bun eslint . --fix",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "changelog": "changelogen --output CHANGELOG.md",
-    "release": "bun run changelog && bumpp package.json --all",
+    "release": "bun run changelog && bumpp package.json -r --all",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit",
     "dev:docs": "bun --bun vitepress dev docs",
@@ -50,11 +50,11 @@
   },
   "devDependencies": {
     "@stacksjs/docs": "^0.70.23",
-    "@stacksjs/eslint-config": "^4.2.1-beta.1",
+    "@stacksjs/eslint-config": "^4.14.0-beta.3",
     "@types/bun": "^1.2.20",
     "@types/clean-css": "^4.2.11",
     "bumpp": "^10.2.3",
-    "bun-plugin-dtsx": "^0.21.12",
+    "bun-plugin-dtsx": "0.9.5",
     "cac": "^6.7.14",
     "changelogen": "^0.6.2",
     "typescript": "^5.9.2"

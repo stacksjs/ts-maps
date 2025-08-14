@@ -1,4 +1,4 @@
-name: CI
+name: Releaser
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    name: release
+  npm:
+    name: npm
     runs-on: ubuntu-latest
 
     steps:
@@ -29,11 +29,8 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Publish workspace packages to npm
-        run: |
-          cd packages/ts-maps && bun run release
-          cd ../react && bun run release
-          cd ../vue && bun run release
+      - name: Publish to npm
+        run: ./scripts/publish.sh
         env:
           BUN_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 

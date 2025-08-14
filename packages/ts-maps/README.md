@@ -1,287 +1,89 @@
-<p align="center"><img src="https://github.com/stacksjs/mail-server/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of this repo"></p>
+<p align="center"><img src="https://github.com/stacksjs/ts-maps/blob/main/.github/art/cover.jpg?raw=true" alt="Social Card of ts-maps"></p>
 
 [![npm version][npm-version-src]][npm-version-href]
 [![GitHub Actions][github-actions-src]][github-actions-href]
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
-<!-- [![npm downloads][npm-downloads-src]][npm-downloads-href] -->
-<!-- [![Codecov][codecov-src]][codecov-href] -->
 
-# The Post
+# ts-maps
 
-> Finally a mail server that can be managed.
-
-Perfect for local development and testing environments. _Production-ready release coming soon!_
+> Modern TypeScript library for creating stunning vector maps
 
 ## Features
 
-- 📨 **Mail Server** _lightweight, configurable, and extensible_
-- 🛠️ **Mail Utilities** _send, receive, and manage emails_
-- 📦 **Mail UI** _web interfaces for managing emails, including a component library_
-- 🤖 **CLI** _command-line interface for managing emails_
-- 🔒 **Security** _TLS support, authentication, and spam protection_
-- 🚀 **Performance** _optimized for high-throughput environments_
-- 🎯 **Modern** _built with TypeScript, zero dependencies_
-- 📝 **Logging** _detailed logging and monitoring capabilities_
+- 🗺️ **Vector Maps**
+  - High-quality SVG-based interactive maps
+  - Multiple projection types (Mercator, Equal Earth)
+  - Built-in world maps and custom regions
 
-## Install
+- 📊 **Data Visualization**
+  - Choropleth maps with customizable scales
+  - Heat maps and bubble charts
+  - Interactive legends and tooltips
 
-```bash
-bun install -d @stacksjs/post
-```
+- 🎯 **Framework Agnostic**
+  - Zero dependencies
+  - Works with any framework
+  - Official React and Vue bindings
 
-<!-- _Alternatively, you can install:_
+- 🔒 **Type Safety**
+  - Full TypeScript support
+  - Strict types for better DX
+  - Comprehensive type definitions
 
-```bash
-brew install post # wip
-pkgx install post # wip
-``` -->
-
-## Get Started
-
-There are two ways of using the mail server: _as a library or as a CLI._
-
-### Library Usage
-
-```ts
-import { SMTPServer } from '@stacksjs/post'
-
-// Basic SMTP Server
-const server = new SMTPServer({
-  secure: true,
-  name: 'mail.example.com',
-  banner: 'Welcome to My Mail Server',
-})
-
-server.listen(25)
-
-// Advanced Configuration
-const secureServer = new SMTPServer({
-  // TLS Configuration
-  secure: true,
-  needsUpgrade: false,
-  sniOptions: new Map([
-    ['example.com', {
-      key: fs.readFileSync('certs/example.com.key'),
-      cert: fs.readFileSync('certs/example.com.cert')
-    }]
-  ]),
-
-  // Authentication
-  authMethods: ['PLAIN', 'LOGIN'],
-  onAuth: (auth, session, callback) => {
-    if (auth.username === 'user' && auth.password === 'pass')
-      callback(null, { user: 'user' })
-    else
-      callback(new Error('Invalid credentials'))
-  },
-
-  // Message Handling
-  size: 1024 * 1024, // 1MB limit
-  onData: (stream, session, callback) => {
-    stream.pipe(process.stdout) // Echo message to console
-    stream.on('end', callback)
-  },
-
-  // Logging
-  logger: {
-    info: console.log,
-    debug: console.debug,
-    error: console.error
-  }
-})
-
-secureServer.listen(465) // SMTPS port
-```
-
-### Event Handling
-
-```ts
-server.on('connect', (session) => {
-  console.log('New connection from', session.remoteAddress)
-})
-
-server.on('error', (err) => {
-  console.error('Server error:', err)
-})
-
-server.on('close', () => {
-  console.log('Server shutting down')
-})
-```
-
-### CLI Usage
-
-The Post CLI provides a comprehensive set of commands for managing your mail server:
+## Installation
 
 ```bash
-# Start the server
-post start                   # Start with default config
-post start --config custom   # Use custom config file
-post start --port 25         # Specify port
-post start --secure          # Start in TLS mode
+# Using npm
+npm install ts-maps
 
-# Configuration
-post init                   # Create default config file
-post config show            # Display current configuration
-post config set key=value   # Update configuration
+# Using pnpm
+pnpm add ts-maps
 
-# Monitoring
-post status                 # Show server status
-post logs                   # View server logs
-post logs --live            # Live log streaming
-post stats                  # Show server statistics
+# Using yarn
+yarn add ts-maps
 
-# User Management
-post users list            # List all users
-post users add <email>     # Add new user
-post users remove <email>  # Remove user
-post users quota <email>   # Show/set user quota
-
-# Queue Management
-post queue list            # List queued messages
-post queue flush           # Process all queued messages
-post queue remove <id>     # Remove message from queue
-
-# Security
-post tls setup            # Configure TLS certificates
-post tls renew            # Renew certificates
-post blacklist add <ip>   # Add IP to blacklist
-post whitelist add <ip>   # Add IP to whitelist
-
-# Maintenance
-post backup              # Create server backup
-post restore <file>      # Restore from backup
-post cleanup             # Clean old logs/messages
-
-# Advanced
-post test             # Run server tests
-post benchmark        # Run performance tests
-post debug            # Start in debug mode
+# Using bun
+bun add ts-maps
 ```
 
-## Configuration
+### Framework Bindings
 
-The Mail Server can be configured using a `post.config.ts` _(or `post.config.js`)_ file:
+```bash
+# React
+npm install ts-maps ts-maps-react
 
-```ts
-// post.config.ts
-export default {
-  // Server Configuration
-  server: {
-    name: 'mail.example.com',
-    secure: true,
-    ports: {
-      smtp: 25,
-      smtps: 465,
-      submission: 587
-    }
-  },
+# Vue
+npm install ts-maps ts-maps-vue
+```
 
-  // TLS Configuration
-  tls: {
-    cert: '/path/to/cert.pem',
-    key: '/path/to/key.pem',
-    domains: ['example.com', 'mail.example.com']
-  },
+## Quick Start
 
-  // Authentication
-  auth: {
-    methods: ['PLAIN', 'LOGIN'],
-    database: 'sqlite://users.db'
-  },
+```typescript
+import type { VectorMapOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps'
 
-  // Storage
-  storage: {
-    type: 'disk',
-    path: '/var/mail',
-    quota: '1GB'
-  },
-
-  // Security
-  security: {
-    rateLimit: {
-      window: '1h',
-      max: 1000
+// Create a map instance
+const map = new VectorMap({
+  container: 'map',
+  map: 'world',
+  theme: 'light',
+  style: {
+    regions: {
+      fill: '#e4e4e4',
+      stroke: '#ffffff',
+      strokeWidth: 1,
     },
-    spamProtection: true,
-    dnsbl: ['zen.spamhaus.org']
+    hover: {
+      fill: '#2ca25f',
+    },
   },
+})
 
-  // Logging
-  logging: {
-    level: 'info',
-    file: '/var/log/post.log',
-    format: 'json'
-  }
-}
+// Add interactivity
+map.on('regionClick', (event, region) => {
+  console.log(`Clicked: ${region.id}`)
+})
 ```
-
-_Then run:_
-
-```bash
-post start
-```
-
-To learn more, head over to the [documentation](https://the-post.sh/).
-
-## Testing
-
-```bash
-bun test
-```
-
-## Changelog
-
-Please see our [releases](https://github.com/stacksjs/stacks/releases) page for more information on what has changed recently.
-
-## Contributing
-
-Please review the [Contributing Guide](https://github.com/stacksjs/contributing) for details.
-
-## Community
-
-For help, discussion about best practices, or any other conversation that would benefit from being searchable:
-
-[Discussions on GitHub](https://github.com/stacksjs/stacks/discussions)
-
-For casual chit-chat with others using this package:
-
-[Join the Stacks Discord Server](https://discord.gg/stacksjs)
-
-## Postcardware
-
-Two things are true: Stacks OSS will always stay open-source, and we do love to receive postcards from wherever Stacks is used! _We also publish them on our website. And thank you, Spatie_
-
-Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094 🌎
-
-## Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
-
-- [JetBrains](https://www.jetbrains.com/)
-- [The Solana Foundation](https://solana.com/)
-
-## Credits
-
-- [Andris Reinman](https://github.com/andris9) _(Author of `nodemailer` & `smtp-server`)_
-- [Ralph Slooten](https://avatars.githubusercontent.com/u/1463435?s=64&v=4) _(Author of `mailtrap`)_
-- [Chris Breuer](https://github.com/chrisbbreuer)
-- [All Contributors](../../contributors)
-
-## License
-
-The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/stacks/tree/main/LICENSE.md) for more information.
-
-Made with 💙
-
-<!-- Badges -->
-[npm-version-src]: https://img.shields.io/npm/v/@stacksjs/mail-server?style=flat-square
-[npm-version-href]: https://npmjs.com/package/@stacksjs/mail-server
-[github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/mail-server/ci.yml?style=flat-square&branch=main
-[github-actions-href]: https://github.com/stacksjs/mail-server/actions?query=workflow%3Aci
-
-<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/mail-server/main?style=flat-square
-[codecov-href]: https://codecov.io/gh/stacksjs/mail-server -->
 
 ### Data Visualization
 
@@ -296,7 +98,7 @@ const map = new VectorMap({
 
 // Add data visualization
 const options: DataVisualizationOptions = {
-  scale: ['#e5f5f9', '#2ca25f'], // from color to color
+  scale: ['#e5f5f9', '#2ca25f'], // Color gradient from light blue to green
   values: {
     US: 100,
     CA: 80,
@@ -306,3 +108,134 @@ const options: DataVisualizationOptions = {
 
 map.visualizeData(options)
 ```
+
+### React Component
+
+```tsx
+import type { VectorMapProps } from 'ts-maps-react'
+import { useVectorMap } from 'ts-maps-react'
+
+function WorldMap() {
+  const { map, isLoading } = useVectorMap({
+    map: 'world',
+    theme: 'light',
+  })
+
+  return (
+    <div className="map-container">
+      {isLoading
+        ? (
+            <div>Loading...</div>
+          )
+        : (
+            <div id="map" />
+          )}
+    </div>
+  )
+}
+```
+
+### Vue Component
+
+```vue
+<script setup lang="ts">
+import type { VectorMapOptions } from 'ts-maps'
+import { useVectorMap } from 'ts-maps-vue'
+
+const { map, isLoading } = useVectorMap({
+  map: 'world',
+  theme: 'light',
+})
+</script>
+
+<template>
+  <div class="map-container">
+    <div v-if="isLoading">
+      Loading...
+    </div>
+    <div v-else id="map" />
+  </div>
+</template>
+```
+
+## Documentation
+
+- [Introduction](https://ts-maps.dev/intro)
+- [Installation](https://ts-maps.dev/install)
+- [Usage Guide](https://ts-maps.dev/usage)
+- [API Reference](https://ts-maps.dev/api)
+- [Examples](https://ts-maps.dev/examples)
+- [Playground](https://ts-maps.dev/playground)
+
+## Development
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/stacksjs/ts-maps.git
+cd ts-maps
+```
+
+2. Install dependencies:
+
+```bash
+pnpm install
+```
+
+3. Start development:
+
+```bash
+pnpm dev
+```
+
+## Changelog
+
+Please see our [releases](https://github.com/stacksjs/ts-maps/releases) page for more information on what has changed recently.
+
+## Contributing
+
+Please see [CONTRIBUTING](https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md) for details.
+
+## Community
+
+For help, discussion about best practices, or any other conversation that would benefit from being searchable:
+
+[Discussions on GitHub](https://github.com/stacksjs/ts-maps/discussions)
+
+For casual chit-chat with others using this package:
+
+[Join the Stacks Discord Server](https://discord.gg/stacksjs)
+
+## Postcardware
+
+“Software that is free, but hopes for a postcard.” We love receiving postcards from around the world showing where `ts-maps` is being used! We showcase them on our website too.
+
+Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United States 🌎
+
+## Sponsors
+
+We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
+
+- [JetBrains](https://www.jetbrains.com/)
+- [The Solana Foundation](https://solana.com/)
+
+## Credits
+
+- [jsvectormap](https://github.com/themustafaomar/jsvectormap)
+- [Chris Breuer](https://github.com/chrisbbreuer)
+- [All Contributors](https://github.com/stacksjs/ts-maps/contributors)
+
+## License
+
+The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/clarity/blob/main/LICENSE.md) for more information.
+
+Made with 💙
+
+<!-- Badges -->
+[npm-version-src]: https://img.shields.io/npm/v/@stacksjs/clarity?style=flat-square
+[npm-version-href]: https://npmjs.com/package/@stacksjs/clarity
+[github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/clarity/ci.yml?style=flat-square&branch=main
+[github-actions-href]: https://github.com/stacksjs/clarity/actions?query=workflow%3Aci
+
+<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/clarity/main?style=flat-square
+[codecov-href]: https://codecov.io/gh/stacksjs/clarity -->
