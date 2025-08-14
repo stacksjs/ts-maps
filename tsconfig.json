@@ -27,5 +27,6 @@
     "verbatimModuleSyntax": true,
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["playground/**/*", "**/dist/**/*", "**/node_modules/**/*", "packages/react/**/*"]
 }

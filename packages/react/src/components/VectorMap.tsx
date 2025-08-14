@@ -1,7 +1,7 @@
 import type { MapOptions } from 'ts-maps'
 import { useEffect, useRef } from 'react'
 import { VectorMap as TSVectorMap } from 'ts-maps'
-import worldMap from 'ts-maps/world'
+import worldMap from 'ts-maps'
 
 export interface VectorMapProps extends Omit<React.HTMLProps<HTMLDivElement>, 'ref'> {
   options?: Partial<Omit<MapOptions, 'selector'>>

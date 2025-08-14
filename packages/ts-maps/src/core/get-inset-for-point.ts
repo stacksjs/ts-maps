@@ -18,11 +18,30 @@ interface Inset {
 export default function getInsetForPoint(this: MapInterface, x: number, y: number): Inset | undefined {
   const insets = Map.maps[this.params.map.name].insets
 
+  // Early return if insets is undefined or empty
+  if (!insets || insets.length === 0) {
+    return undefined
+  }
+
   for (let index = 0; index < insets.length; index++) {
-    const [start, end] = insets[index].bbox
+    const inset = insets[index]
+
+    // Skip if inset or bbox is undefined
+    if (!inset || !inset.bbox || inset.bbox.length < 2) {
+      continue
+    }
+
+    const [start, end] = inset.bbox
+
+    // Skip if start or end points are undefined
+    if (!start || !end) {
+      continue
+    }
 
     if (x > start.x && x < end.x && y > start.y && y < end.y) {
-      return insets[index]
+      return inset
     }
   }
+
+  return undefined
 }
