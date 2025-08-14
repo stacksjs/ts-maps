@@ -1,6 +1,19 @@
 # Changelog
 
 
+## v0.1.0...main
+
+[compare changes](https://github.com/stacksjs/ts-maps/compare/v0.1.0...main)
+
+### 🏡 Chore
+
+- Wip ([9454b24](https://github.com/stacksjs/ts-maps/commit/9454b24))
+- Wip ([d4fd023](https://github.com/stacksjs/ts-maps/commit/d4fd023))
+
+### ❤️ Contributors
+
+- Chris ([@chrisbbreuer](https://github.com/chrisbbreuer))
+
 ## v0.0.5...main
 
 [compare changes](https://github.com/stacksjs/ts-maps/compare/v0.0.5...main)
