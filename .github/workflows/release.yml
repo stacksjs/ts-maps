@@ -28,3 +28,16 @@ jobs:
 
       - name: Install Dependencies
         run: bun install
+
+      - name: Publish workspace packages to npm
+        run: |
+          cd packages/ts-maps && bun run release
+          cd ../react && bun run release
+          cd ../vue && bun run release
+        env:
+          BUN_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - name: Create GitHub release
+        run: bunx changelogithub
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
