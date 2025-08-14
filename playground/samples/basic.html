@@ -232,8 +232,8 @@
     </div>
 
     <div class="controls">
-      <button id="focus-mexico">Focus Mexico</button>
-      <button id="focus-canada">Focus Canada</button>
+      <button id="focus-california">Focus California</button>
+      <button id="focus-texas">Focus Texas</button>
       <button id="reset">Reset View</button>
     </div>
 
@@ -245,18 +245,28 @@
 
   <script type="module" src="./sample-map.ts"></script>
   <script>
-    // Mock visitor data
+    // Mock visitor data for US states
     const visitorData = {
-      'MX': 180000, // Mexico
-      'CA': 95000,
-      'GB': 85000,
-      'FR': 75000,
-      'DE': 80000,
-      'CN': 200000,
-      'JP': 90000,
-      'AU': 60000,
-      'BR': 70000,
-      'IN': 180000
+      'US-CA': 250000, // California
+      'US-TX': 200000, // Texas
+      'US-FL': 180000, // Florida
+      'US-NY': 160000, // New York
+      'US-IL': 140000, // Illinois
+      'US-PA': 130000, // Pennsylvania
+      'US-OH': 120000, // Ohio
+      'US-GA': 110000, // Georgia
+      'US-NC': 100000, // North Carolina
+      'US-MI': 95000,  // Michigan
+      'US-NJ': 90000,  // New Jersey
+      'US-VA': 85000,  // Virginia
+      'US-WA': 80000,  // Washington
+      'US-AZ': 75000,  // Arizona
+      'US-MA': 70000,  // Massachusetts
+      'US-TN': 65000,  // Tennessee
+      'US-IN': 60000,  // Indiana
+      'US-MO': 55000,  // Missouri
+      'US-MD': 50000,  // Maryland
+      'US-CO': 45000   // Colorado
     };
 
     // Function to calculate color based on visitor count
@@ -339,16 +349,16 @@
       }
 
       // Add event listeners to buttons
-      document.getElementById('focus-mexico').addEventListener('click', () => {
+      document.getElementById('focus-california').addEventListener('click', () => {
         const map = getMap();
         if (map) {
           // Reset view first
           map.reset();
 
-          // Then focus on Mexico
+          // Then focus on California
           setTimeout(() => {
             map.setFocus({
-              region: 'MX',
+              region: 'US-CA',
               animate: true,
               scale: 2
             });
@@ -356,16 +366,16 @@
         }
       });
 
-      document.getElementById('focus-canada').addEventListener('click', () => {
+      document.getElementById('focus-texas').addEventListener('click', () => {
         const map = getMap();
         if (map) {
           // Reset view first
           map.reset();
 
-          // Then focus on Canada
+          // Then focus on Texas
           setTimeout(() => {
             map.setFocus({
-              region: 'CA',
+              region: 'US-TX',
               animate: true,
               scale: 2
             });

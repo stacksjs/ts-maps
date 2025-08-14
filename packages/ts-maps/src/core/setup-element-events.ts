@@ -36,8 +36,16 @@ function parseEvent(map: MapInterface, selector: Element | string, isTooltip?: b
     event = isRegion ? Events.onRegionTooltipShow : Events.onMarkerTooltipShow
   }
 
-  const elementObj = isRegion ? map.regions[code].element : map._markers?.[code].element
+  const elementObj = isRegion ? map.regions[code]?.element : map._markers?.[code]?.element
   if (!elementObj) {
+    // For markers, check if the marker exists at all
+    if (!isRegion && !map._markers?.[code]) {
+      throw new Error(`Marker with index ${code} not found in map markers collection`)
+    }
+    // For regions, check if the region exists at all
+    if (isRegion && !map.regions[code]) {
+      throw new Error(`Region with code ${code} not found in map regions collection`)
+    }
     throw new Error(`Element with code ${code} not found`)
   }
 
@@ -102,7 +110,13 @@ export default function setupElementEvents(this: MapInterface): void {
       }
     }
     catch (error) {
-      console.error('Error in mouseover/mouseout handler:', error)
+      // Log the error but don't break the event handling
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.warn('Skipping mouseover/mouseout event due to error:', errorMessage)
+      // Try to hide tooltip if it was showing
+      if (e.type === 'mouseout' && this._tooltip) {
+        this._tooltip.hide()
+      }
     }
   }) as EventListener)
 

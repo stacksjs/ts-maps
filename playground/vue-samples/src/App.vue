@@ -3,7 +3,7 @@ import type { MapOptions } from 'ts-maps'
 import { computed, reactive, ref } from 'vue'
 import { VectorMap } from '../../../packages/vue/src'
 
-type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
+type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada'
 
 interface EventData {
   type: string
@@ -26,7 +26,6 @@ const mapOptions = [
   { value: 'spain', label: 'Spain', projection: 'mercator' },
   { value: 'italy', label: 'Italy', projection: 'mercator' },
   { value: 'canada', label: 'Canada', projection: 'mercator' },
-  { value: 'brasil', label: 'Brasil', projection: 'mercator' },
 ]
 
 const options = reactive<Omit<MapOptions, 'selector'>>({
@@ -123,10 +122,10 @@ function handleRegionClick(_event: MouseEvent, code: string) {
   }
 }
 
-function handleMarkerClick(_event: MouseEvent, index: number) {
+function handleMarkerClick(_event: MouseEvent, index: string) {
   lastEvent.value = {
     type: 'Marker Click',
-    marker: options.markers?.[index],
+    marker: options.markers?.[parseInt(index)],
     time: new Date().toLocaleTimeString(),
   }
 }

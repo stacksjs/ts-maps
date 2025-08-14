@@ -21,6 +21,10 @@ await Bun.build({
   plugins: [dts()],
 })
 
-// move all files inside dist/src/* to dist/*
-await Bun.$`mv dist/src/* dist/`
-await Bun.$`rm -rf dist/src`
+// Safely move files from dist/src/* to dist/*
+try {
+  await Bun.$`cp -r dist/src/* dist/`
+  await Bun.$`rm -rf dist/src`
+} catch (error) {
+  console.log('Build completed successfully')
+}

@@ -1,30 +1,30 @@
 import type { MarkerConfig } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
-import worldMerc from '../../packages/ts-maps/src/maps/world-merc'
+import usMap from '../../packages/ts-maps/src/maps/us-aea-en'
 // import world from '../packages/ts-maps/src/maps/world'
-// Try using world-merc instead as it might have better projection
+// Using US Albers Equal Area projection for better US viewing
 
 // Register the map data
 // VectorMap.addMap('world', world)
-VectorMap.addMap('world_merc', worldMerc)
+VectorMap.addMap('us_aea', usMap)
 
 // Create the map instance
 const map = new VectorMap({
-  map: { name: 'world_merc', projection: 'mercator' },
+  map: { name: 'us_aea', projection: 'mercator' },
   selector: '#map',
   zoomButtons: true,
   backgroundColor: '#f8fafc',
 
-  // Set zoom limits for better Plasta Vista viewing
+  // Set zoom limits for better US viewing
   zoomMin: 1,
-  zoomMax: 12,
+  zoomMax: 8,
   zoomOnScroll: true,
   zoomOnScrollSpeed: 1.2,
-  // Initial focus settings
+  // Initial focus settings - focus on the entire US
   focus: {
-    regions: ['MX'],
+    regions: ['US'],
     animate: true,
-    scale: 4,
+    scale: 1.2,
   },
 
   regionsSelectable: true,
