@@ -109,11 +109,11 @@ const map = new VectorMap({
   selector: '#map',
   series: {
     markers: [{
-      attribute: 'fill',  // The attribute to modify (e.g., 'fill', 'r')
-      scale: ['#FFC107', '#FF5722'],  // Color scale for the values
+      attribute: 'fill', // The attribute to modify (e.g., 'fill', 'r')
+      scale: ['#FFC107', '#FF5722'], // Color scale for the values
       values: {
-        'marker1': 75,  // Values for each marker
-        'marker2': 45,
+        marker1: 75, // Values for each marker
+        marker2: 45,
       },
       legend: {
         vertical: true,
@@ -145,20 +145,20 @@ const map = new VectorMap({
   lines: {
     elements: [
       {
-        from: 'New York',  // Starting marker name
-        to: 'London',      // Ending marker name
+        from: 'New York', // Starting marker name
+        to: 'London', // Ending marker name
         style: {
           stroke: '#4f46e5',
           strokeWidth: 1,
-          animation: true  // Enable line animation
+          animation: true // Enable line animation
         }
       }
     ],
-    style: {  // Default style for all lines
+    style: { // Default style for all lines
       stroke: '#4f46e5',
       strokeWidth: 1,
     },
-    curvature: 0.5  // Line curvature (0 = straight, 1 = very curved)
+    curvature: 0.5 // Line curvature (0 = straight, 1 = very curved)
   }
 })
 ```
@@ -173,7 +173,7 @@ const lines = [
     from: 'US',
     to: 'GB',
     style: {
-      stroke: '#4f46e5',      // Indigo color
+      stroke: '#4f46e5', // Indigo color
       strokeWidth: 2,
       animation: true
     }
@@ -182,9 +182,9 @@ const lines = [
     from: 'JP',
     to: 'AU',
     style: {
-      stroke: '#10b981',      // Green color
+      stroke: '#10b981', // Green color
       strokeWidth: 3,
-      strokeDasharray: '5,5',  // Dashed line
+      strokeDasharray: '5,5', // Dashed line
       animation: true
     }
   },
@@ -192,15 +192,15 @@ const lines = [
     from: 'BR',
     to: 'ZA',
     style: {
-      stroke: '#f59e0b',      // Amber color
+      stroke: '#f59e0b', // Amber color
       strokeWidth: 2,
       animation: true
     }
   }
-];
+]
 
 // Add all lines with animations
-map.addLines(lines);
+map.addLines(lines)
 ```
 
 ### Line Configuration Options

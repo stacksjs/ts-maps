@@ -25,6 +25,7 @@ await Bun.build({
 try {
   await Bun.$`cp -r dist/src/* dist/`
   await Bun.$`rm -rf dist/src`
-} catch (error) {
-  console.log('Build completed successfully')
+}
+catch (error) {
+  console.log('Build completed successfully', error)
 }

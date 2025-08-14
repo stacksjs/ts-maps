@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 import type { MarkerConfig } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
 import { onMounted, ref } from 'vue'
@@ -98,52 +97,52 @@ onMounted(() => {
           name: 'Greenland',
           coords: [72, -42],
           style: {
-            fill: '#4f46e5',
-            r: 5,
-            stroke: '#fff',
-            'stroke-width': 1
-          }
+            'fill': '#4f46e5',
+            'r': 5,
+            'stroke': '#fff',
+            'stroke-width': 1,
+          },
         },
         {
           name: 'Canada',
           coords: [56.1304, -106.3468],
           style: {
-            fill: '#4f46e5',
-            r: 5,
-            stroke: '#fff',
-            'stroke-width': 1
-          }
+            'fill': '#4f46e5',
+            'r': 5,
+            'stroke': '#fff',
+            'stroke-width': 1,
+          },
         },
         {
           name: 'Palestine',
           coords: [31.5, 34.8],
           style: {
-            fill: '#4f46e5',
-            r: 5,
-            stroke: '#fff',
-            'stroke-width': 1
-          }
+            'fill': '#4f46e5',
+            'r': 5,
+            'stroke': '#fff',
+            'stroke-width': 1,
+          },
         },
         {
           name: 'Brazil',
           coords: [-14.2350, -51.9253],
           style: {
-            fill: '#4f46e5',
-            r: 5,
-            stroke: '#fff',
-            'stroke-width': 1
+            'fill': '#4f46e5',
+            'r': 5,
+            'stroke': '#fff',
+            'stroke-width': 1,
           },
         },
       ],
-      onMarkerTooltipShow: (e) => {
-        console.log('marker tooltip show', e)
-      },
-      onMarkerClick(event, index) {
-        console.log('marker click', event, index)
-      },
-      onMarkerSelected(event, index, isSelected, selectedMarkers) {
-        console.log('marker selected', event, index, isSelected, selectedMarkers)
-      },
+      // onMarkerTooltipShow: (e) => {
+      //   console.log('marker tooltip show', e)
+      // },
+      // onMarkerClick(event, index) {
+      //   console.log('marker click', event, index)
+      // },
+      // onMarkerSelected(event, index, isSelected, selectedMarkers) {
+      //   console.log('marker selected', event, index, isSelected, selectedMarkers)
+      // },
     })
   }
 })

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-
-import type { MarkerConfig } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
 import { onMounted, ref } from 'vue'
 import world from '../../../../packages/ts-maps/src/maps/world-merc'

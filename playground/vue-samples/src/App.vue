@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { computed, reactive, ref, watch } from 'vue'
-import { VectorMap, UnitedStates } from '../../../packages/vue/src'
+import { computed, reactive, ref } from 'vue'
+import { VectorMap } from '../../../packages/vue/src'
 
 type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada'
 
@@ -52,11 +52,11 @@ const options = reactive<Omit<MapOptions, 'selector'>>({
     scale: ['#C8EEFF', '#0071A4'],
     values: {
       'US-CA': 100, // California
-      'US-TX': 85,  // Texas
-      'US-FL': 80,  // Florida
-      'US-NY': 75,  // New York
-      'US-IL': 70,  // Illinois
-      'US-PA': 65,  // Pennsylvania
+      'US-TX': 85, // Texas
+      'US-FL': 80, // Florida
+      'US-NY': 75, // New York
+      'US-IL': 70, // Illinois
+      'US-PA': 65, // Pennsylvania
     },
   },
   markers: [
@@ -126,7 +126,7 @@ function handleRegionClick(_event: MouseEvent, code: string) {
 function handleMarkerClick(_event: MouseEvent, index: string) {
   lastEvent.value = {
     type: 'Marker Click',
-    marker: options.markers?.[parseInt(index)],
+    marker: options.markers?.[Number.parseInt(index)],
     time: new Date().toLocaleTimeString(),
   }
 }
@@ -138,10 +138,6 @@ function handleLoaded() {
     time: new Date().toLocaleTimeString(),
   }
 }
-
-function handleMapChange() {
-  console.log('Map changed to:', currentMap.value)
-}
 </script>
 
 <template>
@@ -151,7 +147,7 @@ function handleMapChange() {
     <div class="controls">
       <div class="control-group">
         <label for="map-select">Select Map:</label>
-        <select id="map-select" v-model="currentMap" @change="handleMapChange">
+        <select id="map-select" v-model="currentMap">
           <option v-for="map in mapOptions" :key="map.value" :value="map.value">
             {{ map.label }} ({{ map.projection }})
           </option>
@@ -175,10 +171,10 @@ function handleMapChange() {
 
     <div class="map-container">
       <VectorMap
+        :key="currentMap"
         :options="options"
         :map-name="currentMap"
         height="500px"
-        :key="currentMap"
         @region-click="handleRegionClick"
         @marker-click="handleMarkerClick"
         @loaded="handleLoaded"

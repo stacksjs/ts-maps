@@ -8,8 +8,8 @@ ts-maps provides comprehensive features for working with map regions, including 
 const map = new VectorMap({
   selector: '#map',
   // Region selection options
-  regionsSelectable: true,      // Enable region selection
-  regionsSelectableOne: false,  // Allow multiple region selection
+  regionsSelectable: true, // Enable region selection
+  regionsSelectableOne: false, // Allow multiple region selection
 })
 ```
 
@@ -85,7 +85,7 @@ You can programmatically focus on specific regions using the `setFocus` method:
 // Focus on a specific region with custom scale
 map.setFocus({
   region: 'JP', // Country code
-  scale: 2,     // Zoom level
+  scale: 2, // Zoom level
 })
 ```
 

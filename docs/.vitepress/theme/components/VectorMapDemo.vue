@@ -60,9 +60,9 @@ onMounted(() => {
           offsets: () => [0, 0],
         },
       },
-      onLoaded: () => {
-        console.log('map loaded')
-      },
+      // onLoaded: () => {
+      //   console.log('map loaded')
+      // },
     })
   }
 })

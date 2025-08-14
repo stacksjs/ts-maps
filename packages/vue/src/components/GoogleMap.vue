@@ -1,7 +1,6 @@
 //@ts-nocheck
 <script setup lang="ts">
-import type { PropType } from 'vue'
-import { defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 declare global {
   interface Window {
