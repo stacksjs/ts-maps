@@ -71,7 +71,7 @@ onMounted(async () => {
   if (!mapContainer.value)
     return
 
-  const containerId: string = mapContainer.value.id || `ts-maps-${Math.random().toString(36).substr(2, 9)}`
+  const containerId: string = mapContainer.value.id || `ts-maps-${Math.random().toString(36).substring(2, 11)}`
   mapContainer.value.id = containerId
 
   // Add the map data
