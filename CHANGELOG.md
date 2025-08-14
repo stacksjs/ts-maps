@@ -1,6 +1,69 @@
 # Changelog
 
 
+## v0.0.5...main
+
+[compare changes](https://github.com/stacksjs/ts-maps/compare/v0.0.5...main)
+
+### 🩹 Fixes
+
+- Hide tooltip via prevent default ([9ab3663](https://github.com/stacksjs/ts-maps/commit/9ab3663))
+- Marker issue ([e8434f4](https://github.com/stacksjs/ts-maps/commit/e8434f4))
+- Marker issue ([f4a0b21](https://github.com/stacksjs/ts-maps/commit/f4a0b21))
+
+### 🏡 Chore
+
+- Docs improvements ([2484e6a](https://github.com/stacksjs/ts-maps/commit/2484e6a))
+- Improve readme ([29e8bc5](https://github.com/stacksjs/ts-maps/commit/29e8bc5))
+- More docs improvement ([544671b](https://github.com/stacksjs/ts-maps/commit/544671b))
+- More docs improvements ([029184b](https://github.com/stacksjs/ts-maps/commit/029184b))
+- Wip marker issue ([180f98e](https://github.com/stacksjs/ts-maps/commit/180f98e))
+- Wip ([8d2c413](https://github.com/stacksjs/ts-maps/commit/8d2c413))
+- Wip ([d17b1b5](https://github.com/stacksjs/ts-maps/commit/d17b1b5))
+- Wip ([794b0de](https://github.com/stacksjs/ts-maps/commit/794b0de))
+- Wip ([3dd28a7](https://github.com/stacksjs/ts-maps/commit/3dd28a7))
+- Wip ([3c347fe](https://github.com/stacksjs/ts-maps/commit/3c347fe))
+- Wip ([83bfbaa](https://github.com/stacksjs/ts-maps/commit/83bfbaa))
+- Wip ([6cf5bcc](https://github.com/stacksjs/ts-maps/commit/6cf5bcc))
+- Wip ([f3f5bd9](https://github.com/stacksjs/ts-maps/commit/f3f5bd9))
+- Readme enhances ([2b412ea](https://github.com/stacksjs/ts-maps/commit/2b412ea))
+- Enhance readme ([9585f25](https://github.com/stacksjs/ts-maps/commit/9585f25))
+- Readme enhance ([9d810b1](https://github.com/stacksjs/ts-maps/commit/9d810b1))
+- Enhance vue package ([c8090c5](https://github.com/stacksjs/ts-maps/commit/c8090c5))
+- Lint fix ([d32fe5e](https://github.com/stacksjs/ts-maps/commit/d32fe5e))
+- React package wip ([694f7d3](https://github.com/stacksjs/ts-maps/commit/694f7d3))
+- Wip ([f80b334](https://github.com/stacksjs/ts-maps/commit/f80b334))
+- Wip ([733e517](https://github.com/stacksjs/ts-maps/commit/733e517))
+- Wip ([7a53390](https://github.com/stacksjs/ts-maps/commit/7a53390))
+- Readme ([4d71ae0](https://github.com/stacksjs/ts-maps/commit/4d71ae0))
+- Remove playground ([3a27c98](https://github.com/stacksjs/ts-maps/commit/3a27c98))
+- Add api reference ([48b9381](https://github.com/stacksjs/ts-maps/commit/48b9381))
+- Add stargazers ([301a16e](https://github.com/stacksjs/ts-maps/commit/301a16e))
+- More docs improvements ([6b83ee9](https://github.com/stacksjs/ts-maps/commit/6b83ee9))
+- Improve ts-maps docs ([63fdba3](https://github.com/stacksjs/ts-maps/commit/63fdba3))
+- Enhance sponsors ([e04ed15](https://github.com/stacksjs/ts-maps/commit/e04ed15))
+- Wip ([edeb97e](https://github.com/stacksjs/ts-maps/commit/edeb97e))
+- Wip ([5244894](https://github.com/stacksjs/ts-maps/commit/5244894))
+- Wip ([71d4c8d](https://github.com/stacksjs/ts-maps/commit/71d4c8d))
+- Wip ([0e4092f](https://github.com/stacksjs/ts-maps/commit/0e4092f))
+- Wip ([7a13d91](https://github.com/stacksjs/ts-maps/commit/7a13d91))
+- Wip ([5b3b3e9](https://github.com/stacksjs/ts-maps/commit/5b3b3e9))
+- Wip ([228b313](https://github.com/stacksjs/ts-maps/commit/228b313))
+- Wip ([5f6d8dd](https://github.com/stacksjs/ts-maps/commit/5f6d8dd))
+- Wip ([50da683](https://github.com/stacksjs/ts-maps/commit/50da683))
+- Wip ([1caa655](https://github.com/stacksjs/ts-maps/commit/1caa655))
+- Restore release ([59ec78e](https://github.com/stacksjs/ts-maps/commit/59ec78e))
+- Wip ([88a109d](https://github.com/stacksjs/ts-maps/commit/88a109d))
+- Wip ([c339e82](https://github.com/stacksjs/ts-maps/commit/c339e82))
+- Wip ([35651b7](https://github.com/stacksjs/ts-maps/commit/35651b7))
+- Wip ([e53e7b3](https://github.com/stacksjs/ts-maps/commit/e53e7b3))
+
+### ❤️ Contributors
+
+- Chris ([@chrisbbreuer](https://github.com/chrisbbreuer))
+- Glennmichael123 ([@glennmichael123](https://github.com/glennmichael123))
+- Cab-mikee ([@cab-mikee](https://github.com/cab-mikee))
+
 ## v0.0.4...main
 
 [compare changes](https://github.com/stacksjs/ts-maps/compare/v0.0.4...main)
