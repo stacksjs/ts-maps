@@ -9,7 +9,9 @@ The main class for creating and managing vector maps.
 ### Constructor
 
 ```typescript
-constructor(options: MapOptions)
+class VectorMap {
+  constructor(options: MapOptions)
+}
 ```
 
 Creates a new vector map instance with the specified options.
