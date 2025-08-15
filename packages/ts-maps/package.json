@@ -91,7 +91,7 @@
   "devDependencies": {
     "bun-plugin-dtsx": "^0.21.9",
     "bunfig": "^0.8.2",
-    "lint-staged": "^15.5.1",
+    "lint-staged": "^16.1.5",
     "simple-git-hooks": "^2.13.0",
     "typescript": "^5.9.0"
   },
