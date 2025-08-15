@@ -4,15 +4,15 @@
 [![GitHub Actions][github-actions-src]][github-actions-href]
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
-# ts-maps
+# ts-maps-vue
 
-> Modern TypeScript library for creating stunning vector maps
+> Vue components for ts-maps - Interactive Vector Maps
 
 ## ✨ Features
 
 - 🗺️ **Vector Maps**
   - High-quality SVG-based interactive maps
-  - Multiple projection types (Mercator, Equal Earth)
+  - Multiple projection types (Mercator, Miller, Lambert, Albers)
   - Built-in world maps and custom regions
 
 - 📊 **Data Visualization**
@@ -20,152 +20,236 @@
   - Heat maps and bubble charts
   - Interactive legends and tooltips
 
-- 🎯 **Framework Agnostic**
-  - Zero dependencies
-  - Works with any framework
-  - Official React and Vue bindings
-
-- 🔒 **Type Safety**
-  - Full TypeScript support
-  - Strict types for better DX
-  - Comprehensive type definitions
+- 🎯 **Vue Integration**
+  - Native Vue 3 Composition API support
+  - TypeScript support
+  - Event handling and reactive props
 
 ## 📦 Installation
 
 ```bash
 # Using npm
-npm install ts-maps
+npm install ts-maps ts-maps-vue
 
 # Using pnpm
-pnpm add ts-maps
+pnpm add ts-maps ts-maps-vue
 
 # Using yarn
-yarn add ts-maps
+yarn add ts-maps ts-maps-vue
 
 # Using bun
-bun add ts-maps
+bun add ts-maps ts-maps-vue
 ```
 
-### Framework Bindings
+## 🗺️ Available Maps
 
-```bash
-# React
-npm install ts-maps ts-maps-react
+### World Maps
 
-# Vue
-npm install ts-maps ts-maps-vue
-```
+- **`world`** - World map with Miller projection
+- **`world-merc`** - World map with Mercator projection
+
+### United States Maps
+
+- **`us-merc`** - United States with Mercator projection
+- **`us-mill`** - United States with Miller projection
+- **`us-lcc`** - United States with Lambert Conformal Conic projection
+- **`us-aea`** - United States with Albers Equal Area projection
+
+### Country Maps
+
+- **`spain`** - Spain with Mercator projection
+- **`italy`** - Italy with Mercator projection
+- **`canada`** - Canada with Mercator projection
 
 ## 🚀 Quick Start
 
-```typescript
-import type { VectorMapOptions } from 'ts-maps'
-import { VectorMap } from 'ts-maps'
+```vue
+<script setup lang="ts">
+import type { MapOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps-vue'
 
-// Create a map instance
-const map = new VectorMap({
-  container: 'map',
-  map: 'world',
-  theme: 'light',
-  style: {
-    regions: {
+const options: Omit<MapOptions, 'selector'> = {
+  backgroundColor: '#ffffff',
+  zoomOnScroll: true,
+  zoomButtons: true,
+  regionsSelectable: true,
+  markersSelectable: true,
+  regionStyle: {
+    initial: {
       fill: '#e4e4e4',
       stroke: '#ffffff',
-      strokeWidth: 1,
+      strokeWidth: 0.5,
     },
     hover: {
       fill: '#2ca25f',
     },
-  },
-})
-
-// Add interactivity
-map.on('regionClick', (event, region) => {
-  console.log(`Clicked: ${region.id}`)
-})
-```
-
-### Data Visualization
-
-```typescript
-import type { DataVisualizationOptions } from 'ts-maps'
-import { VectorMap } from 'ts-maps'
-
-const map = new VectorMap({
-  container: 'map',
-  map: 'world',
-})
-
-// Add data visualization
-const options: DataVisualizationOptions = {
-  scale: ['#e5f5f9', '#2ca25f'], // Color gradient from light blue to green
-  values: {
-    US: 100,
-    CA: 80,
-    GB: 65,
+    selected: {
+      fill: '#1a9850',
+    },
   },
 }
-
-map.visualizeData(options)
-```
-
-### React Component
-
-```tsx
-import type { VectorMapProps } from 'ts-maps-react'
-import { useVectorMap } from 'ts-maps-react'
-
-function WorldMap() {
-  const { map, isLoading } = useVectorMap({
-    map: 'world',
-    theme: 'light',
-  })
-
-  return (
-    <div className="map-container">
-      {isLoading
-        ? (
-            <div>Loading...</div>
-          )
-        : (
-            <div id="map" />
-          )}
-    </div>
-  )
-}
-```
-
-### Vue Component
-
-```vue
-<script setup lang="ts">
-import type { VectorMapOptions } from 'ts-maps'
-import { useVectorMap } from 'ts-maps-vue'
-
-const { map, isLoading } = useVectorMap({
-  map: 'world',
-  theme: 'light',
-})
 </script>
 
 <template>
-  <div class="map-container">
-    <div v-if="isLoading">
-      Loading...
-    </div>
-    <div v-else id="map" />
+  <VectorMap
+    :options="options"
+    map-name="world"
+    height="500px"
+    @region-click="handleRegionClick"
+    @marker-click="handleMarkerClick"
+    @loaded="handleLoaded"
+  >
+    <template #loading>
+      <div>Loading your beautiful map...</div>
+    </template>
+  </VectorMap>
+</template>
+```
+
+## 📖 Component Props
+
+### VectorMap Props
+
+| Prop | Type | Required | Default | Description |
+|------|------|----------|---------|-------------|
+| `options` | `MapOptions` | ✅ | - | Map configuration options |
+| `mapName` | `MapName` | ✅ | - | Name of the map to display |
+| `width` | `string` | ❌ | `'100%'` | Map container width |
+| `height` | `string` | ❌ | `'400px'` | Map container height |
+
+### MapName Type
+
+```typescript
+type MapName =
+  | 'world'
+  | 'world-merc'
+  | 'us-merc'
+  | 'us-mill'
+  | 'us-lcc'
+  | 'us-aea'
+  | 'spain'
+  | 'italy'
+  | 'canada'
+```
+
+## 🎯 Events
+
+The VectorMap component emits the following events:
+
+- **`regionClick`** - Fired when a region is clicked
+- **`regionSelected`** - Fired when a region is selected/deselected
+- **`markerClick`** - Fired when a marker is clicked
+- **`viewportChange`** - Fired when the map viewport changes
+- **`loaded`** - Fired when the map is fully loaded
+- **`update:options`** - Fired when options are updated
+
+## 📊 Data Visualization
+
+```vue
+<script setup lang="ts">
+const options = reactive({
+  // ... other options
+  visualizeData: {
+    scale: ['#C8EEFF', '#0071A4'],
+    values: {
+      US: 100,
+      GB: 75,
+      FR: 80,
+      DE: 85,
+      IT: 60,
+      ES: 65,
+    },
+  },
+})
+</script>
+```
+
+## 🎨 Customization
+
+### Styling Regions
+
+```typescript
+const options = {
+  regionStyle: {
+    initial: {
+      fill: '#e4e4e4',
+      stroke: '#ffffff',
+      strokeWidth: 0.5,
+    },
+    hover: {
+      fill: '#2ca25f',
+    },
+    selected: {
+      fill: '#1a9850',
+    },
+  },
+}
+```
+
+### Adding Markers
+
+```typescript
+const options = {
+  markers: [
+    {
+      name: 'Sample Marker',
+      coords: [40.7128, -74.0060], // [latitude, longitude]
+      style: {
+        fill: '#ff0000',
+        stroke: '#ffffff',
+        r: 5,
+      },
+    },
+  ],
+}
+```
+
+## 🔧 Advanced Usage
+
+### Dynamic Map Switching
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const currentMap = ref<'world' | 'us-merc'>('world')
+
+function switchToUSMap() {
+  currentMap.value = 'us-merc'
+}
+</script>
+
+<template>
+  <div>
+    <button @click="switchToUSMap">
+      Switch to US Map
+    </button>
+    <VectorMap
+      :options="options"
+      :map-name="currentMap"
+      height="500px"
+    />
   </div>
 </template>
 ```
 
-## 📖 Documentation
+### Reactive Options
 
-- [Introduction](https://ts-maps.dev/intro)
-- [Installation](https://ts-maps.dev/install)
-- [Usage Guide](https://ts-maps.dev/usage)
-- [API Reference](https://ts-maps.dev/api)
-- [Examples](https://ts-maps.dev/examples)
-- [Playground](https://ts-maps.dev/playground)
+```vue
+<script setup lang="ts">
+import { reactive, watch } from 'vue'
+
+const options = reactive({
+  backgroundColor: '#ffffff',
+  // ... other options
+})
+
+// Watch for changes and update the map
+watch(() => options.backgroundColor, (newColor) => {
+  console.log('Background color changed to:', newColor)
+})
+</script>
+```
 
 ## 🧪 Development
 
@@ -179,57 +263,29 @@ cd ts-maps
 2. Install dependencies:
 
 ```bash
-pnpm install
+bun install
 ```
 
-3. Start development:
+3. Build the Vue package:
 
 ```bash
-pnpm dev
+cd packages/vue
+bun run build
 ```
 
-## Changelog
+## 📚 Examples
 
-Please see our [releases](https://github.com/stacksjs/clarity/releases) page for more information on what has changed recently.
+Check out the [playground examples](../../playground/vue-samples/) for more usage examples and interactive demos.
 
-## Contributing
+## 🤝 Contributing
 
 Please see [CONTRIBUTING](https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md) for details.
 
-## Community
+## 📄 License
 
-For help, discussion about best practices, or any other conversation that would benefit from being searchable:
+The MIT License (MIT). Please see [LICENSE](../../LICENSE.md) for more information.
 
-[Discussions on GitHub](https://github.com/stacksjs/clarity/discussions)
-
-For casual chit-chat with others using this package:
-
-[Join the Stacks Discord Server](https://discord.gg/stacksjs)
-
-## Postcardware
-
-“Software that is free, but hopes for a postcard.” We love receiving postcards from around the world showing where `clarity` is being used! We showcase them on our website too.
-
-Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United States 🌎
-
-## Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
-
-- [JetBrains](https://www.jetbrains.com/)
-- [The Solana Foundation](https://solana.com/)
-
-## Credits
-
-- [jsvectormap](https://github.com/themustafaomar/jsvectormap)
-- [Chris Breuer](https://github.com/chrisbbreuer)
-- [All Contributors](https://github.com/stacksjs/ts-maps/contributors)
-
-## License
-
-The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/clarity/blob/main/LICENSE.md) for more information.
-
-Made with 💙
+Made with 💙 by [Stacks.js](https://stacksjs.org)
 
 <!-- Badges -->
 [npm-version-src]: https://img.shields.io/npm/v/@stacksjs/clarity?style=flat-square

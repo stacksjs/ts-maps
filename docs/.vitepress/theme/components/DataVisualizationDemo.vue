@@ -1,41 +1,171 @@
 <script setup lang="ts">
 import { VectorMap } from 'ts-maps'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import world from '../../../../packages/ts-maps/src/maps/world-merc'
+import usMerc from '../../../../packages/ts-maps/src/maps/us-merc-en'
+import usMill from '../../../../packages/ts-maps/src/maps/us-mill-en'
+import usLcc from '../../../../packages/ts-maps/src/maps/us-lcc-en'
+import usAea from '../../../../packages/ts-maps/src/maps/us-aea-en'
 
 const mapContainer = ref<HTMLElement | null>(null)
+const currentMap = ref('world')
+const mapInstance = ref<VectorMap | null>(null)
+
+const mapOptions = [
+  { value: 'world', label: 'World Map', data: world, projection: 'mercator' as const },
+  { value: 'us-merc', label: 'United States (Mercator)', data: usMerc, projection: 'mercator' as const },
+  { value: 'us-mill', label: 'United States (Miller)', data: usMill, projection: 'miller' as const },
+  { value: 'us-lcc', label: 'United States (Lambert)', data: usLcc, projection: 'mercator' as const },
+  { value: 'us-aea', label: 'United States (Albers)', data: usAea, projection: 'mercator' as const },
+]
+
+// Sample data for different maps
+const worldData = {
+  scale: ['#fee5d9', '#a50f15'] as [string, string],
+  values: {
+    US: 100,
+    CN: 85,
+    RU: 70,
+    BR: 60,
+    IN: 55,
+    DE: 80,
+    FR: 75,
+    GB: 70,
+    JP: 65,
+    CA: 90,
+  },
+}
+
+const usData = {
+  scale: ['#e3f2fd', '#1976d2'] as [string, string],
+  values: {
+    CA: 100, // California
+    TX: 85,  // Texas
+    NY: 80,  // New York
+    FL: 75,  // Florida
+    IL: 70,  // Illinois
+    PA: 65,  // Pennsylvania
+    OH: 60,  // Ohio
+    GA: 55,  // Georgia
+    NC: 50,  // North Carolina
+    MI: 45,  // Michigan
+  },
+}
+
+function getMapData(mapType: string) {
+  return mapType.startsWith('us') ? usData : worldData
+}
+
+function getMapProjection(mapType: string) {
+  const option = mapOptions.find(opt => opt.value === mapType)
+  return option?.projection || 'mercator'
+}
+
+function initializeMap() {
+  if (!mapContainer.value) return
+
+  const selectedOption = mapOptions.find(opt => opt.value === currentMap.value)
+  if (!selectedOption) return
+
+  // Clear previous map
+  if (mapInstance.value) {
+    mapInstance.value = null
+  }
+
+  // Add the selected map
+  VectorMap.addMap(currentMap.value, selectedOption.data)
+
+  // Create new map instance
+  mapInstance.value = new VectorMap({
+    selector: `#${mapContainer.value.id}`,
+    map: {
+      name: currentMap.value,
+      projection: getMapProjection(currentMap.value),
+    },
+    visualizeData: getMapData(currentMap.value),
+    backgroundColor: '#f8fafc',
+    zoomOnScroll: true,
+    zoomButtons: true,
+    regionsSelectable: true,
+  })
+}
+
+function changeMap(newMap: string) {
+  currentMap.value = newMap
+}
 
 onMounted(() => {
-  if (mapContainer.value) {
-    VectorMap.addMap('world', world)
+  initializeMap()
+})
 
-    const _map = new VectorMap({
-      selector: `#${mapContainer.value.id}`,
-      map: {
-        name: 'world',
-        projection: 'mercator',
-      },
-      visualizeData: {
-        scale: ['#fee5d9', '#a50f15'],
-        values: {
-          US: 100,
-          CN: 85,
-          RU: 70,
-          BR: 60,
-        },
-      },
-    })
-  }
+watch(currentMap, () => {
+  initializeMap()
 })
 </script>
 
 <template>
   <div class="workspace-wrapper">
+    <div class="map-controls">
+      <label for="map-select">Select Map:</label>
+      <select id="map-select" v-model="currentMap" @change="changeMap(($event.target as HTMLSelectElement).value)">
+        <option v-for="option in mapOptions" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </div>
+    
     <div id="map" ref="mapContainer" class="vector-map-container" />
+    
+    <div class="map-info">
+      <h4>Current Map: {{ mapOptions.find(opt => opt.value === currentMap)?.label }}</h4>
+      <p>Projection: {{ getMapProjection(currentMap) }}</p>
+      <p>Data: {{ currentMap.startsWith('us') ? 'US States' : 'World Countries' }}</p>
+    </div>
   </div>
 </template>
 
 <style scoped>
+  .map-controls {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .map-controls label {
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .map-controls select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 14px;
+    min-width: 250px;
+  }
+
+  .map-info {
+    margin-top: 20px;
+    padding: 16px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+  }
+
+  .map-info h4 {
+    margin: 0 0 8px 0;
+    color: #111827;
+    font-size: 16px;
+  }
+
+  .map-info p {
+    margin: 4px 0;
+    color: #6b7280;
+    font-size: 14px;
+  }
+
   #map {
     width: 100%;
     height: 600px;
