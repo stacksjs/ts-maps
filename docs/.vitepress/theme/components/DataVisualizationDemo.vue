@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { VectorMap } from 'ts-maps'
 import { onMounted, ref, watch } from 'vue'
-import world from '../../../../packages/ts-maps/src/maps/world-merc'
+import canada from '../../../../packages/ts-maps/src/maps/canada'
+import usAea from '../../../../packages/ts-maps/src/maps/us-aea-en'
+import usLcc from '../../../../packages/ts-maps/src/maps/us-lcc-en'
 import usMerc from '../../../../packages/ts-maps/src/maps/us-merc-en'
 import usMill from '../../../../packages/ts-maps/src/maps/us-mill-en'
-import usLcc from '../../../../packages/ts-maps/src/maps/us-lcc-en'
-import usAea from '../../../../packages/ts-maps/src/maps/us-aea-en'
+import world from '../../../../packages/ts-maps/src/maps/world-merc'
 
 const mapContainer = ref<HTMLElement | null>(null)
 const currentMap = ref('world')
@@ -17,6 +18,7 @@ const mapOptions = [
   { value: 'us-mill', label: 'United States (Miller)', data: usMill, projection: 'miller' as const },
   { value: 'us-lcc', label: 'United States (Lambert)', data: usLcc, projection: 'mercator' as const },
   { value: 'us-aea', label: 'United States (Albers)', data: usAea, projection: 'mercator' as const },
+  { value: 'canada', label: 'Canada', data: canada, projection: 'mercator' as const },
 ]
 
 // Sample data for different maps
@@ -40,20 +42,43 @@ const usData = {
   scale: ['#e3f2fd', '#1976d2'] as [string, string],
   values: {
     CA: 100, // California
-    TX: 85,  // Texas
-    NY: 80,  // New York
-    FL: 75,  // Florida
-    IL: 70,  // Illinois
-    PA: 65,  // Pennsylvania
-    OH: 60,  // Ohio
-    GA: 55,  // Georgia
-    NC: 50,  // North Carolina
-    MI: 45,  // Michigan
+    TX: 85, // Texas
+    NY: 80, // New York
+    FL: 75, // Florida
+    IL: 70, // Illinois
+    PA: 65, // Pennsylvania
+    OH: 60, // Ohio
+    GA: 55, // Georgia
+    NC: 50, // North Carolina
+    MI: 45, // Michigan
+  },
+}
+
+const canadaData = {
+  scale: ['#fff3e0', '#f57c00'] as [string, string],
+  values: {
+    ON: 100, // Ontario
+    QC: 85, // Quebec
+    BC: 80, // British Columbia
+    AB: 75, // Alberta
+    MB: 70, // Manitoba
+    SK: 65, // Saskatchewan
+    NS: 60, // Nova Scotia
+    NB: 55, // New Brunswick
+    NL: 50, // Newfoundland and Labrador
+    PE: 45, // Prince Edward Island
+    NT: 40, // Northwest Territories
+    NU: 35, // Nunavut
+    YT: 30, // Yukon
   },
 }
 
 function getMapData(mapType: string) {
-  return mapType.startsWith('us') ? usData : worldData
+  if (mapType.startsWith('us'))
+    return usData
+  if (mapType === 'canada')
+    return canadaData
+  return worldData
 }
 
 function getMapProjection(mapType: string) {
@@ -62,10 +87,12 @@ function getMapProjection(mapType: string) {
 }
 
 function initializeMap() {
-  if (!mapContainer.value) return
+  if (!mapContainer.value)
+    return
 
   const selectedOption = mapOptions.find(opt => opt.value === currentMap.value)
-  if (!selectedOption) return
+  if (!selectedOption)
+    return
 
   // Clear previous map
   if (mapInstance.value) {
@@ -113,13 +140,19 @@ watch(currentMap, () => {
         </option>
       </select>
     </div>
-    
+
     <div id="map" ref="mapContainer" class="vector-map-container" />
-    
+
     <div class="map-info">
       <h4>Current Map: {{ mapOptions.find(opt => opt.value === currentMap)?.label }}</h4>
       <p>Projection: {{ getMapProjection(currentMap) }}</p>
-      <p>Data: {{ currentMap.startsWith('us') ? 'US States' : 'World Countries' }}</p>
+      <p>
+        Data: {{
+          currentMap.startsWith('us') ? 'US States'
+          : currentMap === 'canada' ? 'Canadian Provinces & Territories'
+            : 'World Countries'
+        }}
+      </p>
     </div>
   </div>
 </template>

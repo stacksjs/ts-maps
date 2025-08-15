@@ -28,6 +28,94 @@ ts-maps comes with a rich set of features for creating interactive maps:
 - [Regions](./features/regions.md) - Add interactive regions to your maps
 - [Data Visualization](./features/data-visualization.md) - Visualize data with customizable color scales
 
+## Vue Components
+
+ts-maps provides Vue 3 components for easy integration:
+
+### VectorMap Component
+
+The main component for displaying any supported map:
+
+```vue
+<script setup lang="ts">
+import { VectorMap } from 'ts-maps-vue'
+
+const options = {
+  backgroundColor: '#ffffff',
+  zoomOnScroll: true,
+  regionsSelectable: true,
+}
+</script>
+
+<template>
+  <VectorMap
+    :options="options"
+    map-name="world"
+    height="500px"
+    @region-click="handleRegionClick"
+  />
+</template>
+```
+
+### UnitedStates Component
+
+Specialized component for United States maps with different projections:
+
+```vue
+<script setup lang="ts">
+import { UnitedStates } from 'ts-maps-vue'
+
+const options = {
+  visualizeData: {
+    scale: ['#e3f2fd', '#1976d2'],
+    values: {
+      CA: 100, // California
+      TX: 85, // Texas
+      NY: 80, // New York
+    },
+  },
+}
+</script>
+
+<template>
+  <UnitedStates
+    :options="options"
+    height="600px"
+    @region-click="handleStateClick"
+  />
+</template>
+```
+
+### Canada Component
+
+Specialized component for Canadian provinces and territories:
+
+```vue
+<script setup lang="ts">
+import { Canada } from 'ts-maps-vue'
+
+const options = {
+  visualizeData: {
+    scale: ['#fff3e0', '#f57c00'],
+    values: {
+      ON: 100, // Ontario
+      QC: 85, // Quebec
+      BC: 80, // British Columbia
+      AB: 75, // Alberta
+    },
+  },
+}
+</script>
+
+<template>
+  <Canada
+    :options="options"
+    height="600px"
+    @region-click="handleProvinceClick"
+  />
+</template>
+```
+
 ## Configuration Options
 
 ```typescript

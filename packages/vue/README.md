@@ -106,6 +106,67 @@ const options: Omit<MapOptions, 'selector'> = {
 </template>
 ```
 
+## 🗺️ Specialized Map Components
+
+### UnitedStates Component
+
+For United States maps with different projections:
+
+```vue
+<script setup lang="ts">
+import { UnitedStates } from 'ts-maps-vue'
+
+const options = {
+  visualizeData: {
+    scale: ['#e3f2fd', '#1976d2'],
+    values: {
+      CA: 100, // California
+      TX: 85, // Texas
+      NY: 80, // New York
+    },
+  },
+}
+</script>
+
+<template>
+  <UnitedStates
+    :options="options"
+    height="600px"
+    @region-click="handleStateClick"
+  />
+</template>
+```
+
+### Canada Component
+
+For Canadian provinces and territories:
+
+```vue
+<script setup lang="ts">
+import { Canada } from 'ts-maps-vue'
+
+const options = {
+  visualizeData: {
+    scale: ['#fff3e0', '#f57c00'],
+    values: {
+      ON: 100, // Ontario
+      QC: 85, // Quebec
+      BC: 80, // British Columbia
+      AB: 75, // Alberta
+    },
+  },
+}
+</script>
+
+<template>
+  <Canada
+    :options="options"
+    height="600px"
+    @region-click="handleProvinceClick"
+  />
+</template>
+```
+
 ## 📖 Component Props
 
 ### VectorMap Props
