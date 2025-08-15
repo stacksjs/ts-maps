@@ -43,7 +43,7 @@
     "@types/bun": "^1.2.10",
     "@types/google.maps": "^3.58.1",
     "@types/vue": "^2.0.0",
-    "@vue/tsconfig": "^0.7.0",
+    "@vue/tsconfig": "^0.8.0",
     "bumpp": "^10.1.0",
     "bun-plugin-dtsx": "^0.21.9",
     "cac": "^6.7.14",
