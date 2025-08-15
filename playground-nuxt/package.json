@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "nuxt": "^4.0.3",
-    "vue": "^3.5.18",
+    "ts-maps-nuxt": "workspace:*",
+    "vue": "^3.5.13",
     "vue-router": "^4.5.1"
   }
 }
