@@ -1,8 +1,8 @@
 {
-  "name": "ts-maps-vue",
+  "name": "ts-maps-nuxt",
   "type": "module",
   "version": "0.1.1",
-  "description": "Vue components for ts-maps - Interactive Vector Maps",
+  "description": "Nuxt module for ts-maps - Interactive Vector Maps",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/vue#readme",
@@ -18,6 +18,7 @@
     "interactive",
     "vector",
     "maps",
+    "nuxt",
     "vue",
     "ts-maps"
   ],
@@ -31,25 +32,27 @@
   "types": "dist/index.d.ts",
   "files": ["README.md", "dist"],
   "scripts": {
-    "build": "bunx --bun vite build --mode lib",
-    "build:types": "bunx vue-tsc -p tsconfig.build.json && bunx api-extractor run",
+    "build": "bunx --bun unbuild",
+    "dev": "bunx --bun unbuild --watch",
     "lint": "bunx --bun eslint .",
     "lint:fix": "bunx --bun eslint . --fix"
   },
+  "peerDependencies": {
+    "nuxt": "^3.0.0",
+    "vue": "^3.0.0"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*",
+    "ts-maps-vue": "workspace:*"
+  },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.5",
-    "@stacksjs/docs": "^0.70.23",
+    "@nuxt/kit": "^3.0.0",
+    "@nuxt/typescript-build": "^3.0.2",
     "@stacksjs/eslint-config": "^4.2.1-beta.1",
-    "@types/bun": "^1.2.10",
-    "@types/google.maps": "^3.58.1",
-    "@types/vue": "^2.0.0",
-    "@vue/tsconfig": "^0.7.0",
-    "bumpp": "^10.1.0",
-    "bun-plugin-dtsx": "^0.21.9",
-    "cac": "^6.7.14",
-    "changelogen": "^0.6.1",
+    "@types/node": "^20.0.0",
+    "nuxt": "^3.0.0",
     "typescript": "^5.9.0",
-    "vue": "^3.5.18",
-    "vue-tsc": "^2.2.10"
+    "unbuild": "^2.0.0",
+    "vue": "^3.0.0"
   }
 }
