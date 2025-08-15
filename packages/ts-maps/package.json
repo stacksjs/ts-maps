@@ -90,7 +90,7 @@
   },
   "devDependencies": {
     "bun-plugin-dtsx": "^0.21.9",
-    "bunfig": "^0.8.2",
+    "bunfig": "^0.14.1",
     "lint-staged": "^15.5.1",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^5.9.0"
