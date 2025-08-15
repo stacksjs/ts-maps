@@ -147,7 +147,7 @@ function handleLoaded() {
     <div class="controls">
       <div class="control-group">
         <label for="map-select">Select Map:</label>
-      <select id="map-select" v-model="currentMap">
+        <select id="map-select" v-model="currentMap">
           <option v-for="map in mapOptions" :key="map.value" :value="map.value">
             {{ map.label }} ({{ map.projection }})
           </option>
