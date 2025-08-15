@@ -71,7 +71,6 @@
   },
   "workspaces": [
     "packages/*",
-    "playground",
-    "playground-nuxt"
+    "playground"
   ]
 }

@@ -8,6 +8,10 @@
     "generate": "nuxi generate"
   },
   "dependencies": {
-    "nuxt": "^4.0.3"
-  }
+    "nuxt": "^4.0.3",
+    "ts-maps-nuxt": "workspace:*"
+  },
+  "workspaces": [
+    "../../*"
+  ]
 }

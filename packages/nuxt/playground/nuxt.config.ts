@@ -1,5 +1,4 @@
 export default defineNuxtConfig({
-  modules: ['../src/module'],
-  myModule: {},
+  modules: ['ts-maps-nuxt'],
   devtools: { enabled: true },
 })
