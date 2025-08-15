@@ -70,6 +70,8 @@
     "*.{js,ts}": "bunx eslint . --fix"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "playground",
+    "playground-nuxt"
   ]
 }
