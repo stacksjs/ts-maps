@@ -52,7 +52,7 @@
     "@types/node": "^20.0.0",
     "nuxt": "^3.0.0",
     "typescript": "^5.9.0",
-    "unbuild": "^2.0.0",
+    "unbuild": "^3.6.1",
     "vue": "^3.0.0"
   }
 }
