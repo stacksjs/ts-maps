@@ -50,6 +50,6 @@
     "changelogen": "^0.6.1",
     "typescript": "^5.9.0",
     "vue": "^3.5.18",
-    "vue-tsc": "^2.2.10"
+    "vue-tsc": "^3.0.5"
   }
 }
