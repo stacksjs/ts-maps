@@ -61,7 +61,6 @@ watch(() => props.options, () => {
     :options="options"
     map-name="us-aea"
     :height="height"
-    v-bind="$attrs"
     @region-click="(event: MouseEvent, code: string) => emit('regionClick', event, code)"
     @marker-click="(event: MouseEvent, index: string) => emit('markerClick', event, index)"
     @loaded="() => emit('loaded')"

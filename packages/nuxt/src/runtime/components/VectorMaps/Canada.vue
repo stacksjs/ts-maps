@@ -49,6 +49,12 @@ const mapKey = computed(() => {
   return `canada-map-${optionsHash.length}-${Date.now()}`
 })
 
+// Create options without projection to avoid overriding map-name
+const mapOptions = computed(() => {
+  const { projection, ...rest } = props.options
+  return rest
+})
+
 // Watch for options changes to update the map if needed
 watch(() => props.options, () => {
   // The mapKey computed will automatically update, forcing a re-render
@@ -58,10 +64,9 @@ watch(() => props.options, () => {
 <template>
   <VectorMap
     :key="mapKey"
-    :options="options"
+    :options="mapOptions"
     map-name="canada"
     :height="height"
-    v-bind="$attrs"
     @region-click="(event: MouseEvent, code: string) => emit('regionClick', event, code)"
     @marker-click="(event: MouseEvent, index: string) => emit('markerClick', event, index)"
     @loaded="() => emit('loaded')"

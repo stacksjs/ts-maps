@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import VectorMap from '../VectorMap.vue'
 
 // Props interface
@@ -48,11 +48,6 @@ const mapKey = computed(() => {
 
   return `us-map-${optionsHash.length}-${Date.now()}`
 })
-
-// Watch for options changes to update the map if needed
-watch(() => props.options, () => {
-  // The mapKey computed will automatically update, forcing a re-render
-}, { deep: true })
 </script>
 
 <template>
@@ -61,7 +56,6 @@ watch(() => props.options, () => {
     :options="options"
     map-name="us-aea"
     :height="height"
-    v-bind="$attrs"
     @region-click="(event: MouseEvent, code: string) => emit('regionClick', event, code)"
     @marker-click="(event: MouseEvent, index: string) => emit('markerClick', event, index)"
     @loaded="() => emit('loaded')"
