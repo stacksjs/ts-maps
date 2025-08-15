@@ -1,4 +1,4 @@
-import { addComponent, addComponentsDir, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
+import { addComponentsDir, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit'
 
 // Module options TypeScript interface definition
 export interface ModuleOptions {
@@ -14,7 +14,7 @@ export default defineNuxtModule<ModuleOptions>({
   defaults: {
     prefix: 'TsMaps',
   },
-  setup(options, _nuxt) {
+  setup(_options, _nuxt) {
     const resolver = createResolver(import.meta.url)
 
     // Do not add the extension since the `.ts` will be transpiled to `.mjs` after `npm run prepack`

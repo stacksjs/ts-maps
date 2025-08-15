@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -7,8 +8,7 @@
     "strictNullChecks": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "composite": true
+    "skipLibCheck": true
   }
 }
