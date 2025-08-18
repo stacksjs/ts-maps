@@ -42,6 +42,56 @@ bun add -d ts-maps typescript @types/node
 
 :::
 
+## Framework Bindings
+
+### Nuxt Components
+
+For Nuxt applications, install the official Nuxt module:
+
+```bash
+npm install ts-maps-nuxt
+```
+
+Add to your `nuxt.config.ts`:
+
+```ts
+export default defineNuxtConfig({
+  modules: [
+    'ts-maps-nuxt'
+  ]
+})
+```
+
+Then use the components directly in your Vue templates:
+
+```vue
+<template>
+  <VectorMap
+    :options="mapOptions"
+    map-name="world"
+    height="500px"
+  />
+</template>
+```
+
+See [Nuxt Components](/components/nuxt) for detailed documentation.
+
+### React Components
+
+For React applications:
+
+```bash
+npm install ts-maps ts-maps-react
+```
+
+### Vue Components
+
+For Vue applications:
+
+```bash
+npm install ts-maps ts-maps-vue
+```
+
 ## TypeScript Configuration
 
 ts-maps is built with TypeScript and includes type definitions. For the best development experience, configure your `tsconfig.json`:

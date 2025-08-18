@@ -54,6 +54,9 @@ npm install ts-maps ts-maps-react
 
 # Vue
 npm install ts-maps ts-maps-vue
+
+# Nuxt
+npm install ts-maps-nuxt
 ```
 
 ## Quick Start
@@ -157,6 +160,60 @@ const { map, isLoading } = useVectorMap({
   </div>
 </template>
 ```
+
+### Nuxt Component
+
+For Nuxt applications, first add the module to your `nuxt.config.ts`:
+
+```ts
+export default defineNuxtConfig({
+  modules: [
+    'ts-maps-nuxt'
+  ]
+})
+```
+
+Then use the components directly in your Vue templates:
+
+```vue
+<script setup lang="ts">
+import type { MapOptions } from 'ts-maps'
+
+const mapOptions: Omit<MapOptions, 'selector'> = {
+  backgroundColor: '#f0f0f0',
+  zoomOnScroll: true,
+  style: {
+    regions: {
+      fill: '#e4e4e4',
+      stroke: '#ffffff',
+      strokeWidth: 1,
+    },
+  },
+}
+</script>
+
+<template>
+  <VectorMap
+    :options="mapOptions"
+    map-name="world"
+    height="500px"
+  />
+</template>
+```
+
+Available components include:
+
+- `VectorMap` - Generic map component
+- `WorldMap` - World map
+- `UnitedStates` - United States map
+- `Canada` - Canada map
+- `Brasil` - Brazil map
+- `Spain` - Spain map
+- `Italy` - Italy map
+- `Russia` - Russia map
+- `Iraq` - Iraq map
+
+See [Nuxt Components Documentation](https://ts-maps.com/components/nuxt) for detailed usage.
 
 ## Documentation
 

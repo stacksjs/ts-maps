@@ -68,6 +68,14 @@ const sidebar = [
     ],
   },
   {
+    text: 'Framework Components',
+    items: [
+      { text: 'Nuxt Components', link: '/components/nuxt' },
+      { text: 'React Components', link: '/components/react' },
+      { text: 'Vue Components', link: '/components/vue' },
+    ],
+  },
+  {
     text: 'API Reference',
     items: [
       { text: 'VectorMap', link: '/api' },
