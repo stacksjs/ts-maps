@@ -9,12 +9,24 @@ import usaAeaMap from 'ts-maps/us-aea-en'
 import usaLccMap from 'ts-maps/us-lcc-en'
 import usaMercMap from 'ts-maps/us-merc-en'
 import usaMillMap from 'ts-maps/us-mill-en'
+import brasilMap from 'ts-maps/brasil'
+import russiaMap from 'ts-maps/russia'
 import worldMap from 'ts-maps/world'
 import worldMercMap from 'ts-maps/world-merc'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 // Map name type
-type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada'
+type MapName = 'world'
+  | 'world-merc' 
+  | 'us-merc' 
+  | 'us-mill' 
+  | 'us-lcc' 
+  | 'us-aea' 
+  | 'spain' 
+  | 'italy' 
+  | 'canada' 
+  | 'brasil' 
+  | 'russia'
 
 const props = defineProps({
   options: {
@@ -65,6 +77,8 @@ const mapData: Record<MapName, MapData> = {
   'spain': spainMap as MapData,
   'italy': italyMap as MapData,
   'canada': canadaMap as MapData,
+  'brasil': brasilMap as MapData,
+  'russia': russiaMap as MapData,
 }
 
 onMounted(async () => {
