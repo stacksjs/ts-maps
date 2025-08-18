@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import VectorMap from '../VectorMap.vue'
 
 // Props interface
@@ -46,15 +46,21 @@ const mapKey = computed(() => {
     markers: props.options.markers?.length,
   })
 
-  return `us-map-${optionsHash.length}-${Date.now()}`
+  return `spain-map-${optionsHash.length}-${Date.now()}`
+})
+
+// Create options without projection to avoid overriding map-name
+const mapOptions = computed(() => {
+  const { projection, ...rest } = props.options
+  return rest
 })
 </script>
 
 <template>
   <VectorMap
     :key="mapKey"
-    :options="options"
-    map-name="us-aea"
+    :options="mapOptions"
+    map-name="spain"
     :height="height"
     @region-click="(event: MouseEvent, code: string) => emit('regionClick', event, code)"
     @marker-click="(event: MouseEvent, index: string) => emit('markerClick', event, index)"
@@ -67,8 +73,8 @@ const mapKey = computed(() => {
   >
     <template #loading>
       <slot name="loading">
-        <div class="us-map-loading">
-          Loading United States map...
+        <div class="spain-map-loading">
+          Loading Spain map...
         </div>
       </slot>
     </template>
@@ -76,7 +82,7 @@ const mapKey = computed(() => {
 </template>
 
 <style scoped>
-.us-map-loading {
+.spain-map-loading {
   display: flex;
   align-items: center;
   justify-content: center;
