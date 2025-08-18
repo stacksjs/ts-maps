@@ -1,5 +1,11 @@
 .us-map-loading,
-.canada-map-loading {
+.canada-map-loading,
+.spain-map-loading,
+.iraq-map-loading,
+.russia-map-loading,
+.world-map-loading,
+.italy-map-loading,
+.brasil-map-loading {
   display: flex;
   align-items: center;
   justify-content: center;
