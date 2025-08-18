@@ -1,7 +1,7 @@
 {
   "name": "ts-maps-nuxt",
   "type": "module",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Nuxt components for ts-maps - Interactive Vector Maps",
   "author": "Chris Breuer <chris@stacksjs.org>",
 
@@ -33,10 +33,10 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@nuxt/kit": "^4.0.3"
+    "@nuxt/kit": "^4.0.3",
+    "ts-maps": "workspace:*"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.5",
     "@nuxt/devtools": "^2.6.2",
     "@nuxt/eslint-config": "^1.8.0",
     "@nuxt/module-builder": "^1.0.2",

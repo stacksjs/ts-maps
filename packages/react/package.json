@@ -1,7 +1,7 @@
 {
   "name": "ts-maps-react",
   "type": "module",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "React component for ts-maps",
   "author": "",
   "license": "MIT",
@@ -26,6 +26,9 @@
   "peerDependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.1.10",
