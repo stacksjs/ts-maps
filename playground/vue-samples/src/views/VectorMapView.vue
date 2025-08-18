@@ -3,14 +3,14 @@ import type { MapOptions } from 'ts-maps'
 import { computed, reactive, ref } from 'vue'
 import { VectorMap } from '../../../../packages/vue/src'
 import {
-  UnitedStates,
+  Brasil,
   Canada,
-  Spain,
   Iraq,
-  Russia,
-  WorldMap,
   Italy,
-  Brasil
+  Russia,
+  Spain,
+  UnitedStates,
+  WorldMap,
 } from '../components/VectorMaps'
 
 type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
@@ -134,7 +134,7 @@ function handleRegionClick(_event: MouseEvent, code: string) {
 }
 
 function handleMarkerClick(_event: MouseEvent, index: string) {
-  const markerIndex = parseInt(index, 10)
+  const markerIndex = Number.parseInt(index, 10)
   lastEvent.value = {
     type: 'Marker Click',
     marker: options.markers?.[markerIndex],
@@ -200,7 +200,7 @@ function handleLoaded() {
     <div class="components-showcase">
       <h2>Individual Map Components</h2>
       <p>Below are examples of individual map components with different styling and data:</p>
-      
+
       <div class="maps-grid">
         <WorldMap />
         <UnitedStates />

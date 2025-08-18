@@ -1,27 +1,7 @@
-<template>
-  <div class="iraq-map-container">
-    <h3>Iraq Map</h3>
-    <div class="map-info">
-      <p><strong>Map Type:</strong> Iraq</p>
-      <p><strong>Projection:</strong> Mercator</p>
-      <p><strong>Features:</strong> Interactive regions, zoom, data visualization</p>
-    </div>
-    <div class="map-demo">
-      <VectorMap
-        :options="mapOptions"
-        map-name="iraq"
-        height="400px"
-        @region-click="handleRegionClick"
-        @loaded="handleLoaded"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
+import { VectorMap } from 'ts-maps-vue'
 import { reactive } from 'vue'
-import { VectorMap } from '../../../../packages/vue/src'
 
 const mapOptions = reactive<Omit<MapOptions, 'selector'>>({
   backgroundColor: '#f8f9fa',
@@ -52,15 +32,27 @@ const mapOptions = reactive<Omit<MapOptions, 'selector'>>({
     },
   },
 })
-
-function handleRegionClick(_event: MouseEvent, code: string) {
-  console.log('Iraq Region clicked:', code)
-}
-
-function handleLoaded() {
-  console.log('Iraq Map loaded')
-}
 </script>
+
+<template>
+  <div class="iraq-map-container">
+    <h3>Iraq Map</h3>
+    <div class="map-info">
+      <p><strong>Map Type:</strong> Iraq</p>
+      <p><strong>Projection:</strong> Mercator</p>
+      <p><strong>Features:</strong> Interactive regions, zoom, data visualization</p>
+    </div>
+    <div class="map-demo">
+      <VectorMap
+        :options="mapOptions"
+        map-name="iraq"
+        height="400px"
+        @region-click="handleRegionClick"
+        @loaded="handleLoaded"
+      />
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .iraq-map-container {
