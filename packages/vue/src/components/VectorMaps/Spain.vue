@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import VectorMap from '../VectorMap.vue'
 
 // Props interface

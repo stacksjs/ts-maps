@@ -2,6 +2,16 @@
 import type { MapOptions } from 'ts-maps'
 import { computed, reactive, ref } from 'vue'
 import { VectorMap } from '../../../../packages/vue/src'
+import {
+  UnitedStates,
+  Canada,
+  Spain,
+  Iraq,
+  Russia,
+  WorldMap,
+  Italy,
+  Brasil
+} from '../components/VectorMaps'
 
 type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
 
@@ -123,10 +133,11 @@ function handleRegionClick(_event: MouseEvent, code: string) {
   }
 }
 
-function handleMarkerClick(_event: MouseEvent, index: number) {
+function handleMarkerClick(_event: MouseEvent, index: string) {
+  const markerIndex = parseInt(index, 10)
   lastEvent.value = {
     type: 'Marker Click',
-    marker: options.markers?.[index],
+    marker: options.markers?.[markerIndex],
     time: new Date().toLocaleTimeString(),
   }
 }
@@ -184,6 +195,22 @@ function handleLoaded() {
           </div>
         </template>
       </VectorMap>
+    </div>
+
+    <div class="components-showcase">
+      <h2>Individual Map Components</h2>
+      <p>Below are examples of individual map components with different styling and data:</p>
+      
+      <div class="maps-grid">
+        <WorldMap />
+        <UnitedStates />
+        <Canada />
+        <Spain />
+        <Iraq />
+        <Russia />
+        <Italy />
+        <Brasil />
+      </div>
     </div>
 
     <div v-if="lastEvent" class="info-panel">
@@ -271,5 +298,26 @@ function handleLoaded() {
   background: #f5f5f5;
   font-size: 1.2em;
   color: #666;
+}
+
+.components-showcase {
+  margin-top: 40px;
+}
+
+.components-showcase h2 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.components-showcase p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.maps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
 }
 </style>

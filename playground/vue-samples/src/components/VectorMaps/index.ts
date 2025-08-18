@@ -1,0 +1,8 @@
+export { default as Brasil } from './Brasil.vue'
+export { default as Canada } from './Canada.vue'
+export { default as Iraq } from './Iraq.vue'
+export { default as Italy } from './Italy.vue'
+export { default as Russia } from './Russia.vue'
+export { default as Spain } from './Spain.vue'
+export { default as UnitedStates } from './UnitedStates.vue'
+export { default as WorldMap } from './WorldMap.vue'

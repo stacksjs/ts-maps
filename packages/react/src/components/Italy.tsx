@@ -1,5 +1,5 @@
 import type { MapOptions } from 'ts-maps'
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { VectorMap as TSVectorMap } from 'ts-maps'
 import italyMap from 'ts-maps/maps/italy'
 import './map-components.css'
@@ -124,7 +124,7 @@ export function Italy({
         if (onMarkerTooltipShow) {
           mapRef.current.off('markerTooltipShow', onMarkerTooltipShow)
         }
-        
+
         mapRef.current = null
       }
     }

@@ -1,5 +1,5 @@
 import type { MapOptions } from 'ts-maps'
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { VectorMap as TSVectorMap } from 'ts-maps'
 import iraqMap from 'ts-maps/maps/iraq'
 import './map-components.css'
@@ -124,7 +124,7 @@ export function Iraq({
         if (onMarkerTooltipShow) {
           mapRef.current.off('markerTooltipShow', onMarkerTooltipShow)
         }
-        
+
         mapRef.current = null
       }
     }
