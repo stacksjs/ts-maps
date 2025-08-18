@@ -26,17 +26,25 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./brazil": {
-      "types": "./dist/brazil.d.ts",
-      "import": "./dist/maps/brazil.js"
+    "./brasil": {
+      "types": "./dist/brasil.d.ts",
+      "import": "./dist/maps/brasil.js"
     },
     "./canada": {
       "types": "./dist/canada.d.ts",
       "import": "./dist/maps/canada.js"
     },
+    "./iraq": {
+      "types": "./dist/iraq.d.ts",
+      "import": "./dist/maps/iraq.js"
+    },
     "./italy": {
       "types": "./dist/italy.d.ts",
       "import": "./dist/maps/italy.js"
+    },
+    "./russia": {
+      "types": "./dist/russia.d.ts",
+      "import": "./dist/maps/russia.js"
     },
     "./spain": {
       "types": "./dist/spain.d.ts",
