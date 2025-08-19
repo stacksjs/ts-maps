@@ -38,7 +38,7 @@
     "lint:fix": "bunx --bun eslint . --fix"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.5",
+    "@microsoft/api-extractor": "^8.0.0",
     "@stacksjs/docs": "^0.70.23",
     "@stacksjs/eslint-config": "^4.2.1-beta.1",
     "@types/bun": "^1.2.20",
