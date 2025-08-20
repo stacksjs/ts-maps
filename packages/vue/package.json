@@ -38,7 +38,11 @@
     "lint:fix": "bunx --bun eslint . --fix",
     "test": "bun test"
   },
+  "dependencies": {
+    "bun-types": "^1.2.20"
+  },
   "devDependencies": {
+    "@happy-dom/global-registrator": "^18.0.1",
     "@microsoft/api-extractor": "^7.52.5",
     "@stacksjs/docs": "^0.70.23",
     "@stacksjs/eslint-config": "^4.2.1-beta.1",
