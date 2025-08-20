@@ -181,7 +181,7 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="mapContainer" :style="containerStyle">
+  <div ref="mapContainer" :style="containerStyle" data-testid="map-container">
     <slot v-if="loading" name="loading">
       <div class="ts-maps-loading">
         Loading map...
