@@ -6,13 +6,13 @@
       "dependencies": {
         "@types/google.maps": "^3.58.1",
         "ts-maps-vue": "../../packages/vue",
-        "vue": "^3.5.13",
+        "vue": "^3.5.18",
       },
       "devDependencies": {
-        "@vitejs/plugin-vue": "^5.2.3",
-        "typescript": "^5.8.3",
-        "vite": "^6.3.2",
-        "vue-tsc": "^2.2.10",
+        "@vitejs/plugin-vue": "^5.2.4",
+        "typescript": "^5.9.2",
+        "vite": "^6.3.5",
+        "vue-tsc": "^2.2.12",
       },
     },
   },
