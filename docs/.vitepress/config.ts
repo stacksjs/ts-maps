@@ -68,6 +68,12 @@ const sidebar = [
     ],
   },
   {
+    text: 'Advanced',
+    items: [
+      { text: 'Heatmap', link: '/advanced/heatmap' },
+    ],
+  },
+  {
     text: 'Framework Components',
     items: [
       { text: 'Nuxt Components', link: '/components/nuxt' },

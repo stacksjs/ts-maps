@@ -15,6 +15,8 @@ declare module 'vue' {
     HomeTeam: typeof import('./theme/components/HomeTeam.vue')['default']
     MarkersMapDemo: typeof import('./theme/components/MarkersMapDemo.vue')['default']
     RegionMapDemo: typeof import('./theme/components/RegionMapDemo.vue')['default']
+    RouterLink: typeof import('vue-router')['RouterLink']
+    RouterView: typeof import('vue-router')['RouterView']
     TeamMember: typeof import('./theme/components/TeamMember.vue')['default']
     VectorMapDemo: typeof import('./theme/components/VectorMapDemo.vue')['default']
   }
