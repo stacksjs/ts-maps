@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     DataVisualizationDemo: typeof import('./theme/components/DataVisualizationDemo.vue')['default']
+    HeatmapDemo: typeof import('./theme/components/HeatmapDemo.vue')['default']
     Home: typeof import('./theme/components/Home.vue')['default']
     HomeContributors: typeof import('./theme/components/HomeContributors.vue')['default']
     HomeSponsors: typeof import('./theme/components/HomeSponsors.vue')['default']
