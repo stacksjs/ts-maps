@@ -25,132 +25,130 @@ const mapOptions = [
 const worldHeatmapData = {
   scale: ['#ffffff', '#c62828'] as [string, string],
   values: {
-    'US': 95,   // High activity
-    'CN': 88,   // High activity
-    'RU': 72,   // Medium-high
-    'BR': 65,   // Medium
-    'IN': 58,   // Medium
-    'DE': 82,   // High activity
-    'FR': 78,   // High activity
-    'GB': 85,   // High activity
-    'JP': 68,   // Medium
-    'CA': 75,   // Medium-high
-    'AU': 62,   // Medium
-    'MX': 55,   // Medium-low
-    'KR': 70,   // Medium-high
-    'IT': 73,   // Medium-high
-    'ES': 66,   // Medium
-    'NL': 80,   // High activity
-    'SE': 58,   // Medium
-    'NO': 45,   // Medium-low
-    'DK': 52,   // Medium-low
-    'FI': 48,   // Medium-low
-    'CH': 76,   // Medium-high
-    'AT': 64,   // Medium
-    'BE': 71,   // Medium-high
-    'IE': 69,   // Medium-high
-    'NZ': 42,   // Low-medium
-    'SG': 74,   // Medium-high
-    'HK': 67,   // Medium
-    'IL': 63,   // Medium
-    'SA': 56,   // Medium-low
-    'AE': 61,   // Medium
-    'TR': 59,   // Medium
-    'PL': 54,   // Medium-low
-    'CZ': 57,   // Medium
-    'HU': 51,   // Medium-low
-    'RO': 43,   // Low-medium
-    'BG': 39,   // Low
-    'HR': 46,   // Medium-low
-    'SI': 49,   // Medium-low
-    'SK': 44,   // Low-medium
-    'LT': 41,   // Low-medium
-    'LV': 38,   // Low
-    'EE': 40,   // Low-medium
-    'LU': 72,   // Medium-high
-    'MT': 35,   // Low
-    'CY': 37,   // Low
-    'GR': 53,   // Medium-low
-    'PT': 50,   // Medium-low
-    // Add more countries with lower values to create better contrast
-    'AR': 33,   // Argentina - Low
-    'CL': 31,   // Chile - Low
-    'PE': 29,   // Peru - Low
-    'CO': 27,   // Colombia - Low
-    'VE': 25,   // Venezuela - Low
-    'EC': 23,   // Ecuador - Low
-    'BO': 21,   // Bolivia - Low
-    'PY': 19,   // Paraguay - Low
-    'UY': 17,   // Uruguay - Low
-    'GY': 15,   // Guyana - Low
-    'SR': 13,   // Suriname - Low
-    'FK': 11,   // Falkland Islands - Very low
-    'ZA': 37,   // South Africa - Low
-    'NG': 35,   // Nigeria - Low
-    'EG': 33,   // Egypt - Low
-    'DZ': 31,   // Algeria - Low
-    'LY': 29,   // Libya - Low
-    'SD': 27,   // Sudan - Low
-    'TD': 25,   // Chad - Low
-    'NE': 23,   // Niger - Low
-    'ML': 21,   // Mali - Low
-    'BF': 19,   // Burkina Faso - Low
-    'CI': 17,   // Ivory Coast - Low
-    'GH': 15,   // Ghana - Low
-    'CM': 13,   // Cameroon - Low
-    'CF': 11,   // Central African Republic - Very low
-    'CG': 9,    // Republic of Congo - Very low
-    'CD': 7,    // Democratic Republic of Congo - Very low
-    'AO': 5,    // Angola - Very low
-    'ZM': 3,    // Zambia - Very low
-    'ZW': 1,    // Zimbabwe - Very low
-    // Add some common alternative country codes
-    'USA': 95,  // Alternative US code
-    'UK': 85,   // Alternative GB code
-    'RUS': 72,  // Alternative RU code
-    'CHN': 88,  // Alternative CN code
-    'IND': 58,  // Alternative IN code
-    'BRA': 65,  // Alternative BR code
-    'JPN': 68,  // Alternative JP code
-    'AUS': 62,  // Alternative AU code
-    'CAN': 75,  // Alternative CA code
-    'MEX': 55,  // Alternative MX code
-    'DEU': 82,  // Alternative DE code
-    'FRA': 78,  // Alternative FR code
-    'ITA': 73,  // Alternative IT code
-    'ESP': 66,  // Alternative ES code
-    'NLD': 80,  // Alternative NL code
-    'SWE': 58,  // Alternative SE code
-    'NOR': 45,  // Alternative NO code
-    'DNK': 52,  // Alternative DK code
-    'FIN': 48,  // Alternative FI code
-    'CHE': 76,  // Alternative CH code
-    'AUT': 64,  // Alternative AT code
-    'BEL': 71,  // Alternative BE code
-    'IRL': 69,  // Alternative IE code
-    'NZL': 42,  // Alternative NZ code
-    'SGP': 74,  // Alternative SG code
-    'HKG': 67,  // Alternative HK code
-    'ISR': 63,  // Alternative IL code
-    'SAU': 56,  // Alternative SA code
-    'ARE': 61,  // Alternative AE code
-    'TUR': 59,  // Alternative TR code
-    'POL': 54,  // Alternative PL code
-    'CZE': 57,  // Alternative CZ code
-    'HUN': 51,  // Alternative HU code
-    'ROU': 43,  // Alternative RO code
-    'BGR': 39,  // Alternative BG code
-    'HRV': 46,  // Alternative HR code
-    'SVN': 49,  // Alternative SI code
-    'SVK': 44,  // Alternative SK code
-    'LTU': 41,  // Alternative LT code
-    'LVA': 38,  // Alternative LV code
-    'EST': 40,  // Alternative EE code
-    'LUX': 72,  // Alternative LU code
-    'MLT': 35,  // Alternative MT code
-    'CYP': 37,  // Alternative CY code
-    'GRC': 53,  // Alternative GR code
-    'PRT': 50,  // Alternative PT code
+    US: 95,
+    CN: 88,
+    RU: 72,
+    BR: 65,
+    IN: 58,
+    DE: 82,
+    FR: 78,
+    GB: 85,
+    JP: 68,
+    CA: 75,
+    AU: 62,
+    MX: 55,
+    KR: 70,
+    IT: 73,
+    ES: 66,
+    NL: 80,
+    SE: 58,
+    NO: 45,
+    DK: 52,
+    FI: 48,
+    CH: 76,
+    AT: 64,
+    BE: 71,
+    IE: 69,
+    NZ: 42,
+    SG: 74,
+    HK: 67,
+    IL: 63,
+    SA: 56,
+    AE: 61,
+    TR: 59,
+    PL: 54,
+    CZ: 57,
+    HU: 51,
+    RO: 43,
+    BG: 39,
+    HR: 46,
+    SI: 49,
+    SK: 44,
+    LT: 41,
+    LV: 38,
+    EE: 40,
+    LU: 72,
+    MT: 35,
+    CY: 37,
+    GR: 53,
+    PT: 50,
+    AR: 33,
+    CL: 31,
+    PE: 29,
+    CO: 27,
+    VE: 25,
+    EC: 23,
+    BO: 21,
+    PY: 19,
+    UY: 17,
+    GY: 15,
+    SR: 13,
+    FK: 11,
+    ZA: 37,
+    NG: 35,
+    EG: 33,
+    DZ: 31,
+    LY: 29,
+    SD: 27,
+    TD: 25,
+    NE: 23,
+    ML: 21,
+    BF: 19,
+    CI: 17,
+    GH: 15,
+    CM: 13,
+    CF: 11,
+    CG: 9,
+    CD: 7,
+    AO: 5,
+    ZM: 3,
+    ZW: 1,
+    USA: 95,
+    UK: 85,
+    RUS: 72,
+    CHN: 88,
+    IND: 58,
+    BRA: 65,
+    JPN: 68,
+    AUS: 62,
+    CAN: 75,
+    MEX: 55,
+    DEU: 82,
+    FRA: 78,
+    ITA: 73,
+    ESP: 66,
+    NLD: 80,
+    SWE: 58,
+    NOR: 45,
+    DNK: 52,
+    FIN: 48,
+    CHE: 76,
+    AUT: 64,
+    BEL: 71,
+    IRL: 69,
+    NZL: 42,
+    SGP: 74,
+    HKG: 67,
+    ISR: 63,
+    SAU: 56,
+    ARE: 61,
+    TUR: 59,
+    POL: 54,
+    CZE: 57,
+    HUN: 51,
+    ROU: 43,
+    BGR: 39,
+    HRV: 46,
+    SVN: 49,
+    SVK: 44,
+    LTU: 41,
+    LVA: 38,
+    EST: 40,
+    LUX: 72,
+    MLT: 35,
+    CYP: 37,
+    GRC: 53,
+    PRT: 50,
   },
 }
 
@@ -258,8 +256,6 @@ function initializeMap() {
 
   // Get the data for the current map
   const mapData = getMapData(currentMap.value)
-  console.log('Map data:', mapData)
-  console.log('Current map:', currentMap.value)
 
   // Create new map instance with heatmap configuration
   mapInstance.value = new VectorMap({
@@ -275,39 +271,27 @@ function initializeMap() {
     regionsSelectable: true,
     regionStyle: {
       initial: {
-        fill: '#e2e8f0',
-        stroke: '#ffffff',
+        'fill': '#e2e8f0',
+        'stroke': '#ffffff',
         'stroke-width': 0.5,
         'stroke-opacity': 1,
       },
       hover: {
-        fill: '#cbd5e1',
+        'fill': '#cbd5e1',
         'fill-opacity': 0.8,
-        cursor: 'pointer',
+        'cursor': 'pointer',
       },
       selected: {
-        fill: '#3b82f6',
+        'fill': '#3b82f6',
         'fill-opacity': 0.8,
       },
     },
   })
-
-  console.log('Map instance created:', mapInstance.value)
-  
-  // Try to apply data after a short delay to ensure map is loaded
-  setTimeout(() => {
-    if (mapInstance.value) {
-      console.log('Attempting to reapply data after delay')
-      console.log('Map state after delay:', mapInstance.value)
-    }
-  }, 1000)
 }
 
 function changeMap(newMap: string) {
   currentMap.value = newMap
 }
-
-
 
 onMounted(() => {
   initializeMap()
@@ -343,7 +327,7 @@ watch(currentMap, () => {
       </p>
       <div class="heatmap-legend">
         <h5>Heatmap Legend</h5>
-        <div class="legend-gradient"></div>
+        <div class="legend-gradient" />
         <div class="legend-labels">
           <span>Low</span>
           <span>High</span>

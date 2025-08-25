@@ -25,106 +25,105 @@ const mapOptions = [
 const worldVisitorData = {
   scale: ['#e3f2fd', '#0d47a1'] as [string, string],
   values: {
-    'US': 87,   // United States - High visitors
-    'GB': 73,   // United Kingdom - Medium-high visitors
-    'CA': 56,   // Canada - Medium visitors
-    'DE': 91,   // Germany - Very high visitors
-    'FR': 68,   // France - Medium-high visitors
-    'AU': 42,   // Australia - Low-medium visitors
-    'JP': 79,   // Japan - High visitors
-    'BR': 35,   // Brazil - Low visitors
-    'IN': 84,   // India - High visitors
-    'CN': 29,   // China - Low visitors
-    'IT': 61,   // Italy - Medium visitors
-    'ES': 54,   // Spain - Medium visitors
-    'NL': 76,   // Netherlands - High visitors
-    'SE': 48,   // Sweden - Low-medium visitors
-    'NO': 39,   // Norway - Low visitors
-    'DK': 52,   // Denmark - Medium visitors
-    'FI': 41,   // Finland - Low-medium visitors
-    'CH': 78,   // Switzerland - High visitors
-    'AT': 64,   // Austria - Medium visitors
-    'BE': 71,   // Belgium - Medium-high visitors
-    'IE': 59,   // Ireland - Medium visitors
-    'NZ': 38,   // New Zealand - Low visitors
-    'SG': 82,   // Singapore - High visitors
-    'HK': 67,   // Hong Kong - Medium visitors
-    'IL': 55,   // Israel - Medium visitors
-    'SA': 31,   // Saudi Arabia - Low visitors
-    'AE': 63,   // UAE - Medium visitors
-    'TR': 46,   // Turkey - Low-medium visitors
-    'PL': 49,   // Poland - Low-medium visitors
-    'CZ': 57,   // Czech Republic - Medium visitors
-    'HU': 44,   // Hungary - Low-medium visitors
-    'RO': 36,   // Romania - Low visitors
-    'BG': 33,   // Bulgaria - Low visitors
-    'HR': 40,   // Croatia - Low-medium visitors
-    'SI': 47,   // Slovenia - Low-medium visitors
-    'SK': 41,   // Slovakia - Low-medium visitors
-    'LT': 38,   // Lithuania - Low visitors
-    'LV': 35,   // Latvia - Low visitors
-    'EE': 42,   // Estonia - Low-medium visitors
-    'LU': 74,   // Luxembourg - Medium-high visitors
-    'MT': 28,   // Malta - Very low visitors
-    'CY': 32,   // Cyprus - Low visitors
-    'GR': 50,   // Greece - Medium visitors
-    'PT': 45,   // Portugal - Low-medium visitors
-    'MX': 53,   // Mexico - Medium visitors
-    'KR': 72,   // South Korea - Medium-high visitors
-    'TH': 58,   // Thailand - Medium visitors
-    'MY': 51,   // Malaysia - Medium visitors
-    'PH': 37,   // Philippines - Low visitors
-    'ID': 34,   // Indonesia - Low visitors
-    'VN': 30,   // Vietnam - Low visitors
-    'TW': 65,   // Taiwan - Medium visitors
-    'RU': 27,   // Russia - Low visitors
-    // Alternative country codes
-    'USA': 87,  // Alternative US code
-    'UK': 73,   // Alternative GB code
-    'GBR': 73,  // Alternative GB code
-    'CHN': 29,  // Alternative CN code
-    'IND': 84,  // Alternative IN code
-    'BRA': 35,  // Alternative BR code
-    'JPN': 79,  // Alternative JP code
-    'AUS': 42,  // Alternative AU code
-    'CAN': 56,  // Alternative CA code
-    'MEX': 53,  // Alternative MX code
-    'DEU': 91,  // Alternative DE code
-    'FRA': 68,  // Alternative FR code
-    'ITA': 61,  // Alternative IT code
-    'ESP': 54,  // Alternative ES code
-    'NLD': 76,  // Alternative NL code
-    'SWE': 48,  // Alternative SE code
-    'NOR': 39,  // Alternative NO code
-    'DNK': 52,  // Alternative DK code
-    'FIN': 41,  // Alternative FI code
-    'CHE': 78,  // Alternative CH code
-    'AUT': 64,  // Alternative AT code
-    'BEL': 71,  // Alternative BE code
-    'IRL': 59,  // Alternative IE code
-    'NZL': 38,  // Alternative NZ code
-    'SGP': 82,  // Alternative SG code
-    'HKG': 67,  // Alternative HK code
-    'ISR': 55,  // Alternative IL code
-    'SAU': 31,  // Alternative SA code
-    'ARE': 63,  // Alternative AE code
-    'TUR': 46,  // Alternative TR code
-    'POL': 49,  // Alternative PL code
-    'CZE': 57,  // Alternative CZ code
-    'HUN': 44,  // Alternative HU code
-    'ROU': 36,  // Alternative RO code
-    'BGR': 33,  // Alternative BG code
-    'HRV': 40,  // Alternative HR code
-    'SVN': 47,  // Alternative SI code
-    'SVK': 41,  // Alternative SK code
-    'LTU': 38,  // Alternative LT code
-    'LVA': 35,  // Alternative LV code
-    'EST': 42,  // Alternative EE code
-    'LUX': 74,  // Alternative LU code
-    'MLT': 28,  // Alternative MT code
-    'CYP': 32,  // Alternative CY code
-    'GRC': 50,  // Alternative GR code
-    'PRT': 45,  // Alternative PT code
+    US: 87,
+    GB: 73,
+    CA: 56,
+    DE: 91,
+    FR: 68,
+    AU: 42,
+    JP: 79,
+    BR: 35,
+    IN: 84,
+    CN: 29,
+    IT: 61,
+    ES: 54,
+    NL: 76,
+    SE: 48,
+    NO: 39,
+    DK: 52,
+    FI: 41,
+    CH: 78,
+    AT: 64,
+    BE: 71,
+    IE: 59,
+    NZ: 38,
+    SG: 82,
+    HK: 67,
+    IL: 55,
+    SA: 31,
+    AE: 63,
+    TR: 46,
+    PL: 49,
+    CZ: 57,
+    HU: 44,
+    RO: 36,
+    BG: 33,
+    HR: 40,
+    SI: 47,
+    SK: 41,
+    LT: 38,
+    LV: 35,
+    EE: 42,
+    LU: 74,
+    MT: 28,
+    CY: 32,
+    GR: 50,
+    PT: 45,
+    MX: 53,
+    KR: 72,
+    TH: 58,
+    MY: 51,
+    PH: 37,
+    ID: 34,
+    VN: 30,
+    TW: 65,
+    RU: 27,
+    USA: 87,
+    UK: 73,
+    GBR: 73,
+    CHN: 29,
+    IND: 84,
+    BRA: 35,
+    JPN: 79,
+    AUS: 42,
+    CAN: 56,
+    MEX: 53,
+    DEU: 91,
+    FRA: 68,
+    ITA: 61,
+    ESP: 54,
+    NLD: 76,
+    SWE: 48,
+    NOR: 39,
+    DNK: 52,
+    FIN: 41,
+    CHE: 78,
+    AUT: 64,
+    BEL: 71,
+    IRL: 59,
+    NZL: 38,
+    SGP: 82,
+    HKG: 67,
+    ISR: 55,
+    SAU: 31,
+    ARE: 63,
+    TUR: 46,
+    POL: 49,
+    CZE: 57,
+    HUN: 44,
+    ROU: 36,
+    BGR: 33,
+    HRV: 40,
+    SVN: 47,
+    SVK: 41,
+    LTU: 38,
+    LVA: 35,
+    EST: 42,
+    LUX: 74,
+    MLT: 28,
+    CYP: 32,
+    GRC: 50,
+    PRT: 45,
   },
 }
 
@@ -242,8 +241,6 @@ function initializeMap() {
 
   // Get the visitor data for the current map
   const mapData = getMapData(currentMap.value)
-  console.log('Visitor analytics data:', mapData)
-  console.log('Current map:', currentMap.value)
 
   // Create new map instance with visitor analytics heatmap configuration
   mapInstance.value = new VectorMap({
@@ -259,32 +256,22 @@ function initializeMap() {
     regionsSelectable: true,
     regionStyle: {
       initial: {
-        fill: '#e2e8f0',
-        stroke: '#ffffff',
+        'fill': '#e2e8f0',
+        'stroke': '#ffffff',
         'stroke-width': 0.5,
         'stroke-opacity': 1,
       },
       hover: {
-        fill: '#cbd5e1',
+        'fill': '#cbd5e1',
         'fill-opacity': 0.8,
-        cursor: 'pointer',
+        'cursor': 'pointer',
       },
       selected: {
-        fill: '#3b82f6',
+        'fill': '#3b82f6',
         'fill-opacity': 0.8,
       },
     },
   })
-
-  console.log('Visitor analytics map instance created:', mapInstance.value)
-  
-  // Try to apply data after a short delay to ensure map is loaded
-  setTimeout(() => {
-    if (mapInstance.value) {
-      console.log('Attempting to reapply visitor data after delay')
-      console.log('Map state after delay:', mapInstance.value)
-    }
-  }, 1000)
 }
 
 function changeMap(newMap: string) {
@@ -317,10 +304,10 @@ watch(currentMap, () => {
       <h4>{{ mapOptions.find(opt => opt.value === currentMap)?.label }}</h4>
       <p><strong>Projection:</strong> {{ getMapProjection(currentMap) }}</p>
       <p><strong>Description:</strong> {{ getAnalyticsDescription(currentMap) }}</p>
-      
+
       <div class="visitor-legend">
         <h5>Visitor Analytics Legend</h5>
-        <div class="legend-gradient-blue"></div>
+        <div class="legend-gradient-blue" />
         <div class="legend-labels">
           <span>Low Visitors (0-30%)</span>
           <span>High Visitors (70-100%)</span>
@@ -333,15 +320,15 @@ watch(currentMap, () => {
       <div class="analytics-metrics">
         <h5>Key Analytics Insights</h5>
         <div class="metrics-grid">
-          <div class="metric-card" v-if="currentMap === 'world'">
+          <div v-if="currentMap === 'world'" class="metric-card">
             <span class="metric-label">Top Performer</span>
             <span class="metric-value">Germany (91%)</span>
           </div>
-          <div class="metric-card" v-if="currentMap.startsWith('us')">
+          <div v-if="currentMap.startsWith('us')" class="metric-card">
             <span class="metric-label">Top Performer</span>
             <span class="metric-value">New York (94%)</span>
           </div>
-          <div class="metric-card" v-if="currentMap === 'canada'">
+          <div v-if="currentMap === 'canada'" class="metric-card">
             <span class="metric-label">Top Performer</span>
             <span class="metric-value">Ontario (88%)</span>
           </div>
@@ -608,21 +595,21 @@ watch(currentMap, () => {
     .analytics-workspace {
       padding: 16px;
     }
-    
+
     .analytics-controls {
       flex-direction: column;
       align-items: flex-start;
       gap: 8px;
     }
-    
+
     .analytics-controls select {
       min-width: 100%;
     }
-    
+
     #map {
       height: 400px;
     }
-    
+
     .metrics-grid {
       grid-template-columns: repeat(2, 1fr);
     }
