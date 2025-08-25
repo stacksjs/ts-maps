@@ -8,6 +8,7 @@ import Italy from './components/VectorMaps/Italy.vue'
 import Russia from './components/VectorMaps/Russia.vue'
 import Spain from './components/VectorMaps/Spain.vue'
 import UnitedStates from './components/VectorMaps/UnitedStates.vue'
+import WorldMap from './components/VectorMaps/WorldMap.vue'
 
 const plugin: Plugin = {
   install: (app: App) => {
@@ -20,10 +21,11 @@ const plugin: Plugin = {
     app.component('Italy', Italy)
     app.component('Russia', Russia)
     app.component('Spain', Spain)
+    app.component('WorldMap', WorldMap)
   },
 }
 
 export default plugin
 
-export { Brasil, Canada, GoogleMap, Iraq, Italy, Russia, Spain, UnitedStates, VectorMap }
+export { Brasil, Canada, GoogleMap, Iraq, Italy, Russia, Spain, UnitedStates, VectorMap, WorldMap }
 export type { MapOptions } from '../../ts-maps/src/types'
