@@ -1,6 +1,22 @@
 # Changelog
 
 
+## v0.1.7...main
+
+[compare changes](https://github.com/stacksjs/ts-maps/compare/v0.1.7...main)
+
+### 🏡 Chore
+
+- Wip ([b0b3369](https://github.com/stacksjs/ts-maps/commit/b0b3369))
+- Wip ([a9dbfdd](https://github.com/stacksjs/ts-maps/commit/a9dbfdd))
+- Wip ([53d340d](https://github.com/stacksjs/ts-maps/commit/53d340d))
+- Wip ([3a7b5ba](https://github.com/stacksjs/ts-maps/commit/3a7b5ba))
+- Wip ([81f298f](https://github.com/stacksjs/ts-maps/commit/81f298f))
+
+### ❤️ Contributors
+
+- Glennmichael123 ([@glennmichael123](https://github.com/glennmichael123))
+
 ## v0.1.6...main
 
 [compare changes](https://github.com/stacksjs/ts-maps/compare/v0.1.6...main)
