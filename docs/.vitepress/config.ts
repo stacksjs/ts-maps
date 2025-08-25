@@ -70,6 +70,7 @@ const sidebar = [
   {
     text: 'Advanced',
     items: [
+      { text: 'Analytics', link: '/advanced/analytics' },
       { text: 'Heatmap', link: '/advanced/heatmap' },
     ],
   },

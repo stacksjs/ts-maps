@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AnalyticsDemo: typeof import('./theme/components/AnalyticsDemo.vue')['default']
     DataVisualizationDemo: typeof import('./theme/components/DataVisualizationDemo.vue')['default']
     HeatmapDemo: typeof import('./theme/components/HeatmapDemo.vue')['default']
     Home: typeof import('./theme/components/Home.vue')['default']
