@@ -7,6 +7,7 @@ import canadaMap from 'ts-maps/canada'
 import italyMap from 'ts-maps/italy'
 import russiaMap from 'ts-maps/russia'
 import spainMap from 'ts-maps/spain'
+import iraqMap from 'ts-maps/iraq'
 import usaAeaMap from 'ts-maps/us-aea-en'
 import usaLccMap from 'ts-maps/us-lcc-en'
 import usaMercMap from 'ts-maps/us-merc-en'
@@ -23,6 +24,7 @@ type MapName = 'world'
   | 'us-lcc'
   | 'us-aea'
   | 'spain'
+  | 'iraq'
   | 'italy'
   | 'canada'
   | 'brasil'
@@ -75,6 +77,7 @@ const mapData: Record<MapName, MapData> = {
   'us-lcc': usaLccMap as MapData,
   'us-aea': usaAeaMap as MapData,
   'spain': spainMap as MapData,
+  'iraq': iraqMap as MapData,
   'italy': italyMap as MapData,
   'canada': canadaMap as MapData,
   'brasil': brasilMap as MapData,
