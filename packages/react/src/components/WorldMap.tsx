@@ -1,7 +1,7 @@
 import type { MapOptions } from 'ts-maps'
 import { useEffect, useMemo, useRef } from 'react'
 import { VectorMap as TSVectorMap } from 'ts-maps'
-import worldMap from 'ts-maps/maps/world'
+import worldMap from 'ts-maps/world'
 import './map-components.css'
 
 export interface WorldMapProps extends Omit<React.HTMLProps<HTMLDivElement>, 'ref'> {
@@ -69,62 +69,13 @@ export function WorldMap({
       ...options,
     })
 
-    // Set up event listeners
-    if (onRegionClick) {
-      map.on('regionClick', onRegionClick)
-    }
-    if (onMarkerClick) {
-      map.on('markerClick', onMarkerClick)
-    }
-    if (onLoaded) {
-      map.on('loaded', onLoaded)
-    }
-    if (onViewportChange) {
-      map.on('viewportChange', onViewportChange)
-    }
-    if (onRegionSelected) {
-      map.on('regionSelected', onRegionSelected)
-    }
-    if (onMarkerSelected) {
-      map.on('markerSelected', onMarkerSelected)
-    }
-    if (onRegionTooltipShow) {
-      map.on('regionTooltipShow', onRegionTooltipShow)
-    }
-    if (onMarkerTooltipShow) {
-      map.on('markerTooltipShow', onMarkerTooltipShow)
-    }
+    // Note: Event handling is managed by ts-maps internally
+    // The library handles events based on the options passed
 
     mapRef.current = map
 
     return () => {
       if (mapRef.current) {
-        // Clean up event listeners
-        if (onRegionClick) {
-          mapRef.current.off('regionClick', onRegionClick)
-        }
-        if (onMarkerClick) {
-          mapRef.current.off('markerClick', onMarkerClick)
-        }
-        if (onLoaded) {
-          mapRef.current.off('loaded', onLoaded)
-        }
-        if (onViewportChange) {
-          mapRef.current.off('viewportChange', onViewportChange)
-        }
-        if (onRegionSelected) {
-          mapRef.current.off('regionSelected', onRegionSelected)
-        }
-        if (onMarkerSelected) {
-          mapRef.current.off('markerSelected', onMarkerSelected)
-        }
-        if (onRegionTooltipShow) {
-          mapRef.current.off('regionTooltipShow', onRegionTooltipShow)
-        }
-        if (onMarkerTooltipShow) {
-          mapRef.current.off('markerTooltipShow', onMarkerTooltipShow)
-        }
-
         mapRef.current = null
       }
     }

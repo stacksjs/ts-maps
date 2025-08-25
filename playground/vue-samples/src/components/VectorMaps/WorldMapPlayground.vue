@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { VectorMap } from 'ts-maps-vue'
+import { WorldMap } from 'ts-maps-vue'
 import { reactive } from 'vue'
 
 const mapOptions = reactive<Omit<MapOptions, 'selector'>>({
@@ -48,9 +48,8 @@ const mapOptions = reactive<Omit<MapOptions, 'selector'>>({
       <p><strong>Features:</strong> Interactive countries, zoom, data visualization</p>
     </div>
     <div class="map-demo">
-      <VectorMap
+      <WorldMap
         :options="mapOptions"
-        map-name="world"
         height="400px"
       />
     </div>
