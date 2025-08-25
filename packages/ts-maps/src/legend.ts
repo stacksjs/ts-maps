@@ -1,5 +1,13 @@
-import type { LegendOptions } from './types'
 import { createElement, isImageUrl } from './util'
+
+interface LegendOptions {
+  map?: any
+  series?: any
+  cssClass?: string
+  vertical?: boolean
+  title?: string
+  labelRender?: (label: string) => string
+}
 
 class Legend {
   private _options: LegendOptions
@@ -7,7 +15,7 @@ class Legend {
   private _series: any
   private _body: HTMLElement
 
-  constructor(options: LegendOptions) {
+  constructor(options: LegendOptions = {}) {
     this._options = options
     this._map = this._options.map
     this._series = this._options.series
@@ -17,7 +25,7 @@ class Legend {
       this._body.setAttribute('class', this._options.cssClass)
     }
 
-    if (options.vertical) {
+    if (this._options.vertical) {
       this._map.legendVertical.appendChild(this._body)
     }
     else {
@@ -29,7 +37,6 @@ class Legend {
 
   render(): void {
     const ticks = this._series.scale.getTicks()
-    const inner = createElement('div', 'jvm-legend-inner')
 
     this._body.innerHTML = ''
 
@@ -37,8 +44,6 @@ class Legend {
       const legendTitle = createElement('div', 'jvm-legend-title', this._options.title)
       this._body.appendChild(legendTitle)
     }
-
-    this._body.appendChild(inner)
 
     for (let i = 0; i < ticks.length; i++) {
       const tick = createElement('div', 'jvm-legend-tick')
@@ -57,13 +62,12 @@ class Legend {
           sample.style.background = ticks[i].value
           break
         case 'image':
-          sample.style.background = `url(${ticks[i].value}) no-repeat center center`
+          sample.style.background = `url(${typeof ticks[i].value === 'object' ? ticks[i].value.url : ticks[i].value}) no-repeat center center`
           sample.style.backgroundSize = 'cover'
           break
       }
 
       tick.appendChild(sample)
-
       let label = ticks[i].label
 
       if (this._options.labelRender) {
@@ -73,7 +77,7 @@ class Legend {
       const tickText = createElement('div', 'jvm-legend-tick-text', label)
 
       tick.appendChild(tickText)
-      inner.appendChild(tick)
+      this._body.appendChild(tick)
     }
   }
 }

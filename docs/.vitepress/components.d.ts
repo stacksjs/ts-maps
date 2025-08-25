@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AnalyticsDemo: typeof import('./theme/components/AnalyticsDemo.vue')['default']
+    Canada: typeof import('./theme/components/maps/Canada.vue')['default']
     DataVisualizationDemo: typeof import('./theme/components/DataVisualizationDemo.vue')['default']
     HeatmapDemo: typeof import('./theme/components/HeatmapDemo.vue')['default']
     Home: typeof import('./theme/components/Home.vue')['default']
@@ -20,6 +21,8 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TeamMember: typeof import('./theme/components/TeamMember.vue')['default']
+    UnitedStates: typeof import('./theme/components/maps/UnitedStates.vue')['default']
     VectorMapDemo: typeof import('./theme/components/VectorMapDemo.vue')['default']
+    WorldMap: typeof import('./theme/components/maps/WorldMap.vue')['default']
   }
 }

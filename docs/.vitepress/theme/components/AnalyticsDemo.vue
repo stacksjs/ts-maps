@@ -23,7 +23,7 @@ const mapOptions = [
 
 // Global visitor analytics data with light blue to dark blue scale
 const worldVisitorData = {
-  scale: ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6', '#42a5f5', '#2196f3', '#1e88e5', '#1976d2', '#1565c0', '#0d47a1'] as [string, string, string, string, string, string, string, string, string, string],
+  scale: ['#e3f2fd', '#0d47a1'] as [string, string],
   values: {
     'US': 87,   // United States - High visitors
     'GB': 73,   // United Kingdom - Medium-high visitors
@@ -130,7 +130,7 @@ const worldVisitorData = {
 
 // US States visitor analytics data
 const usVisitorData = {
-  scale: ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6', '#42a5f5', '#2196f3', '#1e88e5', '#1976d2', '#1565c0', '#0d47a1'] as [string, string, string, string, string, string, string, string, string, string],
+  scale: ['#e3f2fd', '#0d47a1'] as [string, string],
   values: {
     CA: 89, // California - Very high visitors
     TX: 76, // Texas - High visitors
@@ -185,7 +185,7 @@ const usVisitorData = {
 
 // Canadian provinces visitor analytics data
 const canadaVisitorData = {
-  scale: ['#e3f2fd', '#bbdefb', '#90caf9', '#64b5f6', '#42a5f5', '#2196f3', '#1e88e5', '#1976d2', '#1565c0', '#0d47a1'] as [string, string, string, string, string, string, string, string, string, string],
+  scale: ['#e3f2fd', '#0d47a1'] as [string, string],
   values: {
     ON: 88, // Ontario - Very high visitors
     QC: 74, // Quebec - High visitors
