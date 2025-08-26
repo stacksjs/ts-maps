@@ -1,6 +1,25 @@
 # Changelog
 
 
+## v0.1.8...main
+
+[compare changes](https://github.com/stacksjs/ts-maps/compare/v0.1.8...main)
+
+### 🩹 Fixes
+
+- Lints ([69f7e06](https://github.com/stacksjs/ts-maps/commit/69f7e06))
+
+### 🏡 Chore
+
+- Wip ([1992755](https://github.com/stacksjs/ts-maps/commit/1992755))
+- Wip ([7822d1f](https://github.com/stacksjs/ts-maps/commit/7822d1f))
+- Wip ([a448918](https://github.com/stacksjs/ts-maps/commit/a448918))
+- Wip ([e85f2e1](https://github.com/stacksjs/ts-maps/commit/e85f2e1))
+
+### ❤️ Contributors
+
+- Glennmichael123 ([@glennmichael123](https://github.com/glennmichael123))
+
 ## v0.1.7...main
 
 [compare changes](https://github.com/stacksjs/ts-maps/compare/v0.1.7...main)
