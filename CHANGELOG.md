@@ -1,6 +1,18 @@
 # Changelog
 
 
+## v0.1.9...main
+
+[compare changes](https://github.com/stacksjs/ts-maps/compare/v0.1.9...main)
+
+### 🩹 Fixes
+
+- Runtime plugin ([427d7e2](https://github.com/stacksjs/ts-maps/commit/427d7e2))
+
+### ❤️ Contributors
+
+- Glennmichael123 ([@glennmichael123](https://github.com/glennmichael123))
+
 ## v0.1.8...main
 
 [compare changes](https://github.com/stacksjs/ts-maps/compare/v0.1.8...main)
