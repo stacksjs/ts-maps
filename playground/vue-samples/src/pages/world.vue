@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
-import { reactive, ref } from 'vue'
 import { WorldMap } from 'ts-maps-vue'
+import { reactive, ref } from 'vue'
 
 interface EventData {
   type: string
@@ -56,8 +56,6 @@ const options = reactive<Omit<MapOptions, 'selector'>>({
     },
   ],
 })
-
-
 
 function toggleTheme() {
   isDarkTheme.value = !isDarkTheme.value
