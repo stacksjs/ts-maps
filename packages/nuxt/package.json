@@ -33,15 +33,15 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@nuxt/kit": "^4.1.0",
+    "@nuxt/kit": "^4.1.1",
     "ts-maps": "workspace:*"
   },
   "devDependencies": {
     "@nuxt/devtools": "^2.6.3",
     "@nuxt/eslint-config": "^1.9.0",
     "@nuxt/module-builder": "^1.0.2",
-    "@nuxt/schema": "^4.1.0",
-    "nuxt": "^4.1.0",
+    "@nuxt/schema": "^4.1.1",
+    "nuxt": "^4.1.1",
     "typescript": "~5.9.2"
   }
 }
