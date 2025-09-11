@@ -11,13 +11,13 @@
   "dependencies": {
     "@types/google.maps": "^3.58.1",
     "ts-maps-vue": "../../packages/vue",
-    "vue": "^3.5.18",
-    "vue-router": "4"
+    "vue": "^3.5.21",
+    "vue-router": "4.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
     "typescript": "^5.9.2",
-    "vite": "^6.3.5",
+    "vite": "^6.3.6",
     "vue-tsc": "^3.0.6"
   }
 }
