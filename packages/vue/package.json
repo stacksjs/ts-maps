@@ -39,7 +39,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "bun-types": "^1.2.21"
+    "bun-types": "^1.2.22"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^18.0.1",
