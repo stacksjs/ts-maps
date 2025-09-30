@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^18.0.1",
-    "@microsoft/api-extractor": "^7.52.13",
+    "@microsoft/api-extractor": "^7.52.14",
     "@stacksjs/docs": "^0.70.23",
     "@stacksjs/eslint-config": "^4.14.0-beta.3",
     "@testing-library/dom": "^10.4.1",
