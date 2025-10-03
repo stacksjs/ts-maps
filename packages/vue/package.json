@@ -42,7 +42,7 @@
     "bun-types": "^1.2.23"
   },
   "devDependencies": {
-    "@happy-dom/global-registrator": "^18.0.1",
+    "@happy-dom/global-registrator": "^19.0.2",
     "@microsoft/api-extractor": "^7.52.15",
     "@stacksjs/docs": "^0.70.23",
     "@stacksjs/eslint-config": "^4.14.0-beta.3",
@@ -56,7 +56,7 @@
     "bun-plugin-dtsx": "^0.21.12",
     "cac": "^6.7.14",
     "changelogen": "^0.6.2",
-    "happy-dom": "^18.0.1",
+    "happy-dom": "^19.0.2",
     "typescript": "^5.9.0",
     "vue": "^3.5.22",
     "vue-tsc": "^2.2.12"
