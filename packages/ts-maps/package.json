@@ -98,10 +98,10 @@
   },
   "devDependencies": {
     "bun-plugin-dtsx": "^0.21.12",
-    "bunfig": "^0.14.1",
-    "lint-staged": "^16.1.5",
+    "bunfig": "^0.15.0",
+    "lint-staged": "^16.2.3",
     "simple-git-hooks": "^2.13.1",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.3"
   },
   "lint-staged": {
     "*.{js,ts}": "bunx --bun eslint . --fix"

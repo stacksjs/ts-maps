@@ -24,19 +24,19 @@
     "typecheck": "bunx --bun tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "dependencies": {
     "ts-maps": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-react": "^5.0.1",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "typescript": "^5.9.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "^5.9.3",
     "vite": "^7.1.9",
     "vite-plugin-dts": "^4.5.4"
   }
