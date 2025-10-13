@@ -76,7 +76,7 @@
     "commit-msg": "bunx gitlint --edit .git/COMMIT_EDITMSG"
   },
   "workspaces": [
-    "packages/*",
+    "packages/**",
     "playground"
   ]
 }
