@@ -10,8 +10,5 @@
   },
   "dependencies": {
     "ts-maps": "workspace:*"
-  },
-  "devDependencies": {
-    "vite": "6.3.6"
   }
 }
