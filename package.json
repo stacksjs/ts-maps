@@ -1,7 +1,7 @@
 {
   "name": "ts-maps",
   "type": "module",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "A modern vector map library.",
   "author": "Chris Breuer <chris@stacksjs.org>",

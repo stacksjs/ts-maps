@@ -1,4 +1,25 @@
 # Changelog
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.1...v0.2.2)
+
+### 🧹 Chores
+
+- release v0.2.2 ([91b2235](https://github.com/stacksjs/ts-maps/commit/91b2235))
+- wip ([058de5b](https://github.com/stacksjs/ts-maps/commit/058de5b))
+
+### Contributors
+
+- glennmichael123 <gtorregosa@gmail.com>
+
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.1...HEAD)
+
+### 🧹 Chores
+
+- wip ([058de5b](https://github.com/stacksjs/ts-maps/commit/058de5b))
+
+### Contributors
+
+- glennmichael123 <gtorregosa@gmail.com>
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.0...v0.2.1)
 
 ### 🧹 Chores
