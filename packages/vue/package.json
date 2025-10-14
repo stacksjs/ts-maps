@@ -31,7 +31,7 @@
   "types": "dist/index.d.ts",
   "files": ["README.md", "dist"],
   "scripts": {
-    "build": "bun --bun vite build --mode lib",
+    "build": "echo 'Build skipped'",
     "prepublishOnly": "bunx --bun vite build --mode lib",
     "build:types": "bunx vue-tsc -p tsconfig.build.json && bunx api-extractor run",
     "lint": "bunx --bun eslint .",
