@@ -1,4 +1,14 @@
 # Changelog
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.2...v0.2.3)
+
+### 🧹 Chores
+
+- release v0.2.3 ([56d2376](https://github.com/stacksjs/ts-maps/commit/56d2376))
+
+### Contributors
+
+- glennmichael123 <gtorregosa@gmail.com>
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.1...v0.2.2)
 
 ### 🧹 Chores
