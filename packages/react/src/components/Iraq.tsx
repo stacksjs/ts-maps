@@ -1,7 +1,7 @@
 import type { MapOptions } from 'ts-maps'
 import { useEffect, useMemo, useRef } from 'react'
 import { VectorMap as TSVectorMap } from 'ts-maps'
-import iraqMap from 'ts-maps/maps/iraq'
+import iraqMap from 'ts-maps/iraq'
 import './map-components.css'
 
 export interface IraqProps extends Omit<React.HTMLProps<HTMLDivElement>, 'ref'> {

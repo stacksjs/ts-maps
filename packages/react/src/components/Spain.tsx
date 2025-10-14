@@ -1,7 +1,7 @@
 import type { MapOptions } from 'ts-maps'
 import { useEffect, useMemo, useRef } from 'react'
 import { VectorMap as TSVectorMap } from 'ts-maps'
-import spainMap from 'ts-maps/maps/spain'
+import spainMap from 'ts-maps/spain'
 import './map-components.css'
 
 export interface SpainProps extends Omit<React.HTMLProps<HTMLDivElement>, 'ref'> {

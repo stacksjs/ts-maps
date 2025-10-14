@@ -1,7 +1,7 @@
 import type { MapOptions } from 'ts-maps'
 import { useEffect, useMemo, useRef } from 'react'
 import { VectorMap as TSVectorMap } from 'ts-maps'
-import russiaMap from 'ts-maps/maps/russia'
+import russiaMap from 'ts-maps/russia'
 import './map-components.css'
 
 export interface RussiaProps extends Omit<React.HTMLProps<HTMLDivElement>, 'ref'> {

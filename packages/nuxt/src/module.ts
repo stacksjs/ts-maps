@@ -1,11 +1,12 @@
 import { addComponentsDir, createResolver, defineNuxtModule } from '@nuxt/kit'
+import type { NuxtModule } from '@nuxt/schema'
 
 // Module options TypeScript interface definition
 export interface ModuleOptions {
   prefix?: string
 }
 
-export default defineNuxtModule<ModuleOptions>({
+const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'ts-maps-nuxt',
     configKey: 'tsMapsNuxt',
@@ -23,3 +24,5 @@ export default defineNuxtModule<ModuleOptions>({
     })
   },
 })
+
+export default module

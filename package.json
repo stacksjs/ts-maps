@@ -64,7 +64,8 @@
     "typescript": "^5.9.3"
   },
   "overrides": {
-    "unconfig": "0.3.10"
+    "unconfig": "0.3.10",
+    "vite": "6.3.6"
   },
   "git-hooks": {
     "pre-commit": {
