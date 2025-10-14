@@ -24,7 +24,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "bunx nuxt-module-build build",
+    "build": "bun nuxt-module-build build",
     "build:types": "bunx tsc -p tsconfig.build.json && bunx api-extractor run",
     "dev": "npm run dev:prepare && nuxi dev playground",
     "dev:build": "nuxi build playground",
