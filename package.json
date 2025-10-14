@@ -1,7 +1,7 @@
 {
   "name": "ts-maps",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.2.4",
   "private": true,
   "description": "A modern vector map library.",
   "author": "Chris Breuer <chris@stacksjs.org>",
@@ -34,23 +34,26 @@
   "bin": {
     "post": "./packages/post/dist/bin/cli.js"
   },
-  "files": ["README.md", "packages/post/dist"],
+  "files": [
+    "README.md",
+    "packages/post/dist"
+  ],
   "scripts": {
-    "build": "cd ./packages/nuxt && bun run build && cd ../vue && bun run build && cd ../react && bun run build && cd ../ts-maps && bun run build",
+    "build": "cd ./packages/ts-maps && bun run build && cd ../vue && bun run build && cd ../nuxt && bun run build && cd ../react && bun run build",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "test": "bun test",
     "lint": "bunx --bun eslint .",
     "lint:fix": "bunx --bun eslint . --fix",
     "changelog": "bunx logsmith --verbose",
     "changelog:generate": "bunx logsmith --output CHANGELOG.md",
-    "release": "bun run changelog:generate && bunx bumpx prompt --recursive",
+    "release": "bun run changelog:generate && bunx --bun bumpx prompt --recursive",
     "typecheck": "bunx tsc --noEmit",
     "dev:docs": "bun --bun vitepress dev docs",
     "build:docs": "bun --bun vitepress build docs",
     "preview:docs": "bun --bun vitepress preview docs"
   },
   "devDependencies": {
-    "@stacksjs/bumpx": "^0.2.1",
+    "@stacksjs/bumpx": "^0.2.2",
     "@stacksjs/clarity": "^0.3.24",
     "@stacksjs/docs": "^0.70.23",
     "@stacksjs/eslint-config": "^4.14.0-beta.3",
@@ -64,8 +67,7 @@
     "typescript": "^5.9.3"
   },
   "overrides": {
-    "unconfig": "0.3.10",
-    "vite": "6.3.6"
+    "unconfig": "0.3.10"
   },
   "git-hooks": {
     "pre-commit": {
