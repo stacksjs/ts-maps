@@ -36,7 +36,7 @@
   },
   "files": ["README.md", "packages/post/dist"],
   "scripts": {
-    "build": "bun --filter './packages/*' build",
+    "build": "bun install && bun --filter './packages/*' build",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "test": "bun test",
     "lint": "bunx --bun eslint .",
