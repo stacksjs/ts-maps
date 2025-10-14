@@ -12,6 +12,6 @@
     "ts-maps": "workspace:*"
   },
   "devDependencies": {
-    "vite": "6.3.6"
+    "vite": "7.1.10"
   }
 }
