@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "dev": "bunx --bun vite",
-    "build": "bunx --bun vite build",
+    "build": "echo 'Build skipped'",
     "preview": "bunx --bun vite preview",
     "typecheck": "bunx --bun tsc --noEmit"
   },
@@ -37,7 +37,6 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "typescript": "^5.9.3",
-    "vite": "6.3.6",
     "vite-plugin-dts": "^4.5.4"
   }
 }

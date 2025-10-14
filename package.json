@@ -36,7 +36,7 @@
   },
   "files": ["README.md", "packages/post/dist"],
   "scripts": {
-    "build": "echo 'Starting build...' && bun install && echo 'Dependencies installed, starting package builds...' && bun --filter './packages/*' build && echo 'Build completed successfully!'",
+    "build": "bun install && bun --filter './packages/*' build",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "test": "bun test",
     "lint": "bunx --bun eslint .",
