@@ -1,5 +1,110 @@
 # Changelog
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.0...v0.2.1)
 
+### 🧹 Chores
+
+- release v0.2.1 ([6b3ed4b](https://github.com/stacksjs/ts-maps/commit/6b3ed4b))
+- wip ([d83f21e](https://github.com/stacksjs/ts-maps/commit/d83f21e))
+- wip ([1a4b1c3](https://github.com/stacksjs/ts-maps/commit/1a4b1c3))
+- wip ([ea557fc](https://github.com/stacksjs/ts-maps/commit/ea557fc))
+- wip ([7fcda2a](https://github.com/stacksjs/ts-maps/commit/7fcda2a))
+- wip ([9eb18d5](https://github.com/stacksjs/ts-maps/commit/9eb18d5))
+- wip ([669e584](https://github.com/stacksjs/ts-maps/commit/669e584))
+- wip ([704300f](https://github.com/stacksjs/ts-maps/commit/704300f))
+- wip ([2d9af77](https://github.com/stacksjs/ts-maps/commit/2d9af77))
+- wip ([ef7e1aa](https://github.com/stacksjs/ts-maps/commit/ef7e1aa))
+- wip ([55d88f1](https://github.com/stacksjs/ts-maps/commit/55d88f1))
+- wip ([47927e2](https://github.com/stacksjs/ts-maps/commit/47927e2))
+- wip ([6829394](https://github.com/stacksjs/ts-maps/commit/6829394))
+- wip ([dd13c27](https://github.com/stacksjs/ts-maps/commit/dd13c27))
+- wip ([4fb7f88](https://github.com/stacksjs/ts-maps/commit/4fb7f88))
+- wip ([235b281](https://github.com/stacksjs/ts-maps/commit/235b281))
+- wip ([81901e7](https://github.com/stacksjs/ts-maps/commit/81901e7))
+- wip ([1061a74](https://github.com/stacksjs/ts-maps/commit/1061a74))
+- wip ([32825de](https://github.com/stacksjs/ts-maps/commit/32825de))
+- wip ([d094bc1](https://github.com/stacksjs/ts-maps/commit/d094bc1))
+- **deps**: update dependency happy-dom to 20.0.0 (#401) ([71993b3](https://github.com/stacksjs/ts-maps/commit/71993b3)) ([#401](https://github.com/stacksjs/ts-maps/issues/401), [#401](https://github.com/stacksjs/ts-maps/issues/401))
+- wip ([6358cf7](https://github.com/stacksjs/ts-maps/commit/6358cf7))
+- **deps**: update dependency vite to 7.1.9 (#66) ([425ce88](https://github.com/stacksjs/ts-maps/commit/425ce88)) ([#66](https://github.com/stacksjs/ts-maps/issues/66), [#66](https://github.com/stacksjs/ts-maps/issues/66))
+- **deps**: update actions/setup-node action to v5 (#81) ([db5cf2b](https://github.com/stacksjs/ts-maps/commit/db5cf2b)) ([#81](https://github.com/stacksjs/ts-maps/issues/81), [#81](https://github.com/stacksjs/ts-maps/issues/81))
+- **deps**: update dependency actions/checkout to v5.0.0 (updated) (#68) ([5a1ed73](https://github.com/stacksjs/ts-maps/commit/5a1ed73)) ([#68](https://github.com/stacksjs/ts-maps/issues/68), [#68](https://github.com/stacksjs/ts-maps/issues/68))
+- **deps**: update dependency @microsoft/api-extractor to 8.0.0 (updated) (#74) ([d08d83a](https://github.com/stacksjs/ts-maps/commit/d08d83a)) ([#74](https://github.com/stacksjs/ts-maps/issues/74), [#74](https://github.com/stacksjs/ts-maps/issues/74))
+- **deps**: update dependency vue-tsc to 3.1.0 (#243) ([f60d2aa](https://github.com/stacksjs/ts-maps/commit/f60d2aa)) ([#243](https://github.com/stacksjs/ts-maps/issues/243), [#243](https://github.com/stacksjs/ts-maps/issues/243))
+- add clarity ([0cb5bf1](https://github.com/stacksjs/ts-maps/commit/0cb5bf1))
+- **deps**: update dependency @happy-dom/global-registrator to 19.0.2 (#338) ([b753ec0](https://github.com/stacksjs/ts-maps/commit/b753ec0)) ([#338](https://github.com/stacksjs/ts-maps/issues/338), [#338](https://github.com/stacksjs/ts-maps/issues/338))
+- **deps**: update all non-major dependencies (#327) ([dca5e4d](https://github.com/stacksjs/ts-maps/commit/dca5e4d)) ([#327](https://github.com/stacksjs/ts-maps/issues/327), [#327](https://github.com/stacksjs/ts-maps/issues/327))
+- **deps**: update dependency happy-dom to 19.0.2 (#339) ([9db51d4](https://github.com/stacksjs/ts-maps/commit/9db51d4)) ([#339](https://github.com/stacksjs/ts-maps/issues/339), [#339](https://github.com/stacksjs/ts-maps/issues/339))
+- **deps**: update all non-major dependencies (#397) ([9ca78a1](https://github.com/stacksjs/ts-maps/commit/9ca78a1)) ([#397](https://github.com/stacksjs/ts-maps/issues/397), [#397](https://github.com/stacksjs/ts-maps/issues/397))
+- **deps**: update happy-dom monorepo to v19 (#341) ([391e958](https://github.com/stacksjs/ts-maps/commit/391e958)) ([#341](https://github.com/stacksjs/ts-maps/issues/341), [#341](https://github.com/stacksjs/ts-maps/issues/341))
+- **deps**: update dependency bunfig to 0.15.0 (#78) ([933ef5f](https://github.com/stacksjs/ts-maps/commit/933ef5f)) ([#78](https://github.com/stacksjs/ts-maps/issues/78), [#78](https://github.com/stacksjs/ts-maps/issues/78))
+- **deps**: update dependency buddy-bot to 0.9.4 (#79) ([3e39a99](https://github.com/stacksjs/ts-maps/commit/3e39a99)) ([#79](https://github.com/stacksjs/ts-maps/issues/79), [#79](https://github.com/stacksjs/ts-maps/issues/79))
+- update tooling ([f1a63f9](https://github.com/stacksjs/ts-maps/commit/f1a63f9))
+
+### 📄 Miscellaneous
+
+- Update package.json ([b133f4d](https://github.com/stacksjs/ts-maps/commit/b133f4d))
+- Update ci.yml ([7e9164a](https://github.com/stacksjs/ts-maps/commit/7e9164a))
+
+### Contributors
+
+- Adelino Ngomacha <adelinob335@gmail.com>
+- Chris <chrisbreuer93@gmail.com>
+- cab-mikee <mike.cabz32@gmail.com>
+- glennmichael123 <gtorregosa@gmail.com>
+- renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
+
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.0...HEAD)
+
+### 🧹 Chores
+
+- wip ([d83f21e](https://github.com/stacksjs/ts-maps/commit/d83f21e))
+- wip ([1a4b1c3](https://github.com/stacksjs/ts-maps/commit/1a4b1c3))
+- wip ([ea557fc](https://github.com/stacksjs/ts-maps/commit/ea557fc))
+- wip ([7fcda2a](https://github.com/stacksjs/ts-maps/commit/7fcda2a))
+- wip ([9eb18d5](https://github.com/stacksjs/ts-maps/commit/9eb18d5))
+- wip ([669e584](https://github.com/stacksjs/ts-maps/commit/669e584))
+- wip ([704300f](https://github.com/stacksjs/ts-maps/commit/704300f))
+- wip ([2d9af77](https://github.com/stacksjs/ts-maps/commit/2d9af77))
+- wip ([ef7e1aa](https://github.com/stacksjs/ts-maps/commit/ef7e1aa))
+- wip ([55d88f1](https://github.com/stacksjs/ts-maps/commit/55d88f1))
+- wip ([47927e2](https://github.com/stacksjs/ts-maps/commit/47927e2))
+- wip ([6829394](https://github.com/stacksjs/ts-maps/commit/6829394))
+- wip ([dd13c27](https://github.com/stacksjs/ts-maps/commit/dd13c27))
+- wip ([4fb7f88](https://github.com/stacksjs/ts-maps/commit/4fb7f88))
+- wip ([235b281](https://github.com/stacksjs/ts-maps/commit/235b281))
+- wip ([81901e7](https://github.com/stacksjs/ts-maps/commit/81901e7))
+- wip ([1061a74](https://github.com/stacksjs/ts-maps/commit/1061a74))
+- wip ([32825de](https://github.com/stacksjs/ts-maps/commit/32825de))
+- wip ([d094bc1](https://github.com/stacksjs/ts-maps/commit/d094bc1))
+- **deps**: update dependency happy-dom to 20.0.0 (#401) ([71993b3](https://github.com/stacksjs/ts-maps/commit/71993b3)) ([#401](https://github.com/stacksjs/ts-maps/issues/401), [#401](https://github.com/stacksjs/ts-maps/issues/401))
+- wip ([6358cf7](https://github.com/stacksjs/ts-maps/commit/6358cf7))
+- **deps**: update dependency vite to 7.1.9 (#66) ([425ce88](https://github.com/stacksjs/ts-maps/commit/425ce88)) ([#66](https://github.com/stacksjs/ts-maps/issues/66), [#66](https://github.com/stacksjs/ts-maps/issues/66))
+- **deps**: update actions/setup-node action to v5 (#81) ([db5cf2b](https://github.com/stacksjs/ts-maps/commit/db5cf2b)) ([#81](https://github.com/stacksjs/ts-maps/issues/81), [#81](https://github.com/stacksjs/ts-maps/issues/81))
+- **deps**: update dependency actions/checkout to v5.0.0 (updated) (#68) ([5a1ed73](https://github.com/stacksjs/ts-maps/commit/5a1ed73)) ([#68](https://github.com/stacksjs/ts-maps/issues/68), [#68](https://github.com/stacksjs/ts-maps/issues/68))
+- **deps**: update dependency @microsoft/api-extractor to 8.0.0 (updated) (#74) ([d08d83a](https://github.com/stacksjs/ts-maps/commit/d08d83a)) ([#74](https://github.com/stacksjs/ts-maps/issues/74), [#74](https://github.com/stacksjs/ts-maps/issues/74))
+- **deps**: update dependency vue-tsc to 3.1.0 (#243) ([f60d2aa](https://github.com/stacksjs/ts-maps/commit/f60d2aa)) ([#243](https://github.com/stacksjs/ts-maps/issues/243), [#243](https://github.com/stacksjs/ts-maps/issues/243))
+- add clarity ([0cb5bf1](https://github.com/stacksjs/ts-maps/commit/0cb5bf1))
+- **deps**: update dependency @happy-dom/global-registrator to 19.0.2 (#338) ([b753ec0](https://github.com/stacksjs/ts-maps/commit/b753ec0)) ([#338](https://github.com/stacksjs/ts-maps/issues/338), [#338](https://github.com/stacksjs/ts-maps/issues/338))
+- **deps**: update all non-major dependencies (#327) ([dca5e4d](https://github.com/stacksjs/ts-maps/commit/dca5e4d)) ([#327](https://github.com/stacksjs/ts-maps/issues/327), [#327](https://github.com/stacksjs/ts-maps/issues/327))
+- **deps**: update dependency happy-dom to 19.0.2 (#339) ([9db51d4](https://github.com/stacksjs/ts-maps/commit/9db51d4)) ([#339](https://github.com/stacksjs/ts-maps/issues/339), [#339](https://github.com/stacksjs/ts-maps/issues/339))
+- **deps**: update all non-major dependencies (#397) ([9ca78a1](https://github.com/stacksjs/ts-maps/commit/9ca78a1)) ([#397](https://github.com/stacksjs/ts-maps/issues/397), [#397](https://github.com/stacksjs/ts-maps/issues/397))
+- **deps**: update happy-dom monorepo to v19 (#341) ([391e958](https://github.com/stacksjs/ts-maps/commit/391e958)) ([#341](https://github.com/stacksjs/ts-maps/issues/341), [#341](https://github.com/stacksjs/ts-maps/issues/341))
+- **deps**: update dependency bunfig to 0.15.0 (#78) ([933ef5f](https://github.com/stacksjs/ts-maps/commit/933ef5f)) ([#78](https://github.com/stacksjs/ts-maps/issues/78), [#78](https://github.com/stacksjs/ts-maps/issues/78))
+- **deps**: update dependency buddy-bot to 0.9.4 (#79) ([3e39a99](https://github.com/stacksjs/ts-maps/commit/3e39a99)) ([#79](https://github.com/stacksjs/ts-maps/issues/79), [#79](https://github.com/stacksjs/ts-maps/issues/79))
+- update tooling ([f1a63f9](https://github.com/stacksjs/ts-maps/commit/f1a63f9))
+
+### 📄 Miscellaneous
+
+- Update package.json ([b133f4d](https://github.com/stacksjs/ts-maps/commit/b133f4d))
+- Update ci.yml ([7e9164a](https://github.com/stacksjs/ts-maps/commit/7e9164a))
+
+### Contributors
+
+- Adelino Ngomacha <adelinob335@gmail.com>
+- Chris <chrisbreuer93@gmail.com>
+- cab-mikee <mike.cabz32@gmail.com>
+- glennmichael123 <gtorregosa@gmail.com>
+- renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>
 
 ## v0.1.9...main
 
@@ -252,7 +357,6 @@
 - Chris ([@chrisbbreuer](https://github.com/chrisbbreuer))
 
 ## ...main
-
 
 ### 🏡 Chore
 
@@ -679,7 +783,6 @@
 - Chris <chrisbreuer93@gmail.com>
 
 ## ...main
-
 
 ### 🏡 Chore
 
