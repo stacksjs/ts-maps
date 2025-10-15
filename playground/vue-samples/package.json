@@ -12,7 +12,7 @@
     "@types/google.maps": "^3.58.1",
     "ts-maps-vue": "../../packages/vue",
     "vue": "^3.5.22",
-    "vue-router": "4.6.0"
+    "vue-router": "4.6.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
