@@ -1,7 +1,7 @@
 {
   "name": "ts-maps-vue",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "description": "Vue components for ts-maps - Interactive Vector Maps",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
@@ -29,7 +29,10 @@
   },
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["README.md", "dist"],
+  "files": [
+    "README.md",
+    "dist"
+  ],
   "scripts": {
     "build": "bun --bun vite build --mode lib",
     "prepublishOnly": "bunx --bun vite build --mode lib",
