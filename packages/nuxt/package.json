@@ -1,10 +1,9 @@
 {
   "name": "ts-maps-nuxt",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "description": "Nuxt components for ts-maps - Interactive Vector Maps",
   "author": "Chris Breuer <chris@stacksjs.org>",
-
   "license": "MIT",
   "exports": {
     ".": {
