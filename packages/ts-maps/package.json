@@ -99,7 +99,7 @@
   "devDependencies": {
     "bun-plugin-dtsx": "^0.21.12",
     "bunfig": "^0.15.0",
-    "lint-staged": "^16.2.3",
+    "lint-staged": "^16.2.4",
     "typescript": "^5.9.3"
   },
   "lint-staged": {
