@@ -20,7 +20,7 @@
     },
     "packages/nuxt": {
       "name": "ts-maps-nuxt",
-      "version": "0.2.0",
+      "version": "0.2.5",
       "dependencies": {
         "@nuxt/kit": "^4.1.2",
         "ts-maps": "workspace:*",
@@ -37,6 +37,7 @@
     },
     "packages/nuxt/playground": {
       "name": "my-module-playground",
+      "version": "0.2.5",
       "dependencies": {
         "nuxt": "^4.1.2",
         "ts-maps-nuxt": "workspace:*",
@@ -44,7 +45,7 @@
     },
     "packages/react": {
       "name": "ts-maps-react",
-      "version": "0.2.0",
+      "version": "0.2.5",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -64,7 +65,7 @@
     },
     "packages/ts-maps": {
       "name": "ts-maps",
-      "version": "0.2.0",
+      "version": "0.2.5",
       "devDependencies": {
         "bun-plugin-dtsx": "^0.21.12",
         "bunfig": "^0.15.0",
@@ -74,14 +75,14 @@
     },
     "packages/vue": {
       "name": "ts-maps-vue",
-      "version": "0.2.0",
+      "version": "0.2.5",
       "dependencies": {
         "@vitejs/plugin-vue": "^6.0.1",
         "bun-types": "^1.2.23",
         "ts-maps": "workspace:*",
       },
       "devDependencies": {
-        "@happy-dom/global-registrator": "^19.0.2",
+        "@happy-dom/global-registrator": "^20.0.5",
         "@microsoft/api-extractor": "^8.0.0",
         "@stacksjs/docs": "^0.70.23",
         "@stacksjs/eslint-config": "^4.14.0-beta.3",
@@ -103,7 +104,7 @@
     },
     "playground": {
       "name": "playground",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -453,7 +454,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
-    "@happy-dom/global-registrator": ["@happy-dom/global-registrator@19.0.2", "", { "dependencies": { "@types/node": "^20.0.0", "happy-dom": "^19.0.2" } }, "sha512-t/2uiTTVFjRg0Z6zWL7E3/htv3LVmc1JJXINGeW6UDI8B2L+oDUmzwSh56F/m5iC+6ldqdNR7Crz2xZyjTE28g=="],
+    "@happy-dom/global-registrator": ["@happy-dom/global-registrator@20.0.5", "", { "dependencies": { "@types/node": "^20.0.0", "happy-dom": "^20.0.5" } }, "sha512-RWQ85on4fiYKw5D1xk0nU2YGCYsJEJ5iXmZHTRyeYft4OCN4IRMFZ3uX91/Tncf/9K4tPOnU1HiEOtLs2Zxukw=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 
@@ -3003,7 +3004,7 @@
 
     "@happy-dom/global-registrator/@types/node": ["@types/node@20.19.21", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-CsGG2P3I5y48RPMfprQGfy4JPRZ6csfC3ltBZSRItG3ngggmNY/qs2uZKp4p9VbrpqNNSMzUZNFZKzgOGnd/VA=="],
 
-    "@happy-dom/global-registrator/happy-dom": ["happy-dom@19.0.2", "", { "dependencies": { "@types/node": "^20.0.0", "@types/whatwg-mimetype": "^3.0.2", "whatwg-mimetype": "^3.0.0" } }, "sha512-831CLbgDyjRbd2lApHZFsBDe56onuFcjsCBPodzWpzedTpeDr8CGZjs7iEIdNW1DVwSFRecfwzLpVyGBPamwGA=="],
+    "@happy-dom/global-registrator/happy-dom": ["happy-dom@20.0.5", "", { "dependencies": { "@types/node": "^20.0.0", "@types/whatwg-mimetype": "^3.0.2", "whatwg-mimetype": "^3.0.0" } }, "sha512-AiqA0rfS7WR1kihXt9W9aA5LFLaOKzwiL+QoI7BkOQ0r21C7VHTOf4k8QNlnWYaHLhpI2tZzJPLV1lY1obDTmw=="],
 
     "@iconify/utils/@antfu/utils": ["@antfu/utils@9.3.0", "", {}, "sha512-9hFT4RauhcUzqOE4f1+frMKLZrgNog5b06I7VmZQV1BkvwvqrbC8EBZf3L1eEL2AKb6rNKjER0sEvJiSP1FXEA=="],
 
