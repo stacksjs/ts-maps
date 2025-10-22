@@ -1,4 +1,31 @@
 # Changelog
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.5...v0.2.6)
+
+### 🧹 Chores
+
+- release v0.2.6 ([96630a3](https://github.com/stacksjs/ts-maps/commit/96630a3))
+- wip ([5b2930d](https://github.com/stacksjs/ts-maps/commit/5b2930d))
+- wip ([f78303d](https://github.com/stacksjs/ts-maps/commit/f78303d))
+- wip ([0ec7c92](https://github.com/stacksjs/ts-maps/commit/0ec7c92))
+- wip ([985c16c](https://github.com/stacksjs/ts-maps/commit/985c16c))
+
+### Contributors
+
+- glennmichael123 <gtorregosa@gmail.com>
+
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.5...HEAD)
+
+### 🧹 Chores
+
+- wip ([5b2930d](https://github.com/stacksjs/ts-maps/commit/5b2930d))
+- wip ([f78303d](https://github.com/stacksjs/ts-maps/commit/f78303d))
+- wip ([0ec7c92](https://github.com/stacksjs/ts-maps/commit/0ec7c92))
+- wip ([985c16c](https://github.com/stacksjs/ts-maps/commit/985c16c))
+
+### Contributors
+
+- glennmichael123 <gtorregosa@gmail.com>
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.4...v0.2.5)
 
 ### 🧹 Chores
