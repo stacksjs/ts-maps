@@ -1,3 +1,6 @@
+export { VectorMap } from './components/VectorMap'
+export type { VectorMapProps } from './components/VectorMap'
+
 export { Brasil } from './components/VectorMaps/Brasil'
 export type { BrasilProps } from './components/VectorMaps/Brasil'
 
@@ -18,9 +21,6 @@ export type { SpainProps } from './components/VectorMaps/Spain'
 
 export { UnitedStates } from './components/VectorMaps/UnitedStates'
 export type { UnitedStatesProps } from './components/VectorMaps/UnitedStates'
-
-export { VectorMap } from './components/VectorMap'
-export type { VectorMapProps } from './components/VectorMap'
 
 export { WorldMap } from './components/WorldMap'
 export type { WorldMapProps } from './components/WorldMap'
