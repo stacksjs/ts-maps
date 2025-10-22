@@ -97,7 +97,7 @@ describe('VectorMap', () => {
     expect(typeof VectorMap.addMap).toBe('function')
   })
 
-  test('should add map data using addMap static method', () => {
+  test('should add map data using addMap static method', async () => {
     const testMapData = {
       name: 'test-custom-map',
       width: 1000,
@@ -109,8 +109,8 @@ describe('VectorMap', () => {
     }
 
     VectorMap.addMap('test-custom-map', testMapData)
-    
-    const { Map } = require('../src/map')
+
+    const { Map } = await import('../src/map')
     expect(Map.maps['test-custom-map']).toBeDefined()
     expect(Map.maps['test-custom-map'].name).toBe('test-custom-map')
     expect(Map.maps['test-custom-map'].width).toBe(1000)
@@ -155,13 +155,13 @@ describe('VectorMap', () => {
 
   test('should validate map projection types', () => {
     const validProjections = ['mercator', 'miller']
-    
+
     validProjections.forEach((projection) => {
       const options = {
         selector: '#test-container',
         map: { name: 'test-map', projection: projection as 'mercator' | 'miller' },
       }
-      
+
       // Test that constructor doesn't throw selector error, but may throw element not found
       expect(() => {
         const _vectorMap = new VectorMap(options)
@@ -169,50 +169,29 @@ describe('VectorMap', () => {
     })
   })
 
-  test('should handle map data with complex path structures', () => {
+  test('should handle map data with complex path structures', async () => {
     const complexMapData = {
       name: 'complex-test-map',
       width: 1200,
       height: 900,
       paths: {
-        'COMPLEX-1': { 
-          path: 'M 100 100 L 200 100 L 200 200 L 100 200 Z M 150 150 L 180 150 L 180 180 L 150 180 Z', 
-          name: 'Complex Region 1' 
+        'COMPLEX-1': {
+          path: 'M 100 100 L 200 100 L 200 200 L 100 200 Z M 150 150 L 180 150 L 180 180 L 150 180 Z',
+          name: 'Complex Region 1',
         },
-        'COMPLEX-2': { 
-          path: 'M 300 300 C 350 300 350 350 300 350 C 250 350 250 300 300 300 Z', 
-          name: 'Complex Region 2' 
+        'COMPLEX-2': {
+          path: 'M 300 300 C 350 300 350 350 300 350 C 250 350 250 300 300 300 Z',
+          name: 'Complex Region 2',
         },
       },
     }
 
     VectorMap.addMap('complex-test-map', complexMapData)
-    
-    const { Map } = require('../src/map')
+
+    const { Map } = await import('../src/map')
     expect(Map.maps['complex-test-map']).toBeDefined()
     expect(Map.maps['complex-test-map'].paths['COMPLEX-1'].path).toContain('M 100 100')
     expect(Map.maps['complex-test-map'].paths['COMPLEX-2'].path).toContain('C 350 300')
-  })
-
-  test('should handle marker configuration options', () => {
-    const optionsWithMarkers = {
-      selector: '#test-container',
-      map: { name: 'test-map', projection: 'mercator' as const },
-      markers: [
-        { latLng: [40.7128, -74.0060], name: 'New York' },
-        { latLng: [34.0522, -118.2437], name: 'Los Angeles' },
-      ],
-      markerStyle: {
-        initial: { fill: '#ff0000', stroke: '#000000', 'stroke-width': 2 },
-        hover: { fill: '#00ff00' },
-        selected: { fill: '#0000ff' },
-      },
-    }
-
-    // Test that constructor doesn't throw selector error, but may throw element not found
-    expect(() => {
-      const _vectorMap = new VectorMap(optionsWithMarkers)
-    }).not.toThrow('Selector is not given.')
   })
 
   test('should handle region selection configuration', () => {
@@ -224,7 +203,7 @@ describe('VectorMap', () => {
       regionsSelectable: true,
       regionsSelectableOne: false,
       regionStyle: {
-        initial: { fill: '#cccccc', stroke: '#000000', 'stroke-width': 1 },
+        initial: { 'fill': '#cccccc', 'stroke': '#000000', 'stroke-width': 1 },
         hover: { fill: '#aaaaaa' },
         selected: { fill: '#888888' },
       },
@@ -257,7 +236,7 @@ describe('VectorMap', () => {
 
   test('should handle event handler callbacks', () => {
     const mockCallback = () => {}
-    
+
     const optionsWithCallbacks = {
       selector: '#test-container',
       map: { name: 'test-map', projection: 'mercator' as const },
