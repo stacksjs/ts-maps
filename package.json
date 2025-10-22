@@ -52,6 +52,9 @@
     "build:docs": "bun --bun vitepress build docs",
     "preview:docs": "bun --bun vitepress preview docs"
   },
+  "dependencies": {
+    "better-dx": "^0.2.0"
+  },
   "devDependencies": {
     "@stacksjs/bumpx": "^0.2.2",
     "@stacksjs/clarity": "^0.3.24",
@@ -63,7 +66,6 @@
     "@types/clean-css": "^4.2.11",
     "buddy-bot": "^0.9.8",
     "bun-git-hooks": "^0.3.1",
-    "bun-plugin-dtsx": "0.9.5",
     "typescript": "^5.9.3"
   },
   "overrides": {

@@ -97,7 +97,6 @@
     "typecheck": "bun --bun tsc --noEmit"
   },
   "devDependencies": {
-    "bun-plugin-dtsx": "^0.21.12",
     "bunfig": "^0.15.0",
     "lint-staged": "^16.2.3",
     "typescript": "^5.9.3"

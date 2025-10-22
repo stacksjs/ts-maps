@@ -58,7 +58,6 @@
     "@types/vue": "^2.0.0",
     "@vue/tsconfig": "^0.8.1",
     "bumpp": "^10.2.3",
-    "bun-plugin-dtsx": "^0.21.12",
     "changelogen": "^0.6.2",
     "happy-dom": "^20.0.0",
     "typescript": "^5.9.3",
