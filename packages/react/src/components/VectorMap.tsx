@@ -1,55 +1,98 @@
 import type { MapOptions } from 'ts-maps'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import worldMap, { VectorMap as TSVectorMap } from 'ts-maps'
 
 export interface VectorMapProps extends Omit<React.HTMLProps<HTMLDivElement>, 'ref'> {
-  options?: Partial<Omit<MapOptions, 'selector'>>
+  options: Omit<MapOptions, 'selector'>
+  mapName: string
   width?: number | string
   height?: number | string
-  onMapInit?: (map: TSVectorMap) => void
+  onRegionClick?: (event: MouseEvent, code: string) => void
+  onMarkerClick?: (event: MouseEvent, index: string) => void
+  onLoaded?: () => void
+  onViewportChange?: (x: number, y: number, z: number) => void
+  onRegionSelected?: (event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]) => void
+  onMarkerSelected?: (event: MouseEvent, index: string, isSelected: boolean, selectedMarkers: string[]) => void
+  onRegionTooltipShow?: (event: Event, tooltip: any, code: string) => void
+  onMarkerTooltipShow?: (event: Event, tooltip: any, index: string) => void
+  children?: React.ReactNode
 }
 
 export function VectorMap({
-  options = {},
-  width = 650,
-  height = 350,
+  options,
+  mapName,
+  width = '100%',
+  height = '400px',
+  onRegionClick,
+  onMarkerClick,
+  onLoaded,
+  onViewportChange,
+  onRegionSelected,
+  onMarkerSelected,
+  onRegionTooltipShow,
+  onMarkerTooltipShow,
   style,
-  onMapInit,
+  children,
   ...props
 }: VectorMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<TSVectorMap | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!containerRef.current)
       return
 
-    // Add default world map if not specified
-    TSVectorMap.addMap('world', worldMap)
+    const containerId = containerRef.current.id || `ts-maps-${Math.random().toString(36).substring(2, 11)}`
+    containerRef.current.id = containerId
 
     const map = new TSVectorMap({
-      selector: `#${containerRef.current.id}`,
+      ...options,
       map: {
-        name: 'world',
+        name: mapName,
         ...options.map,
       },
-      ...options,
+      selector: `#${containerId}`,
+      onRegionClick: (event: MouseEvent, code: string) => {
+        onRegionClick?.(event, code)
+      },
+      onRegionSelected: (event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]) => {
+        onRegionSelected?.(event, code, isSelected, selectedRegions)
+      },
+      onMarkerClick: (event: MouseEvent, index: string) => {
+        onMarkerClick?.(event, index)
+      },
+      onMarkerSelected: (event: MouseEvent, index: string, isSelected: boolean, selectedMarkers: string[]) => {
+        onMarkerSelected?.(event, index, isSelected, selectedMarkers)
+      },
+      onViewportChange: (x: number, y: number, z: number) => {
+        onViewportChange?.(x, y, z)
+      },
+      onRegionTooltipShow: (event: Event, tooltip: any, code: string) => {
+        onRegionTooltipShow?.(event, tooltip, code)
+      },
+      onMarkerTooltipShow: (event: Event, tooltip: any, index: string) => {
+        onMarkerTooltipShow?.(event, tooltip, index)
+      },
+      onLoaded: () => {
+        setLoading(false)
+        onLoaded?.()
+      },
     })
 
     mapRef.current = map
-    onMapInit?.(map)
 
     return () => {
       if (mapRef.current) {
-        // Clean up map instance
         mapRef.current = null
       }
     }
-  }, [options, onMapInit])
+  }, [options, mapName, onRegionClick, onMarkerClick, onLoaded, onViewportChange, onRegionSelected, onMarkerSelected, onRegionTooltipShow, onMarkerTooltipShow])
 
   const containerStyle: React.CSSProperties = {
     width: typeof width === 'number' ? `${width}px` : width,
     height: typeof height === 'number' ? `${height}px` : height,
+    position: 'relative',
     ...style,
   }
 
@@ -57,8 +100,33 @@ export function VectorMap({
     <div
       {...props}
       ref={containerRef}
-      id={`vector-map-${Math.random().toString(36).slice(2, 11)}`}
       style={containerStyle}
-    />
+    >
+      {loading && (
+        <div className="ts-maps-loading">
+          {children || 'Loading map...'}
+        </div>
+      )}
+    </div>
   )
+}
+
+// Add CSS styles for loading state
+const styles = `
+.ts-maps-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: #666;
+}
+`
+
+// Inject styles if not already present
+if (typeof document !== 'undefined' && !document.getElementById('ts-maps-styles')) {
+  const styleElement = document.createElement('style')
+  styleElement.id = 'ts-maps-styles'
+  styleElement.textContent = styles
+  document.head.appendChild(styleElement)
 }
