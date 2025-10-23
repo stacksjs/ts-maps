@@ -30,7 +30,7 @@
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",
     "ts-maps": "workspace:*",
-    "vite": "^7.1.11",
+    "vite": "^7.1.12",
     "vite-plugin-dts": "^4.5.4"
   },
   "devDependencies": {
