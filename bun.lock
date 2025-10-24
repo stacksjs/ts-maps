@@ -22,7 +22,7 @@
     },
     "packages/nuxt": {
       "name": "ts-maps-nuxt",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "@nuxt/kit": "^4.1.2",
         "ts-maps": "workspace:*",
@@ -39,7 +39,7 @@
     },
     "packages/nuxt/playground": {
       "name": "my-module-playground",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "nuxt": "^4.1.2",
         "ts-maps-nuxt": "workspace:*",
@@ -47,10 +47,11 @@
     },
     "packages/react": {
       "name": "ts-maps-react",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "@vitejs/plugin-react": "^5.0.4",
         "ts-maps": "workspace:*",
+        "ts-maps-react": "../../packages/react",
         "vite": "^7.1.11",
         "vite-plugin-dts": "^4.5.4",
       },
@@ -68,7 +69,7 @@
     },
     "packages/ts-maps": {
       "name": "ts-maps",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "devDependencies": {
         "bunfig": "^0.15.0",
         "lint-staged": "^16.2.3",
@@ -77,7 +78,7 @@
     },
     "packages/vue": {
       "name": "ts-maps-vue",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "@vitejs/plugin-vue": "^6.0.1",
         "bun-types": "^1.2.23",
@@ -105,7 +106,7 @@
     },
     "playground": {
       "name": "playground",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
