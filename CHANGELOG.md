@@ -1,4 +1,37 @@
 # Changelog
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.6...v0.2.7)
+
+### 🧹 Chores
+
+- release v0.2.7 ([82a8a28](https://github.com/stacksjs/ts-maps/commit/82a8a28)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- wip ([5d4b080](https://github.com/stacksjs/ts-maps/commit/5d4b080)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- wip ([9b05087](https://github.com/stacksjs/ts-maps/commit/9b05087)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- **deps**: update dependency @happy-dom/global-registrator to 20.0.8 (#410) ([758638e](https://github.com/stacksjs/ts-maps/commit/758638e)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#410](https://github.com/stacksjs/ts-maps/issues/410), [#410](https://github.com/stacksjs/ts-maps/issues/410))
+- **deps**: update all non-major dependencies (#411) ([eccc828](https://github.com/stacksjs/ts-maps/commit/eccc828)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#411](https://github.com/stacksjs/ts-maps/issues/411), [#411](https://github.com/stacksjs/ts-maps/issues/411))
+- **deps**: update dependency actions/checkout to v5.0.0 (#406) ([75de3c3](https://github.com/stacksjs/ts-maps/commit/75de3c3)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#406](https://github.com/stacksjs/ts-maps/issues/406), [#406](https://github.com/stacksjs/ts-maps/issues/406))
+- wip ([33f2888](https://github.com/stacksjs/ts-maps/commit/33f2888)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+
+### Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+- _glennmichael123 <gtorregosa@gmail.com>_
+
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.6...HEAD)
+
+### 🧹 Chores
+
+- wip ([5d4b080](https://github.com/stacksjs/ts-maps/commit/5d4b080)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- wip ([9b05087](https://github.com/stacksjs/ts-maps/commit/9b05087)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+- **deps**: update dependency @happy-dom/global-registrator to 20.0.8 (#410) ([758638e](https://github.com/stacksjs/ts-maps/commit/758638e)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#410](https://github.com/stacksjs/ts-maps/issues/410), [#410](https://github.com/stacksjs/ts-maps/issues/410))
+- **deps**: update all non-major dependencies (#411) ([eccc828](https://github.com/stacksjs/ts-maps/commit/eccc828)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#411](https://github.com/stacksjs/ts-maps/issues/411), [#411](https://github.com/stacksjs/ts-maps/issues/411))
+- **deps**: update dependency actions/checkout to v5.0.0 (#406) ([75de3c3](https://github.com/stacksjs/ts-maps/commit/75de3c3)) _(by Chris <chrisbreuer93@gmail.com>)_ ([#406](https://github.com/stacksjs/ts-maps/issues/406), [#406](https://github.com/stacksjs/ts-maps/issues/406))
+- wip ([33f2888](https://github.com/stacksjs/ts-maps/commit/33f2888)) _(by glennmichael123 <gtorregosa@gmail.com>)_
+
+### Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+- _glennmichael123 <gtorregosa@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.5...v0.2.6)
 
 ### 🧹 Chores
