@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MapOptions } from 'ts-maps'
 import { computed, reactive, ref } from 'vue'
-import { VectorMap } from '../../../../packages/vue/src'
+import { VectorMap } from 'ts-maps-vue'
 import {
   Brasil,
   Canada,
@@ -11,7 +11,7 @@ import {
   Spain,
   UnitedStates,
   WorldMap,
-} from '../components/VectorMaps'
+} from 'ts-maps-vue'
 
 type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'brasil'
 

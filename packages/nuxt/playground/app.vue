@@ -28,6 +28,10 @@ const mapOptions = [
 ]
 
 const options = reactive<Omit<MapOptions, 'selector'>>({
+  map: {
+    name: 'world',
+    projection: 'miller',
+  },
   backgroundColor: '#ffffff',
   zoomOnScroll: true,
   zoomButtons: true,
@@ -131,7 +135,7 @@ function handleMarkerClick(_event: MouseEvent, index: string) {
 }
 
 function handleLoaded() {
-  options.projection = 'albers'
+  options.map.projection = 'mercator'
   lastEvent.value = {
     type: 'Map Loaded',
     time: new Date().toLocaleTimeString(),
