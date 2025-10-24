@@ -1,7 +1,7 @@
 {
   "name": "ts-maps-vue",
   "type": "module",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Vue components for ts-maps - Interactive Vector Maps",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
