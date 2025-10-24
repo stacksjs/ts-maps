@@ -1,8 +1,8 @@
 'use client'
 
 import type { MapOptions } from 'ts-maps'
+import { useCallback, useMemo, useState } from 'react'
 import { VectorMap } from 'ts-maps-react'
-import { useState, useCallback, useMemo } from 'react'
 import styles from './page.module.css'
 
 type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'italy' | 'canada' | 'russia' | 'iraq' | 'brasil'
@@ -88,7 +88,7 @@ export default function IndexPage() {
   const toggleTheme = useCallback(() => {
     const newIsDarkTheme = !isDarkTheme
     setIsDarkTheme(newIsDarkTheme)
-    
+
     setOptions(prev => ({
       ...prev,
       backgroundColor: newIsDarkTheme ? '#2c3e50' : '#ffffff',
@@ -115,7 +115,7 @@ export default function IndexPage() {
         r: 5,
       },
     }
-    
+
     setOptions(prev => ({
       ...prev,
       markers: [...(prev.markers || []), marker],
@@ -166,21 +166,27 @@ export default function IndexPage() {
       <div className={styles.controls}>
         <div className={styles.controlGroup}>
           <label htmlFor="map-select">Select Map:</label>
-          <select 
-            id="map-select" 
+          <select
+            id="map-select"
             value={currentMap}
-            onChange={(e) => setCurrentMap(e.target.value as MapName)}
+            onChange={e => setCurrentMap(e.target.value as MapName)}
           >
             {mapOptions.map(map => (
               <option key={map.value} value={map.value}>
-                {map.label} ({map.projection})
+                {map.label}
+                {' '}
+                (
+                {map.projection}
+                )
               </option>
             ))}
           </select>
         </div>
 
         <div className={styles.controlInfo}>
-          Current Projection: <strong>{currentProjection}</strong>
+          Current Projection:
+          {' '}
+          <strong>{currentProjection}</strong>
         </div>
 
         <button onClick={toggleTheme}>
@@ -190,7 +196,9 @@ export default function IndexPage() {
           Add Random Marker
         </button>
         <button onClick={toggleZoom}>
-          {options.zoomOnScroll ? 'Disable' : 'Enable'} Zoom
+          {options.zoomOnScroll ? 'Disable' : 'Enable'}
+          {' '}
+          Zoom
         </button>
       </div>
 
