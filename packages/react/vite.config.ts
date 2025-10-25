@@ -10,8 +10,14 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'TSMapsReact',
-      formats: ['es', 'umd'],
-      fileName: format => `index.${format}.js`,
+      formats: ['es', 'umd', 'cjs'],
+      fileName: (format) => {
+        if (format === 'es')
+          return 'index.mjs'
+        if (format === 'cjs')
+          return 'index.js'
+        return `index.${format}.js`
+      },
     },
     rollupOptions: {
       external: ['react', 'react-dom'],
