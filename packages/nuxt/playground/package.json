@@ -9,7 +9,7 @@
     "generate": "nuxi generate"
   },
   "dependencies": {
-    "nuxt": "^4.1.2",
+    "nuxt": "^4.2.0",
     "ts-maps-nuxt": "workspace:*"
   },
   "workspaces": [
