@@ -53,7 +53,7 @@
     "preview:docs": "bun --bun vitepress preview docs"
   },
   "dependencies": {
-    "better-dx": "^0.2.4"
+    "better-dx": "^0.2.5"
   },
   "devDependencies": {
     "@stacksjs/docs": "^0.70.23",
