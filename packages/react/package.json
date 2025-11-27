@@ -28,14 +28,14 @@
     "react-dom": "^19.2.0"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.1.0",
+    "@vitejs/plugin-react": "^5.1.1",
     "ts-maps": "workspace:*",
-    "vite": "^7.2.2",
+    "vite": "^7.2.4",
     "vite-plugin-dts": "^4.5.4"
   },
   "devDependencies": {
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "typescript": "^5.9.3"
