@@ -57,7 +57,7 @@
     "@types/google.maps": "^3.58.1",
     "@types/vue": "^2.0.0",
     "@vue/tsconfig": "^0.8.1",
-    "bumpp": "^10.3.2",
+    "bumpp": "^10.4.0",
     "changelogen": "^0.6.2",
     "happy-dom": "^20.1.0",
     "typescript": "^5.9.3",
