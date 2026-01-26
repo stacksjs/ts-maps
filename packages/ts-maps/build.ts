@@ -6,6 +6,7 @@ await Bun.build({
   target: 'browser',
   entrypoints: [
     './src/index.ts',
+    './src/analytics/index.ts',
     './src/maps/brasil.ts',
     './src/maps/canada.ts',
     './src/maps/iraq.ts',
