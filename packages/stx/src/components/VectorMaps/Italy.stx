@@ -1,0 +1,57 @@
+<script server>
+import type { MapOptions } from 'ts-maps'
+
+interface Props {
+  options: Omit<MapOptions, 'selector'>
+  height?: string
+  id?: string
+  onRegionClick?: string
+  onMarkerClick?: string
+  onLoaded?: string
+  onViewportChange?: string
+}
+
+const {
+  options,
+  height = '500px',
+  id,
+  onRegionClick,
+  onMarkerClick,
+  onLoaded,
+  onViewportChange,
+} = defineProps<Props>()
+
+const { projection, ...mapOptions } = options
+</script>
+
+<template>
+  @component('VectorMap', {
+    options: mapOptions,
+    mapName: 'italy',
+    height: height,
+    id: id,
+    onRegionClick: onRegionClick,
+    onMarkerClick: onMarkerClick,
+    onLoaded: onLoaded,
+    onViewportChange: onViewportChange
+  })
+    <slot name="loading">
+      <div class="italy-map-loading">
+        Loading Italy map...
+      </div>
+    </slot>
+  @endcomponent
+</template>
+
+<style>
+.italy-map-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1.2em;
+  color: #666;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+</style>
