@@ -42,6 +42,6 @@
     "@nuxt/schema": "^4.3.0",
     "nuxt": "^4.3.0",
     "typescript": "~5.9.3",
-    "vue-tsc": "^3.2.3"
+    "vue-tsc": "^3.2.4"
   }
 }
