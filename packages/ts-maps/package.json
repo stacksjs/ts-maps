@@ -76,6 +76,10 @@
       "import": "./dist/maps/world-merc.js",
       "require": "./dist/maps/world-merc.cjs"
     },
+    "./analytics": {
+      "types": "./dist/analytics/index.d.ts",
+      "import": "./dist/analytics/index.js"
+    },
     "./*": {
       "import": "./dist/*"
     }
