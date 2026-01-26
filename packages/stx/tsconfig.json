@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext", "DOM"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "declarationDir": "./dist",
+    "outDir": "./dist",
+    "noEmit": false,
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "ts-maps": ["../ts-maps/src"],
+      "ts-maps/*": ["../ts-maps/src/maps/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.stx"]
+}

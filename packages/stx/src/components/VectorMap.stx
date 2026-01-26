@@ -1,0 +1,149 @@
+<script server>
+import type { MapOptions } from 'ts-maps'
+
+type MapName = 'world' | 'world-merc' | 'us-merc' | 'us-mill' | 'us-lcc' | 'us-aea' | 'spain' | 'iraq' | 'italy' | 'canada' | 'brasil' | 'russia'
+
+interface Props {
+  options: Omit<MapOptions, 'selector'>
+  mapName: MapName
+  width?: string
+  height?: string
+  id?: string
+  onRegionClick?: string
+  onMarkerClick?: string
+  onLoaded?: string
+  onViewportChange?: string
+}
+
+const {
+  options,
+  mapName,
+  width = '100%',
+  height = '400px',
+  id = `ts-maps-${Math.random().toString(36).substring(2, 11)}`,
+  onRegionClick,
+  onMarkerClick,
+  onLoaded,
+  onViewportChange,
+} = defineProps<Props>()
+
+const containerStyle = `width: ${width}; height: ${height}; position: relative;`
+
+const mapOptions = JSON.stringify({
+  ...options,
+  selector: `#${id}`,
+  map: {
+    name: mapName,
+    projection: options.projection,
+  },
+})
+</script>
+
+<template>
+  <div id="{{ id }}" class="ts-maps-container" style="{{ containerStyle }}" data-map-name="{{ mapName }}">
+    <div class="ts-maps-loading">
+      <slot name="loading">
+        Loading map...
+      </slot>
+    </div>
+  </div>
+</template>
+
+<script client>
+import { VectorMap } from 'ts-maps'
+import brasilMap from 'ts-maps/brasil'
+import canadaMap from 'ts-maps/canada'
+import iraqMap from 'ts-maps/iraq'
+import italyMap from 'ts-maps/italy'
+import russiaMap from 'ts-maps/russia'
+import spainMap from 'ts-maps/spain'
+import usaAeaMap from 'ts-maps/us-aea-en'
+import usaLccMap from 'ts-maps/us-lcc-en'
+import usaMercMap from 'ts-maps/us-merc-en'
+import usaMillMap from 'ts-maps/us-mill-en'
+import worldMap from 'ts-maps/world'
+import worldMercMap from 'ts-maps/world-merc'
+
+const mapData = {
+  'world': worldMap,
+  'world-merc': worldMercMap,
+  'us-merc': usaMercMap,
+  'us-mill': usaMillMap,
+  'us-lcc': usaLccMap,
+  'us-aea': usaAeaMap,
+  'spain': spainMap,
+  'iraq': iraqMap,
+  'italy': italyMap,
+  'canada': canadaMap,
+  'brasil': brasilMap,
+  'russia': russiaMap,
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('{{ id }}')
+  if (!container) return
+
+  const mapName = container.dataset.mapName
+  const options = {{{ mapOptions }}}
+
+  // Add event handlers if specified
+  @if (onRegionClick)
+  options.onRegionClick = (event, code) => {
+    {{{ onRegionClick }}}(event, code)
+  }
+  @endif
+
+  @if (onMarkerClick)
+  options.onMarkerClick = (event, index) => {
+    {{{ onMarkerClick }}}(event, index)
+  }
+  @endif
+
+  @if (onLoaded)
+  options.onLoaded = () => {
+    // Remove loading indicator
+    const loading = container.querySelector('.ts-maps-loading')
+    if (loading) loading.style.display = 'none'
+    {{{ onLoaded }}}()
+  }
+  @else
+  options.onLoaded = () => {
+    const loading = container.querySelector('.ts-maps-loading')
+    if (loading) loading.style.display = 'none'
+  }
+  @endif
+
+  @if (onViewportChange)
+  options.onViewportChange = (scale, transX, transY) => {
+    {{{ onViewportChange }}}(scale, transX, transY)
+  }
+  @endif
+
+  // Add map data and create instance
+  VectorMap.addMap(mapName, mapData[mapName])
+  const map = new VectorMap(options)
+
+  // Store reference for external access
+  container.__tsMap = map
+})
+</script>
+
+<style>
+.ts-maps-container {
+  position: relative;
+}
+
+.ts-maps-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  color: #666;
+  z-index: 1;
+}
+
+.ts-maps-container svg {
+  touch-action: none;
+}
+</style>
