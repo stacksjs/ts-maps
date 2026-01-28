@@ -1,0 +1,66 @@
+{
+  "name": "ts-maps-stx",
+  "type": "module",
+  "version": "0.2.7",
+  "description": "STX components for ts-maps - Interactive Vector Maps",
+  "author": "Chris Breuer <chris@stacksjs.org>",
+  "license": "MIT",
+  "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/stx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stacksjs/ts-maps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stacksjs/ts-maps/issues"
+  },
+  "keywords": [
+    "typescript",
+    "interactive",
+    "vector",
+    "maps",
+    "stx",
+    "ts-maps",
+    "stacks"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./components/*": {
+      "types": "./dist/components/*.d.ts",
+      "import": "./dist/components/*.js"
+    }
+  },
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist",
+    "src/components"
+  ],
+  "scripts": {
+    "build": "bun run build.ts",
+    "prepublishOnly": "bun run build",
+    "lint": "bunx --bun eslint .",
+    "lint:fix": "bunx --bun eslint . --fix",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*"
+  },
+  "devDependencies": {
+    "@stacksjs/eslint-config": "^4.14.0-beta.3",
+    "@types/bun": "^1.3.2",
+    "bun-types": "^1.3.2",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "@stacksjs/stx": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@stacksjs/stx": {
+      "optional": true
+    }
+  }
+}

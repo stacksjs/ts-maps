@@ -59,6 +59,25 @@
         "react-dom": "^19.2.0",
       },
     },
+    "packages/stx": {
+      "name": "ts-maps-stx",
+      "version": "0.2.7",
+      "dependencies": {
+        "ts-maps": "workspace:*",
+      },
+      "devDependencies": {
+        "@stacksjs/eslint-config": "^4.14.0-beta.3",
+        "@types/bun": "^1.3.2",
+        "bun-types": "^1.3.2",
+        "typescript": "^5.9.3",
+      },
+      "peerDependencies": {
+        "@stacksjs/stx": ">=0.1.0",
+      },
+      "optionalPeers": [
+        "@stacksjs/stx",
+      ],
+    },
     "packages/ts-maps": {
       "name": "ts-maps",
       "version": "0.2.7",
@@ -2603,6 +2622,8 @@
     "ts-maps-nuxt": ["ts-maps-nuxt@workspace:packages/nuxt"],
 
     "ts-maps-react": ["ts-maps-react@workspace:packages/react"],
+
+    "ts-maps-stx": ["ts-maps-stx@workspace:packages/stx"],
 
     "ts-maps-vue": ["ts-maps-vue@workspace:packages/vue"],
 
