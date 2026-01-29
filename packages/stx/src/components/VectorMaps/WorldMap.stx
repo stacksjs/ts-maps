@@ -1,0 +1,58 @@
+<script server>
+import type { MapOptions } from 'ts-maps'
+
+interface Props {
+  options: Omit<MapOptions, 'selector'>
+  height?: string
+  id?: string
+  onRegionClick?: string
+  onMarkerClick?: string
+  onLoaded?: string
+  onViewportChange?: string
+}
+
+const {
+  options,
+  height = '500px',
+  id,
+  onRegionClick,
+  onMarkerClick,
+  onLoaded,
+  onViewportChange,
+} = defineProps<Props>()
+
+// Remove projection from options to avoid overriding map-specific settings
+const { projection, ...mapOptions } = options
+</script>
+
+<template>
+  @component('VectorMap', {
+    options: mapOptions,
+    mapName: 'world',
+    height: height,
+    id: id,
+    onRegionClick: onRegionClick,
+    onMarkerClick: onMarkerClick,
+    onLoaded: onLoaded,
+    onViewportChange: onViewportChange
+  })
+    <slot name="loading">
+      <div class="world-map-loading">
+        Loading World map...
+      </div>
+    </slot>
+  @endcomponent
+</template>
+
+<style>
+.world-map-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 1.2em;
+  color: #666;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+</style>

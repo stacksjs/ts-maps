@@ -39,7 +39,7 @@
     "packages/post/dist"
   ],
   "scripts": {
-    "build": "cd ./packages/ts-maps && bun run build && cd ../vue && bun run build && cd ../nuxt && bun run build && cd ../react && bun run build",
+    "build": "cd ./packages/ts-maps && bun run build && cd ../vue && bun run build && cd ../nuxt && bun run build && cd ../react && bun run build && cd ../stx && bun run build",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
     "test": "bun test",
     "lint": "bunx --bun eslint .",
