@@ -28,16 +28,16 @@
     "react-dom": "^19.2.0"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.1.0",
+    "@vitejs/plugin-react": "^5.1.3",
     "ts-maps": "workspace:*",
-    "vite": "^7.2.2",
+    "vite": "^7.3.1",
     "vite-plugin-dts": "^4.5.4"
   },
   "devDependencies": {
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "typescript": "^5.9.3"
   }
 }
