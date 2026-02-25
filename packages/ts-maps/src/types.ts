@@ -83,7 +83,7 @@ export interface MarkerConstructorConfig {
   map: MapInterface
   label?: {
     render?: (config: any, key: string) => string
-    offsets?: ((key: string) => [number, number]) | Array<[number, number]>
+    offsets?: ((_key: string) => [number, number]) | Array<[number, number]>
   }
   labelsGroup?: SVGElement
   cx: number

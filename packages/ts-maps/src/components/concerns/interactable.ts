@@ -1,6 +1,6 @@
 interface Label {
   render?: (...args: any[]) => string
-  offsets?: ((key: string) => [number, number]) | Array<[number, number]>
+  offsets?: ((_key: string) => [number, number]) | Array<[number, number]>
 }
 
 const Interactable = {

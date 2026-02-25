@@ -15,7 +15,7 @@ interface MarkerOptions {
   cy: number
   label?: {
     render?: (config: any, key: string) => string
-    offsets?: ((key: string) => [number, number]) | Array<[number, number]>
+    offsets?: ((_key: string) => [number, number]) | Array<[number, number]>
   }
   config?: {
     offsets?: [number, number]

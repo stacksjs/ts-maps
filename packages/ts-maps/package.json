@@ -23,58 +23,55 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     },
     "./brasil": {
-      "types": "./dist/brasil.d.ts",
+      "types": "./dist/maps/brasil.d.ts",
       "import": "./dist/maps/brasil.js"
     },
     "./canada": {
-      "types": "./dist/canada.d.ts",
+      "types": "./dist/maps/canada.d.ts",
       "import": "./dist/maps/canada.js"
     },
     "./iraq": {
-      "types": "./dist/iraq.d.ts",
+      "types": "./dist/maps/iraq.d.ts",
       "import": "./dist/maps/iraq.js"
     },
     "./italy": {
-      "types": "./dist/italy.d.ts",
+      "types": "./dist/maps/italy.d.ts",
       "import": "./dist/maps/italy.js"
     },
     "./russia": {
-      "types": "./dist/russia.d.ts",
+      "types": "./dist/maps/russia.d.ts",
       "import": "./dist/maps/russia.js"
     },
     "./spain": {
-      "types": "./dist/spain.d.ts",
+      "types": "./dist/maps/spain.d.ts",
       "import": "./dist/maps/spain.js"
     },
     "./us-aea-en": {
-      "types": "./dist/us-aea-en.d.ts",
+      "types": "./dist/maps/us-aea-en.d.ts",
       "import": "./dist/maps/us-aea-en.js"
     },
     "./us-lcc-en": {
-      "types": "./dist/us-lcc-en.d.ts",
+      "types": "./dist/maps/us-lcc-en.d.ts",
       "import": "./dist/maps/us-lcc-en.js"
     },
     "./us-merc-en": {
-      "types": "./dist/us-merc-en.d.ts",
+      "types": "./dist/maps/us-merc-en.d.ts",
       "import": "./dist/maps/us-merc-en.js"
     },
     "./us-mill-en": {
-      "types": "./dist/us-mill-en.d.ts",
+      "types": "./dist/maps/us-mill-en.d.ts",
       "import": "./dist/maps/us-mill-en.js"
     },
     "./world": {
       "types": "./dist/maps/world.d.ts",
-      "import": "./dist/maps/world.js",
-      "require": "./dist/maps/world.cjs"
+      "import": "./dist/maps/world.js"
     },
     "./world-merc": {
       "types": "./dist/maps/world-merc.d.ts",
-      "import": "./dist/maps/world-merc.js",
-      "require": "./dist/maps/world-merc.cjs"
+      "import": "./dist/maps/world-merc.js"
     },
     "./analytics": {
       "types": "./dist/analytics/index.d.ts",
@@ -84,7 +81,7 @@
       "import": "./dist/*"
     }
   },
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
