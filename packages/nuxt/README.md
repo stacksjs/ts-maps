@@ -18,7 +18,7 @@ Find and replace all on all files (CMD+SHIFT+F):
 
 My new Nuxt module for doing amazing things.
 
-- [✨ &nbsp;Release Notes](/CHANGELOG.md)
+- [✨ &nbsp;Release Notes][nbsp-release-notes]
 
 <!-- - [🏀 Online playground](https://stackblitz.com/github/your-org/my-module?file=playground%2Fapp.vue) -->
 <!-- - [📖 &nbsp;Documentation](https://example.com) -->
@@ -84,3 +84,5 @@ That's it! You can now use My Module in your Nuxt app ✨
 
 [nuxt-src]: https://img.shields.io/badge/Nuxt-020420?logo=nuxt.js
 [nuxt-href]: https://nuxt.com
+[nbsp-release-notes]: /CHANGELOG.md
+[commitizen-href]: http://commitizen.github.io/cz-cli/

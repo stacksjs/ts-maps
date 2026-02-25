@@ -2,7 +2,7 @@
 
 [![npm version][npm-version-src]][npm-version-href]
 [![GitHub Actions][github-actions-src]][github-actions-href]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+[![Commitizen friendly][commitizen-friendly]][commitizen-href]
 
 # ts-maps
 
@@ -160,12 +160,12 @@ const { map, isLoading } = useVectorMap({
 
 ## Documentation
 
-- [Introduction](https://ts-maps.dev/intro)
-- [Installation](https://ts-maps.dev/install)
-- [Usage Guide](https://ts-maps.dev/usage)
-- [API Reference](https://ts-maps.dev/api)
-- [Examples](https://ts-maps.dev/examples)
-- [Playground](https://ts-maps.dev/playground)
+- [Introduction][introduction]
+- [Installation][installation]
+- [Usage Guide][usage-guide]
+- [API Reference][api-reference]
+- [Examples][examples]
+- [Playground][playground]
 
 ## Development
 
@@ -190,21 +190,21 @@ pnpm dev
 
 ## Changelog
 
-Please see our [releases](https://github.com/stacksjs/ts-maps/releases) page for more information on what has changed recently.
+Please see our [releases][releases] page for more information on what has changed recently.
 
 ## Contributing
 
-Please see [CONTRIBUTING](https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md) for details.
+Please see [CONTRIBUTING][contributing] for details.
 
 ## Community
 
 For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-[Discussions on GitHub](https://github.com/stacksjs/ts-maps/discussions)
+[Discussions on GitHub][discussions-on-github]
 
 For casual chit-chat with others using this package:
 
-[Join the Stacks Discord Server](https://discord.gg/stacksjs)
+[Join the Stacks Discord Server][join-the-stacks-discord-server]
 
 ## Postcardware
 
@@ -216,18 +216,18 @@ Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United St
 
 We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
 
-- [JetBrains](https://www.jetbrains.com/)
-- [The Solana Foundation](https://solana.com/)
+- [JetBrains][jetbrains]
+- [The Solana Foundation][the-solana-foundation]
 
 ## Credits
 
-- [jsvectormap](https://github.com/themustafaomar/jsvectormap)
-- [Chris Breuer](https://github.com/chrisbbreuer)
-- [All Contributors](https://github.com/stacksjs/ts-maps/contributors)
+- [jsvectormap][jsvectormap]
+- [Chris Breuer][chris-breuer]
+- [All Contributors][all-contributors]
 
 ## License
 
-The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/clarity/blob/main/LICENSE.md) for more information.
+The MIT License (MIT). Please see [LICENSE][license] for more information.
 
 Made with 💙
 
@@ -239,3 +239,21 @@ Made with 💙
 
 <!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/clarity/main?style=flat-square
 [codecov-href]: https://codecov.io/gh/stacksjs/clarity -->
+[commitizen-friendly]: https://img.shields.io/badge/commitizen-friendly-brightgreen.svg
+[introduction]: https://ts-maps.dev/intro
+[installation]: https://ts-maps.dev/install
+[usage-guide]: https://ts-maps.dev/usage
+[api-reference]: https://ts-maps.dev/api
+[examples]: https://ts-maps.dev/examples
+[playground]: https://ts-maps.dev/playground
+[releases]: https://github.com/stacksjs/ts-maps/releases
+[contributing]: https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md
+[discussions-on-github]: https://github.com/stacksjs/ts-maps/discussions
+[join-the-stacks-discord-server]: https://discord.gg/stacksjs
+[jetbrains]: https://www.jetbrains.com/
+[the-solana-foundation]: https://solana.com/
+[jsvectormap]: https://github.com/themustafaomar/jsvectormap
+[chris-breuer]: https://github.com/chrisbbreuer
+[all-contributors]: https://github.com/stacksjs/ts-maps/contributors
+[license]: https://github.com/stacksjs/clarity/blob/main/LICENSE.md
+[commitizen-href]: http://commitizen.github.io/cz-cli/

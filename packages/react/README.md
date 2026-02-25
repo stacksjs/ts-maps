@@ -2,7 +2,7 @@
 
 [![npm version][npm-version-src]][npm-version-href]
 [![GitHub Actions][github-actions-src]][github-actions-href]
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+[![Commitizen friendly][commitizen-friendly]][commitizen-href]
 <!-- [![npm downloads][npm-downloads-src]][npm-downloads-href] -->
 <!-- [![Codecov][codecov-src]][codecov-href] -->
 
@@ -76,27 +76,27 @@ A lightweight Barcode library with zero dependencies. It supports multiple barco
 
 #### Supported Formats
 
-- [CODE128](https://github.com/lindell/JsBarcode/wiki/CODE128)
+- [CODE128][code128]
   - CODE128 (automatic mode switching)
   - CODE128 A/B/C (force mode)
-- [EAN](https://github.com/lindell/JsBarcode/wiki/EAN)
+- [EAN][ean]
   - EAN-13
   - EAN-8
   - EAN-5
   - EAN-2
   - UPC (A)
   - UPC (E)
-- [CODE39](https://github.com/lindell/JsBarcode/wiki/CODE39)
-- [ITF](https://github.com/lindell/JsBarcode/wiki/ITF-14)
+- [CODE39][code39]
+- [ITF][itf]
   - ITF
   - ITF-14
-- [MSI](https://github.com/lindell/JsBarcode/wiki/MSI)
+- [MSI][msi]
   - MSI10
   - MSI11
   - MSI1010
   - MSI1110
-- [Pharmacode](https://github.com/lindell/JsBarcode/wiki/pharmacode)
-- [Codabar](https://github.com/lindell/JsBarcode/wiki/codabar)
+- [Pharmacode][pharmacode]
+- [Codabar][codabar]
 
 #### Browser Example
 
@@ -114,7 +114,7 @@ A lightweight Barcode library with zero dependencies. It supports multiple barco
 Barcode('#barcode', 'Hi!')
 ````
 
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/simple.svg)
+![Result][result]
 
 #### Example with options
 
@@ -128,7 +128,7 @@ Barcode('#barcode', '1234', {
 })
 ```
 
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/advanced.svg)
+![Result][result-2]
 
 #### More advanced use case
 
@@ -141,7 +141,7 @@ Barcode('#barcode')
   .render()
 ````
 
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/simple.svg)
+![Result][result-3]
 
 #### Or define the value and options in the HTML element
 
@@ -162,7 +162,7 @@ And then initialize it with:
 Barcode('.barcode').init()
 ```
 
-![Result](https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/init.svg)
+![Result][result-4]
 
 #### Retrieve the barcode values so you can render it any way you'd like
 
@@ -215,25 +215,25 @@ For information about how to use the options, see the docs.
 
 | Option | Default value | Type |
 |--------|---------------|------|
-| [`format`](https://github.com/lindell/JsBarcode/wiki/Options#format) | `"auto" (CODE128)` | `String` |
-| [`width`](https://github.com/lindell/JsBarcode/wiki/Options#width) | `2` | `Number` |
-| [`height`](https://github.com/lindell/JsBarcode/wiki/Options#height) | `100` | `Number` |
-| [`displayValue`](https://github.com/lindell/JsBarcode/wiki/Options#display-value) | `true` | `Boolean` |
-| [`text`](https://github.com/lindell/JsBarcode/wiki/Options#text) | `undefined` | `String` |
-| [`fontOptions`](https://github.com/lindell/JsBarcode/wiki/Options#font-options) | `""` | `String` |
-| [`font`](https://github.com/lindell/JsBarcode/wiki/Options#font) | `"monospace"` | `String` |
-| [`textAlign`](https://github.com/lindell/JsBarcode/wiki/Options#text-align) | `"center"` | `String` |
-| [`textPosition`](https://github.com/lindell/JsBarcode/wiki/Options#text-position) | `"bottom"` | `String` |
-| [`textMargin`](https://github.com/lindell/JsBarcode/wiki/Options#text-margin) | `2` | `Number` |
-| [`fontSize`](https://github.com/lindell/JsBarcode/wiki/Options#font-size) | `20` | `Number` |
-| [`background`](https://github.com/lindell/JsBarcode/wiki/Options#background)  | `"#ffffff"` | `String (CSS color)` |
-| [`lineColor`](https://github.com/lindell/JsBarcode/wiki/Options#line-color) | `"#000000"` | `String (CSS color)` |
-| [`margin`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `10` | `Number` |
-| [`marginTop`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`marginBottom`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`marginLeft`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`marginRight`](https://github.com/lindell/JsBarcode/wiki/Options#margins) | `undefined` | `Number` |
-| [`valid`](https://github.com/lindell/JsBarcode/wiki/Options#valid) | `function(valid){}` | `Function` |
+| [`format`][format] | `"auto" (CODE128)` | `String` |
+| [`width`][width] | `2` | `Number` |
+| [`height`][height] | `100` | `Number` |
+| [`displayValue`][displayvalue] | `true` | `Boolean` |
+| [`text`][text] | `undefined` | `String` |
+| [`fontOptions`][fontoptions] | `""` | `String` |
+| [`font`][font] | `"monospace"` | `String` |
+| [`textAlign`][textalign] | `"center"` | `String` |
+| [`textPosition`][textposition] | `"bottom"` | `String` |
+| [`textMargin`][textmargin] | `2` | `Number` |
+| [`fontSize`][fontsize] | `20` | `Number` |
+| [`background`][background]  | `"#ffffff"` | `String (CSS color)` |
+| [`lineColor`][linecolor] | `"#000000"` | `String (CSS color)` |
+| [`margin`][margin] | `10` | `Number` |
+| [`marginTop`][margintop] | `undefined` | `Number` |
+| [`marginBottom`][marginbottom] | `undefined` | `Number` |
+| [`marginLeft`][marginleft] | `undefined` | `Number` |
+| [`marginRight`][marginright] | `undefined` | `Number` |
+| [`valid`][valid] | `function(valid){}` | `Function` |
 
 ## Testing
 
@@ -243,21 +243,21 @@ bun test
 
 ## Changelog
 
-Please see our [releases](https://github.com/stackjs/qrx/releases) page for more information on what has changed recently.
+Please see our [releases][releases] page for more information on what has changed recently.
 
 ## Contributing
 
-Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
+Please see [CONTRIBUTING][contributing] for details.
 
 ## Community
 
 For help, discussion about best practices, or any other conversation that would benefit from being searchable:
 
-[Discussions on GitHub](https://github.com/stacksjs/qrx/discussions)
+[Discussions on GitHub][discussions-on-github]
 
 For casual chit-chat with others using this package:
 
-[Join the Stacks Discord Server](https://discord.gg/stacksjs)
+[Join the Stacks Discord Server][join-the-stacks-discord-server]
 
 ## Postcardware
 
@@ -269,8 +269,8 @@ Our address: Stacks.js, 12665 Village Ln #2306, Playa Vista, CA 90094, United St
 
 We would like to extend our thanks to the following sponsors for funding Stacks development. If you are interested in becoming a sponsor, please reach out to us.
 
-- [JetBrains](https://www.jetbrains.com/)
-- [The Solana Foundation](https://solana.com/)
+- [JetBrains][jetbrains]
+- [The Solana Foundation][the-solana-foundation]
 
 ## Credit
 
@@ -281,7 +281,7 @@ Many thanks for the libraries that laid the groundwork:
 
 ## License
 
-The MIT License (MIT). Please see [LICENSE](LICENSE.md) for more information.
+The MIT License (MIT). Please see [LICENSE][license] for more information.
 
 Made with 💙
 
@@ -293,3 +293,42 @@ Made with 💙
 
 <!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/qrx/main?style=flat-square
 [codecov-href]: https://codecov.io/gh/stacksjs/qrx -->
+[commitizen-friendly]: https://img.shields.io/badge/commitizen-friendly-brightgreen.svg
+[code128]: https://github.com/lindell/JsBarcode/wiki/CODE128
+[ean]: https://github.com/lindell/JsBarcode/wiki/EAN
+[code39]: https://github.com/lindell/JsBarcode/wiki/CODE39
+[itf]: https://github.com/lindell/JsBarcode/wiki/ITF-14
+[msi]: https://github.com/lindell/JsBarcode/wiki/MSI
+[pharmacode]: https://github.com/lindell/JsBarcode/wiki/pharmacode
+[codabar]: https://github.com/lindell/JsBarcode/wiki/codabar
+[result]: https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/simple.svg
+[result-2]: https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/advanced.svg
+[result-3]: https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/simple.svg
+[result-4]: https://s3-eu-west-1.amazonaws.com/js-barcode/barcodes/init.svg
+[format]: https://github.com/lindell/JsBarcode/wiki/Options#format
+[width]: https://github.com/lindell/JsBarcode/wiki/Options#width
+[height]: https://github.com/lindell/JsBarcode/wiki/Options#height
+[displayvalue]: https://github.com/lindell/JsBarcode/wiki/Options#display-value
+[text]: https://github.com/lindell/JsBarcode/wiki/Options#text
+[fontoptions]: https://github.com/lindell/JsBarcode/wiki/Options#font-options
+[font]: https://github.com/lindell/JsBarcode/wiki/Options#font
+[textalign]: https://github.com/lindell/JsBarcode/wiki/Options#text-align
+[textposition]: https://github.com/lindell/JsBarcode/wiki/Options#text-position
+[textmargin]: https://github.com/lindell/JsBarcode/wiki/Options#text-margin
+[fontsize]: https://github.com/lindell/JsBarcode/wiki/Options#font-size
+[background]: https://github.com/lindell/JsBarcode/wiki/Options#background
+[linecolor]: https://github.com/lindell/JsBarcode/wiki/Options#line-color
+[margin]: https://github.com/lindell/JsBarcode/wiki/Options#margins
+[margintop]: https://github.com/lindell/JsBarcode/wiki/Options#margins
+[marginbottom]: https://github.com/lindell/JsBarcode/wiki/Options#margins
+[marginleft]: https://github.com/lindell/JsBarcode/wiki/Options#margins
+[marginright]: https://github.com/lindell/JsBarcode/wiki/Options#margins
+[valid]: https://github.com/lindell/JsBarcode/wiki/Options#valid
+[releases]: https://github.com/stackjs/qrx/releases
+[contributing]: .github/CONTRIBUTING.md
+[discussions-on-github]: https://github.com/stacksjs/qrx/discussions
+[join-the-stacks-discord-server]: https://discord.gg/stacksjs
+[jetbrains]: https://www.jetbrains.com/
+[the-solana-foundation]: https://solana.com/
+[license]: LICENSE.md
+[commitizen-href]: http://commitizen.github.io/cz-cli/

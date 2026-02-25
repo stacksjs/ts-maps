@@ -31,9 +31,6 @@
   },
   "module": "./packages/ts-maps/dist/index.js",
   "types": "./packages/ts-maps/dist/index.d.ts",
-  "bin": {
-    "post": "./packages/post/dist/bin/cli.js"
-  },
   "files": [
     "README.md",
     "packages/post/dist"

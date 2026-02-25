@@ -1,3 +1,4 @@
+/* eslint-disable no-console, ts/no-top-level-await */
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
