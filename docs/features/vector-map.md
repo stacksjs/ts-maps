@@ -98,7 +98,7 @@ You can customize the appearance of the zoom buttons using CSS. Here's how to st
 
 ```css
 /* Zoom buttons styling */
-#map .jvm-zoom-btn {
+# map .jvm-zoom-btn {
   position: absolute;
   right: 10px;
   z-index: 10;
@@ -117,17 +117,17 @@ You can customize the appearance of the zoom buttons using CSS. Here's how to st
 }
 
 /* Position zoom in button */
-#map .jvm-zoomin {
+# map .jvm-zoomin {
   top: 10px;
 }
 
 /* Position zoom out button */
-#map .jvm-zoomout {
+# map .jvm-zoomout {
   top: 50px;
 }
 
 /* Hover effect */
-#map .jvm-zoom-btn:hover {
+# map .jvm-zoom-btn:hover {
   background-color: #f8fafc;
 }
 ```

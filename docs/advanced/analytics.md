@@ -2,7 +2,7 @@
 
 Create beautiful, interactive heatmaps to visualize data patterns and correlations across your analytics datasets. Heatmaps use color gradients to represent data values, making it easy to identify trends, correlations, and anomalies in your business metrics and user behavior data.
 
-## What is an Analytics Heatmap?
+## What is an Analytics Heatmap
 
 An analytics heatmap is a data visualization technique that uses color intensity to represent metric values across different dimensions. High-performing metrics or strong correlations are displayed with warmer/darker colors, while lower values or weak correlations use cooler/lighter colors. This creates an intuitive visual representation of performance patterns, user engagement, and data relationships.
 
@@ -310,6 +310,7 @@ Below is a live demo of the analytics heatmap functionality. Use the dropdown to
 - **Scroll** to zoom in/out for different detail levels
 - **Drag** to pan around the map for exploration
 - **Switch maps** to compare visitor patterns across regions
+
 :::
 
 ## Analytics Use Cases

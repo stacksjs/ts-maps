@@ -2,7 +2,7 @@
 
 Create beautiful, interactive heatmaps with ts-maps to visualize data intensity across geographic regions. Heatmaps use color gradients to represent data values, making it easy to identify patterns, hotspots, and trends in your data.
 
-## What is a Heatmap?
+## What is a Heatmap
 
 A heatmap is a data visualization technique that uses color intensity to represent data values. In geographic contexts, regions with higher values are colored with warmer/darker colors, while regions with lower values use cooler/lighter colors. This creates an intuitive visual representation of data distribution across geographic areas.
 
@@ -290,6 +290,7 @@ Below is a live demo of the heatmap functionality. Use the dropdown to switch be
 - **Scroll** to zoom in/out
 - **Drag** to pan around the map
 - **Switch maps** to see different heatmap visualizations
+
 :::
 
 ## Use Cases

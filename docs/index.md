@@ -41,5 +41,3 @@ features:
     icon: "🌍"
     details: "Support for projections, legends, scales, and various map types out of the box"
 ---
-
-<Home />

@@ -145,7 +145,7 @@ Barcode('#barcode')
 
 #### Or define the value and options in the HTML element
 
-Use any `barcode-*` or `data-*` as attributes where `*` is any option.
+Use any `barcode-_` or `data-_` as attributes where `*` is any option.
 
 ````html
 <svg class="barcode"
@@ -173,7 +173,7 @@ const data = {}
 Barcode(data, 'text', { ...options })
 ```
 
-data will be filled with a ``` encodings ``` property which has all the needed values. See docs for examples of what data looks like.
+data will be filled with a ```encodings``` property which has all the needed values. See docs for examples of what data looks like.
 
 #### Node.js & Bun
 
