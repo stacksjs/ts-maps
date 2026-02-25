@@ -2,9 +2,11 @@
 Get your module up and running quickly.
 
 Find and replace all on all files (CMD+SHIFT+F):
+
 - Name: My Module
 - Package name: my-module
 - Description: My new Nuxt module
+
 -->
 
 # My Module
@@ -17,12 +19,14 @@ Find and replace all on all files (CMD+SHIFT+F):
 My new Nuxt module for doing amazing things.
 
 - [✨ &nbsp;Release Notes](/CHANGELOG.md)
+
 <!-- - [🏀 Online playground](https://stackblitz.com/github/your-org/my-module?file=playground%2Fapp.vue) -->
 <!-- - [📖 &nbsp;Documentation](https://example.com) -->
 
 ## Features
 
 <!-- Highlight some of the features your module provide here -->
+
 - ⛰ &nbsp;Foo
 - 🚠 &nbsp;Bar
 - 🌲 &nbsp;Baz
@@ -43,26 +47,26 @@ That's it! You can now use My Module in your Nuxt app ✨
   <summary>Local development</summary>
 
   ```bash
-  # Install dependencies
+# Install dependencies
   npm install
 
-  # Generate type stubs
+# Generate type stubs
   npm run dev:prepare
 
-  # Develop with the playground
+# Develop with the playground
   npm run dev
 
-  # Build the playground
+# Build the playground
   npm run dev:build
 
-  # Run ESLint
+# Run ESLint
   npm run lint
 
-  # Run Vitest
+# Run Vitest
   npm run test
   npm run test:watch
 
-  # Release new version
+# Release new version
   npm run release
   ```
 

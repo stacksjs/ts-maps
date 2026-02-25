@@ -36,6 +36,7 @@ app.mount('#app')
 ```
 
 This registers all map components globally:
+
 - `VectorMap` - Base vector map component
 - `GoogleMap` - Google Maps integration
 - `WorldMap` - World map preset
