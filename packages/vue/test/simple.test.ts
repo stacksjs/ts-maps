@@ -15,7 +15,7 @@ describe('Vue Package Exports', () => {
 
   test('should have Vue as dependency', async () => {
     const packageJson = await import('../package.json')
-    expect(packageJson.default.devDependencies.vue).toBeDefined()
+    expect(packageJson.default.dependencies.vue).toBeDefined()
   })
 
   test('should have TypeScript configuration', async () => {
