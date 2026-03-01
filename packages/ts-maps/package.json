@@ -99,7 +99,7 @@
   },
   "devDependencies": {
     "bunfig": "^0.15.6",
-    "lint-staged": "^16.2.7",
+    "lint-staged": "^16.3.1",
     "typescript": "^5.9.3"
   },
   "lint-staged": {
