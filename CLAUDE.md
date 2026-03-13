@@ -2,7 +2,7 @@
 
 ## About
 
-A modern vector map library.
+A zero-dependency TypeScript library for creating interactive SVG-based vector maps with data visualization support (choropleth maps, heat maps, bubble charts). It provides multiple map projections (Mercator, Equal Earth), built-in world and country maps, interactive legends and tooltips, and official React, Vue, and Nuxt bindings. Inspired by jsvectormap.
 
 ## Linting
 
