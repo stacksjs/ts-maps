@@ -23,11 +23,11 @@
     "typecheck": "bunx --bun tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.1.4",
+    "@vitejs/plugin-react": "^5.2.0",
     "ts-maps": "workspace:*",
     "vite": "^7.3.1",
     "vite-plugin-dts": "^4.5.4"
