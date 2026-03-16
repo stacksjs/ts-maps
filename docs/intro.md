@@ -181,5 +181,4 @@ Made with 💙
 
 <!-- Badges -->
 
-<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/mail-server/main?style=flat-square
-[codecov-href]: https://codecov.io/gh/stacksjs/mail-server -->
+<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/mail-server/main?style=flat-square -->

@@ -373,19 +373,19 @@ Below is a live demo of the analytics heatmap functionality. Use the dropdown to
 
 ### Common Issues
 
-**Visitor data not displaying correctly:**
+#### Visitor data not displaying correctly
 
 - Ensure `visualizeData` configuration matches your data structure
 - Check that country/region codes match your analytics data format
 - Verify color scale array covers your data range appropriately
 
-**Performance issues with large datasets:**
+#### Performance issues with large datasets
 
 - Implement data pagination for large visitor datasets
 - Use data aggregation for better performance
 - Consider server-side data processing for complex analytics
 
-**Inaccurate visitor representation:**
+#### Inaccurate visitor representation
 
 - Verify data normalization is appropriate for your use case
 - Check for data quality issues (bots, invalid traffic)

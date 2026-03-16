@@ -68,7 +68,7 @@ const map = new VectorMap({
 You can customize how marker labels are rendered and positioned:
 
 - `render`: A function that returns the text to display for each marker
-- `offsets`: A function that returns an array of [x, y] coordinates for label positioning
+- `offsets`: A function that returns an array of `[x, y]` coordinates for label positioning
   - Positive x moves the label right
   - Negative y moves the label up
 

@@ -294,8 +294,7 @@ Made with 💙
 [github-actions-src]: https://img.shields.io/github/actions/workflow/status/stacksjs/clarity/ci.yml?style=flat-square&branch=main
 [github-actions-href]: https://github.com/stacksjs/clarity/actions?query=workflow%3Aci
 
-<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/clarity/main?style=flat-square
-[codecov-href]: https://codecov.io/gh/stacksjs/clarity -->
+<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/clarity/main?style=flat-square -->
 [commitizen-friendly]: https://img.shields.io/badge/commitizen-friendly-brightgreen.svg
 [nuxt-components-documentation]: https://ts-maps.com/components/nuxt
 [introduction]: https://ts-maps.dev/intro

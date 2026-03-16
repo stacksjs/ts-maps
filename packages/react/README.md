@@ -32,7 +32,7 @@ yarn add qrx
 pnpm add qrx
 ```
 
-_Check out the package.json scripts for more commands._
+Check out the package.json scripts for more commands.
 
 ## Usage
 

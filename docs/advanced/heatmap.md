@@ -349,19 +349,19 @@ Below is a live demo of the heatmap functionality. Use the dropdown to switch be
 
 ### Common Issues
 
-**Colors not showing correctly:**
+#### Colors not showing correctly
 
 - Ensure `visualizeData` is properly configured
 - Check that region codes match map data
 - Verify color scale array has sufficient colors
 
-**Performance issues:**
+#### Performance issues
 
 - Reduce the number of regions with data
 - Use simpler color scales
 - Optimize data values
 
-**Map not rendering:**
+#### Map not rendering
 
 - Check that the map data is properly loaded
 - Verify the selector element exists
