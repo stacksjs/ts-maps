@@ -35,8 +35,8 @@ const { projection, ...mapOptions } = options
     onLoaded: onLoaded,
     onViewportChange: onViewportChange
   })
-    <slot name="loading">
-      <div class="canada-map-loading">
+    <slot name='loading'>
+      <div class='canada-map-loading'>
         Loading Canada map...
       </div>
     </slot>

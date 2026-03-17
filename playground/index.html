@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang='en'>
   <head>
-    <meta charset="UTF-8" />
-    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset='UTF-8' />
+    <!-- <link rel='icon' type='image/svg+xml' href='/vite.svg' /> -->
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <title>ts-maps</title>
     <style>
       body {
         margin: 0;
         padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         background-color: #f8fafc;
       }
 
@@ -183,27 +183,27 @@
     </style>
   </head>
   <body>
-    <div class="workspace-wrapper">
+    <div class='workspace-wrapper'>
       <header>
         <div>
           <h1>ts-maps</h1>
           <p>Here you can test the maps and find out how it works if you want to contribute to ts-maps fork this repository<br>then clone it, commit your changes, push it to your forked version and finally you can open a pull request.</p>
         </div>
-        <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+        <a href='https://github.com/stacksjs/ts-maps'>GitHub Repository</a>
       </header>
-      <div id="map">
+      <div id='map'>
         <!-- Legend will be added here -->
-        <div class="map-legend">
+        <div class='map-legend'>
           <h4>Visitor Count</h4>
-          <div class="legend-gradient"></div>
-          <div class="legend-labels">
+          <div class='legend-gradient'></div>
+          <div class='legend-labels'>
             <span>Low</span>
             <span>High</span>
           </div>
         </div>
       </div>
     </div>
-    <script type="module" src="./main.ts"></script>
+    <script type='module' src='./main.ts'></script>
     <script>
       // Direct tooltip positioning override
       document.addEventListener('DOMContentLoaded', function() {
@@ -215,6 +215,7 @@
           if (!mapContainer || !tooltip) {
             // If elements aren't ready yet, try again in 500ms
             setTimeout(setupTooltip, 500);
+            // eslint-disable-next-line no-console
             console.log('Waiting for map and tooltip elements...');
             return;
           }
@@ -289,6 +290,7 @@
           // Start observing the tooltip for attribute changes
           observer.observe(tooltip, { attributes: true });
 
+          // eslint-disable-next-line no-console
           console.log('Custom tooltip positioning applied successfully');
         }
 

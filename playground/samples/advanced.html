@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <meta http-equiv='X-UA-Compatible' content='ie=edge'>
     <title>ts-maps Advanced Example</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: #f8fafc;
         }
 
@@ -217,35 +217,35 @@
     </style>
 </head>
 <body>
-    <div class="workspace-wrapper">
+    <div class='workspace-wrapper'>
         <header>
             <div>
                 <h1>ts-maps Advanced Example</h1>
                 <p>Here you can test the advanced features of ts-maps and learn how to use them.<br>
-                   Click on regions to see their information and use the buttons to control the map.</p>
+                  Click on regions to see their information and use the buttons to control the map.</p>
             </div>
-            <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+            <a href='https://github.com/stacksjs/ts-maps'>GitHub Repository</a>
         </header>
 
-        <div id="map"></div>
+        <div id='map'></div>
 
-        <div class="controls">
-            <button id="change-bg-color">Change bg color</button>
-            <button id="reset">Reset Map</button>
-            <button id="get-regions">Get selected regions</button>
-            <button id="clear-regions">Clear selected regions</button>
-            <button id="get-markers">Get selected markers</button>
-            <button id="clear-markers">Clear selected markers</button>
-            <button id="add-marker">Add Marker</button>
+        <div class='controls'>
+            <button id='change-bg-color'>Change bg color</button>
+            <button id='reset'>Reset Map</button>
+            <button id='get-regions'>Get selected regions</button>
+            <button id='clear-regions'>Clear selected regions</button>
+            <button id='get-markers'>Get selected markers</button>
+            <button id='clear-markers'>Clear selected markers</button>
+            <button id='add-marker'>Add Marker</button>
         </div>
 
-        <div class="info-panel">
+        <div class='info-panel'>
             <h3>Region Information</h3>
-            <div id="region-info">Click on a region to see its information</div>
+            <div id='region-info'>Click on a region to see its information</div>
         </div>
     </div>
 
-    <script type="module" src="./sample-map.ts"></script>
+    <script type='module' src='./sample-map.ts'></script>
     <script>
       // Helper function to get the map instance
       function getMap() {
@@ -381,9 +381,9 @@
 
                       // Create tooltip content
                       let tooltipContent = `
-                          <div style="text-align: center;">
-                              <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${regionName}</div>
-                              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                          <div style='text-align: center;'>
+                              <div style='font-size: 16px; font-weight: 600; margin-bottom: 5px;'>${regionName}</div>
+                              <div style='font-size: 11px; color: #64748b; margin-top: 2px;'>
                                   Code: ${code}
                               </div>
                           </div>
@@ -398,9 +398,9 @@
                       const markerName = marker?.config?.name || code;
 
                       let tooltipContent = `
-                          <div style="text-align: center;">
-                              <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${markerName}</div>
-                              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                          <div style='text-align: center;'>
+                              <div style='font-size: 16px; font-weight: 600; margin-bottom: 5px;'>${markerName}</div>
+                              <div style='font-size: 11px; color: #64748b; margin-top: 2px;'>
                                   Marker ID: ${code}
                               </div>
                           </div>
@@ -467,9 +467,9 @@
                       }).join(', ')
 
                       regionInfo.innerHTML = `
-                          <div style="padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;">
-                              <div style="font-weight: 600; color: #4f46e5; margin-bottom: 8px;">Selected Regions</div>
-                              <div style="color: #1e293b; font-size: 13px;">
+                          <div style='padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;'>
+                              <div style='font-weight: 600; color: #4f46e5; margin-bottom: 8px;'>Selected Regions</div>
+                              <div style='color: #1e293b; font-size: 13px;'>
                                   ${regions}
                               </div>
                           </div>
@@ -501,9 +501,9 @@
                           return marker?.config?.name || code;
                       });
                       regionInfo.innerHTML = `
-                          <div style="padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;">
-                              <div style="font-weight: 600; color: #4f46e5; margin-bottom: 8px;">Selected Markers</div>
-                              <div style="color: #1e293b; font-size: 13px;">
+                          <div style='padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;'>
+                              <div style='font-weight: 600; color: #4f46e5; margin-bottom: 8px;'>Selected Markers</div>
+                              <div style='color: #1e293b; font-size: 13px;'>
                                   ${markerDetails.join(', ')}
                               </div>
                           </div>

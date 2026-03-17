@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
   <title>ts-maps Vue Example</title>
   <style>
     body {
@@ -55,43 +55,43 @@
   </style>
 </head>
 <body>
-  <div id="app" class="container">
+  <div id='app' class='container'>
     <h1>ts-maps Vue Example</h1>
 
-    <div class="controls">
-      <button @click="toggleTheme">
+    <div class='controls'>
+      <button @click='toggleTheme'>
         Toggle Theme
       </button>
-      <button @click="addRandomMarker">
+      <button @click='addRandomMarker'>
         Add Random Marker
       </button>
-      <button @click="toggleZoom">
+      <button @click='toggleZoom'>
         {{ options.zoomOnScroll ? 'Disable' : 'Enable' }} Zoom
       </button>
     </div>
 
-    <div class="map-container">
+    <div class='map-container'>
       <vector-map
-        :options="options"
-        :height="'500px'"
-        @region-click="handleRegionClick"
-        @marker-click="handleMarkerClick"
-        @loaded="handleLoaded"
+        :options='options'
+        :height=''500px''
+        @region-click='handleRegionClick'
+        @marker-click='handleMarkerClick'
+        @loaded='handleLoaded'
       >
         <template #loading>
-          <div class="custom-loading">
+          <div class='custom-loading'>
             Loading your beautiful map...
           </div>
         </template>
       </vector-map>
     </div>
 
-    <div v-if="lastEvent" class="info-panel">
+    <div v-if='lastEvent' class='info-panel'>
       <h3>Last Event</h3>
       <pre>{{ lastEvent }}</pre>
     </div>
   </div>
 
-  <script type="module" src="./src/main.ts"></script>
+  <script type='module' src='./src/main.ts'></script>
 </body>
 </html>

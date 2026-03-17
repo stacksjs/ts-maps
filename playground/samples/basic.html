@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <meta http-equiv='X-UA-Compatible' content='ie=edge'>
   <title>ts-maps Basic Example</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background-color: #f8fafc;
     }
 
@@ -217,33 +217,33 @@
   </style>
 </head>
 <body>
-  <div class="workspace-wrapper">
+  <div class='workspace-wrapper'>
     <header>
       <div>
         <h1>ts-maps US Map Example</h1>
         <p>Here you can test the basic features of ts-maps with a US map and learn how to use them.<br>
-           Click on states to see their information and use the buttons to focus on specific areas.</p>
+          Click on states to see their information and use the buttons to focus on specific areas.</p>
       </div>
-      <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+      <a href='https://github.com/stacksjs/ts-maps'>GitHub Repository</a>
     </header>
 
-    <div id="map">
+    <div id='map'>
 
     </div>
 
-    <div class="controls">
-      <button id="focus-california">Focus California</button>
-      <button id="focus-texas">Focus Texas</button>
-      <button id="reset">Reset View</button>
+    <div class='controls'>
+      <button id='focus-california'>Focus California</button>
+      <button id='focus-texas'>Focus Texas</button>
+      <button id='reset'>Reset View</button>
     </div>
 
-    <div class="info-panel">
+    <div class='info-panel'>
       <h3>State Information</h3>
-      <div id="region-info">Click on a state to see its information</div>
+      <div id='region-info'>Click on a state to see its information</div>
     </div>
   </div>
 
-  <script type="module" src="./sample-map.ts"></script>
+  <script type='module' src='./sample-map.ts'></script>
   <script>
     // Mock visitor data for US states
     const visitorData = {
@@ -291,8 +291,8 @@
       legend.className = 'map-legend';
       legend.innerHTML = `
         <h4>State Visitor Count</h4>
-        <div class="legend-gradient"></div>
-        <div class="legend-labels">
+        <div class='legend-gradient'></div>
+        <div class='legend-labels'>
           <span>0</span>
           <span>${Math.max(...Object.values(visitorData)).toLocaleString()}</span>
         </div>
@@ -471,26 +471,26 @@
 
             // Create tooltip content
             let tooltipContent = `
-              <div style="text-align: center;">
-                <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${regionName}</div>
+              <div style='text-align: center;'>
+                <div style='font-size: 16px; font-weight: 600; margin-bottom: 5px;'>${regionName}</div>
             `;
 
             if (visitorCount > 0) {
               tooltipContent += `
-                <div style="font-size: 14px; color: #4f46e5; font-weight: 600; margin-bottom: 3px;">
+                <div style='font-size: 14px; color: #4f46e5; font-weight: 600; margin-bottom: 3px;'>
                   ${formattedCount} visitors
                 </div>
               `;
             } else {
               tooltipContent += `
-                <div style="font-size: 13px; color: #94a3b8; margin-bottom: 3px;">
+                <div style='font-size: 13px; color: #94a3b8; margin-bottom: 3px;'>
                   No visitor data
                 </div>
               `;
             }
 
             tooltipContent += `
-                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                <div style='font-size: 11px; color: #64748b; margin-top: 2px;'>
                   Code: ${code}
                 </div>
               </div>

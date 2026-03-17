@@ -195,4 +195,5 @@ const map = new VectorMap({
 })
 
 // Make the map instance globally accessible
-;(window as any)._map = map
+const win = window as any
+win._map = map

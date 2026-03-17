@@ -79,7 +79,8 @@ class SVGCanvasElement extends SVGElement {
       group.node.id = id
     }
 
-    ;(group as any).canvas = this
+    const groupWithCanvas = group as any
+    groupWithCanvas.canvas = this
 
     return group
   }

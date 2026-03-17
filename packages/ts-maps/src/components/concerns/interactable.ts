@@ -61,13 +61,14 @@ const Interactable = {
   // Private
 
   _setStatus(property: string, state: boolean): void {
-    (this as any).shape[property] = state
-    ;(this as any).shape.updateStyle()
-    ;(this as any)[property] = state
+    const self = this as any
+    self.shape[property] = state
+    self.shape.updateStyle()
+    self[property] = state
 
-    if ((this as any).label) {
-      (this as any).label[property] = state
-      ;(this as any).label.updateStyle()
+    if (self.label) {
+      self.label[property] = state
+      self.label.updateStyle()
     }
   },
 }

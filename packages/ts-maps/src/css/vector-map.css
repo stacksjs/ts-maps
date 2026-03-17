@@ -142,7 +142,7 @@ image, text, .jvm-zoomin, .jvm-zoomout {
 }
 
 /* Line animation */
-.jvm-line[animation="true"] {
+.jvm-line[animation='true'] {
   -webkit-animation: jvm-line-animation 10s linear forwards infinite;
   animation: jvm-line-animation 10s linear forwards infinite;
 }

@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <meta http-equiv='X-UA-Compatible' content='ie=edge'>
     <title>ts-maps Markers Example</title>
     <style>
       body {
         margin: 0;
         padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         background-color: #f8fafc;
       }
 
@@ -129,21 +129,21 @@
     </style>
 </head>
 <body>
-  <div class="workspace-wrapper">
+  <div class='workspace-wrapper'>
     <header>
       <div>
         <h1>ts-maps Markers Example</h1>
         <p>Explore different marker styles and interactions.<br>
-           Click on markers to select them and see their information.</p>
+          Click on markers to select them and see their information.</p>
       </div>
-      <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+      <a href='https://github.com/stacksjs/ts-maps'>GitHub Repository</a>
     </header>
 
-    <div id="map"></div>
+    <div id='map'></div>
 
-    <div class="info-panel">
+    <div class='info-panel'>
       <h3>Marker Information</h3>
-      <div id="region-info">Click on a marker to see its information</div>
+      <div id='region-info'>Click on a marker to see its information</div>
     </div>
   </div>
 
@@ -197,12 +197,13 @@
       markersSelectable: true,
 
       onMarkerSelected(index, isSelected, selectedMarkers) {
+        // eslint-disable-next-line no-console
         console.log(index, isSelected, selectedMarkers);
         const marker = markers[index];
         document.getElementById('region-info').innerHTML = `
-          <div style="padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;">
-            <div style="font-weight: 600; color: #4f46e5; margin-bottom: 8px;">${marker.name}</div>
-            <div style="color: #64748b; font-size: 12px;">
+          <div style='padding: 12px; background: #4f46e510; border-radius: 6px; border: 1px solid #4f46e540;'>
+            <div style='font-weight: 600; color: #4f46e5; margin-bottom: 8px;'>${marker.name}</div>
+            <div style='color: #64748b; font-size: 12px;'>
               Location: ${marker.coords.join(', ')}
             </div>
           </div>

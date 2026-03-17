@@ -40,9 +40,9 @@ const mapOptions = JSON.stringify({
 </script>
 
 <template>
-  <div id="{{ id }}" class="ts-maps-container" style="{{ containerStyle }}" data-map-name="{{ mapName }}">
-    <div class="ts-maps-loading">
-      <slot name="loading">
+  <div id='{{ id }}' class='ts-maps-container' style='{{ containerStyle }}' data-map-name='{{ mapName }}'>
+    <div class='ts-maps-loading'>
+      <slot name='loading'>
         Loading map...
       </slot>
     </div>

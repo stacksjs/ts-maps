@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <meta http-equiv='X-UA-Compatible' content='ie=edge'>
   <title>ts-maps Marker Example</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background-color: #f8fafc;
     }
 
@@ -270,42 +270,42 @@
   </style>
 </head>
 <body>
-  <div class="workspace-wrapper">
+  <div class='workspace-wrapper'>
     <header>
       <div>
         <h1>ts-maps Marker Example</h1>
         <p>Add markers to the map by clicking the button or entering coordinates.<br>
-           Try different locations and see them appear on the map instantly.</p>
+          Try different locations and see them appear on the map instantly.</p>
       </div>
-      <a href="https://github.com/stacksjs/ts-maps">GitHub Repository</a>
+      <a href='https://github.com/stacksjs/ts-maps'>GitHub Repository</a>
     </header>
 
-    <div id="map"></div>
+    <div id='map'></div>
 
-    <div class="controls">
-      <div class="controls-grid">
-        <div class="control-section">
+    <div class='controls'>
+      <div class='controls-grid'>
+        <div class='control-section'>
           <h4>Quick Add</h4>
-          <button id="add-marker">Add Sample Marker</button>
+          <button id='add-marker'>Add Sample Marker</button>
         </div>
 
-        <div class="control-section">
+        <div class='control-section'>
           <h4>Custom Marker</h4>
-          <div class="input-group">
-            <input type="text" id="coords" placeholder="Coordinates (e.g., 28, 30)" />
-            <input type="text" id="label" placeholder="Location name" />
-            <button id="add">Add Custom Marker</button>
+          <div class='input-group'>
+            <input type='text' id='coords' placeholder='Coordinates (e.g., 28, 30)' />
+            <input type='text' id='label' placeholder='Location name' />
+            <button id='add'>Add Custom Marker</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="info-panel">
+    <div class='info-panel'>
       <h3>Marker Information</h3>
-      <div id="region-info">Click on a marker to see its information</div>
+      <div id='region-info'>Click on a marker to see its information</div>
     </div>
   </div>
-  <script type="module" src="./sample-map.ts"></script>
+  <script type='module' src='./sample-map.ts'></script>
   <script>
     // Helper function to get the map instance
     function getMap() {
@@ -391,9 +391,9 @@
 
                     // Create tooltip content
                     let tooltipContent = `
-                        <div style="text-align: center;">
-                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${regionName}</div>
-                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                        <div style='text-align: center;'>
+                            <div style='font-size: 16px; font-weight: 600; margin-bottom: 5px;'>${regionName}</div>
+                            <div style='font-size: 11px; color: #64748b; margin-top: 2px;'>
                                 Code: ${code}
                             </div>
                         </div>
@@ -408,9 +408,9 @@
                     const markerName = marker?.config?.name || code;
 
                     let tooltipContent = `
-                        <div style="text-align: center;">
-                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">${markerName}</div>
-                            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                        <div style='text-align: center;'>
+                            <div style='font-size: 16px; font-weight: 600; margin-bottom: 5px;'>${markerName}</div>
+                            <div style='font-size: 11px; color: #64748b; margin-top: 2px;'>
                                 Marker ID: ${code}
                             </div>
                         </div>
