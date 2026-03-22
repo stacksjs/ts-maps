@@ -47,20 +47,13 @@
     "changelog:generate": "bunx logsmith --output CHANGELOG.md",
     "release": "bun run changelog:generate && bunx --bun bumpx prompt --recursive",
     "typecheck": "bunx tsc --noEmit",
-    "dev:docs": "bun --bun vitepress dev docs",
-    "build:docs": "bun --bun vitepress build docs",
-    "preview:docs": "bun --bun vitepress preview docs"
-  },
-  "dependencies": {
-    "better-dx": "^0.2.7"
+    "dev:docs": "bun --bun bunpress dev docs",
+    "build:docs": "bun --bun bunpress build docs",
+    "preview:docs": "bun --bun bunpress preview docs"
   },
   "devDependencies": {
-    "@stacksjs/docs": "^0.70.23",
-    "@types/clean-css": "^4.2.11",
-    "pickier": "^0.1.20"
-  },
-  "overrides": {
-    "unconfig": "0.3.10"
+    "@stacksjs/bunpress": "^0.1.4",
+    "better-dx": "^0.2.7"
   },
   "git-hooks": {
     "pre-commit": {

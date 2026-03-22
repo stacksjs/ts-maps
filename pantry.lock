@@ -1,0 +1,866 @@
+{
+  "version": "1.0.0",
+  "lockfileVersion": 2,
+  "workspaces": {
+    "": {
+      "name": "ts-maps",
+      "devDependencies": {
+        "@stacksjs/bunpress": "^0.1.4",
+        "better-dx": "^0.2.7"
+      }
+    },
+    "packages/nuxt": {
+      "name": "ts-maps-nuxt",
+      "version": "0.2.7",
+      "dependencies": {
+        "@nuxt/kit": "^4.3.1",
+        "ts-maps": "workspace:*"
+      },
+      "devDependencies": {
+        "@nuxt/devtools": "^3.2.2",
+        "@nuxt/eslint-config": "^1.15.2",
+        "@nuxt/module-builder": "^1.0.2",
+        "@nuxt/schema": "^4.3.1",
+        "nuxt": "^4.3.1",
+        "typescript": "~5.9.3",
+        "vue-tsc": "^3.2.5"
+      }
+    },
+    "packages/nuxt/playground": {
+      "name": "my-module-playground",
+      "version": "0.2.7",
+      "dependencies": {
+        "nuxt": "^4.2.1",
+        "ts-maps-nuxt": "workspace:*"
+      }
+    },
+    "packages/react": {
+      "name": "ts-maps-react",
+      "version": "0.2.7",
+      "dependencies": {
+        "@vitejs/plugin-react": "^5.1.4",
+        "ts-maps": "workspace:*",
+        "vite": "^7.3.1",
+        "vite-plugin-dts": "^4.5.4"
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "typescript": "^5.9.3"
+      }
+    },
+    "packages/stx": {
+      "name": "ts-maps-stx",
+      "version": "0.2.7",
+      "dependencies": {
+        "ts-maps": "workspace:*"
+      },
+      "devDependencies": {
+        "@stacksjs/eslint-config": "^4.14.0-beta.3",
+        "@types/bun": "^1.3.9",
+        "bun-types": "^1.3.9",
+        "typescript": "^5.9.3"
+      }
+    },
+    "packages/ts-maps": {
+      "name": "ts-maps",
+      "version": "0.2.7",
+      "devDependencies": {
+        "bunfig": "^0.15.6",
+        "lint-staged": "^16.2.7",
+        "typescript": "^5.9.3"
+      }
+    },
+    "packages/vue": {
+      "name": "ts-maps-vue",
+      "version": "0.2.7",
+      "dependencies": {
+        "@vitejs/plugin-vue": "^6.0.4",
+        "bun-types": "^1.3.2",
+        "ts-maps": "workspace:*",
+        "vue": "^3.5.29"
+      },
+      "devDependencies": {
+        "@happy-dom/global-registrator": "^20.7.0",
+        "@microsoft/api-extractor": "^8.0.0",
+        "@stacksjs/docs": "^0.70.23",
+        "@stacksjs/eslint-config": "^4.14.0-beta.3",
+        "@testing-library/dom": "^10.4.1",
+        "@testing-library/jest-dom": "^6.9.1",
+        "@types/bun": "^1.3.2",
+        "@types/google.maps": "^3.58.1",
+        "@types/vue": "^2.0.0",
+        "@vue/tsconfig": "^0.8.1",
+        "bumpp": "^10.4.1",
+        "changelogen": "^0.6.2",
+        "happy-dom": "^20.7.0",
+        "typescript": "^5.9.3",
+        "vite": "^7.2.2",
+        "vue-tsc": "^3.1.3"
+      }
+    },
+    "playground": {
+      "name": "playground",
+      "version": "0.2.7",
+      "dependencies": {
+        "ts-maps": "workspace:*"
+      }
+    }
+  },
+  "packages": {
+    "@happy-dom/global-registrator@20.8.4": {
+      "name": "@happy-dom/global-registrator",
+      "version": "20.8.4",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@happy-dom/global-registrator/-/global-registrator-20.8.4.tgz",
+      "integrity": "sha512-cXGYd3xIAcviiGO6lPXdG6Yg244xwRgtY2dicAQ6HiB87E2IL2ekgfR5QIos18UtjiAsnCpLS3m78JfDorJcYg==",
+      "dependencies": {
+        "@types/node": ">=20.0.0",
+        "happy-dom": "^20.8.4"
+      }
+    },
+    "@microsoft/api-extractor@8.0.0": {
+      "name": "@microsoft/api-extractor",
+      "version": "8.0.0",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@microsoft/api-extractor/-/api-extractor-8.0.0.tgz",
+      "integrity": "sha512-7t4TNrhAcwJmpB+LnT7tHjafpPIEjfD3CUigg+1bHG+9aEDLb74qB4dGf11+V1hjSVqgx6CO6ZxJaMTiR5QhgQ==",
+      "dependencies": {
+        "@microsoft/node-core-library": "3.11.0",
+        "@microsoft/ts-command-line": "4.2.3",
+        "@microsoft/tsdoc": "0.12.5",
+        "@types/node": "8.5.8",
+        "@types/z-schema": "3.16.31",
+        "colors": "~1.2.1",
+        "lodash": "~4.17.5",
+        "resolve": "1.8.1",
+        "typescript": "~3.1.6",
+        "z-schema": "~3.18.3"
+      },
+      "bin": {
+        "api-extractor": "./bin/api-extractor"
+      }
+    },
+    "@nuxt/devtools@3.2.4": {
+      "name": "@nuxt/devtools",
+      "version": "3.2.4",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@nuxt/devtools/-/devtools-3.2.4.tgz",
+      "integrity": "sha512-VPbFy7hlPzWpEZk4BsuVpNuHq1ZYGV9xezjb7/NGuePuNLqeNn74YZugU+PCtva7OwKhEeTXmMK0Mqo/6+nwNA==",
+      "dependencies": {
+        "@nuxt/devtools-kit": "3.2.4",
+        "@nuxt/devtools-wizard": "3.2.4",
+        "@nuxt/kit": "^4.4.2",
+        "@vue/devtools-core": "^8.1.0",
+        "@vue/devtools-kit": "^8.1.0",
+        "birpc": "^4.0.0",
+        "consola": "^3.4.2",
+        "destr": "^2.0.5",
+        "error-stack-parser-es": "^1.0.5",
+        "execa": "^8.0.1",
+        "fast-npm-meta": "^1.4.2",
+        "get-port-please": "^3.2.0",
+        "hookable": "^6.1.0",
+        "image-meta": "^0.2.2",
+        "is-installed-globally": "^1.0.0",
+        "launch-editor": "^2.13.1",
+        "local-pkg": "^1.1.2",
+        "magicast": "^0.5.2",
+        "nypm": "^0.6.5",
+        "ohash": "^2.0.11",
+        "pathe": "^2.0.3",
+        "perfect-debounce": "^2.1.0",
+        "pkg-types": "^2.3.0",
+        "semver": "^7.7.4",
+        "simple-git": "^3.33.0",
+        "sirv": "^3.0.2",
+        "structured-clone-es": "^2.0.0",
+        "tinyglobby": "^0.2.15",
+        "vite-plugin-inspect": "^11.3.3",
+        "vite-plugin-vue-tracer": "^1.3.0",
+        "which": "^6.0.1",
+        "ws": "^8.19.0"
+      },
+      "peerDependencies": {
+        "@vitejs/devtools": "*",
+        "vite": ">=6.0"
+      },
+      "bin": {
+        "devtools": "./cli.mjs"
+      },
+      "optionalPeers": ["@vitejs/devtools"]
+    },
+    "@nuxt/eslint-config@1.15.2": {
+      "name": "@nuxt/eslint-config",
+      "version": "1.15.2",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@nuxt/eslint-config/-/eslint-config-1.15.2.tgz",
+      "integrity": "sha512-vS6mWB87tYjB8h3TxG/QziaZ6CGJpEOBd7N/j+64/tjNipUJzNgKwDzyGoOifNqyDDnlvgi6T3m9XpeYm4qRaA==",
+      "dependencies": {
+        "@antfu/install-pkg": "^1.1.0",
+        "@clack/prompts": "^1.0.1",
+        "@eslint/js": "^9.39.3",
+        "@nuxt/eslint-plugin": "1.15.2",
+        "@stylistic/eslint-plugin": "^5.9.0",
+        "@typescript-eslint/eslint-plugin": "^8.56.1",
+        "@typescript-eslint/parser": "^8.56.1",
+        "eslint-config-flat-gitignore": "^2.2.1",
+        "eslint-flat-config-utils": "^3.0.1",
+        "eslint-merge-processors": "^2.0.0",
+        "eslint-plugin-import-lite": "^0.5.2",
+        "eslint-plugin-import-x": "^4.16.1",
+        "eslint-plugin-jsdoc": "^62.7.1",
+        "eslint-plugin-regexp": "^3.0.0",
+        "eslint-plugin-unicorn": "^63.0.0",
+        "eslint-plugin-vue": "^10.8.0",
+        "eslint-processor-vue-blocks": "^2.0.0",
+        "globals": "^17.3.0",
+        "local-pkg": "^1.1.2",
+        "pathe": "^2.0.3",
+        "vue-eslint-parser": "^10.4.0"
+      },
+      "peerDependencies": {
+        "eslint": "^9.0.0 || ^10.0.0",
+        "eslint-plugin-format": "*"
+      },
+      "optionalPeers": ["eslint-plugin-format"]
+    },
+    "@nuxt/kit@4.4.2": {
+      "name": "@nuxt/kit",
+      "version": "4.4.2",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@nuxt/kit/-/kit-4.4.2.tgz",
+      "integrity": "sha512-5+IPRNX2CjkBhuWUwz0hBuLqiaJPRoKzQ+SvcdrQDbAyE+VDeFt74VpSFr5/R0ujrK4b+XnSHUJWdS72w6hsog==",
+      "dependencies": {
+        "c12": "^3.3.3",
+        "consola": "^3.4.2",
+        "defu": "^6.1.4",
+        "destr": "^2.0.5",
+        "errx": "^0.1.0",
+        "exsolve": "^1.0.8",
+        "ignore": "^7.0.5",
+        "jiti": "^2.6.1",
+        "klona": "^2.0.6",
+        "knitwork": "^1.3.0",
+        "mlly": "^1.8.1",
+        "ohash": "^2.0.11",
+        "pathe": "^2.0.3",
+        "pkg-types": "^2.3.0",
+        "rc9": "^3.0.0",
+        "scule": "^1.3.0",
+        "semver": "^7.7.4",
+        "tinyglobby": "^0.2.15",
+        "ufo": "^1.6.3",
+        "unctx": "^2.5.0",
+        "untyped": "^2.0.0"
+      }
+    },
+    "@nuxt/module-builder@1.0.2": {
+      "name": "@nuxt/module-builder",
+      "version": "1.0.2",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@nuxt/module-builder/-/module-builder-1.0.2.tgz",
+      "integrity": "sha512-9M+0oZimbwom1J+HrfDuR5NDPED6C+DlM+2xfXju9wqB6VpVfYkS6WNEmS0URw8kpJcKBuogAc7ADO7vRS4s4A==",
+      "dependencies": {
+        "citty": "^0.1.6",
+        "consola": "^3.4.2",
+        "defu": "^6.1.4",
+        "jiti": "^2.5.1",
+        "magic-regexp": "^0.10.0",
+        "mkdist": "^2.3.0",
+        "mlly": "^1.7.4",
+        "pathe": "^2.0.3",
+        "pkg-types": "^2.2.0",
+        "tsconfck": "^3.1.6",
+        "unbuild": "^3.6.0",
+        "vue-sfc-transformer": "^0.1.16"
+      },
+      "peerDependencies": {
+        "@nuxt/cli": "^3.26.4",
+        "typescript": "^5.8.3"
+      },
+      "bin": {
+        "nuxt-build-module": "./dist/cli.mjs",
+        "nuxt-module-build": "./dist/cli.mjs"
+      }
+    },
+    "@nuxt/schema@4.4.2": {
+      "name": "@nuxt/schema",
+      "version": "4.4.2",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@nuxt/schema/-/schema-4.4.2.tgz",
+      "integrity": "sha512-/q6C7Qhiricgi+PKR7ovBnJlKTL0memCbA1CzRT+itCW/oeYzUfeMdQ35mGntlBoyRPNrMXbzuSUhfDbSCU57w==",
+      "dependencies": {
+        "@vue/shared": "^3.5.30",
+        "defu": "^6.1.4",
+        "pathe": "^2.0.3",
+        "pkg-types": "^2.3.0",
+        "std-env": "^4.0.0"
+      }
+    },
+    "@stacksjs/bunpress@0.1.4": {
+      "name": "@stacksjs/bunpress",
+      "version": "0.1.4",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@stacksjs/bunpress/-/bunpress-0.1.4.tgz",
+      "integrity": "sha512-uo5ahVHkV0AcUbqhF1OSTqG9TuTIvL3a0UZtU3De+pi0hFfPkj/XrOT5gBp5D3u9XsbYGghYm9VQaReSHnT/YQ==",
+      "dependencies": {
+        "@stacksjs/clapp": "^0.2.0",
+        "@stacksjs/stx": "^0.2.10",
+        "@stacksjs/ts-cloud": "^0.2.2",
+        "@stacksjs/ts-md": "^0.1.1",
+        "bunfig": "^0.15.6"
+      },
+      "bin": {
+        "bunpress": "./dist/bin/cli.js"
+      }
+    },
+    "@stacksjs/docs@0.70.23": {
+      "name": "@stacksjs/docs",
+      "version": "0.70.23",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@stacksjs/docs/-/docs-0.70.23.tgz",
+      "integrity": "sha512-kRk/aza/wQAAgF0fhUhG8bUHhqk3RnjBkZyoRW0fvYs3dLaAArJYX/uVquZixlQnqgizGeGZT986tEFjs5Ly+A==",
+      "dependencies": {
+        "@iconify-json/carbon": "^1.2.8",
+        "@shikijs/vitepress-twoslash": "^3.2.1",
+        "@vite-pwa/assets-generator": "^1.0.0",
+        "@vite-pwa/vitepress": "^1.0.0",
+        "unocss": "^66.0.0",
+        "unplugin-icons": "^22.1.0",
+        "unplugin-vue-components": "^28.4.1",
+        "vite-plugin-pwa": "^1.0.0",
+        "vitepress": "1.6.3"
+      }
+    },
+    "@stacksjs/eslint-config@4.14.0-beta.3": {
+      "name": "@stacksjs/eslint-config",
+      "version": "4.14.0-beta.3",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@stacksjs/eslint-config/-/eslint-config-4.14.0-beta.3.tgz",
+      "integrity": "sha512-D7iSPoZcTwHSOG6T2SdngwNbgqx/2gSoLpFC4Qy/1NCSPZEEcACYCC8GjovZ/rRrod0B+KbCa5sDu5JIrrkfaw==",
+      "dependencies": {
+        "@antfu/install-pkg": "^1.1.0",
+        "@clack/prompts": "^0.10.1",
+        "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
+        "@eslint/markdown": "^6.4.0",
+        "@stacksjs/cli": "^0.70.23",
+        "@stacksjs/error-handling": "^0.70.23",
+        "@stacksjs/eslint-plugin": "^0.2.4",
+        "@stacksjs/logging": "^0.70.23",
+        "@stacksjs/path": "^0.70.23",
+        "@stylistic/eslint-plugin": "^4.2.0",
+        "@typescript-eslint/eslint-plugin": "^8.32.1",
+        "@typescript-eslint/parser": "^8.32.1",
+        "@vitest/eslint-plugin": "^1.1.44",
+        "eslint-config-flat-gitignore": "^2.1.0",
+        "eslint-flat-config-utils": "^2.0.1",
+        "eslint-merge-processors": "^2.0.0",
+        "eslint-plugin-antfu": "^3.1.1",
+        "eslint-plugin-command": "^3.2.0",
+        "eslint-plugin-import-x": "^4.11.1",
+        "eslint-plugin-jsdoc": "^50.6.14",
+        "eslint-plugin-jsonc": "^2.20.0",
+        "eslint-plugin-n": "^17.18.0",
+        "eslint-plugin-no-only-tests": "^3.3.0",
+        "eslint-plugin-perfectionist": "^4.13.0",
+        "eslint-plugin-pnpm": "^0.3.1",
+        "eslint-plugin-regexp": "^2.7.0",
+        "eslint-plugin-toml": "^0.12.0",
+        "eslint-plugin-unicorn": "^57.0.0",
+        "eslint-plugin-unused-imports": "^4.1.4",
+        "eslint-plugin-vue": "^10.1.0",
+        "eslint-plugin-vuejs-accessibility": "^2.4.1",
+        "eslint-plugin-yml": "^1.18.0",
+        "eslint-processor-vue-blocks": "^2.0.0",
+        "globals": "^16.1.0",
+        "jsonc-eslint-parser": "^2.4.0",
+        "local-pkg": "^1.1.1",
+        "parse-gitignore": "^2.0.0",
+        "toml-eslint-parser": "^0.10.0",
+        "vue-eslint-parser": "^10.1.3",
+        "yaml-eslint-parser": "^1.3.0"
+      }
+    },
+    "@testing-library/dom@10.4.1": {
+      "name": "@testing-library/dom",
+      "version": "10.4.1",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@testing-library/dom/-/dom-10.4.1.tgz",
+      "integrity": "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==",
+      "dependencies": {
+        "@babel/code-frame": "^7.10.4",
+        "@babel/runtime": "^7.12.5",
+        "@types/aria-query": "^5.0.1",
+        "aria-query": "5.3.0",
+        "dom-accessibility-api": "^0.5.9",
+        "lz-string": "^1.5.0",
+        "picocolors": "1.1.1",
+        "pretty-format": "^27.0.2"
+      }
+    },
+    "@testing-library/jest-dom@6.9.1": {
+      "name": "@testing-library/jest-dom",
+      "version": "6.9.1",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@testing-library/jest-dom/-/jest-dom-6.9.1.tgz",
+      "integrity": "sha512-zIcONa+hVtVSSep9UT3jZ5rizo2BsxgyDYU7WFD5eICBE7no3881HGeb/QkGfsJs6JTkY1aQhT7rIPC7e+0nnA==",
+      "dependencies": {
+        "@adobe/css-tools": "^4.4.0",
+        "aria-query": "^5.0.0",
+        "css.escape": "^1.5.1",
+        "dom-accessibility-api": "^0.6.3",
+        "picocolors": "^1.1.1",
+        "redent": "^3.0.0"
+      }
+    },
+    "@types/bun@1.3.11": {
+      "name": "@types/bun",
+      "version": "1.3.11",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@types/bun/-/bun-1.3.11.tgz",
+      "integrity": "sha512-5vPne5QvtpjGpsGYXiFyycfpDF2ECyPcTSsFBMa0fraoxiQyMJ3SmuQIGhzPg2WJuWxVBoxWJ2kClYTcw/4fAg==",
+      "dependencies": {
+        "bun-types": "1.3.11"
+      }
+    },
+    "@types/google.maps@3.58.1": {
+      "name": "@types/google.maps",
+      "version": "3.58.1",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@types/google.maps/-/google.maps-3.58.1.tgz",
+      "integrity": "sha512-X9QTSvGJ0nCfMzYOnaVs/k6/4L+7F5uCS+4iUmkLEls6J9S/Phv+m/i3mDeyc49ZBgwab3EFO1HEoBY7k98EGQ=="
+    },
+    "@types/react-dom@19.2.3": {
+      "name": "@types/react-dom",
+      "version": "19.2.3",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.3.tgz",
+      "integrity": "sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==",
+      "peerDependencies": {
+        "@types/react": "^19.2.0"
+      }
+    },
+    "@types/react@19.2.14": {
+      "name": "@types/react",
+      "version": "19.2.14",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.14.tgz",
+      "integrity": "sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==",
+      "dependencies": {
+        "csstype": "^3.2.2"
+      }
+    },
+    "@types/vue@2.0.0": {
+      "name": "@types/vue",
+      "version": "2.0.0",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@types/vue/-/vue-2.0.0.tgz",
+      "integrity": "sha512-WDElkBv/o4lVwu6wYHB06AXs4Xo2fwDjJUpvPRc1QQdzkUSiGFjrYuSCy8raxLE5FObgKq8ND7R5gSZTFLK60w==",
+      "dependencies": {
+        "vue": "*"
+      }
+    },
+    "@vitejs/plugin-react@5.2.0": {
+      "name": "@vitejs/plugin-react",
+      "version": "5.2.0",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-5.2.0.tgz",
+      "integrity": "sha512-YmKkfhOAi3wsB1PhJq5Scj3GXMn3WvtQ/JC0xoopuHoXSdmtdStOpFrYaT1kie2YgFBcIe64ROzMYRjCrYOdYw==",
+      "dependencies": {
+        "@babel/core": "^7.29.0",
+        "@babel/plugin-transform-react-jsx-self": "^7.27.1",
+        "@babel/plugin-transform-react-jsx-source": "^7.27.1",
+        "@rolldown/pluginutils": "1.0.0-rc.3",
+        "@types/babel__core": "^7.20.5",
+        "react-refresh": "^0.18.0"
+      },
+      "peerDependencies": {
+        "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
+      }
+    },
+    "@vitejs/plugin-vue@6.0.5": {
+      "name": "@vitejs/plugin-vue",
+      "version": "6.0.5",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@vitejs/plugin-vue/-/plugin-vue-6.0.5.tgz",
+      "integrity": "sha512-bL3AxKuQySfk1iGcBsQnoRVexTPJq0Z/ixFVM8OhVJAP6ZXXXLtM7NFKWhLl30Kg7uTBqIaPXbh+nuQCuBDedg==",
+      "dependencies": {
+        "@rolldown/pluginutils": "1.0.0-rc.2"
+      },
+      "peerDependencies": {
+        "vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0",
+        "vue": "^3.2.25"
+      }
+    },
+    "@vue/tsconfig@0.8.1": {
+      "name": "@vue/tsconfig",
+      "version": "0.8.1",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/@vue/tsconfig/-/tsconfig-0.8.1.tgz",
+      "integrity": "sha512-aK7feIWPXFSUhsCP9PFqPyFOcz4ENkb8hZ2pneL6m2UjCkccvaOhC/5KCKluuBufvp2KzkbdA2W2pk20vLzu3g==",
+      "peerDependencies": {
+        "typescript": "5.x",
+        "vue": "^3.4.0"
+      },
+      "optionalPeers": ["typescript", "vue"]
+    },
+    "better-dx@0.2.7": {
+      "name": "better-dx",
+      "version": "0.2.7",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/better-dx/-/better-dx-0.2.7.tgz",
+      "integrity": "sha512-J5Msp8jYKl4/YrTt/IWE32ZZg36/+M5klkAhSZb6Av5LGuFd7tylTerKq/8AwZxAYl9h8ZXV79Paygc+YjmCyw==",
+      "peerDependencies": {
+        "@stacksjs/bumpx": "^0.2.4",
+        "@stacksjs/bunpress": "^0.1.1",
+        "@stacksjs/clarity": "^0.3.24",
+        "@stacksjs/gitlint": "^0.1.5",
+        "@stacksjs/logsmith": "^0.2.1",
+        "@types/bun": "^1.3.10",
+        "buddy-bot": "^0.9.17",
+        "bun-git-hooks": "^0.3.1",
+        "bun-plugin-dtsx": "^0.9.13",
+        "bunfig": "^0.15.6",
+        "pickier": "^0.1.20",
+        "ts-error-handling": "^0.1.1",
+        "typescript": "^5.9.3"
+      },
+      "bin": {
+        "better-dx": "./dist/bin/cli.js",
+        "dx": "./dist/bin/cli.js"
+      }
+    },
+    "bumpp@10.4.1": {
+      "name": "bumpp",
+      "version": "10.4.1",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/bumpp/-/bumpp-10.4.1.tgz",
+      "integrity": "sha512-X/bwWs5Gbb/D7rN4aHLB7zdjiA6nGdjckM1sTHhI9oovIbEw2L5pw5S4xzk8ZTeOZ8EnwU/Ze4SoZ6/Vr3pM2Q==",
+      "dependencies": {
+        "ansis": "^4.2.0",
+        "args-tokenizer": "^0.3.0",
+        "c12": "^3.3.3",
+        "cac": "^6.7.14",
+        "escalade": "^3.2.0",
+        "jsonc-parser": "^3.3.1",
+        "package-manager-detector": "^1.6.0",
+        "semver": "^7.7.3",
+        "tinyexec": "^1.0.2",
+        "tinyglobby": "^0.2.15",
+        "yaml": "^2.8.2"
+      },
+      "bin": {
+        "bumpp": "bin/bumpp.mjs"
+      }
+    },
+    "bun-types@1.3.11-canary.20260228T140754": {
+      "name": "bun-types",
+      "version": "1.3.11-canary.20260228T140754",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/bun-types/-/bun-types-1.3.11-canary.20260228T140754.tgz",
+      "integrity": "sha512-d+rppvN1WMsDqw+AlOUwRghlxlMpjTCz/cr6cQVpTkwOI2xYShqU/D2NjfvIx3pphkVdXFVbFraT/Ngy6NV2eg==",
+      "dependencies": {
+        "@types/node": "*"
+      }
+    },
+    "bun.sh@^1.2.20": {
+      "name": "bun.sh",
+      "version": "^1.2.20",
+      "source": "pantry"
+    },
+    "bunfig@0.15.6": {
+      "name": "bunfig",
+      "version": "0.15.6",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/bunfig/-/bunfig-0.15.6.tgz",
+      "integrity": "sha512-7ynPmrn1dN5F+0DtUVY0Vo2MZOOnSdb6hpQePwABEYIJ+d/rSb3vaOVUs3MFxwxWuaVc1FEStVJG6+kCgbLuyg==",
+      "dependencies": {
+        "@stacksjs/clapp": "^0.2.0",
+        "@stacksjs/clarity": "^0.3.24"
+      },
+      "bin": {
+        "bunfig": "./bin/cli.js"
+      }
+    },
+    "changelogen@0.6.2": {
+      "name": "changelogen",
+      "version": "0.6.2",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/changelogen/-/changelogen-0.6.2.tgz",
+      "integrity": "sha512-QtC7+r9BxoUm+XDAwhLbz3CgU134J1ytfE3iCpLpA4KFzX2P1e6s21RrWDwUBzfx66b1Rv+6lOA2nS2btprd+A==",
+      "dependencies": {
+        "c12": "^3.0.4",
+        "confbox": "^0.2.2",
+        "consola": "^3.4.2",
+        "convert-gitmoji": "^0.1.5",
+        "mri": "^1.2.0",
+        "node-fetch-native": "^1.6.6",
+        "ofetch": "^1.4.1",
+        "open": "^10.1.2",
+        "pathe": "^2.0.3",
+        "pkg-types": "^2.2.0",
+        "scule": "^1.3.0",
+        "semver": "^7.7.2",
+        "std-env": "^3.9.0"
+      },
+      "bin": {
+        "changelogen": "./dist/cli.mjs"
+      }
+    },
+    "happy-dom@20.8.4": {
+      "name": "happy-dom",
+      "version": "20.8.4",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/happy-dom/-/happy-dom-20.8.4.tgz",
+      "integrity": "sha512-GKhjq4OQCYB4VLFBzv8mmccUadwlAusOZOI7hC1D9xDIT5HhzkJK17c4el2f6R6C715P9xB4uiMxeKUa2nHMwQ==",
+      "dependencies": {
+        "@types/node": ">=20.0.0",
+        "@types/whatwg-mimetype": "^3.0.2",
+        "@types/ws": "^8.18.1",
+        "entities": "^7.0.1",
+        "whatwg-mimetype": "^3.0.0",
+        "ws": "^8.18.3"
+      }
+    },
+    "lint-staged@16.4.0": {
+      "name": "lint-staged",
+      "version": "16.4.0",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/lint-staged/-/lint-staged-16.4.0.tgz",
+      "integrity": "sha512-lBWt8hujh/Cjysw5GYVmZpFHXDCgZzhrOm8vbcUdobADZNOK/bRshr2kM3DfgrrtR1DQhfupW9gnIXOfiFi+bw==",
+      "dependencies": {
+        "commander": "^14.0.3",
+        "listr2": "^9.0.5",
+        "picomatch": "^4.0.3",
+        "string-argv": "^0.3.2",
+        "tinyexec": "^1.0.4",
+        "yaml": "^2.8.2"
+      },
+      "bin": {
+        "lint-staged": "bin/lint-staged.js"
+      }
+    },
+    "nuxt@4.4.2": {
+      "name": "nuxt",
+      "version": "4.4.2",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/nuxt/-/nuxt-4.4.2.tgz",
+      "integrity": "sha512-iWVFpr/YEqVU/CenqIHMnIkvb2HE/9f+q8oxZ+pj2et+60NljGRClCgnmbvGPdmNFE0F1bEhoBCYfqbDOCim3Q==",
+      "dependencies": {
+        "@dxup/nuxt": "^0.4.0",
+        "@nuxt/cli": "^3.34.0",
+        "@nuxt/devtools": "^3.2.3",
+        "@nuxt/kit": "4.4.2",
+        "@nuxt/nitro-server": "4.4.2",
+        "@nuxt/schema": "4.4.2",
+        "@nuxt/telemetry": "^2.7.0",
+        "@nuxt/vite-builder": "4.4.2",
+        "@unhead/vue": "^2.1.12",
+        "@vue/shared": "^3.5.30",
+        "c12": "^3.3.3",
+        "chokidar": "^5.0.0",
+        "compatx": "^0.2.0",
+        "consola": "^3.4.2",
+        "cookie-es": "^2.0.0",
+        "defu": "^6.1.4",
+        "devalue": "^5.6.3",
+        "errx": "^0.1.0",
+        "escape-string-regexp": "^5.0.0",
+        "exsolve": "^1.0.8",
+        "hookable": "^6.0.1",
+        "ignore": "^7.0.5",
+        "impound": "^1.1.5",
+        "jiti": "^2.6.1",
+        "klona": "^2.0.6",
+        "knitwork": "^1.3.0",
+        "magic-string": "^0.30.21",
+        "mlly": "^1.8.1",
+        "nanotar": "^0.3.0",
+        "nypm": "^0.6.5",
+        "ofetch": "^1.5.1",
+        "ohash": "^2.0.11",
+        "on-change": "^6.0.2",
+        "oxc-minify": "^0.117.0",
+        "oxc-parser": "^0.117.0",
+        "oxc-transform": "^0.117.0",
+        "oxc-walker": "^0.7.0",
+        "pathe": "^2.0.3",
+        "perfect-debounce": "^2.1.0",
+        "picomatch": "^4.0.3",
+        "pkg-types": "^2.3.0",
+        "rou3": "^0.8.1",
+        "scule": "^1.3.0",
+        "semver": "^7.7.4",
+        "std-env": "^4.0.0",
+        "tinyglobby": "^0.2.15",
+        "ufo": "^1.6.3",
+        "ultrahtml": "^1.6.0",
+        "uncrypto": "^0.1.3",
+        "unctx": "^2.5.0",
+        "unimport": "^6.0.1",
+        "unplugin": "^3.0.0",
+        "unrouting": "^0.1.5",
+        "untyped": "^2.0.0",
+        "vue": "^3.5.30",
+        "vue-router": "^5.0.3"
+      },
+      "peerDependencies": {
+        "@parcel/watcher": "^2.1.0",
+        "@types/node": ">=18.12.0"
+      },
+      "bin": {
+        "nuxi": "bin/nuxt.mjs",
+        "nuxt": "bin/nuxt.mjs"
+      },
+      "optionalPeers": ["@parcel/watcher", "@types/node"]
+    },
+    "react-dom@19.3.0-canary-a757cb76-20251002": {
+      "name": "react-dom",
+      "version": "19.3.0-canary-a757cb76-20251002",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.3.0-canary-a757cb76-20251002.tgz",
+      "integrity": "sha512-UvMoAElWcrEe1keKAMZqJ2Rw4wQZah8GFQHvqCLsBd+50LR22sme5hkjiyUO1dnoSVfAvEncARgDfJVEJ1miKA==",
+      "dependencies": {
+        "scheduler": "0.28.0-canary-a757cb76-20251002"
+      },
+      "peerDependencies": {
+        "react": "19.3.0-canary-a757cb76-20251002"
+      }
+    },
+    "react@19.3.0-canary-a757cb76-20251002": {
+      "name": "react",
+      "version": "19.3.0-canary-a757cb76-20251002",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/react/-/react-19.3.0-canary-a757cb76-20251002.tgz",
+      "integrity": "sha512-sbMInOneG99tvHhQShNxQ16JT06vAPT3VIL/ez3O2lFLPOqfjLaS9Ka7mOvu6A80i+R01PIVT4tyluhu71WUtg=="
+    },
+    "typescript@^5.9.3": {
+      "name": "typescript",
+      "version": "^5.9.3",
+      "source": "npm",
+      "bin": {
+        "tsc": "./bin/tsc",
+        "tsserver": "./bin/tsserver"
+      }
+    },
+    "typescript@~5.9.3": {
+      "name": "typescript",
+      "version": "~5.9.3",
+      "source": "npm",
+      "bin": {
+        "tsc": "./bin/tsc",
+        "tsserver": "./bin/tsserver"
+      }
+    },
+    "vite-plugin-dts@4.5.4": {
+      "name": "vite-plugin-dts",
+      "version": "4.5.4",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/vite-plugin-dts/-/vite-plugin-dts-4.5.4.tgz",
+      "integrity": "sha512-d4sOM8M/8z7vRXHHq/ebbblfaxENjogAAekcfcDCCwAyvGqnPrc7f4NZbvItS+g4WTgerW0xDwSz5qz11JT3vg==",
+      "dependencies": {
+        "@microsoft/api-extractor": "^7.50.1",
+        "@rollup/pluginutils": "^5.1.4",
+        "@volar/typescript": "^2.4.11",
+        "@vue/language-core": "2.2.0",
+        "compare-versions": "^6.1.1",
+        "debug": "^4.4.0",
+        "kolorist": "^1.8.0",
+        "local-pkg": "^1.0.0",
+        "magic-string": "^0.30.17"
+      },
+      "peerDependencies": {
+        "typescript": "*",
+        "vite": "*"
+      },
+      "optionalPeers": ["vite"]
+    },
+    "vite@^7.2.2": {
+      "name": "vite",
+      "version": "^7.2.2",
+      "source": "npm",
+      "dependencies": {
+        "esbuild": "^0.21.3",
+        "postcss": "^8.4.43",
+        "rollup": "^4.20.0"
+      },
+      "peerDependencies": {
+        "@types/node": "^18.0.0 || >=20.0.0",
+        "less": "*",
+        "lightningcss": "^1.21.0",
+        "sass": "*",
+        "sass-embedded": "*",
+        "stylus": "*",
+        "sugarss": "*",
+        "terser": "^5.4.0"
+      },
+      "bin": {
+        "vite": "bin/vite.js"
+      },
+      "optionalPeers": ["@types/node", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser"]
+    },
+    "vite@^7.3.1": {
+      "name": "vite",
+      "version": "^7.3.1",
+      "source": "npm",
+      "dependencies": {
+        "esbuild": "^0.21.3",
+        "postcss": "^8.4.43",
+        "rollup": "^4.20.0"
+      },
+      "peerDependencies": {
+        "@types/node": "^18.0.0 || >=20.0.0",
+        "less": "*",
+        "lightningcss": "^1.21.0",
+        "sass": "*",
+        "sass-embedded": "*",
+        "stylus": "*",
+        "sugarss": "*",
+        "terser": "^5.4.0"
+      },
+      "bin": {
+        "vite": "bin/vite.js"
+      },
+      "optionalPeers": ["@types/node", "less", "lightningcss", "sass", "sass-embedded", "stylus", "sugarss", "terser"]
+    },
+    "vue-tsc@3.2.6": {
+      "name": "vue-tsc",
+      "version": "3.2.6",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/vue-tsc/-/vue-tsc-3.2.6.tgz",
+      "integrity": "sha512-gYW/kWI0XrwGzd0PKc7tVB/qpdeAkIZLNZb10/InizkQjHjnT8weZ/vBarZoj4kHKbUTZT/bAVgoOr8x4NsQ/Q==",
+      "dependencies": {
+        "@volar/typescript": "2.4.28",
+        "@vue/language-core": "3.2.6"
+      },
+      "peerDependencies": {
+        "typescript": ">=5.0.0"
+      },
+      "bin": {
+        "vue-tsc": "./bin/vue-tsc.js"
+      }
+    },
+    "vue@3.6.0-alpha.1": {
+      "name": "vue",
+      "version": "3.6.0-alpha.1",
+      "source": "npm",
+      "resolved": "https://registry.npmjs.org/vue/-/vue-3.6.0-alpha.1.tgz",
+      "integrity": "sha512-DZjYvysI4pp2o+y/Qeswe+8rWe/eYY13NLB9Bei2Ba5ecz+G1n3Uch2LI7IBa1favAqX8fZ4GJ5+XPBbPWwwxQ==",
+      "dependencies": {
+        "@vue/compiler-dom": "3.6.0-alpha.1",
+        "@vue/compiler-sfc": "3.6.0-alpha.1",
+        "@vue/runtime-dom": "3.6.0-alpha.1",
+        "@vue/runtime-vapor": "3.6.0-alpha.1",
+        "@vue/server-renderer": "3.6.0-alpha.1",
+        "@vue/shared": "3.6.0-alpha.1"
+      },
+      "peerDependencies": {
+        "typescript": "*"
+      },
+      "optionalPeers": ["typescript"]
+    }
+  }
+}
