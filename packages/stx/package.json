@@ -51,12 +51,12 @@
   },
   "devDependencies": {
     "@stacksjs/eslint-config": "^4.14.0-beta.3",
-    "@types/bun": "^1.3.9",
-    "bun-types": "^1.3.9",
+    "@types/bun": "^1.3.11",
+    "bun-types": "^1.3.11",
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "@stacksjs/stx": ">=0.2.5"
+    "@stacksjs/stx": ">=0.2.10"
   },
   "peerDependenciesMeta": {
     "@stacksjs/stx": {
