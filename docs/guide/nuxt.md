@@ -108,7 +108,7 @@ const mapOptions = {
 
 ```vue
 <template>
-  <div class="grid grid-cols-2 gap-4">
+  <div class="grid gap-4 grid-cols-2">
     <TsMapsUnitedStates
       :regions-selectable="true"
       :region-style="{
@@ -209,7 +209,7 @@ The Nuxt module handles SSR automatically. Maps are rendered on the client side 
   <ClientOnly>
     <TsMapsWorldMap :draggable="true" />
     <template #fallback>
-      <div class="h-[400px] bg-gray-100 animate-pulse rounded-lg" />
+      <div class="h-[400px] bg-gray-100 rounded-lg animate-pulse" />
     </template>
   </ClientOnly>
 </template>
@@ -322,9 +322,9 @@ Style maps using Tailwind CSS or custom styles:
 
 ```vue
 <template>
-  <div class="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl">
+  <div class="aspect-video overflow-hidden relative w-full rounded-xl shadow-2xl">
     <TsMapsWorldMap
-      class="w-full h-full"
+      class="h-full w-full"
       :draggable="true"
       :zoom-buttons="true"
       :background-color="'#0f172a'"

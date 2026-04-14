@@ -170,7 +170,7 @@ import { Canada, Brasil, Italy, Spain, Russia, Iraq } from '@ts-maps/vue'
 </script>
 
 <template>
-  <div class="grid grid-cols-3 gap-4">
+  <div class="grid gap-4 grid-cols-3">
     <Canada :draggable="true" />
     <Brasil :draggable="true" />
     <Italy :draggable="true" />

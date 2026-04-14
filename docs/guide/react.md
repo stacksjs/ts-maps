@@ -113,7 +113,7 @@ import {
 
 function CountryMaps() {
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid gap-4 grid-cols-3">
       <UnitedStates
         draggable
         regionsSelectable
@@ -393,7 +393,7 @@ const mapProps: VectorMapProps = {
 ```tsx
 function StyledMap() {
   return (
-    <div className="w-full h-[500px] rounded-lg overflow-hidden shadow-lg">
+    <div className="overflow-hidden h-[500px] w-full rounded-lg shadow-lg">
       <WorldMap
         draggable
         zoomButtons
