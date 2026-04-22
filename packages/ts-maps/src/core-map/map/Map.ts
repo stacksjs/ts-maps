@@ -32,6 +32,21 @@ export interface MapOptions {
   */
   bearing?: number
   /**
+  * Initial pitch (camera tilt) of the map in degrees. `0` = looking straight
+  * down (default). Positive values tilt the horizon toward the viewer.
+  * Mirrors Mapbox GL JS's `pitch` camera property. Clamped to
+  * `[minPitch, maxPitch]` on `setPitch()`.
+  */
+  pitch?: number
+  /**
+  * Maximum allowed pitch in degrees. Default 60 (same as Mapbox GL JS).
+  */
+  maxPitch?: number
+  /**
+  * Minimum allowed pitch in degrees. Default 0.
+  */
+  minPitch?: number
+  /**
   * Forces the map's zoom level to always be a multiple of this. A value of
   * `0` (the default) means no snapping — zoom can take any fractional value,
   * which yields a continuous, Mapbox-style zoom experience for wheel and
@@ -66,6 +81,11 @@ export class TsMap extends Evented {
   // happy without introducing a field initializer that would run AFTER
   // `Class.constructor` → `this.initialize()`).
   declare _bearing: number
+  // Camera pitch (tilt) in degrees. `0` = looking straight down (default).
+  // Clamped to `[minPitch, maxPitch]` on `setPitch()`. Populated in
+  // `initialize()` from `options.pitch`. `declare`-only for the same reason
+  // as `_bearing` (see class-field invariant in ROADMAP.md).
+  declare _pitch: number
   declare _container: HTMLElement & { _tsmap_id?: number }
   declare _containerId?: number
   declare _loaded?: boolean
@@ -120,6 +140,9 @@ export class TsMap extends Evented {
     this._bearing = typeof options.bearing === 'number'
     ? ((options.bearing % 360) + 360) % 360
     : 0
+    this._pitch = typeof options.pitch === 'number'
+    ? this._clampPitch(options.pitch)
+    : 0
 
     this._initContainer(id)
     this._initLayout()
@@ -134,8 +157,8 @@ export class TsMap extends Evented {
     if (options.center && options.zoom !== undefined)
     this.setView(new LatLng(options.center), options.zoom, { reset: true })
 
-    if (this._bearing)
-    this._applyBearingToPanes()
+    if (this._bearing || this._pitch)
+    this._applyCameraTransform()
 
     this.callInitHooks()
 
@@ -450,8 +473,8 @@ export class TsMap extends Evented {
       }
     }
 
-    if (this._bearing)
-    this._applyBearingToPanes()
+    if (this._bearing || this._pitch)
+    this._applyCameraTransform()
 
     return this.fire('resize', { oldSize, newSize })
   }
@@ -628,7 +651,7 @@ export class TsMap extends Evented {
 
     this.fire('rotatestart', { bearing: this._bearing })
     this._bearing = wrapped
-    this._applyBearingToPanes()
+    this._applyCameraTransform()
     this.fire('rotate', { bearing: wrapped })
     this.fire('rotateend', { bearing: wrapped })
     return this
@@ -641,6 +664,47 @@ export class TsMap extends Evented {
   */
   rotateTo(bearing: number, _options?: { animate?: boolean, duration?: number }): this {
     return this.setBearing(bearing)
+  }
+
+  /**
+  * Returns the current map pitch (camera tilt) in degrees. `0` = looking
+  * straight down.
+  */
+  getPitch(): number {
+    return this._pitch
+  }
+
+  /**
+  * Sets the map pitch (camera tilt) in degrees. Clamped to
+  * `[minPitch, maxPitch]` (defaults `[0, 60]`). Fires `pitchstart`, `pitch`,
+  * `pitchend` events.
+  */
+  setPitch(pitch: number): this {
+    const clamped = this._clampPitch(pitch)
+    if (clamped === this._pitch)
+    return this
+
+    this.fire('pitchstart', { pitch: this._pitch })
+    this._pitch = clamped
+    this._applyCameraTransform()
+    this.fire('pitch', { pitch: clamped })
+    this.fire('pitchend', { pitch: clamped })
+    return this
+  }
+
+  /**
+  * Alias of `setPitch()` with an (optional) animation hook. Animation is
+  * not yet wired — Phase 1.4 will merge this into the unified camera
+  * animation engine. For now, this is always a no-animation snap.
+  */
+  pitchTo(pitch: number, _options?: { animate?: boolean, duration?: number }): this {
+    return this.setPitch(pitch)
+  }
+
+  _clampPitch(pitch: number): number {
+    const min = this.options.minPitch ?? 0
+    const max = this.options.maxPitch ?? 60
+    return Math.max(min, Math.min(max, pitch))
   }
 
   getBounds(): LatLngBounds {
@@ -765,25 +829,38 @@ export class TsMap extends Evented {
 
   containerPointToLayerPoint(point: any): Point {
     const p = new Point(point)
-    if (!this._bearing)
+    if (!this._bearing && !this._pitch)
     return p.subtract(this._getMapPanePos())
-    // With rotation, the CSS transform on `_mapPane` is
-    //   translate3d(mapPanePos) rotate(bearing)
+    // With rotation and/or pitch, the CSS transform on `_mapPane` is
+    //   translate3d(mapPanePos) rotateX(pitch) rotate(bearing)
     // with `transform-origin` set to the viewport center (see
-    // `_applyBearingToPanes`). Inverting that gives:
-    //   layerPoint = rotate(cp - mapPanePos - center, -bearing, 0) + center
+    // `_applyCameraTransform`). Inverting requires:
+    //   1. subtract pane pos to get viewport-center-relative coords
+    //   2. subtract the viewport center
+    //   3. un-pitch (reverse perspective) to recover the pre-pitch
+    //      screen-center-relative layer coords
+    //   4. un-rotate by `-bearing` around the viewport center
+    //   5. add the viewport center back
     const center = this.getSize()._divideBy(2)
-    const shifted = p._subtract(this._getMapPanePos())._subtract(center)
-    return this._rotatePoint(shifted, -this._bearing, new Point(0, 0))._add(center)
+    let shifted = p.subtract(this._getMapPanePos())._subtract(center)
+    if (this._pitch)
+    shifted = this._unpitchPoint(shifted)
+    if (this._bearing)
+    shifted = this._rotatePoint(shifted, -this._bearing, new Point(0, 0))
+    return shifted._add(center)
   }
 
   layerPointToContainerPoint(point: any): Point {
     const p = new Point(point)
-    if (!this._bearing)
+    if (!this._bearing && !this._pitch)
     return p.add(this._getMapPanePos())
     const center = this.getSize()._divideBy(2)
-    const shifted = p.subtract(center)
-    return this._rotatePoint(shifted, this._bearing, new Point(0, 0))._add(center)._add(this._getMapPanePos())
+    let shifted = p.subtract(center)
+    if (this._bearing)
+    shifted = this._rotatePoint(shifted, this._bearing, new Point(0, 0))
+    if (this._pitch)
+    shifted = this._pitchPoint(shifted)
+    return shifted._add(center)._add(this._getMapPanePos())
   }
 
   containerPointToLatLng(point: any): LatLng {
@@ -1112,34 +1189,43 @@ export class TsMap extends Evented {
   }
 
   /**
-  * Pushes the current `_bearing` onto the CSS transforms of `_mapPane` and
-  * the upright panes (marker / popup / tooltip). Rotation pivots around the
-  * viewport center via `transform-origin`. Called after every `setBearing()`.
+  * Pushes the current `_bearing` and `_pitch` onto the CSS transforms of
+  * `_mapPane` and the upright panes (marker / popup / tooltip). Both camera
+  * transforms pivot around the viewport center via `transform-origin`.
+  * Called after every `setBearing()` / `setPitch()`. Replaces the earlier
+  * `_applyBearingToPanes()` so bearing and pitch are kept consistent.
   */
-  _applyBearingToPanes(): void {
+  _applyCameraTransform(): void {
     if (!this._mapPane)
     return
     const center = this.getSize()._divideBy(2)
     const originCss = `${center.x}px ${center.y}px`
     this._mapPane.style.transformOrigin = originCss
 
-    // Re-apply the current pane position together with the new rotation. This
-    // composes `translate3d(panePos) rotate(bearing)` on `_mapPane`.
+    // Re-apply the current pane position together with the new rotation and
+    // pitch. This composes
+    //   translate3d(panePos) rotateX(pitch) rotate(bearing)
+    // on `_mapPane` (see `DomUtil.setTransform` for order rationale).
     const pos = this._getMapPanePos()
-    DomUtil.setPosition(this._mapPane, pos, this._bearing)
+    DomUtil.setPosition(this._mapPane, pos, this._bearing, this._pitch)
 
-    // Counter-rotate the upright panes so icons / popups / tooltips do not
-    // visually spin with the map. The pivot is the same viewport center so
-    // the counter-rotation cancels precisely.
+    // Counter-transform the upright panes so icons / popups / tooltips do
+    // not visually spin or tilt with the map. The pivot is the same viewport
+    // center so the counter-transform cancels precisely.
     const upright = ['markerPane', 'popupPane', 'tooltipPane']
+    const active = !!this._bearing || !!this._pitch
     for (const name of upright) {
       const pane = this._panes?.[name]
       if (!pane)
       continue
-      if (this._bearing) {
+      if (active) {
         pane.classList.add('tsmap-upright')
         pane.style.transformOrigin = originCss
-        pane.style.transform = `rotate(${-this._bearing}deg) translateZ(0)`
+        // CSS applies right-to-left, so `rotateX(-pitch) rotate(-bearing)`
+        // first undoes bearing around the element's Z axis, then undoes
+        // pitch around the SCREEN X axis — which exactly inverts the
+        // composition applied to `_mapPane` above.
+        pane.style.transform = `rotateX(${-this._pitch}deg) rotate(${-this._bearing}deg) translateZ(0)`
       }
       else {
         pane.classList.remove('tsmap-upright')
@@ -1147,6 +1233,53 @@ export class TsMap extends Evented {
         pane.style.transformOrigin = ''
       }
     }
+  }
+
+  /**
+  * Forward perspective projection: takes a screen-center-relative
+  * layer-space point (post-bearing, pre-pitch) and returns the on-screen
+  * projection of that ground point through the pitched virtual camera.
+  * Camera height `h = (H/2) / tan(fovY/2)` with `fovY = 36.87°` (Mapbox
+  * default). At pitch=0 this is the identity.
+  */
+  _pitchPoint(p: Point): Point {
+    const theta = (this._pitch * Math.PI) / 180
+    if (!theta)
+    return p.clone()
+    const H = this.getSize().y
+    const h = (H / 2) / Math.tan((36.87 * Math.PI / 180) / 2)
+    const sinT = Math.sin(theta)
+    const cosT = Math.cos(theta)
+    const denom = h - p.y * sinT
+    if (Math.abs(denom) < 1e-6)
+    return p.clone()
+    const sx = h * p.x / denom
+    const sy = h * p.y * cosT / denom
+    return new Point(sx, sy)
+  }
+
+  /**
+  * Inverse of `_pitchPoint`: takes a screen-center-relative screen-space
+  * point and reverse-perspective-projects it onto the tilted ground plane,
+  * returning the screen-center-relative layer-space (post-bearing, pre-pitch)
+  * coordinate. At pitch=0 this is the identity.
+  */
+  _unpitchPoint(p: Point): Point {
+    const theta = (this._pitch * Math.PI) / 180
+    if (!theta)
+    return p.clone()
+    const H = this.getSize().y
+    const h = (H / 2) / Math.tan((36.87 * Math.PI / 180) / 2)
+    const sinT = Math.sin(theta)
+    const cosT = Math.cos(theta)
+    // Derived in task notes: solving sy = h*ly*cos/(h - ly*sin) for ly,
+    // then back-substituting for lx.
+    const denom = h * cosT + p.y * sinT
+    if (Math.abs(denom) < 1e-6)
+    return p.clone()
+    const ly = p.y * h / denom
+    const lx = p.x * h * cosT / denom
+    return new Point(lx, ly)
   }
 
   _moved(): boolean {
@@ -1390,6 +1523,9 @@ TsMap.setDefaultOptions( {
   zoomDelta: 1,
   trackResize: true,
   bearing: 0,
+  pitch: 0,
+  maxPitch: 60,
+  minPitch: 0,
 })
 
 export const Map: typeof TsMap = TsMap

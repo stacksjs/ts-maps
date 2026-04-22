@@ -4,7 +4,82 @@
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <title>ts-maps — 1. Camera</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .pin {
+        width: 26px;
+        height: 26px;
+        border-radius: 50% 50% 50% 0;
+        background: #4f46e5;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        transform: rotate(-45deg);
+      }
+      .pin::after {
+        content: '';
+        display: block;
+        width: 8px;
+        height: 8px;
+        margin: 6px 0 0 6px;
+        border-radius: 50%;
+        background: #ffffff;
+      }
+
+      .camera-layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      @media (max-width: 720px) {
+        .camera-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .camera-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 14px 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+      .camera-controls .control-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .camera-controls label {
+        color: var(--muted);
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .camera-controls input[type='range'] {
+        width: 100%;
+      }
+      .camera-controls .value-badge {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--accent);
+        font-size: 12px;
+      }
+      .camera-controls button {
+        padding: 8px 12px;
+        background: var(--surface-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .camera-controls button:hover {
+        background: var(--bg);
+      }
+    </style>
   </head>
   <body>
     <div class='demo-page'>
@@ -13,21 +88,39 @@
         <span>/</span>
         <span>1. Camera</span>
       </nav>
-      <h1>1. Camera — fractional zoom, rotation &amp; pitch</h1>
-      <p class='subtitle'>Coming soon in Phase 1 of the roadmap.</p>
+      <h1>1. Camera — bearing + pitch</h1>
+      <p class='subtitle'>
+        Phase 1.2 added Mapbox-style <code>bearing</code>; Phase 1.3 adds
+        <code>pitch</code> (camera tilt). Drag the sliders to rotate and tilt
+        the map. Markers, popups and tooltips stay visually upright thanks to
+        counter-rotating/pitching upright panes (see
+        <code>TsMap._applyCameraTransform</code>). The unified camera animation
+        engine lands in Phase 1.4.
+      </p>
 
-      <div class='stub-card'>
-        <h2>Coming soon in Phase 1</h2>
-        <p>This demo will land once Phase 1 ships. Planned features:</p>
-        <ul>
-          <li>Fractional zoom end-to-end (no integer rounding)</li>
-          <li><code>bearing</code> — <code>setBearing()</code>, <code>rotateTo()</code></li>
-          <li><code>pitch</code> — CSS <code>rotateX()</code> on tile panes</li>
-          <li>Unified <code>easeTo({ center, zoom, bearing, pitch, padding })</code></li>
-          <li>Two-finger rotate &amp; pitch gestures</li>
-          <li>Retina/HiDPI canvas fix on rotate + pitch</li>
-        </ul>
+      <div class='camera-layout'>
+        <div class='camera-controls'>
+          <div class='control-row'>
+            <label for='bearing'>
+              <span>Bearing</span>
+              <span id='bearing-value' class='value-badge'>0°</span>
+            </label>
+            <input id='bearing' type='range' min='0' max='359' step='1' value='0' />
+          </div>
+          <div class='control-row'>
+            <label for='pitch'>
+              <span>Pitch</span>
+              <span id='pitch-value' class='value-badge'>0°</span>
+            </label>
+            <input id='pitch' type='range' min='0' max='60' step='1' value='0' />
+          </div>
+          <button id='reset-camera' type='button'>Reset camera</button>
+        </div>
+
+        <div id='map' class='map-host'></div>
       </div>
     </div>
+
+    <script type='module' src='./1-camera.ts'></script>
   </body>
 </html>

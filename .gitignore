@@ -18,3 +18,4 @@ storage
 .cursor
 .stx
 pantry
+packages/ts-maps/bench/reports/*.json

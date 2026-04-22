@@ -395,7 +395,7 @@ describe('Events', () => {
       const obj = new Evented()
       obj.on('test', Util.falseFn)
       obj.off('test', undefined)
-      obj.off({ test: undefined })
+      obj.off({ test: undefined } as any)
 
       expect(obj.listens('test')).toBe(true)
     })

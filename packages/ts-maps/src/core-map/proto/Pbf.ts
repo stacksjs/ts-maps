@@ -591,78 +591,49 @@ function varintLength(val: number): number {
   return n
 }
 
-// Slow-path varint writer for values >= 2^28, including negative integers
-// (which protobuf encodes as the unsigned 64-bit two's complement form, i.e.
-// a full 10-byte varint). Uses byte-by-byte division so we don't have to
-// juggle 32/32 halves.
+// Slow-path varint writer for values >= 2^28 and for negatives (which
+// protobuf encodes as an unsigned 64-bit two's complement, i.e. a full
+// 10-byte varint). Works on a pair of 32-bit halves to stay 64-bit-safe.
 function writeBigVarint(val: number, pbf: Pbf): void {
-  // Compute 64-bit two's complement for negatives.
   let low: number
   let high: number
   if (val < 0) {
     const mag = -val
-    low = (mag & 0xFFFFFFFF) >>> 0
-    high = Math.floor(mag / SHIFT_LEFT_32) >>> 0
-    // Two's complement: invert and add 1.
-    low = (~low) >>> 0
-    high = (~high) >>> 0
-    low = (low + 1) >>> 0
+    low = ((~(mag >>> 0)) + 1) >>> 0
+    high = (~Math.floor(mag / SHIFT_LEFT_32)) >>> 0
     if (low === 0)
       high = (high + 1) >>> 0
   }
   else {
-    low = (val % SHIFT_LEFT_32) >>> 0
+    low = (val >>> 0)
     high = Math.floor(val / SHIFT_LEFT_32) >>> 0
   }
-
   pbf.realloc(10)
-
-  // Emit 10 bytes: we have exactly 64 bits across low/high. Spill them
-  // 7 bits at a time, with continuation, stopping once nothing is left.
-  let bytesWritten = 0
-  // All ten bytes cover 70 bits, so the last byte has just 1 valid bit.
+  // Spill 7 bits at a time. Iteration `i` covers bits [i*7, i*7+7).
   for (let i = 0; i < 10; i++) {
-    // Extract 7 bits starting at bit (i*7).
     const bit = i * 7
-    let chunk: number
-    if (bit < 32) {
-      if (bit + 7 <= 32) {
-        chunk = (low >>> bit) & 0x7F
-      }
-      else {
-        const lowBits = low >>> bit
-        const highBits = high << (32 - bit)
-        chunk = (lowBits | highBits) & 0x7F
-      }
-    }
-    else {
-      chunk = (high >>> (bit - 32)) & 0x7F
-    }
-    bytesWritten++
-    // Determine if more bytes follow (i.e. any higher bit is set).
-    const higherBitsRemain = i < 9 ? remainingBitsSet(low, high, bit + 7) : false
-    if (higherBitsRemain) {
-      pbf.buf[pbf.pos++] = chunk | 0x80
-    }
-    else {
-      pbf.buf[pbf.pos++] = chunk
+    const chunk = readBits7(low, high, bit)
+    const more = bit + 7 < 64 ? readBitsAbove(low, high, bit + 7) : false
+    pbf.buf[pbf.pos++] = more ? chunk | 0x80 : chunk
+    if (!more)
       break
-    }
   }
-  // Silence "bytesWritten unused" in some strict setups — we rely on it for
-  // the loop, but the final value isn't needed outside.
-  void bytesWritten
 }
 
-function remainingBitsSet(low: number, high: number, startBit: number): boolean {
+function readBits7(low: number, high: number, bit: number): number {
+  if (bit >= 32)
+    return (high >>> (bit - 32)) & 0x7F
+  if (bit + 7 <= 32)
+    return (low >>> bit) & 0x7F
+  return ((low >>> bit) | (high << (32 - bit))) & 0x7F
+}
+
+function readBitsAbove(low: number, high: number, startBit: number): boolean {
   if (startBit >= 64)
     return false
   if (startBit >= 32)
     return (high >>> (startBit - 32)) !== 0
-  const lowRemain = low >>> startBit
-  if (lowRemain !== 0)
-    return true
-  return high !== 0
+  return (low >>> startBit) !== 0 || high !== 0
 }
 
 function writePackedVarintFn(arr: number[], pbf: Pbf): void {

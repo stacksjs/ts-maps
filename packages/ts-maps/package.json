@@ -95,6 +95,7 @@
     "dist"
   ],
   "scripts": {
+    "bench": "bun bench/suites/index.ts",
     "build": "bun --bun build.ts",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",

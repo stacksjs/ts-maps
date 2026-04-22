@@ -52,7 +52,7 @@ describe('LatLngBounds', () => {
 
     // Ported from LatLngBoundsSpec.js#L48
     it('extends the bounds by undefined', () => {
-      expect(a.extend()).toEqual(a)
+      expect((a.extend as any)()).toEqual(a)
     })
 
     // Ported from LatLngBoundsSpec.js#L52

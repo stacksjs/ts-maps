@@ -26,22 +26,35 @@ export function toBack(el: Element): void {
   parent.insertBefore(el, parent.firstChild)
 }
 
-export function setTransform(el: HTMLElement, offset?: Point | null, scale?: number, rotation?: number): void {
+export function setTransform(el: HTMLElement, offset?: Point | null, scale?: number, rotation?: number, pitch?: number): void {
   const pos = offset ?? new Point(0, 0)
-  const scalePart = scale ? ` scale(${scale})` : ''
+  // Order is load-bearing. CSS applies transforms right-to-left to a local
+  // point (inner-most is applied first), so the string
+  //   translate3d → rotateX(pitch) → rotate(bearing) → scale
+  // means: a local point is first scaled, then bearing-rotated around the
+  // element's Z axis, then pitch-tilted around the SCREEN X axis (because
+  // rotateX happens in the parent's frame AFTER the bearing spin is baked
+  // in), then translated. This matches Mapbox: pitch tilts the post-bearing
+  // plane toward the viewer, regardless of the map's bearing.
   const rotationPart = rotation ? ` rotate(${rotation}deg)` : ''
-  el.style.transform = `translate3d(${pos.x}px,${pos.y}px,0)${scalePart}${rotationPart}`
+  const pitchPart = pitch ? ` rotateX(${pitch}deg)` : ''
+  const scalePart = scale ? ` scale(${scale})` : ''
+  el.style.transform = `translate3d(${pos.x}px,${pos.y}px,0)${pitchPart}${rotationPart}${scalePart}`
 }
 
 const positions = new WeakMap < Element, Point > ()
 const rotations = new WeakMap < Element, number > ()
+const pitches = new WeakMap < Element, number > ()
 
-export function setPosition(el: HTMLElement, point: Point, rotation?: number): void {
+export function setPosition(el: HTMLElement, point: Point, rotation?: number, pitch?: number): void {
   positions.set(el, point)
   if (rotation !== undefined)
   rotations.set(el, rotation)
+  if (pitch !== undefined)
+  pitches.set(el, pitch)
   const storedRotation = rotation ?? rotations.get(el) ?? 0
-  setTransform(el, point, undefined, storedRotation || undefined)
+  const storedPitch = pitch ?? pitches.get(el) ?? 0
+  setTransform(el, point, undefined, storedRotation || undefined, storedPitch || undefined)
 }
 
 export function getPosition(el: HTMLElement): Point {
