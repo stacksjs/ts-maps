@@ -3,9 +3,9 @@ import { Evented } from '../core/Events'
 import { TsMap } from '../map/Map'
 
 export class Layer extends Evented {
-  _map?: any
-  _mapToAdd?: any
-  _zoomAnimated?: boolean
+  declare _map?: any
+  declare _mapToAdd?: any
+  declare _zoomAnimated?: boolean
 
   getEvents(): Record<string, any> { return {} }
   onAdd(_map: any): void {}

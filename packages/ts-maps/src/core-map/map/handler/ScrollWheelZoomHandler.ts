@@ -12,8 +12,8 @@ TsMap.mergeOptions( {
 export class ScrollWheelZoomHandler extends Handler {
   _delta = 0
   _startTime: number | null = null
-  _timer?: ReturnType<typeof setTimeout>
-  _lastMousePos?: Point
+  declare _timer?: ReturnType<typeof setTimeout>
+  declare _lastMousePos?: Point
 
   addHooks(): void {
     DomEvent.on(this._map._container, 'wheel', this._onWheelScroll, this)
@@ -25,7 +25,7 @@ export class ScrollWheelZoomHandler extends Handler {
     clearTimeout(this._timer as any)
   }
 
-  _onWheelScroll = (e: any): void => {
+  _onWheelScroll(e: any): void {
     const delta = DomEvent.getWheelDelta(e)
     const debounce = this._map.options.wheelDebounceTime
     this._delta += delta

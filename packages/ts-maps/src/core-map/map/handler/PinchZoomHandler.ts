@@ -10,14 +10,14 @@ TsMap.mergeOptions( { pinchZoom: true, bounceAtZoomLimits: true })
 export class PinchZoomHandler extends Handler {
   _zooming = false
   _moved = false
-  _centerPoint?: Point
-  _startLatLng?: LatLng
-  _pinchStartLatLng?: LatLng
-  _startDist?: number
-  _startZoom?: number
-  _zoom?: number
-  _center?: LatLng
-  _animRequest?: number
+  declare _centerPoint?: Point
+  declare _startLatLng?: LatLng
+  declare _pinchStartLatLng?: LatLng
+  declare _startDist?: number
+  declare _startZoom?: number
+  declare _zoom?: number
+  declare _center?: LatLng
+  declare _animRequest?: number
 
   addHooks(): void {
     this._map._container.classList.add('tsmap-touch-zoom')
@@ -29,7 +29,7 @@ export class PinchZoomHandler extends Handler {
     DomEvent.off(this._map._container, 'pointerdown', this._onPointerStart, this)
   }
 
-  _onPointerStart = (e: PointerEvent): void => {
+  _onPointerStart(e: PointerEvent): void {
     const map = this._map
     const pointers = PointerEvents.getPointers()
     if (pointers.length !== 2 || map._animatingZoom || this._zooming)
@@ -57,7 +57,7 @@ export class PinchZoomHandler extends Handler {
     e.preventDefault()
   }
 
-  _onPointerMove = (e: PointerEvent): void => {
+  _onPointerMove(e: PointerEvent): void {
     const pointers = PointerEvents.getPointers()
     if (pointers.length !== 2 || !this._zooming)
     return
@@ -106,7 +106,7 @@ export class PinchZoomHandler extends Handler {
     e.preventDefault()
   }
 
-  _onPointerEnd = (): void => {
+  _onPointerEnd(): void {
     if (!this._moved || !this._zooming) {
       this._zooming = false
       return

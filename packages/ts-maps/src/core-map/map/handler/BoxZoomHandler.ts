@@ -9,13 +9,13 @@ import { TsMap } from '../Map'
 TsMap.mergeOptions( { boxZoom: true })
 
 export class BoxZoomHandler extends Handler {
-  _container!: HTMLElement
-  _pane!: HTMLElement
+  declare _container: HTMLElement
+  declare _pane: HTMLElement
   _resetStateTimeout: any = 0
   _moved = false
-  _box?: HTMLElement
-  _startPoint?: Point
-  _point?: Point
+  declare _box?: HTMLElement
+  declare _startPoint?: Point
+  declare _point?: Point
 
   initialize(map: any): void {
     super.initialize(map)
@@ -37,12 +37,12 @@ export class BoxZoomHandler extends Handler {
     return this._moved
   }
 
-  _destroy = (): void => {
+  _destroy(): void {
     this._pane?.remove()
     ; (this as any)._pane = undefined
   }
 
-  _resetState = (): void => {
+  _resetState(): void {
     this._resetStateTimeout = 0
     this._moved = false
   }
@@ -54,7 +54,7 @@ export class BoxZoomHandler extends Handler {
     }
   }
 
-  _onPointerDown = (e: PointerEvent): boolean | undefined => {
+  _onPointerDown(e: PointerEvent): boolean | undefined {
     if (!e.shiftKey || e.button !== 0)
     return false
 
@@ -75,7 +75,7 @@ export class BoxZoomHandler extends Handler {
     DomEvent.on(document, 'keydown', this._onKeyDown, this)
   }
 
-  _onPointerMove = (e: PointerEvent): void => {
+  _onPointerMove(e: PointerEvent): void {
     if (!this._moved) {
       this._moved = true
       this._box = DomUtil.create('div', 'tsmap-zoom-box', this._container)
@@ -109,7 +109,7 @@ export class BoxZoomHandler extends Handler {
     DomEvent.off(document, 'keydown', this._onKeyDown, this)
   }
 
-  _onPointerUp = (e: PointerEvent): void => {
+  _onPointerUp(e: PointerEvent): void {
     if (e.button !== 0)
     return
     this._finish()
@@ -127,7 +127,7 @@ export class BoxZoomHandler extends Handler {
     this._map.fitBounds(bounds).fire('boxzoomend', { boxZoomBounds: bounds })
   }
 
-  _onKeyDown = (e: KeyboardEvent): void => {
+  _onKeyDown(e: KeyboardEvent): void {
     if (e.code === 'Escape') {
       this._finish()
       this._clearDeferredResetState()

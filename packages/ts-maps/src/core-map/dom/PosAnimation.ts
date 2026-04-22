@@ -3,14 +3,14 @@ import * as DomUtil from './DomUtil'
 import { Evented } from '../core/Events'
 
 export class PosAnimation extends Evented {
-  _el?: HTMLElement
-  _inProgress?: boolean
-  _duration?: number
-  _easeOutPower?: number
-  _startPos?: Point
-  _offset?: Point
-  _startTime?: number
-  _animId?: number
+  declare _el?: HTMLElement
+  declare _inProgress?: boolean
+  declare _duration?: number
+  declare _easeOutPower?: number
+  declare _startPos?: Point
+  declare _offset?: Point
+  declare _startTime?: number
+  declare _animId?: number
 
   run(el: HTMLElement, newPos: Point, duration?: number, easeLinearity?: number): void {
     this.stop()

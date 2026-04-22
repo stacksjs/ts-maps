@@ -80,7 +80,7 @@ export function setOptions < T extends { options?: Record<string, any> } > (obj:
   return obj.options!
 }
 
-const templateRe = /\ { *([\w\- ]+) *\}/g
+const templateRe = /\{ *([\w\- ]+) *\}/g
 
 // Simple templating facility: `'Hello {a}, {b}'` + `{a: 'foo', b: 'bar'}` -> `'Hello foo, bar'`.
 export function template(str: string, data: Record<string, any>): string {

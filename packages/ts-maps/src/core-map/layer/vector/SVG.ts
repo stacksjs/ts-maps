@@ -3,8 +3,8 @@ import { splitWords, stamp } from '../../core/Util'
 import { Renderer } from './Renderer'
 
 export class SVG extends Renderer {
-  _rootGroup?: SVGGElement
-  _svgSize?: any
+  declare _rootGroup?: SVGGElement
+  declare _svgSize?: any
 
   _initContainer(): void {
     this._container = SVG.create('svg') as any
@@ -19,7 +19,7 @@ export class SVG extends Renderer {
     delete this._svgSize
   }
 
-  _resizeContainer = (): any => {
+  _resizeContainer(): any {
     // Equivalent to super._resizeContainer but needs access to _bounds after.
     const p = this.options!.padding
     const size = this._map.getSize().multiplyBy(1 + p * 2).round()

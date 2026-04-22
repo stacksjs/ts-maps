@@ -48,9 +48,9 @@ export class Class {
     return this
   }
 
-  options?: Record<string, any>
+  declare options?: Record<string, any>
   _initHooksCalled = false
-  _initHooks?: Array<() => void>
+  declare _initHooks?: Array<() => void>
 
   initialize(..._args: any[]): void {}
 

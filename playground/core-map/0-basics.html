@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>ts-maps — 0. Basics</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
+    <style>
+      /* A tiny CSS pin so we don't rely on external marker assets. */
+      .pin {
+        width: 26px;
+        height: 26px;
+        border-radius: 50% 50% 50% 0;
+        background: #4f46e5;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+        transform: rotate(-45deg);
+      }
+      .pin::after {
+        content: '';
+        display: block;
+        width: 8px;
+        height: 8px;
+        margin: 6px 0 0 6px;
+        border-radius: 50%;
+        background: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class='demo-page'>
+      <nav class='crumbs'>
+        <a href='./index.html'>core-map playground</a>
+        <span>/</span>
+        <span>0. Basics</span>
+      </nav>
+      <h1>0. Basics — tiles + marker + popup</h1>
+      <p class='subtitle'>
+        An OpenStreetMap tile layer rendered by <code>TsMap</code>, with a
+        marker at Times Square (40.758, -73.9855) and a popup. Full pan, zoom,
+        drag and pinch are wired. Fractional zoom is on — scroll slowly to see
+        smooth transitions between zoom levels.
+      </p>
+      <div id='map' class='map-host'></div>
+    </div>
+
+    <script type='module' src='./0-basics.ts'></script>
+  </body>
+</html>

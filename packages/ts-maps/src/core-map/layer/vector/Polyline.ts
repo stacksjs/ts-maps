@@ -7,10 +7,10 @@ import { Point } from '../../geometry/Point'
 import { Path } from './Path'
 
 export class Polyline extends Path {
-  _latlngs!: any[]
-  _bounds!: LatLngBounds
-  _rings!: Point[][]
-  _rawPxBounds?: Bounds
+  declare _latlngs: any[]
+  declare _bounds: LatLngBounds
+  declare _rings: Point[][]
+  declare _rawPxBounds?: Bounds
 
   initialize(latlngs: any[], options?: any): void {
     Util.setOptions(this as any, options)

@@ -10,17 +10,17 @@ interface LayerEntry {
 }
 
 export class LayersControl extends Control {
-  _layerControlInputs!: any[]
-  _layers!: LayerEntry[]
+  declare _layerControlInputs: any[]
+  declare _layers: LayerEntry[]
   _lastZIndex = 0
   _handlingClick = false
   _preventClick = false
-  _section!: HTMLElement
-  _separator!: HTMLElement
-  _baseLayersList!: HTMLElement
-  _overlaysList!: HTMLElement
-  _layersLink!: HTMLAnchorElement
-  _collapseDelayTimeout?: ReturnType<typeof setTimeout>
+  declare _section: HTMLElement
+  declare _separator: HTMLElement
+  declare _baseLayersList: HTMLElement
+  declare _overlaysList: HTMLElement
+  declare _layersLink: HTMLAnchorElement
+  declare _collapseDelayTimeout?: ReturnType<typeof setTimeout>
 
   initialize(baseLayers?: Record<string, any>, overlays?: Record<string, any>, options?: any): void {
     super.initialize(options)
@@ -97,7 +97,7 @@ export class LayersControl extends Control {
     return this
   }
 
-  collapse = (ev?: any): this => {
+  collapse(ev?: any): this {
     if (!ev || !((ev.type === 'pointerleave' || ev.type === 'pointerout') && ev.pointerType === 'touch')) {
       if (this.options!.collapseDelay > 0) {
         this._collapseDelayTimeout = setTimeout(() => {
@@ -206,7 +206,7 @@ export class LayersControl extends Control {
     return this
   }
 
-  _onLayerChange = (e: any): void => {
+  _onLayerChange(e: any): void {
     if (!this._handlingClick)
     this._update()
 
@@ -250,7 +250,7 @@ export class LayersControl extends Control {
     return label
   }
 
-  _onInputClick = (e: any): void => {
+  _onInputClick(e: any): void {
     if (this._preventClick)
     return
 
@@ -281,7 +281,7 @@ export class LayersControl extends Control {
     this._refocusOnMap(e)
   }
 
-  _checkDisabledLayers = (): void => {
+  _checkDisabledLayers(): void {
     const inputs = this._layerControlInputs
     const zoom = this._map.getZoom()
     for (const input of inputs) {
@@ -291,13 +291,13 @@ export class LayersControl extends Control {
     }
   }
 
-  _expandIfNotCollapsed = (): this => {
+  _expandIfNotCollapsed(): this {
     if (this._map && !this.options!.collapsed)
     this.expand()
     return this
   }
 
-  _expandSafely = (): void => {
+  _expandSafely(): void {
     const section = this._section
     this._preventClick = true
     DomEvent.on(section, 'click', DomEvent.preventDefault)

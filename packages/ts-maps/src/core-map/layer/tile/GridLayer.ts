@@ -23,21 +23,21 @@ interface Level {
 
 // Generic class for handling a tiled grid of HTML elements.
 export class GridLayer extends Layer {
-  _container?: HTMLElement
-  _levels!: Record<string | number, Level>
-  _tiles!: Record<string, TileEntry>
-  _level?: Level
-  _tileZoom?: number
-  _fadeFrame?: number
-  _pruneTimeout?: ReturnType<typeof setTimeout>
-  _noPrune?: boolean
-  _loading?: boolean
-  _globalTileRange?: Bounds
-  _wrapX?: [number, number] | false
-  _wrapY?: [number, number] | false
-  _tileSize?: Point
+  declare _container?: HTMLElement
+  declare _levels: Record<string | number, Level>
+  declare _tiles: Record<string, TileEntry>
+  declare _level?: Level
+  declare _tileZoom?: number
+  declare _fadeFrame?: number
+  declare _pruneTimeout?: ReturnType<typeof setTimeout>
+  declare _noPrune?: boolean
+  declare _loading?: boolean
+  declare _globalTileRange?: Bounds
+  declare _wrapX?: [number, number] | false
+  declare _wrapY?: [number, number] | false
+  declare _tileSize?: Point
   _onMove?: (...args: any[]) => void
-  _abortLoading?: () => void
+  _abortLoading?(): void
 
   initialize(options?: any): void {
     Util.setOptions(this as any, options)
@@ -160,7 +160,7 @@ export class GridLayer extends Layer {
     }
   }
 
-  _updateOpacity = (): void => {
+  _updateOpacity(): void {
     if (!this._map)
     return
 
@@ -254,7 +254,7 @@ export class GridLayer extends Layer {
   _onRemoveLevel(_z: number): void {}
   _onCreateLevel(_level: Level): void {}
 
-  _pruneTiles = (): void => {
+  _pruneTiles(): void {
     if (!this._map)
     return
 
@@ -293,7 +293,7 @@ export class GridLayer extends Layer {
     this._removeTile(key)
   }
 
-  _invalidateAll = (): void => {
+  _invalidateAll(): void {
     for (const z of Object.keys(this._levels)) {
       this._levels[z].el.remove()
       this._onRemoveLevel(Number(z))
@@ -347,12 +347,12 @@ export class GridLayer extends Layer {
     }
   }
 
-  _resetView = (e?: any): void => {
+  _resetView(e?: any): void {
     const animating = e && (e.pinch || e.flyTo)
     this._setView(this._map.getCenter(), this._map.getZoom(), animating, animating)
   }
 
-  _animateZoom = (e: any): void => {
+  _animateZoom(e: any): void {
     this._setView(e.center, e.zoom, true, e.noUpdate)
   }
 
@@ -430,7 +430,7 @@ export class GridLayer extends Layer {
     ]
   }
 
-  _onMoveEnd = (): void => {
+  _onMoveEnd(): void {
     if (!this._map || this._map._animatingZoom)
     return
     this._update()

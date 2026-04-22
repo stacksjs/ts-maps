@@ -6,8 +6,8 @@ import { Layer } from './Layer'
 
 export class ImageOverlay extends Layer {
   _url: any
-  _bounds!: LatLngBounds
-  _image?: HTMLImageElement | HTMLVideoElement | SVGElement | any
+  declare _bounds: LatLngBounds
+  declare _image?: HTMLImageElement | HTMLVideoElement | SVGElement | any
 
   initialize(url: any, bounds: any, options?: any): void {
     this._url = url
@@ -130,13 +130,13 @@ export class ImageOverlay extends Layer {
     img.alt = this.options!.alt
   }
 
-  _animateZoom = (e: any): void => {
+  _animateZoom(e: any): void {
     const scale = this._map.getZoomScale(e.zoom)
     const offset = this._map._latLngBoundsToNewLayerBounds(this._bounds, e.zoom, e.center).min
     DomUtil.setTransform(this._image, offset, scale)
   }
 
-  _reset = (): void => {
+  _reset(): void {
     const image = this._image
     const bounds = new Bounds(
     this._map.latLngToLayerPoint(this._bounds.getNorthWest()),

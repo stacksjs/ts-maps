@@ -5,7 +5,7 @@ import * as DomEvent from '../../dom/DomEvent'
 import { GridLayer } from './GridLayer'
 
 export class TileLayer extends GridLayer {
-  _url!: string
+  declare _url: string
 
   initialize(url: string, options?: any): void {
     super.initialize(options)
@@ -117,7 +117,7 @@ export class TileLayer extends GridLayer {
     return this.options!.subdomains[index]
   }
 
-  _abortLoading = (): void => {
+  _abortLoading(): void {
     for (const i of Object.keys(this._tiles)) {
       if (this._tiles[i].coords.z !== this._tileZoom) {
         const tile = this._tiles[i].el as HTMLImageElement

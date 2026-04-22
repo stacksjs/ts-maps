@@ -8,18 +8,18 @@ import { Point } from '../geometry/Point'
 export class Draggable extends Evented {
   static _dragging: Draggable | false = false
 
-  _element!: HTMLElement
-  _dragStartTarget!: HTMLElement
-  _preventOutline?: boolean
-  _enabled?: boolean
-  _moved?: boolean
-  _moving?: boolean
-  _startPoint?: Point
-  _startPos?: Point
-  _newPos?: Point
-  _lastEvent?: PointerEvent
-  _lastTarget?: HTMLElement | null
-  _parentScale?: DomUtil.ScaleInfo
+  declare _element: HTMLElement
+  declare _dragStartTarget: HTMLElement
+  declare _preventOutline?: boolean
+  declare _enabled?: boolean
+  declare _moved?: boolean
+  declare _moving?: boolean
+  declare _startPoint?: Point
+  declare _startPos?: Point
+  declare _newPos?: Point
+  declare _lastEvent?: PointerEvent
+  declare _lastTarget?: HTMLElement | null
+  declare _parentScale?: DomUtil.ScaleInfo
 
   initialize(element: HTMLElement, dragStartTarget?: HTMLElement, preventOutline?: boolean, options?: any): void {
     Util.setOptions(this as any, options)

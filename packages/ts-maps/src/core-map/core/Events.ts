@@ -13,9 +13,9 @@ export type EventHandler = (event?: any) => void
 export class Evented extends Class {
   static __REMOVED_EVENTS: string[] = ['mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove']
 
-  _events?: Record<string, EventListener[]>
-  _eventParents?: Record<number, Evented>
-  _firingCount?: number
+  declare _events?: Record<string, EventListener[]>
+  declare _eventParents?: Record<number, Evented>
+  declare _firingCount?: number
 
   on(types: string | Record<string, EventHandler>, fn?: EventHandler | any, context?: any): this {
     if (typeof types === 'object') {

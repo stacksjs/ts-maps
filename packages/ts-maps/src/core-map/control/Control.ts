@@ -5,7 +5,7 @@ import { TsMap } from '../map/Map'
 
 export class Control extends Class {
   _map: any
-  _container?: HTMLElement
+  declare _container?: HTMLElement
 
   onAdd(_map: any): HTMLElement { return document.createElement('div') }
   onRemove(_map: any): void {}

@@ -6,10 +6,10 @@ import { Bounds } from '../geometry/Bounds'
 import { Layer } from './Layer'
 
 export class BlanketOverlay extends Layer {
-  _container?: HTMLElement
-  _bounds?: Bounds
-  _center?: any
-  _zoom?: number
+  declare _container?: HTMLElement
+  declare _bounds?: Bounds
+  declare _center?: any
+  declare _zoom?: number
 
   initialize(options?: any): void {
     Util.setOptions(this as any, options)
@@ -44,11 +44,11 @@ export class BlanketOverlay extends Layer {
     return events
   }
 
-  _onAnimZoom = (ev: any): void => {
+  _onAnimZoom(ev: any): void {
     this._updateTransform(ev.center, ev.zoom)
   }
 
-  _onZoom = (): void => {
+  _onZoom(): void {
     this._updateTransform(this._map.getCenter(), this._map.getZoom())
   }
 
@@ -62,7 +62,7 @@ export class BlanketOverlay extends Layer {
     DomUtil.setTransform(this._container as HTMLElement, topLeftOffset, scale)
   }
 
-  _onMoveEnd = (ev?: any): void => {
+  _onMoveEnd(ev?: any): void {
     const p = this.options!.padding
     const size = this._map.getSize()
     const min = this._map.containerPointToLayerPoint(size.multiplyBy(-p)).round() as Point
@@ -74,7 +74,7 @@ export class BlanketOverlay extends Layer {
     this._onSettled(ev)
   }
 
-  _reset = (): void => {
+  _reset(): void {
     this._onSettled()
     this._updateTransform(this._center, this._zoom as number)
     this._onViewReset()
@@ -90,7 +90,7 @@ export class BlanketOverlay extends Layer {
     delete this._container
   }
 
-  _resizeContainer = (): Point => {
+  _resizeContainer(): Point {
     const p = this.options!.padding
     const size = this._map.getSize().multiplyBy(1 + p * 2).round()
     this._container!.style.width = `${size.x}px`
@@ -98,7 +98,7 @@ export class BlanketOverlay extends Layer {
     return size
   }
 
-  _onZoomEnd = (): void => {}
+  _onZoomEnd(): void {}
   _onViewReset(): void {}
   _onSettled(_ev?: any): void {}
 }

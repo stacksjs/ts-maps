@@ -11,17 +11,17 @@ interface Order {
 
 // Canvas renderer for vector layers.
 export class Canvas extends Renderer {
-  _ctx?: CanvasRenderingContext2D
-  _ctxScale?: number
-  _redrawRequest?: number | null
-  _redrawBounds?: Bounds | null
-  _drawFirst?: Order | null
-  _drawLast?: Order | null
-  _drawing?: boolean
-  _postponeUpdatePaths?: boolean
-  _hoveredLayer?: any
-  _pointerHoverThrottled?: boolean
-  _pointerHoverThrottleTimeout?: ReturnType<typeof setTimeout>
+  declare _ctx?: CanvasRenderingContext2D
+  declare _ctxScale?: number
+  declare _redrawRequest?: number | null
+  declare _redrawBounds?: Bounds | null
+  declare _drawFirst?: Order | null
+  declare _drawLast?: Order | null
+  declare _drawing?: boolean
+  declare _postponeUpdatePaths?: boolean
+  declare _hoveredLayer?: any
+  declare _pointerHoverThrottled?: boolean
+  declare _pointerHoverThrottleTimeout?: ReturnType<typeof setTimeout>
 
   getEvents(): Record<string, any> {
     const events = super.getEvents()
@@ -29,7 +29,7 @@ export class Canvas extends Renderer {
     return events
   }
 
-  _onViewPreReset = (): void => {
+  _onViewPreReset(): void {
     this._postponeUpdatePaths = true
   }
 
@@ -60,7 +60,7 @@ export class Canvas extends Renderer {
     super._destroyContainer()
   }
 
-  _resizeContainer = (): any => {
+  _resizeContainer(): any {
     const p = this.options!.padding
     const size = this._map.getSize().multiplyBy(1 + p * 2).round()
     this._container!.style.width = `${size.x}px`
@@ -72,7 +72,7 @@ export class Canvas extends Renderer {
     return size
   }
 
-  _updatePaths = (): void => {
+  _updatePaths(): void {
     if (this._postponeUpdatePaths)
     return
     this._redrawBounds = null
@@ -91,7 +91,7 @@ export class Canvas extends Renderer {
     this.fire('update')
   }
 
-  _reset = (): void => {
+  _reset(): void {
     const onSettled = this._onSettled.bind(this)
     onSettled()
     const self = this as any
@@ -292,7 +292,7 @@ export class Canvas extends Renderer {
     }
   }
 
-  _onClick = (e: any): void => {
+  _onClick(e: any): void {
     const point = this._map.pointerEventToLayerPoint(e)
     let clickedLayer: any
 
@@ -306,14 +306,14 @@ export class Canvas extends Renderer {
     this._fireEvent(clickedLayer ? [clickedLayer] : false, e)
   }
 
-  _onPointerMove = (e: any): void => {
+  _onPointerMove(e: any): void {
     if (!this._map || this._map.dragging.moving() || this._map._animatingZoom)
     return
     const point = this._map.pointerEventToLayerPoint(e)
     this._handlePointerHover(e, point)
   }
 
-  _handlePointerOut = (e: any): void => {
+  _handlePointerOut(e: any): void {
     const layer = this._hoveredLayer
     if (layer) {
       this._container!.classList.remove('tsmap-interactive')

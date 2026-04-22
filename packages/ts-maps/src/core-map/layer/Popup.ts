@@ -8,11 +8,11 @@ import { Layer } from './Layer'
 import { Path } from './vector/Path'
 
 export class Popup extends DivOverlay {
-  _wrapper?: HTMLElement
-  _tipContainer?: HTMLElement
-  _tip?: HTMLElement
-  _closeButton?: HTMLAnchorElement
-  _resizeObserver?: ResizeObserver
+  declare _wrapper?: HTMLElement
+  declare _tipContainer?: HTMLElement
+  declare _tip?: HTMLElement
+  declare _closeButton?: HTMLAnchorElement
+  declare _resizeObserver?: ResizeObserver
 
   openOn(map?: any): this {
     const m = arguments.length ? map : this._source._map
@@ -114,13 +114,13 @@ export class Popup extends DivOverlay {
     this._containerHeight = this._container!.offsetHeight
   }
 
-  _animateZoom = (e: any): void => {
+  _animateZoom(e: any): void {
     const pos = this._map._latLngToNewLayerPoint(this._latlng!, e.zoom, e.center)
     const anchor = this._getAnchor()
     DomUtil.setPosition(this._container!, pos.add(anchor))
   }
 
-  _adjustPan = (): void => {
+  _adjustPan(): void {
     if (!this.options!.autoPan)
     return
     this._map._panAnim?.stop()

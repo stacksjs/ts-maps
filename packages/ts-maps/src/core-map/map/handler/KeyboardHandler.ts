@@ -50,7 +50,7 @@ export class KeyboardHandler extends Handler {
     this._map.off( { focus: this._addHooks, blur: this._removeHooks }, this)
   }
 
-  _onPointerDown = (): void => {
+  _onPointerDown(): void {
     if (this._focused)
     return
     const body = document.body
@@ -61,12 +61,12 @@ export class KeyboardHandler extends Handler {
     window.scrollTo(left, top)
   }
 
-  _onFocus = (): void => {
+  _onFocus(): void {
     this._focused = true
     this._map.fire('focus')
   }
 
-  _onBlur = (): void => {
+  _onBlur(): void {
     this._focused = false
     this._map.fire('blur')
   }
@@ -93,15 +93,15 @@ export class KeyboardHandler extends Handler {
     keys[code] = -zoomDelta
   }
 
-  _addHooks = (): void => {
+  _addHooks(): void {
     on(document, 'keydown', this._onKeyDown, this)
   }
 
-  _removeHooks = (): void => {
+  _removeHooks(): void {
     off(document, 'keydown', this._onKeyDown, this)
   }
 
-  _onKeyDown = (e: KeyboardEvent): void => {
+  _onKeyDown(e: KeyboardEvent): void {
     if (e.altKey || e.ctrlKey || e.metaKey)
     return
 

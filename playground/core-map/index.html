@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>ts-maps core-map playground</title>
+    <link rel='stylesheet' href='./shared.css' />
+  </head>
+  <body>
+    <header class='page-header'>
+      <div>
+        <h1>ts-maps <span class='muted'>core-map playground</span></h1>
+        <p>
+          Interactive browser demos for the new <code>TsMap</code> API.
+          Each phase of the
+          <a href='https://github.com/stacksjs/ts-maps/blob/main/ROADMAP.md' target='_blank' rel='noopener'>roadmap</a>
+          lands a demo here.
+        </p>
+      </div>
+      <a class='btn' href='https://github.com/stacksjs/ts-maps' target='_blank' rel='noopener'>GitHub</a>
+    </header>
+
+    <main class='demo-grid'>
+      <a class='demo-card ready' href='./0-basics.html'>
+        <div class='demo-index'>0</div>
+        <div class='demo-body'>
+          <h2>Basics</h2>
+          <p>OSM tile layer + draggable marker + popup. Pan / zoom / pinch.</p>
+        </div>
+        <div class='demo-status ready'>Ready</div>
+      </a>
+
+      <a class='demo-card' href='./1-camera.html'>
+        <div class='demo-index'>1</div>
+        <div class='demo-body'>
+          <h2>Camera</h2>
+          <p>Fractional zoom, rotation (bearing), and pitch.</p>
+        </div>
+        <div class='demo-status'>Phase 1</div>
+      </a>
+
+      <a class='demo-card' href='./2-vector-tiles.html'>
+        <div class='demo-index'>2</div>
+        <div class='demo-body'>
+          <h2>Vector tiles</h2>
+          <p>MVT tiles, style spec, expressions.</p>
+        </div>
+        <div class='demo-status'>Phase 2</div>
+      </a>
+
+      <a class='demo-card' href='./3-symbols.html'>
+        <div class='demo-index'>3</div>
+        <div class='demo-body'>
+          <h2>Labels &amp; symbols</h2>
+          <p>Glyph atlas, icon atlas, collision &amp; placement.</p>
+        </div>
+        <div class='demo-status'>Phase 3</div>
+      </a>
+
+      <a class='demo-card' href='./4-raster.html'>
+        <div class='demo-index'>4</div>
+        <div class='demo-body'>
+          <h2>Raster &amp; hillshade</h2>
+          <p>DEM hillshade, heatmap, raster-color ramps.</p>
+        </div>
+        <div class='demo-status'>Phase 4</div>
+      </a>
+
+      <a class='demo-card' href='./5-clustering.html'>
+        <div class='demo-index'>5</div>
+        <div class='demo-body'>
+          <h2>Clustering &amp; feature-state</h2>
+          <p>Supercluster, hover/selected state, gradient paths.</p>
+        </div>
+        <div class='demo-status'>Phase 5</div>
+      </a>
+
+      <a class='demo-card' href='./6-webgl.html'>
+        <div class='demo-index'>6</div>
+        <div class='demo-body'>
+          <h2>WebGL renderer</h2>
+          <p>GPU-accelerated fill / line / circle / text shaders.</p>
+        </div>
+        <div class='demo-status'>Phase 6</div>
+      </a>
+
+      <a class='demo-card' href='./7-3d.html'>
+        <div class='demo-index'>7</div>
+        <div class='demo-body'>
+          <h2>3D</h2>
+          <p>Terrain, fill-extrusion, custom layers.</p>
+        </div>
+        <div class='demo-status'>Phase 7</div>
+      </a>
+
+      <a class='demo-card' href='./8-globe.html'>
+        <div class='demo-index'>8</div>
+        <div class='demo-body'>
+          <h2>Globe</h2>
+          <p>Mercator -&gt; globe transition &amp; atmosphere.</p>
+        </div>
+        <div class='demo-status'>Phase 8</div>
+      </a>
+
+      <a class='demo-card' href='./9-services.html'>
+        <div class='demo-index'>9</div>
+        <div class='demo-body'>
+          <h2>Services</h2>
+          <p>Geocoding, directions, isochrones (OSRM / Nominatim).</p>
+        </div>
+        <div class='demo-status'>Phase 9</div>
+      </a>
+    </main>
+
+    <footer class='page-footer'>
+      <small>
+        Tiles &copy; <a href='https://www.openstreetmap.org/copyright' target='_blank' rel='noopener'>OpenStreetMap</a> contributors.
+      </small>
+    </footer>
+  </body>
+</html>

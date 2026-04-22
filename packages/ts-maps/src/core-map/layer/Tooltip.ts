@@ -95,7 +95,7 @@ export class Tooltip extends DivOverlay {
     DomUtil.setPosition(container, pos)
   }
 
-  _updatePosition = (): void => {
+  _updatePosition(): void {
     const pos = this._map.latLngToLayerPoint(this._latlng!)
     this._setPosition(pos)
   }
@@ -106,7 +106,7 @@ export class Tooltip extends DivOverlay {
     this._container.style.opacity = String(opacity)
   }
 
-  _animateZoom = (e: any): void => {
+  _animateZoom(e: any): void {
     const pos = this._map._latLngToNewLayerPoint(this._latlng!, e.zoom, e.center)
     this._setPosition(pos)
   }

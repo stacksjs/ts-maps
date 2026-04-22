@@ -77,10 +77,16 @@
       "types": "./dist/analytics/index.d.ts",
       "import": "./dist/analytics/index.js"
     },
+    "./styles.css": "./src/core-map/ts-maps.css",
+    "./css": "./src/core-map/ts-maps.css",
+    "./types": {
+      "types": "./dist/types.d.ts"
+    },
     "./*": {
       "import": "./dist/*"
     }
   },
+  "style": "./src/core-map/ts-maps.css",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -99,7 +105,8 @@
   },
   "devDependencies": {
     "bunfig": "^0.15.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "very-happy-dom": "file:/Users/chrisbreuer/Code/Tools/very-happy-dom"
   },
   "lint-staged": {
     "*.{js,ts}": "bunx --bun pickier . --fix"

@@ -2,8 +2,8 @@ import * as DomUtil from '../dom/DomUtil'
 import { Control } from './Control'
 
 export class ScaleControl extends Control {
-  _mScale?: HTMLElement
-  _iScale?: HTMLElement
+  declare _mScale?: HTMLElement
+  declare _iScale?: HTMLElement
 
   onAdd(map: any): HTMLElement {
     const className = 'tsmap-control-scale'
@@ -28,7 +28,7 @@ export class ScaleControl extends Control {
     this._iScale = DomUtil.create('div', className, container)
   }
 
-  _update = (): void => {
+  _update(): void {
     const map = this._map
     const y = map.getSize().y / 2
     const maxMeters = map.distance(

@@ -1,7 +1,7 @@
 import { Class } from './Class'
 
 export class Handler extends Class {
-  _map: any
+  declare _map: any
   _enabled = false
 
   static addTo(this: any, map: any, name: string): any {

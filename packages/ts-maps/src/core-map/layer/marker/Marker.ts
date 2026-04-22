@@ -8,12 +8,12 @@ import { DefaultIcon } from './DefaultIcon'
 import { MarkerDrag } from './Marker.Drag'
 
 export class Marker extends Layer {
-  _latlng!: LatLng
-  _icon?: HTMLElement | null
-  _shadow?: HTMLElement | null
-  _zIndex?: number
-  _popup?: any
-  dragging?: MarkerDrag
+  declare _latlng: LatLng
+  declare _icon?: HTMLElement | null
+  declare _shadow?: HTMLElement | null
+  declare _zIndex?: number
+  declare _popup?: any
+  declare dragging?: MarkerDrag
 
   initialize(latlng: any, options?: any): void {
     Util.setOptions(this as any, options)
@@ -81,7 +81,7 @@ export class Marker extends Layer {
     return this._icon
   }
 
-  update = (): this => {
+  update(): this {
     if (this._icon && this._map) {
       const pos = this._map.latLngToLayerPoint(this._latlng).round()
       this._setPos(pos)
@@ -184,7 +184,7 @@ export class Marker extends Layer {
     this._icon.style.zIndex = String((this._zIndex as number) + offset)
   }
 
-  _animateZoom = (opt: any): void => {
+  _animateZoom(opt: any): void {
     const pos = this._map._latLngToNewLayerPoint(this._latlng, opt.zoom, opt.center).round()
     this._setPos(pos)
   }
@@ -223,15 +223,15 @@ export class Marker extends Layer {
     this._shadow.style.opacity = String(opacity)
   }
 
-  _bringToFront = (): void => {
+  _bringToFront(): void {
     this._updateZIndex(this.options!.riseOffset)
   }
 
-  _resetZIndex = (): void => {
+  _resetZIndex(): void {
     this._updateZIndex(0)
   }
 
-  _panOnFocus = (): void => {
+  _panOnFocus(): void {
     const map = this._map
     if (!map)
     return

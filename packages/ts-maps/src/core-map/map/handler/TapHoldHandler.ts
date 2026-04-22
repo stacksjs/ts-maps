@@ -13,9 +13,9 @@ TsMap.mergeOptions( {
 })
 
 export class TapHoldHandler extends Handler {
-  _holdTimeout?: ReturnType<typeof setTimeout>
-  _startPos?: Point
-  _newPos?: Point
+  declare _holdTimeout?: ReturnType<typeof setTimeout>
+  declare _startPos?: Point
+  declare _newPos?: Point
 
   addHooks(): void {
     DomEvent.on(this._map._container, 'pointerdown', this._onDown, this)
@@ -26,7 +26,7 @@ export class TapHoldHandler extends Handler {
     clearTimeout(this._holdTimeout as any)
   }
 
-  _onDown = (e: PointerEvent): void => {
+  _onDown(e: PointerEvent): void {
     clearTimeout(this._holdTimeout as any)
     if (PointerEvents.getPointers().length !== 1 || e.pointerType === 'mouse')
     return
@@ -46,20 +46,20 @@ export class TapHoldHandler extends Handler {
     DomEvent.on(el, 'pointermove', this._onMove, this)
   }
 
-  _cancelClickPrevent = (): void => {
+  _cancelClickPrevent(): void {
     const el = this._map._container
     DomEvent.off(el, 'pointerup', DomEvent.preventDefault)
     DomEvent.off(el, 'pointerup pointercancel', this._cancelClickPrevent, this)
   }
 
-  _cancel = (): void => {
+  _cancel(): void {
     clearTimeout(this._holdTimeout as any)
     const el = this._map._container
     DomEvent.off(el, 'pointerup pointercancel contextmenu', this._cancel, this)
     DomEvent.off(el, 'pointermove', this._onMove, this)
   }
 
-  _onMove = (e: PointerEvent): void => {
+  _onMove(e: PointerEvent): void {
     this._newPos = new Point(e.clientX, e.clientY)
   }
 

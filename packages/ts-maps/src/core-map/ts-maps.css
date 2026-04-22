@@ -230,6 +230,14 @@
   transition: none;
 }
 
+/* Upright panes — counter-rotate the pane so marker icons, popups and
+ * tooltips stay visually upright when the map is rotated (bearing != 0).
+ * The transform and transform-origin are driven from JS (see
+ * `TsMap._applyBearingToPanes`). */
+.tsmap-upright {
+  will-change: transform;
+}
+
 /* cursors */
 
 .tsmap-interactive {

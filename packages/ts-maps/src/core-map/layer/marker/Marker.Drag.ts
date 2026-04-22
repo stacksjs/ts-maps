@@ -6,9 +6,9 @@ import { Point } from '../../geometry/Point'
 
 export class MarkerDrag extends Handler {
   _marker: any
-  _draggable?: Draggable
-  _oldLatLng?: any
-  _panRequest?: number
+  declare _draggable?: Draggable
+  declare _oldLatLng?: any
+  declare _panRequest?: number
 
   initialize(marker: any): void {
     super.initialize(marker._map)
@@ -45,7 +45,7 @@ export class MarkerDrag extends Handler {
     return this._draggable?._moved
   }
 
-  _adjustPan = (e: any): void => {
+  _adjustPan(e: any): void {
     const marker = this._marker
     const map = marker._map
     const speed = marker.options.autoPanSpeed
@@ -81,13 +81,13 @@ export class MarkerDrag extends Handler {
     }
   }
 
-  _onDragStart = (): void => {
+  _onDragStart(): void {
     this._oldLatLng = this._marker.getLatLng()
     this._marker.closePopup?.()
     this._marker.fire('movestart').fire('dragstart')
   }
 
-  _onPreDrag = (e: any): void => {
+  _onPreDrag(e: any): void {
     if (this._marker.options.autoPan) {
       if (this._panRequest !== undefined)
       cancelAnimationFrame(this._panRequest)
@@ -95,7 +95,7 @@ export class MarkerDrag extends Handler {
     }
   }
 
-  _onDrag = (e: any): void => {
+  _onDrag(e: any): void {
     const marker = this._marker
     const shadow = marker._shadow
     const iconPos = DomUtil.getPosition(marker._icon)
@@ -111,7 +111,7 @@ export class MarkerDrag extends Handler {
     marker.fire('move', e).fire('drag', e)
   }
 
-  _onDragEnd = (e: any): void => {
+  _onDragEnd(e: any): void {
     if (this._panRequest !== undefined)
     cancelAnimationFrame(this._panRequest)
     delete this._oldLatLng

@@ -6,7 +6,7 @@ import { Control } from './Control'
 const ukrainianFlag = '<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="tsmap-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"/><path fill="#FFD500" d="M0 4h12v3H0z"/><path fill="#E0BC00" d="M0 7h12v1H0z"/></svg>'
 
 export class AttributionControl extends Control {
-  _attributions!: Record<string, number>
+  declare _attributions: Record<string, number>
 
   initialize(options?: any): void {
     super.initialize(options)
@@ -32,7 +32,7 @@ export class AttributionControl extends Control {
     map.off('layeradd', this._addAttribution, this)
   }
 
-  _addAttribution = (ev: any): void => {
+  _addAttribution(ev: any): void {
     if (ev.layer.getAttribution) {
       this.addAttribution(ev.layer.getAttribution())
       ev.layer.once('remove', () => this.removeAttribution(ev.layer.getAttribution()))

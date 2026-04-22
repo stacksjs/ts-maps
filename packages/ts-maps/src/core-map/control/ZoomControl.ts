@@ -4,9 +4,9 @@ import { TsMap } from '../map/Map'
 import { Control } from './Control'
 
 export class ZoomControl extends Control {
-  _zoomInButton?: HTMLAnchorElement
-  _zoomOutButton?: HTMLAnchorElement
-  _disabled?: boolean
+  declare _zoomInButton?: HTMLAnchorElement
+  declare _zoomOutButton?: HTMLAnchorElement
+  declare _disabled?: boolean
 
   onAdd(map: any): HTMLElement {
     const zoomName = 'tsmap-control-zoom'
@@ -37,12 +37,12 @@ export class ZoomControl extends Control {
     return this
   }
 
-  _zoomIn = (e: any): void => {
+  _zoomIn(e: any): void {
     if (!this._disabled && this._map._zoom < this._map.getMaxZoom())
     this._map.zoomIn(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1))
   }
 
-  _zoomOut = (e: any): void => {
+  _zoomOut(e: any): void {
     if (!this._disabled && this._map._zoom > this._map.getMinZoom())
     this._map.zoomOut(this._map.options.zoomDelta * (e.shiftKey ? 3 : 1))
   }
@@ -62,7 +62,7 @@ export class ZoomControl extends Control {
     return link
   }
 
-  _updateDisabled = (): void => {
+  _updateDisabled(): void {
     const map = this._map
     const className = 'tsmap-disabled'
 

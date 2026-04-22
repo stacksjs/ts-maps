@@ -21,4 +21,5 @@ careful work that made this derivative possible.
 ## Other acknowledgements
 
 - The vector-map / choropleth module (originally `src/`) was inspired by
+
   [jsvectormap](https://github.com/themustafaomar/jsvectormap) (MIT License).

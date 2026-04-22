@@ -2,10 +2,10 @@ import * as Util from '../../core/Util'
 import { Layer } from '../Layer'
 
 export class Path extends Layer {
-  _renderer?: any
-  _path?: any
-  _pxBounds?: any
-  _parts?: any[]
+  declare _renderer?: any
+  declare _path?: any
+  declare _pxBounds?: any
+  declare _parts?: any[]
 
   beforeAdd(map: any): void {
     this._renderer = map.getRenderer(this)

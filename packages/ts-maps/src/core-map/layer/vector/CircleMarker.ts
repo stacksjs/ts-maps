@@ -5,11 +5,11 @@ import { Bounds } from '../../geometry/Bounds'
 import { Path } from './Path'
 
 export class CircleMarker extends Path {
-  _latlng!: LatLng
-  _radius!: number
-  _point?: Point
-  _pxRadius?: number
-  _pxRadiusY?: number
+  declare _latlng: LatLng
+  declare _radius: number
+  declare _point?: Point
+  declare _pxRadius?: number
+  declare _pxRadiusY?: number
 
   initialize(latlng: any, options?: any): void {
     Util.setOptions(this as any, options)

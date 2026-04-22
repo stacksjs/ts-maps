@@ -5,9 +5,9 @@ import { Bounds } from '../../geometry/Bounds'
 import { TileLayer } from './TileLayer'
 
 export class WMSTileLayer extends TileLayer {
-  wmsParams!: Record<string, any>
-  _crs?: any
-  _wmsVersion?: number
+  declare wmsParams: Record<string, any>
+  declare _crs?: any
+  declare _wmsVersion?: number
   defaultWmsParams: Record<string, any> = {
     service: 'WMS',
     request: 'GetMap',

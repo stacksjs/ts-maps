@@ -7,17 +7,17 @@ import { FeatureGroup } from './FeatureGroup'
 import { Layer } from './Layer'
 
 export class DivOverlay extends Layer {
-  _latlng?: LatLng
-  _source?: any
-  _content?: any
-  _container?: HTMLElement
-  _contentNode?: HTMLElement
-  _removeTimeout?: ReturnType<typeof setTimeout>
-  _containerWidth?: number
-  _containerHeight?: number
-  _containerLeft?: number
-  _containerBottom?: number
-  _autopanning?: boolean
+  declare _latlng?: LatLng
+  declare _source?: any
+  declare _content?: any
+  declare _container?: HTMLElement
+  declare _contentNode?: HTMLElement
+  declare _removeTimeout?: ReturnType<typeof setTimeout>
+  declare _containerWidth?: number
+  declare _containerHeight?: number
+  declare _containerLeft?: number
+  declare _containerBottom?: number
+  declare _autopanning?: boolean
 
   initialize(options?: any, source?: any): void {
     if (options instanceof LatLng || Array.isArray(options)) {
@@ -215,7 +215,7 @@ export class DivOverlay extends Layer {
     this.fire('contentupdate')
   }
 
-  _updatePosition = (): void => {
+  _updatePosition(): void {
     if (!this._map)
     return
 
@@ -244,7 +244,7 @@ export class DivOverlay extends Layer {
   _initLayout(): void {}
   _updateLayout(): void {}
   _adjustPan(): void {}
-  _animateZoom = (_e: any): void => {}
+  _animateZoom(_e: any): void {}
 }
 
 DivOverlay.setDefaultOptions( {

@@ -25,7 +25,25 @@ export interface MapOptions {
   fadeAnimation?: boolean
   markerZoomAnimation?: boolean
   transform3DLimit?: number
+  /**
+  * Initial bearing (rotation) of the map in degrees, in the range `[0, 360)`.
+  * `0` = north up (default). `90` = east is up. Mirrors Mapbox GL JS's
+  * `bearing` camera property.
+  */
+  bearing?: number
+  /**
+  * Forces the map's zoom level to always be a multiple of this. A value of
+  * `0` (the default) means no snapping — zoom can take any fractional value,
+  * which yields a continuous, Mapbox-style zoom experience for wheel and
+  * pinch interactions. A value of `1` would restrict zoom to integer levels
+  * (the classic Leaflet behavior).
+  */
   zoomSnap?: number
+  /**
+  * Controls how much the map's zoom level will change after a `zoomIn()`,
+  * `zoomOut()`, pressing `+` or `-` on the keyboard, or using the zoom
+  * controls. Values smaller than `1` (e.g. `0.5`) allow for greater granularity.
+  */
   zoomDelta?: number
   trackResize?: boolean
   [key: string]: any
@@ -37,52 +55,59 @@ export class TsMap extends Evented {
 
   // Runtime slots populated by initialize / hooks.
   declare options: MapOptions
-  _handlers!: any[]
-  _layers!: Record<number, any>
-  _zoomBoundLayers!: Record<number, any>
+  declare _handlers: any[]
+  declare _layers: Record<number, any>
+  declare _zoomBoundLayers: Record<number, any>
   _sizeChanged = true
-  _container!: HTMLElement & { _tsmap_id?: number }
-  _containerId?: number
-  _loaded?: boolean
-  _zoom!: number
-  _lastCenter?: LatLng | null
-  _pixelOrigin?: Point
-  _mapPane!: HTMLElement
-  _panes!: Record<string, HTMLElement>
-  _paneRenderers!: Record<string, any>
-  _targets!: Record<number, any>
-  _fadeAnimated?: boolean
-  _zoomAnimated?: boolean
-  _animatingZoom?: boolean
-  _animateToCenter?: LatLng
-  _animateToZoom?: number
-  _tempFireZoomEvent?: boolean
-  _panAnim?: PosAnimation
-  _flyToFrame?: number
-  _resizeRequest?: number | null
-  _sizeTimer?: ReturnType<typeof setTimeout>
-  _transitionEndTimer?: ReturnType<typeof setTimeout>
-  _resizeObserver?: ResizeObserver
-  _proxy?: HTMLElement
-  _size?: Point
-  _locateOptions?: any
-  _locationWatchId?: number
-  _layersMinZoom?: number
-  _layersMaxZoom?: number
-  _enforcingBounds?: boolean
+  // Map rotation in degrees, normalized to `[0, 360)`. `0` = north up. Updated
+  // via `setBearing()` / `rotateTo()`. Purely a viewport transform — does not
+  // affect the underlying CRS projection. Populated in `initialize()` from
+  // `options.bearing` (the class-field `declare` keeps `isolatedDeclarations`
+  // happy without introducing a field initializer that would run AFTER
+  // `Class.constructor` → `this.initialize()`).
+  declare _bearing: number
+  declare _container: HTMLElement & { _tsmap_id?: number }
+  declare _containerId?: number
+  declare _loaded?: boolean
+  declare _zoom: number
+  declare _lastCenter?: LatLng | null
+  declare _pixelOrigin?: Point
+  declare _mapPane: HTMLElement
+  declare _panes: Record<string, HTMLElement>
+  declare _paneRenderers: Record<string, any>
+  declare _targets: Record<number, any>
+  declare _fadeAnimated?: boolean
+  declare _zoomAnimated?: boolean
+  declare _animatingZoom?: boolean
+  declare _animateToCenter?: LatLng
+  declare _animateToZoom?: number
+  declare _tempFireZoomEvent?: boolean
+  declare _panAnim?: PosAnimation
+  declare _flyToFrame?: number
+  declare _resizeRequest?: number | null
+  declare _sizeTimer?: ReturnType<typeof setTimeout>
+  declare _transitionEndTimer?: ReturnType<typeof setTimeout>
+  declare _resizeObserver?: ResizeObserver
+  declare _proxy?: HTMLElement
+  declare _size?: Point
+  declare _locateOptions?: any
+  declare _locationWatchId?: number
+  declare _layersMinZoom?: number
+  declare _layersMaxZoom?: number
+  declare _enforcingBounds?: boolean
   _initControlPos?: () => void
   _clearControlPos?: () => void
   _addLayers?: (layers?: any | any[]) => void
-  _renderer?: any
-  dragging?: any
-  boxZoom?: any
-  touchZoom?: any
-  pinchZoom?: any
-  doubleClickZoom?: any
-  scrollWheelZoom?: any
-  keyboard?: any
-  tapHold?: any
-  _popup?: any
+  declare _renderer?: any
+  declare dragging?: any
+  declare boxZoom?: any
+  declare touchZoom?: any
+  declare pinchZoom?: any
+  declare doubleClickZoom?: any
+  declare scrollWheelZoom?: any
+  declare keyboard?: any
+  declare tapHold?: any
+  declare _popup?: any
   closePopup?: () => void
 
   initialize(id: string | HTMLElement, options?: MapOptions): void {
@@ -92,6 +117,9 @@ export class TsMap extends Evented {
     this._layers = {}
     this._zoomBoundLayers = {}
     this._sizeChanged = true
+    this._bearing = typeof options.bearing === 'number'
+    ? ((options.bearing % 360) + 360) % 360
+    : 0
 
     this._initContainer(id)
     this._initLayout()
@@ -105,6 +133,9 @@ export class TsMap extends Evented {
 
     if (options.center && options.zoom !== undefined)
     this.setView(new LatLng(options.center), options.zoom, { reset: true })
+
+    if (this._bearing)
+    this._applyBearingToPanes()
 
     this.callInitHooks()
 
@@ -419,6 +450,9 @@ export class TsMap extends Evented {
       }
     }
 
+    if (this._bearing)
+    this._applyBearingToPanes()
+
     return this.fire('resize', { oldSize, newSize })
   }
 
@@ -574,6 +608,41 @@ export class TsMap extends Evented {
     return this._zoom
   }
 
+  /**
+  * Returns the current map bearing (rotation) in degrees, in the range
+  * `[0, 360)`. `0` = north is up.
+  */
+  getBearing(): number {
+    return this._bearing
+  }
+
+  /**
+  * Sets the map bearing (rotation) in degrees. Input is wrapped to `[0, 360)`
+  * using `((b % 360) + 360) % 360`, so negative and >360 values are valid.
+  * Fires `rotatestart`, `rotate`, `rotateend` events.
+  */
+  setBearing(bearing: number): this {
+    const wrapped = ((bearing % 360) + 360) % 360
+    if (wrapped === this._bearing)
+    return this
+
+    this.fire('rotatestart', { bearing: this._bearing })
+    this._bearing = wrapped
+    this._applyBearingToPanes()
+    this.fire('rotate', { bearing: wrapped })
+    this.fire('rotateend', { bearing: wrapped })
+    return this
+  }
+
+  /**
+  * Alias of `setBearing()` with an (optional) animation hook. Animation is
+  * not yet wired — Phase 1.4 will merge this into the unified camera
+  * animation engine. For now, this is always a no-animation snap.
+  */
+  rotateTo(bearing: number, _options?: { animate?: boolean, duration?: number }): this {
+    return this.setBearing(bearing)
+  }
+
   getBounds(): LatLngBounds {
     const bounds = this.getPixelBounds()
     const sw = this.unproject(bounds.getBottomLeft())
@@ -695,11 +764,26 @@ export class TsMap extends Evented {
   }
 
   containerPointToLayerPoint(point: any): Point {
-    return new Point(point).subtract(this._getMapPanePos())
+    const p = new Point(point)
+    if (!this._bearing)
+    return p.subtract(this._getMapPanePos())
+    // With rotation, the CSS transform on `_mapPane` is
+    //   translate3d(mapPanePos) rotate(bearing)
+    // with `transform-origin` set to the viewport center (see
+    // `_applyBearingToPanes`). Inverting that gives:
+    //   layerPoint = rotate(cp - mapPanePos - center, -bearing, 0) + center
+    const center = this.getSize()._divideBy(2)
+    const shifted = p._subtract(this._getMapPanePos())._subtract(center)
+    return this._rotatePoint(shifted, -this._bearing, new Point(0, 0))._add(center)
   }
 
   layerPointToContainerPoint(point: any): Point {
-    return new Point(point).add(this._getMapPanePos())
+    const p = new Point(point)
+    if (!this._bearing)
+    return p.add(this._getMapPanePos())
+    const center = this.getSize()._divideBy(2)
+    const shifted = p.subtract(center)
+    return this._rotatePoint(shifted, this._bearing, new Point(0, 0))._add(center)._add(this._getMapPanePos())
   }
 
   containerPointToLatLng(point: any): LatLng {
@@ -847,7 +931,7 @@ export class TsMap extends Evented {
     return this.getMaxZoom() - this.getMinZoom()
   }
 
-  _panInsideMaxBounds = (): void => {
+  _panInsideMaxBounds(): void {
     if (!this._enforcingBounds)
     this.panInsideBounds(this.options.maxBounds)
   }
@@ -938,7 +1022,7 @@ export class TsMap extends Evented {
     }
   }
 
-  _handleDOMEvent = (e: any): void => {
+  _handleDOMEvent(e: any): void {
     const el = e.target ?? e.srcElement
     if (!this._loaded || el._tsmap_disable_events || (e.type === 'click' && this._isClickDisabled(el)))
     return
@@ -1010,6 +1094,59 @@ export class TsMap extends Evented {
 
   _getMapPanePos(): Point {
     return DomUtil.getPosition(this._mapPane)
+  }
+
+  /**
+  * Rotates `p` by `angle` degrees around `origin` and returns a new Point.
+  * Positive `angle` is clockwise in screen space (y-axis points down).
+  */
+  _rotatePoint(p: Point, angle: number, origin: Point): Point {
+    if (!angle)
+    return p.clone()
+    const rad = (angle * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const dx = p.x - origin.x
+    const dy = p.y - origin.y
+    return new Point(origin.x + dx * cos - dy * sin, origin.y + dx * sin + dy * cos)
+  }
+
+  /**
+  * Pushes the current `_bearing` onto the CSS transforms of `_mapPane` and
+  * the upright panes (marker / popup / tooltip). Rotation pivots around the
+  * viewport center via `transform-origin`. Called after every `setBearing()`.
+  */
+  _applyBearingToPanes(): void {
+    if (!this._mapPane)
+    return
+    const center = this.getSize()._divideBy(2)
+    const originCss = `${center.x}px ${center.y}px`
+    this._mapPane.style.transformOrigin = originCss
+
+    // Re-apply the current pane position together with the new rotation. This
+    // composes `translate3d(panePos) rotate(bearing)` on `_mapPane`.
+    const pos = this._getMapPanePos()
+    DomUtil.setPosition(this._mapPane, pos, this._bearing)
+
+    // Counter-rotate the upright panes so icons / popups / tooltips do not
+    // visually spin with the map. The pivot is the same viewport center so
+    // the counter-rotation cancels precisely.
+    const upright = ['markerPane', 'popupPane', 'tooltipPane']
+    for (const name of upright) {
+      const pane = this._panes?.[name]
+      if (!pane)
+      continue
+      if (this._bearing) {
+        pane.classList.add('tsmap-upright')
+        pane.style.transformOrigin = originCss
+        pane.style.transform = `rotate(${-this._bearing}deg) translateZ(0)`
+      }
+      else {
+        pane.classList.remove('tsmap-upright')
+        pane.style.transform = ''
+        pane.style.transformOrigin = ''
+      }
+    }
   }
 
   _moved(): boolean {
@@ -1101,11 +1238,11 @@ export class TsMap extends Evented {
     return Math.max(min, Math.min(max, zoom))
   }
 
-  _onPanTransitionStep = (): void => {
+  _onPanTransitionStep(): void {
     this.fire('move')
   }
 
-  _onPanTransitionEnd = (): void => {
+  _onPanTransitionEnd(): void {
     this._mapPane.classList.remove('tsmap-pan-anim')
     this.fire('moveend')
   }
@@ -1128,7 +1265,7 @@ export class TsMap extends Evented {
     DomEvent.on(this._proxy, 'transitionend', this._catchTransitionEnd, this)
   }
 
-  _animateProxyZoom = (e: any): void => {
+  _animateProxyZoom(e: any): void {
     const transform = this._proxy!.style.transform
     DomUtil.setTransform(
     this._proxy as HTMLElement,
@@ -1139,7 +1276,7 @@ export class TsMap extends Evented {
     this._onZoomTransitionEnd()
   }
 
-  _animMoveEnd = (): void => {
+  _animMoveEnd(): void {
     const c = this.getCenter()
     const z = this.getZoom()
     DomUtil.setTransform(this._proxy as HTMLElement, this.project(c, z), this.getZoomScale(z, 1))
@@ -1155,7 +1292,7 @@ export class TsMap extends Evented {
     }
   }
 
-  _catchTransitionEnd = (e: any): void => {
+  _catchTransitionEnd(e: any): void {
     if (this._animatingZoom && e.propertyName.includes('transform'))
     this._onZoomTransitionEnd()
   }
@@ -1247,9 +1384,12 @@ TsMap.setDefaultOptions( {
   fadeAnimation: true,
   markerZoomAnimation: true,
   transform3DLimit: 8388608,
-  zoomSnap: 1,
+  // zoomSnap: 0 enables fractional zoom by default (Mapbox-style). Set to 1
+  // to restrict zoom to integer levels (classic Leaflet behavior).
+  zoomSnap: 0,
   zoomDelta: 1,
   trackResize: true,
+  bearing: 0,
 })
 
 export const Map: typeof TsMap = TsMap

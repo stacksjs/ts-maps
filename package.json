@@ -47,6 +47,7 @@
     "changelog:generate": "bunx logsmith --output CHANGELOG.md",
     "release": "bun run changelog:generate && bunx --bun bumpx prompt --recursive",
     "typecheck": "bunx tsc --noEmit",
+    "playground:core-map": "bun --bun run playground/core-map/serve.ts",
     "dev:docs": "bun --bun bunpress dev docs",
     "build:docs": "bun --bun bunpress build docs",
     "preview:docs": "bun --bun bunpress preview docs"
@@ -65,6 +66,7 @@
   },
   "workspaces": [
     "packages/**",
-    "playground"
+    "playground",
+    "playground/core-map"
   ]
 }

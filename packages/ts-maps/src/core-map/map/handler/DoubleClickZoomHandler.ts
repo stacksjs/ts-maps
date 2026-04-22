@@ -12,7 +12,7 @@ export class DoubleClickZoomHandler extends Handler {
     this._map.off('dblclick', this._onDoubleClick, this)
   }
 
-  _onDoubleClick = (e: any): void => {
+  _onDoubleClick(e: any): void {
     const map = this._map
     const oldZoom = map.getZoom()
     const delta = map.options.zoomDelta

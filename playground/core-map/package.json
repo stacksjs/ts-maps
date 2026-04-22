@@ -1,0 +1,14 @@
+{
+  "name": "@ts-maps/playground-core-map",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Browser playground for the ts-maps core-map API",
+  "scripts": {
+    "dev": "bun --bun run serve.ts",
+    "start": "bun --bun run serve.ts"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*"
+  }
+}

@@ -20,12 +20,12 @@ export class Renderer extends BlanketOverlay {
     this.off('update', this._updatePaths, this)
   }
 
-  _onZoomEnd = (): void => {
+  _onZoomEnd(): void {
     for (const layer of Object.values(this._layers))
     layer._project()
   }
 
-  _updatePaths = (): void => {
+  _updatePaths(): void {
     for (const layer of Object.values(this._layers))
     layer._update()
   }

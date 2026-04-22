@@ -16,11 +16,11 @@ TsMap.mergeOptions( {
 })
 
 export class DragHandler extends Handler {
-  _draggable?: Draggable & { _absPos?: Point }
+  declare _draggable?: Draggable & { _absPos?: Point }
   _positions: Point[] = []
   _times: number[] = []
-  _lastTime?: number
-  _lastPos?: Point
+  declare _lastTime?: number
+  declare _lastPos?: Point
   _offsetLimit: Bounds | null = null
   _viscosity = 0
   _initialWorldOffset = 0
@@ -62,7 +62,7 @@ export class DragHandler extends Handler {
     return this._draggable?._moving
   }
 
-  _onDragStart = (): void => {
+  _onDragStart(): void {
     const map = this._map
     map._stop()
     if (map.options.maxBounds && map.options.maxBoundsViscosity) {
@@ -84,7 +84,7 @@ export class DragHandler extends Handler {
     }
   }
 
-  _onDrag = (e: any): void => {
+  _onDrag(e: any): void {
     if (this._map.options.inertia) {
       const time = this._lastTime = Date.now()
       const pos = this._lastPos = (this._draggable as any)._absPos || (this._draggable as any)._newPos
@@ -102,7 +102,7 @@ export class DragHandler extends Handler {
     }
   }
 
-  _onZoomEnd = (): void => {
+  _onZoomEnd(): void {
     const pxCenter = this._map.getSize().divideBy(2)
     const pxWorldCenter = this._map.latLngToLayerPoint([0, 0])
     this._initialWorldOffset = pxWorldCenter.subtract(pxCenter).x
@@ -113,7 +113,7 @@ export class DragHandler extends Handler {
     return value - (value - threshold) * this._viscosity
   }
 
-  _onPreDragLimit = (): void => {
+  _onPreDragLimit(): void {
     if (!this._viscosity || !this._offsetLimit)
     return
     const d = this._draggable as any
@@ -130,7 +130,7 @@ export class DragHandler extends Handler {
     d._newPos = d._startPos.add(offset)
   }
 
-  _onPreDragWrap = (): void => {
+  _onPreDragWrap(): void {
     const d = this._draggable as any
     const worldWidth = this._worldWidth
     const halfWidth = Math.round(worldWidth / 2)
@@ -143,7 +143,7 @@ export class DragHandler extends Handler {
     d._newPos.x = newX
   }
 
-  _onDragEnd = (e: any): void => {
+  _onDragEnd(e: any): void {
     const map = this._map
     const options = map.options
     const noInertia = !options.inertia || e.noInertia || this._times.length < 2

@@ -26,16 +26,22 @@ export function toBack(el: Element): void {
   parent.insertBefore(el, parent.firstChild)
 }
 
-export function setTransform(el: HTMLElement, offset?: Point | null, scale?: number): void {
+export function setTransform(el: HTMLElement, offset?: Point | null, scale?: number, rotation?: number): void {
   const pos = offset ?? new Point(0, 0)
-  el.style.transform = `translate3d(${pos.x}px,${pos.y}px,0)${scale ? ` scale($ {scale})` : ''}`
+  const scalePart = scale ? ` scale(${scale})` : ''
+  const rotationPart = rotation ? ` rotate(${rotation}deg)` : ''
+  el.style.transform = `translate3d(${pos.x}px,${pos.y}px,0)${scalePart}${rotationPart}`
 }
 
 const positions = new WeakMap < Element, Point > ()
+const rotations = new WeakMap < Element, number > ()
 
-export function setPosition(el: HTMLElement, point: Point): void {
+export function setPosition(el: HTMLElement, point: Point, rotation?: number): void {
   positions.set(el, point)
-  setTransform(el, point)
+  if (rotation !== undefined)
+  rotations.set(el, rotation)
+  const storedRotation = rotation ?? rotations.get(el) ?? 0
+  setTransform(el, point, undefined, storedRotation || undefined)
 }
 
 export function getPosition(el: HTMLElement): Point {
