@@ -78,11 +78,13 @@ The root class. An instance owns one DOM container, one camera, one style docume
 
 | Method | Summary |
 | ------ | ------- |
-| `setFog(fog)` / `getFog()` | Atmospheric fog config (color, horizon-blend, range, star-intensity). |
-| `setSky(sky)` / `getSky()` | Sky-layer config (sky / horizon color, sun position). |
-| `setTerrain(terrain)` / `getTerrain()` / `getTerrainSource()` | 3D terrain from a raster-dem source. |
-| `queryTerrainElevation(lngLat)` | Bilinear elevation lookup in metres. |
-| `addCustomLayer(layer)` / `removeCustomLayer(id)` / `getCustomLayer(id)` / `getCustomLayers()` | Pluggable WebGL layer registry. |
+| `setFog(fog)` / `getFog()` | Atmospheric fog config (color, horizon-blend, range, star-intensity). Renders as a DOM overlay; fires `fogchange`. |
+| `setSky(sky)` / `getSky()` | Sky-layer config (sky / horizon color, sun position). Fires `skychange`. |
+| `setTerrain(terrain)` / `getTerrain()` | 3D terrain from a raster-dem source. Creates a dedicated WebGL overlay canvas over all tile layers. Fires `terrainchange`. |
+| `getTerrainSource()` | The in-memory `TerrainSource` backing the current terrain config, or `undefined`. |
+| `queryTerrainElevation(lngLat)` | Bilinear elevation lookup in metres. Walks up the loaded tile pyramid when the preferred zoom isn't cached. |
+| `addTerrainTile(coord, pixels)` | Decode an RGBA DEM tile and feed it to the terrain source (for pre-downloaded / worker-decoded tiles). |
+| `addCustomLayer(layer)` / `removeCustomLayer(id)` / `getCustomLayer(id)` / `getCustomLayers()` | Pluggable WebGL layer registry. `render(gl, projectionMatrix)` runs per frame after tile draws. Fires `customlayer:add` / `customlayer:remove`. |
 
 ## Projection helpers
 
@@ -101,11 +103,32 @@ The root class. An instance owns one DOM container, one camera, one style docume
 
 | Method | Summary |
 | ------ | ------- |
-| `on(type, handler)` / `off(type, handler)` / `once(type, handler)` | Standard event API (inherited from `Evented`). |
+| `on(type, handler)` / `off(type, handler)` / `once(type, handler)` | Standard event API (inherited from `Evented`). Throws `TypeError` when the `type` argument isn't a non-empty string or a `{type: handler}` object. |
 | `on(type, layerId, handler)` | Layer-scoped pointer events. |
 | `fire(type, data)` | Emit a synthetic event. |
 | `listens(type)` | Whether anything is subscribed. |
 | `whenReady(fn)` | Run a callback once the map has loaded. |
+
+### Built-in event names
+
+| Event | Payload | When it fires |
+| ----- | ------- | ------------- |
+| `load` | — | First render completes. |
+| `move` / `movestart` / `moveend` | — | Center changes. |
+| `zoom` / `zoomstart` / `zoomend` | — | Zoom changes. |
+| `rotate` | `{ bearing }` | Bearing changes. |
+| `pitch` / `pitchstart` / `pitchend` | `{ pitch }` | Pitch changes. |
+| `click` / `contextmenu` / `mousemove` / `mouseover` / `mouseout` | `{ latlng, containerPoint, layerPoint, features? }` | Pointer events (add a layer id as middle arg to scope). |
+| `resize` | — | Container size changed. |
+| `styledata` | — | `setStyle` / `addSource` / `addStyleLayer` / etc. |
+| `fogchange` | `{ fog }` | `setFog()` called. |
+| `skychange` | `{ sky }` | `setSky()` called. |
+| `terrainchange` | `{ terrain }` | `setTerrain()` called (including `null`). |
+| `terrainload` | `{ coord: { z, x, y } }` | A DEM tile finished decoding. |
+| `customlayer:add` / `customlayer:remove` | `{ id, layer }` | Custom layer registry mutated. |
+| `offline:progress` | `{ saved, skipped, failed, total }` | Progress during `saveOfflineRegion`. |
+| `locationfound` / `locationerror` | geolocation payload | `map.locate()` result. |
+| `unload` | — | Final event fired from `map.remove()`. |
 
 ## Geolocation
 

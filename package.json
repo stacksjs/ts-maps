@@ -36,9 +36,9 @@
     "packages/post/dist"
   ],
   "scripts": {
-    "build": "cd ./packages/ts-maps && bun run build && cd ../vue && bun run build && cd ../nuxt && bun run build && cd ../react && bun run build && cd ../stx && bun run build",
+    "build": "bun --bun scripts/build-all.ts",
     "fresh": "bunx rimraf node_modules/ bun.lock && bun i",
-    "test": "bun test",
+    "test": "bun --bun scripts/test-all.ts",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",
     "format": "bunx --bun pickier . --format",

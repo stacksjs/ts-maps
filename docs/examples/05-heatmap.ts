@@ -43,7 +43,7 @@ const gradients: Record<number, string>[] = [
 ]
 let gi = 0
 setInterval(() => {
-  gi = (gi + 1) % gradients.length
-  ;(heat as any).options.gradient = gradients[gi]
+  gi = (gi + 1) % gradients.length;
+  (heat as any).options.gradient = gradients[gi]
   heat.redraw()
 }, 2500)

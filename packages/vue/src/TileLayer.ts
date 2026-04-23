@@ -18,8 +18,8 @@ export const TileLayer = defineComponent({
       (map) => {
         if (!map || layer)
           return
-        layer = new TsTileLayer(props.url, props.options)
-        ;(map as unknown as { addLayer: (l: any) => void }).addLayer(layer)
+        layer = new TsTileLayer(props.url, props.options);
+        (map as unknown as { addLayer: (l: any) => void }).addLayer(layer)
       },
       { immediate: true },
     )
@@ -29,7 +29,7 @@ export const TileLayer = defineComponent({
       (url) => {
         if (!layer)
           return
-        ;(layer as unknown as { setUrl: (u: string) => void }).setUrl(url)
+        (layer as unknown as { setUrl: (u: string) => void }).setUrl(url)
       },
     )
 

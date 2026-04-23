@@ -10,55 +10,173 @@
 
 ## Features
 
-- 🗺️ **Vector Maps**
-  - High-quality SVG-based interactive maps
-  - Multiple projection types (Mercator, Equal Earth)
-  - Built-in world maps and custom regions
+- 🗺️ **`TsMap`** — modern interactive slippy map with fractional zoom,
 
-- 📊 **Data Visualization**
-  - Choropleth maps with customizable scales
-  - Heat maps and bubble charts
-  - Interactive legends and tooltips
+  bearing, pitch, and unified camera animations (`flyTo`, `easeTo`,
+  `jumpTo`).
 
-- 🎯 **Framework Agnostic**
-  - Zero dependencies
-  - Works with any framework
-  - Official React and Vue bindings
+- 🧱 **Vector tiles** — in-house MVT decoder + Mapbox GL Style Spec
 
-- 🔒 **Type Safety**
-  - Full TypeScript support
-  - Strict types for better DX
-  - Comprehensive type definitions
+  subset with a full expression engine (`interpolate`, `step`, `case`,
+  `match`, `coalesce`, `feature-state`).
+
+- 🏔️ **3D** — `fill-extrusion`, atmospheric `setFog`, `setSky`, and
+
+  DEM-based `setTerrain` with auto-loaded tiles from a `raster-dem`
+  source. `addCustomLayer()` lets apps render raw WebGL2 alongside.
+
+- 🧭 **Services** — geocoding / directions / isochrones / matrix
+
+  adapters with keyless defaults (Nominatim, OSRM, Valhalla) and
+  opt-in commercial providers (Mapbox, Google, Maptiler, Photon).
+
+- 📴 **Offline** — IndexedDB-backed `TileCache`, `saveOfflineRegion`
+
+  pre-fetcher, worker pool for off-main-thread tile decode.
+
+- 🗺️ **Legacy `VectorMap`** — classic static choropleth / bubble /
+
+  heatmap API retained for existing consumers.
+
+- 🎯 **Zero runtime deps** — 138 KB gzipped for the full bundle; subpath
+
+  exports (`ts-maps/services`, `ts-maps/style-spec`, …) ship 3–15 KB
+  gzipped each for callers who only want one slice.
+
+- 🔒 **TypeScript-native** — strict types, `isolatedDeclarations`
+
+  compliant, typed events, declaration files for every public module.
 
 ## Installation
 
 ```bash
-# Using npm
-npm install ts-maps
-
-# Using pnpm
-pnpm add ts-maps
-
-# Using yarn
-yarn add ts-maps
-
-# Using bun
-bun add ts-maps
+bun add ts-maps       # or: npm install ts-maps  /  pnpm add ts-maps  /  yarn add ts-maps
 ```
 
 ### Framework Bindings
 
 ```bash
-# React
-npm install ts-maps ts-maps-react
-
-# Vue
-npm install ts-maps ts-maps-vue
+bun add @ts-maps/react         # React
+bun add @ts-maps/vue           # Vue 3
+bun add @ts-maps/react-native  # React Native (WebView-hosted)
 ```
 
-## Quick Start
+### Subpath imports for tree-shaking
 
-```typescript
+Pull in only the part you need:
+
+```ts
+import { defaultGeocoder } from 'ts-maps/services'   // ~8 KB gz
+import { validateStyle } from 'ts-maps/style-spec'   // ~15 KB gz
+import { TileCache } from 'ts-maps/storage'          // ~4 KB gz
+import { LatLng, LatLngBounds } from 'ts-maps/geo'   // ~8 KB gz
+```
+
+Full list: `services`, `style-spec`, `storage`, `geo`, `geometry`,
+`symbols`, `analytics`, and every built-in country map (`ts-maps/world`,
+`ts-maps/canada`, `ts-maps/us-merc-en`, …).
+
+## Quick Start — modern `TsMap`
+
+```ts
+import 'ts-maps/styles.css'
+import { Marker, tileLayer, TsMap } from 'ts-maps'
+
+const map = new TsMap('map', {
+  center: [40.758, -73.9855],
+  zoom: 13,
+})
+
+tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+}).addTo(map)
+
+new Marker([40.758, -73.9855])
+  .addTo(map)
+  .bindPopup('Hello from ts-maps')
+  .openPopup()
+```
+
+### Vector tiles + style spec
+
+```ts
+import { vectorTileLayer } from 'ts-maps'
+
+vectorTileLayer({
+  url: 'https://tiles.example.com/{z}/{x}/{y}.pbf',
+  layers: [
+    { id: 'water', type: 'fill', sourceLayer: 'water', paint: { 'fill-color': '#0ea5e9' } },
+    { id: 'major-roads', type: 'line', sourceLayer: 'transportation',
+      filter: ['match', ['get', 'class'], ['primary', 'trunk'], true, false],
+      paint: { 'line-color': '#6b7280', 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 3] } },
+  ],
+}).addTo(map)
+```
+
+### 3D — fog, sky, terrain, fill-extrusion, custom WebGL
+
+```ts
+map.setPitch(50)
+
+map.addSource('terrain-dem', {
+  type: 'raster-dem',
+  tiles: ['https://tiles.example.com/terrain-rgb/{z}/{x}/{y}.png'],
+  tileSize: 512,
+  encoding: 'mapbox',
+})
+map.setTerrain({ source: 'terrain-dem', exaggeration: 1.4 })
+map.setSky({ 'sky-color': '#87ceeb', 'horizon-color': '#ffffff' })
+map.setFog({ color: 'rgb(245, 247, 250)', 'horizon-blend': 0.1 })
+
+// Bilinear ground elevation lookup (uses the loaded DEM tile pyramid).
+const metres = map.queryTerrainElevation({ lng: -74, lat: 40.7 })
+
+// Custom WebGL layer — rendered every frame alongside the built-in layers:
+map.addCustomLayer({
+  id: 'my-layer',
+  type: 'custom',
+  render(gl, projectionMatrix) { /* …your GL draws here… */ },
+})
+```
+
+### Services — geocoding, directions, isochrones
+
+```ts
+import { services } from 'ts-maps'
+
+const geocoder = services.defaultGeocoder()       // Nominatim, keyless
+const hits = await geocoder.search('Tower Bridge, London')
+
+const directions = services.defaultDirections()   // OSRM, keyless
+const routes = await directions.getDirections(
+  [{ lat: 51.5055, lng: -0.0754 }, { lat: 51.5074, lng: -0.1278 }],
+  { profile: 'driving' },
+)
+```
+
+### Offline tiles
+
+```ts
+import { saveOfflineRegion, TileCache } from 'ts-maps'
+
+const cache = new TileCache({ maxBytes: 200 * 1024 * 1024 })
+await saveOfflineRegion({
+  bounds: [-0.20, 51.50, -0.05, 51.53],
+  zoomRange: [10, 14],
+  tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  cache,
+})
+// Later, when tearing down: await cache.close()
+```
+
+See the [docs folder][docs] for the full concept guides, API reference,
+and 12 runnable examples.
+
+[docs]: ../../docs
+
+## Legacy `VectorMap`
+
+```ts
 import type { VectorMapOptions } from 'ts-maps'
 import { VectorMap } from 'ts-maps'
 

@@ -80,4 +80,9 @@ The [Basic map example](./examples/01-basic-map.md) wires this walkthrough end-t
 - [TsMap class](./concepts/map.md) — camera model, events, lifecycle.
 - [Layer taxonomy](./concepts/layers.md) — which layer to pick for which job.
 - [Style spec](./concepts/style-spec.md) — data-driven layer styling with expressions.
+- [Vector tiles — deep dive](./concepts/vector-tiles.md) — MVT pipeline, `queryRenderedFeatures`, expression filters.
+- [3D rendering](./concepts/3d.md) — fog, sky, fill-extrusion, custom WebGL layers.
+- [Terrain](./concepts/terrain.md) — DEM-based mesh warping and elevation queries.
+- [Services](./concepts/services.md) — geocoding, directions, isochrones.
+- [Offline & workers](./concepts/offline.md) — tile cache, pre-fetching, lifecycle.
 - [Examples gallery](./examples/index.md) — 12 runnable demos.

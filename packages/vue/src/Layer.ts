@@ -20,7 +20,7 @@ export const Layer = defineComponent({
       (map) => {
         if (!map || registered)
           return
-        ;(map as unknown as {
+        (map as unknown as {
           addStyleLayer: (l: unknown, before?: string) => void
         }).addStyleLayer(props.layer, props.before)
         registered = true

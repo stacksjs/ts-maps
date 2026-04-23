@@ -48,8 +48,8 @@ function toggleOffline(): void {
   offline = !offline
   // Swap the fetch. In offline mode, only the cache can answer.
   if (offline) {
-    const original = window.fetch.bind(window)
-    ;(window as any).__originalFetch = original
+    const original = window.fetch.bind(window);
+    (window as any).__originalFetch = original
     window.fetch = (function killed(): Promise<Response> {
       return Promise.reject(new TypeError('network disabled'))
     }) as unknown as typeof fetch

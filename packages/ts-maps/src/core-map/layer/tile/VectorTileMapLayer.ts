@@ -83,13 +83,21 @@ export interface VectorTileStyleLayer {
   minzoom?: number
   maxzoom?: number
   /**
-   * Style-spec filter expression. The layer ships a minimal evaluator that
-   * handles `['==', ['get', <k>], <v>]` and similar forms; the full
-   * expression engine (upstream) replaces unknown forms with pass-through.
+   * Style-spec filter expression. Legacy MVT forms (`==`, `!=`, `<`, `<=`,
+   * `>`, `>=`, `in`, `!in`, `has`, `!has`, `all`, `any`, `none`) are
+   * evaluated via a fast inline evaluator; modern forms like `case`,
+   * `match`, `coalesce`, nested `['get', …]` on either side, etc. route
+   * through the full expression engine.
    */
   filter?: unknown
   paint?: VectorTilePaintProperties
   layout?: VectorTileLayoutProperties
+  /**
+   * Cache slot — populated on first evaluation with either a compiled
+   * expression or `false` if the compile failed (pass-through). The
+   * renderer mutates this directly; callers shouldn't set it.
+   */
+  _compiledFilter?: CompiledExpression | false | null
 }
 
 export interface VectorTilePaintProperties {
@@ -318,6 +326,7 @@ export class VectorTileMapLayer extends GridLayer {
     const layerFilter = opts?.layers
     const out: QueryRenderedFeature[] = []
     const tileSize = this.getTileSize().x
+    const queryZoom = this._map?.getZoom?.() ?? 0
 
     for (const entry of this._decodedTiles.values()) {
       if (!entry.tile)
@@ -335,7 +344,7 @@ export class VectorTileMapLayer extends GridLayer {
             continue
           for (let i = 0; i < mvtLayer.length; i++) {
             const feature = mvtLayer.feature(i)
-            if (!evaluateFilter(styleLayer.filter, feature))
+            if (!filterPasses(styleLayer, feature, queryZoom))
               continue
             out.push({ feature, layer: styleLayer, tile: entry.coords })
           }
@@ -377,7 +386,7 @@ export class VectorTileMapLayer extends GridLayer {
           seen.add(cand.featureIndex)
 
           const feature = mvtLayer.feature(cand.featureIndex)
-          if (!evaluateFilter(styleLayer.filter, feature))
+          if (!filterPasses(styleLayer, feature, queryZoom))
             continue
 
           if (featurePreciseHit(feature, localQuery, styleLayer, tileSize))
@@ -614,9 +623,7 @@ export class VectorTileMapLayer extends GridLayer {
       for (let i = 0; i < mvtLayer.length; i++) {
         const feature = mvtLayer.feature(i)
 
-        // TODO: route through the full expression engine for complete filter
-        // semantics (this local evaluator handles the common forms only).
-        if (!evaluateFilter(styleLayer.filter, feature))
+        if (!filterPasses(styleLayer, feature, mapZoom))
           continue
 
         const rings = feature.loadGeometry()
@@ -1081,20 +1088,94 @@ function drawSymbol(
 // inline during rasterization.
 // ---------------------------------------------------------------------------
 
-function evaluateFilter(filter: unknown, feature: VectorTileFeature): boolean {
+// Legacy MVT filter fast-path operators — all of these the inline
+// evaluator recognises and handles without allocating a compiled
+// expression. Anything outside this set triggers the expression-engine
+// fallback below.
+const LEGACY_FILTER_OPS = new Set<string>([
+  'all', 'any', 'none',
+  'has', '!has',
+  'in', '!in',
+  '==', '!=', '<', '<=', '>', '>=',
+])
+
+// Entry point used by the style-layer draw loop. Picks the fast inline
+// path for plain MVT filters and falls back to the full expression engine
+// for anything else (`case`, `match`, `coalesce`, nested `['get', …]`,
+// data-driven comparisons, etc.).
+//
+// The compiled expression is cached on the style layer so a filter with,
+// say, 50,000 features only compiles once per tile pass.
+function filterPasses(styleLayer: VectorTileStyleLayer, feature: VectorTileFeature, mapZoom: number): boolean {
+  const filter = styleLayer.filter
   if (!filter)
     return true
   if (!Array.isArray(filter))
     return true
 
+  const op = filter[0] as unknown
+  if (typeof op === 'string' && LEGACY_FILTER_OPS.has(op) && isLegacyShape(filter)) {
+    return evaluateFilterLegacy(filter, feature)
+  }
+
+  // Route through the full expression engine. Cache the compiled form.
+  if (styleLayer._compiledFilter === undefined) {
+    try {
+      styleLayer._compiledFilter = compileExpression(filter, 'boolean')
+    }
+    catch {
+      // Compile failure: pass through rather than drop every feature.
+      // Marked with `false` so we skip the re-compile next tick.
+      styleLayer._compiledFilter = false
+    }
+  }
+  const compiled = styleLayer._compiledFilter
+  if (!compiled)
+    return true
+
+  try {
+    const result = compiled.evaluate({
+      zoom: mapZoom,
+      feature: { type: feature.type, id: feature.id, properties: feature.properties },
+    })
+    return Boolean(result)
+  }
+  catch {
+    // Runtime evaluation failure (e.g. type coercion on bad data) — pass
+    // through, matching upstream Mapbox behaviour where bad filters never
+    // suppress features silently.
+    return true
+  }
+}
+
+// Returns true when every operand in a legacy-form filter is either a
+// literal (string/number/boolean/null) or the single ['get', k] /
+// ['geometry-type'] accessor we can resolve inline. When the filter embeds
+// sub-expressions we cede to the full engine.
+function isLegacyShape(filter: unknown[]): boolean {
+  const op = filter[0] as string
+  if (op === 'all' || op === 'any' || op === 'none')
+    return filter.slice(1).every(child => Array.isArray(child) && isLegacyShape(child as unknown[]))
+  for (let i = 1; i < filter.length; i++) {
+    const node = filter[i]
+    if (Array.isArray(node)) {
+      const head = node[0]
+      if (head !== 'get' && head !== 'geometry-type' && head !== '$type')
+        return false
+    }
+  }
+  return true
+}
+
+function evaluateFilterLegacy(filter: unknown[], feature: VectorTileFeature): boolean {
   const [op, ...rest] = filter as any[]
 
   if (op === 'all')
-    return rest.every(child => evaluateFilter(child, feature))
+    return rest.every(child => evaluateFilterLegacy(child, feature))
   if (op === 'any')
-    return rest.some(child => evaluateFilter(child, feature))
+    return rest.some(child => evaluateFilterLegacy(child, feature))
   if (op === 'none')
-    return rest.every(child => !evaluateFilter(child, feature))
+    return rest.every(child => !evaluateFilterLegacy(child, feature))
 
   if (op === 'has') {
     const key = rest[0]
@@ -1105,26 +1186,33 @@ function evaluateFilter(filter: unknown, feature: VectorTileFeature): boolean {
     return typeof key === 'string' && !(key in feature.properties)
   }
 
+  const left = resolveOperand(rest[0], feature)
+
   if (op === '==' || op === '!=') {
-    const left = resolveOperand(rest[0], feature)
     const right = resolveOperand(rest[1], feature)
     return op === '==' ? left === right : left !== right
   }
-
+  if (op === '<' || op === '<=' || op === '>' || op === '>=') {
+    const right = resolveOperand(rest[1], feature)
+    if (typeof left !== 'number' || typeof right !== 'number')
+      return false
+    return op === '<' ? left < right : op === '<=' ? left <= right : op === '>' ? left > right : left >= right
+  }
   if (op === 'in') {
-    const left = resolveOperand(rest[0], feature)
     const values = rest.slice(1).map(v => resolveOperand(v, feature))
     return values.includes(left)
   }
-
   if (op === '!in') {
-    const left = resolveOperand(rest[0], feature)
     const values = rest.slice(1).map(v => resolveOperand(v, feature))
     return !values.includes(left)
   }
 
-  // Unknown form — pass through rather than silently dropping features.
   return true
+}
+
+// Back-compat shim for any external caller that imported the old name.
+function evaluateFilter(filter: unknown, feature: VectorTileFeature): boolean {
+  return filterPasses({ id: '_shim', type: 'fill', sourceLayer: '', filter } as VectorTileStyleLayer, feature, 0)
 }
 
 function resolveOperand(node: unknown, feature: VectorTileFeature): unknown {

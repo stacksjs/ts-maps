@@ -42,6 +42,25 @@ bun add -d ts-maps typescript @types/node
 
 :::
 
+## Subpath imports for tree-shaking
+
+ts-maps exposes several subpath entries so you only pay for what you
+use — a caller that just needs the geocoder ships ~8 KB gzipped instead
+of the full 138 KB bundle.
+
+```ts
+import { defaultGeocoder } from 'ts-maps/services'        // ~8 KB gz
+import { validateStyle } from 'ts-maps/style-spec'         // ~15 KB gz
+import { TileCache, cachedFetch } from 'ts-maps/storage'   // ~4 KB gz
+import { LatLng, LatLngBounds } from 'ts-maps/geo'         // ~8 KB gz
+import { Point, Bounds } from 'ts-maps/geometry'           // ~10 KB gz
+import { GlyphAtlas } from 'ts-maps/symbols'               // ~4 KB gz
+```
+
+Every built-in country map also lives on its own subpath
+(`ts-maps/world`, `ts-maps/canada`, `ts-maps/us-merc-en`, …) so bundlers
+only include the regions you import.
+
 ## Framework Bindings
 
 ### Nuxt Components

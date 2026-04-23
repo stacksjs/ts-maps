@@ -169,7 +169,7 @@ export const Map = defineComponent({
         m.off(b.event, b.handler)
       bindings.length = 0
       try {
-        ;(m as unknown as { remove?: () => void }).remove?.()
+        (m as unknown as { remove?: () => void }).remove?.()
       }
       catch {
         // ignore — host is being torn down

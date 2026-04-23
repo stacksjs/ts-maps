@@ -77,3 +77,33 @@ evaluate(['*', 2, 3], {})  // → 6
 ## Legacy filter compatibility
 
 `convertLegacyFilter(filter)` rewrites old-style filters (`["==", "type", "Polygon"]`) into modern expression form (`["==", ["get", "type"], "Polygon"]`). Handy for migrating existing style documents.
+
+## Filters on `VectorTileMapLayer`
+
+Style-layer filters on `VectorTileMapLayer` use a hybrid evaluator for speed:
+
+- **Legacy MVT forms** (`==` / `!=` / `<` / `<=` / `>` / `>=` / `in` / `!in` / `has` / `!has` / `all` / `any` / `none`) with simple operands (literal or `['get', key]` / `['geometry-type']`) run through a zero-allocation inline evaluator.
+- **Modern expressions** (`case`, `match`, `coalesce`, nested `['get']` on both sides, `feature-state`, etc.) compile via the expression engine the first time they're evaluated on a style layer. The compiled result is memoised so a filter seeing 50,000 features only compiles once.
+
+```ts
+vectorTileLayer({
+  url: '…',
+  layers: [{
+    id: 'road-fast',
+    type: 'line',
+    sourceLayer: 'transportation',
+    // Legacy form — fast path.
+    filter: ['==', ['get', 'class'], 'motorway'],
+    paint: { 'line-color': '#dc2626', 'line-width': 2 },
+  }, {
+    id: 'road-themed',
+    type: 'line',
+    sourceLayer: 'transportation',
+    // Modern form — compiled once, reused per feature.
+    filter: ['match', ['get', 'class'], ['primary', 'trunk'], true, false],
+    paint: { 'line-color': '#6b7280' },
+  }],
+})
+```
+
+A filter that fails to compile (unknown operator, bad shape) falls through as pass-through rather than suppressing every feature — matching Mapbox GL JS behaviour.

@@ -33,12 +33,12 @@ export const Popup = defineComponent({
       (map) => {
         if (!map || popup)
           return
-        popup = new TsPopup(props.options)
-        ;(popup as unknown as { setLatLng: (p: [number, number]) => void }).setLatLng(props.position)
+        popup = new TsPopup(props.options);
+        (popup as unknown as { setLatLng: (p: [number, number]) => void }).setLatLng(props.position)
         const html = resolveContent()
         if (html)
-          (popup as unknown as { setContent: (c: string) => void }).setContent(html)
-        ;(popup as unknown as { openOn: (m: unknown) => void }).openOn(map)
+          (popup as unknown as { setContent: (c: string) => void }).setContent(html);
+        (popup as unknown as { openOn: (m: unknown) => void }).openOn(map)
       },
       { immediate: true },
     )
@@ -48,7 +48,7 @@ export const Popup = defineComponent({
       (pos) => {
         if (!popup || !pos)
           return
-        ;(popup as unknown as { setLatLng: (p: [number, number]) => void }).setLatLng(pos)
+        (popup as unknown as { setLatLng: (p: [number, number]) => void }).setLatLng(pos)
       },
     )
 

@@ -13,6 +13,31 @@ const cache = new TileCache({ name: 'ts-maps-tiles', maxBytes: 200 * 1024 * 1024
 const response = await cachedFetch('https://tile.openstreetmap.org/10/301/384.png', { cache })
 ```
 
+### Lifecycle
+
+`TileCache` holds an IndexedDB connection (or an in-memory map when IDB isn't available). Close it when you tear down the owning map so the connection returns to the browser pool:
+
+```ts
+await cache.close()
+```
+
+`close()` is idempotent and leaves the cache usable — the next `get` / `put` call will lazily re-open a fresh backend.
+
+For the shared singleton returned by `getDefaultCache()`, use `resetDefaultCache()`:
+
+```ts
+import { resetDefaultCache } from 'ts-maps'
+
+await resetDefaultCache()
+// getDefaultCache() now returns a fresh instance
+```
+
+`map.remove()` cleans up its own terrain + atmosphere overlays and any pending DEM fetches, but does **not** close caches you passed in via `OfflineRegionOptions.cache` or `TileLayer({ cache })` — you own those and close them yourself.
+
+### Pluggable backends
+
+`new TileCache({ backend })` accepts any object implementing the `Backend` contract (`get` / `put` / `delete` / `clear` / `all` / optional `close`). This is how `@craft-native/ts-maps` plugs the Craft sandbox filesystem into the cache — the IndexedDB default is bypassed entirely and tiles land in an app-sandboxed directory. Full interface lives at `core-map/storage/TileCache.ts`.
+
 ## Offline regions
 
 `saveOfflineRegion` pre-fetches every tile inside a `LatLngBounds` across a zoom range into the cache so the area stays interactive offline.

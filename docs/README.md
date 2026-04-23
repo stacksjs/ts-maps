@@ -13,7 +13,7 @@ Layout:
 - `index.md` — landing page (bunpress home layout).
 - `intro.md`, `install.md`, `usage.md` — orientation pages.
 - `getting-started.md` — first-map walkthrough.
-- `concepts/` — map, layers, style spec, services, offline.
+- `concepts/` — map, layers, style spec, vector tiles (deep dive), 3D (fog/sky/fill-extrusion/custom layers), terrain, services, offline.
 - `api/` — hand-written API reference (TsMap, geometry, layer, expressions).
 - `examples/` — twelve runnable demos. Each `NN-<name>.md` documents the demo and the matching `NN-<name>.ts` is the actual runnable source.
 - `guide/`, `features/`, `advanced/`, `components/` — topical guides.

@@ -43,6 +43,6 @@ button('tint-rose',   () => midtown.setStyle({ fillColor: '#f43f5e', color: '#f4
 button('tint-emerald',() => midtown.setStyle({ fillColor: '#10b981', color: '#10b981' }))
 button('toggle-fill', () => {
   const hidden = (midtown as any)._hiddenFill
-  midtown.setStyle({ fillOpacity: hidden ? 0.25 : 0 })
-  ;(midtown as any)._hiddenFill = !hidden
+  midtown.setStyle({ fillOpacity: hidden ? 0.25 : 0 });
+  (midtown as any)._hiddenFill = !hidden
 })

@@ -5,9 +5,11 @@
     "declaration": true,
     "emitDeclarationOnly": false,
     "outDir": "dist",
+    "rootDir": "./src",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    "paths": {}
   },
   "include": ["src/**/*"],
   "exclude": ["test", "dist", "node_modules"]

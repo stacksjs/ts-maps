@@ -19,6 +19,15 @@ await Bun.build({
     './src/maps/us-mill-en.ts',
     './src/maps/world-merc.ts',
     './src/maps/world.ts',
+    // Subpath exports — callers importing from
+    // `ts-maps/services`, `ts-maps/style-spec`, etc. only pull in that
+    // slice rather than the full index bundle.
+    './src/core-map/services/index.ts',
+    './src/core-map/style-spec/index.ts',
+    './src/core-map/storage/index.ts',
+    './src/core-map/geo/index.ts',
+    './src/core-map/geometry/index.ts',
+    './src/core-map/symbols/index.ts',
   ],
   outdir: './dist',
 })

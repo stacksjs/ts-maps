@@ -54,9 +54,17 @@ function drawGreatCircleArc(a: V3, b: V3, yaw: number, pitch: number): void {
     let r = rotY(p, yaw)
     r = rotX(r, pitch)
     const q = project(r)
-    if (!q.visible) { started = false; continue }
-    if (!started) { ctx.moveTo(q.x, q.y); started = true }
-    else ctx.lineTo(q.x, q.y)
+    if (!q.visible) {
+      started = false
+      continue
+    }
+    if (!started) {
+      ctx.moveTo(q.x, q.y)
+      started = true
+    }
+    else {
+      ctx.lineTo(q.x, q.y)
+    }
   }
   ctx.stroke()
 }
@@ -73,7 +81,9 @@ function frame(): void {
   grad.addColorStop(0, '#1e3a8a')
   grad.addColorStop(1, '#0c1a33')
   ctx.fillStyle = grad
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill()
+  ctx.beginPath()
+  ctx.arc(cx, cy, R, 0, Math.PI * 2)
+  ctx.fill()
 
   // Graticule.
   ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)'
@@ -109,7 +119,9 @@ function frame(): void {
     p = rotX(p, pitch)
     const q = project(p)
     if (!q.visible) continue
-    ctx.beginPath(); ctx.arc(q.x, q.y, 3, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath()
+    ctx.arc(q.x, q.y, 3, 0, Math.PI * 2)
+    ctx.fill()
   }
 
   yaw += 0.004

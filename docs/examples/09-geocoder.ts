@@ -21,7 +21,10 @@ const results = document.getElementById('results') as HTMLUListElement
 
 async function run(): Promise<void> {
   const q = input.value.trim()
-  if (!q) { results.innerHTML = ''; return }
+  if (!q) {
+    results.innerHTML = ''
+    return
+  }
   results.innerHTML = '<li class="muted">Searching…</li>'
   try {
     const rs = await geocoder.search(q, { limit: 6 })

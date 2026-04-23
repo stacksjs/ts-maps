@@ -14,7 +14,7 @@ tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors',
 }).addTo(map)
 
-const directions = services.defaultDirections() // OSRMDirections, public demo server
+const directions = services.defaultDirections() // OSRMDirections — keyless demo server
 
 const info = document.getElementById('info') as HTMLDivElement
 const reset = document.getElementById('reset') as HTMLButtonElement
@@ -25,9 +25,12 @@ let routeLine: Polyline | null = null
 let pending = false
 
 function clear(): void {
-  startMarker?.remove(); startMarker = null
-  endMarker?.remove();   endMarker = null
-  routeLine?.remove();   routeLine = null
+  startMarker?.remove()
+  startMarker = null
+  endMarker?.remove()
+  endMarker = null
+  routeLine?.remove()
+  routeLine = null
   pending = false
   info.textContent = 'Click the map to set the start.'
 }
@@ -53,7 +56,10 @@ map.on('click', async (e: any) => {
         { profile: 'driving' },
       )
       pending = false
-      if (routes.length === 0) { info.textContent = 'No route found.'; return }
+      if (routes.length === 0) {
+        info.textContent = 'No route found.'
+        return
+      }
       const r = routes[0]
       routeLine?.remove()
       routeLine = new Polyline(r.geometry.map(p => [p.lat, p.lng]), { color: '#4f46e5', weight: 4 })

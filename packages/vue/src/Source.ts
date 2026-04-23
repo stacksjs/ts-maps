@@ -17,7 +17,7 @@ export const Source = defineComponent({
       (map) => {
         if (!map || registered)
           return
-        ;(map as unknown as { addSource: (id: string, s: unknown) => void }).addSource(
+        (map as unknown as { addSource: (id: string, s: unknown) => void }).addSource(
           props.id,
           props.source,
         )

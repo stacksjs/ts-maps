@@ -54,6 +54,9 @@ Every user interaction and programmatic camera change fires events on the map. A
 | `click`, `contextmenu`, `mousemove`, `mouseover`, `mouseout` | Pointer events, with `latlng`, `containerPoint`, `layerPoint`. |
 | `resize` | Container size changed. |
 | `styledata` / `sourcedata` | Style or source mutation. |
+| `fogchange` / `skychange` / `terrainchange` | 3D / atmosphere state mutated via `setFog` / `setSky` / `setTerrain`. |
+| `terrainload` | A DEM tile finished decoding into the terrain source. |
+| `customlayer:add` / `customlayer:remove` | Custom 3D layer registered or unregistered. |
 
 ## Layer-scoped pointer events
 

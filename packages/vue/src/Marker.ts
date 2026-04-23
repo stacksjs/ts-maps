@@ -26,10 +26,10 @@ export const Marker = defineComponent({
       (map) => {
         if (!map || marker)
           return
-        marker = new TsMarker(props.position, props.options)
-        ;(map as unknown as { addLayer: (l: any) => void }).addLayer(marker)
-        ;(marker as any).on('click', handleClick)
-        ;(marker as any).on('dragend', handleDragEnd)
+        marker = new TsMarker(props.position, props.options);
+        (map as unknown as { addLayer: (l: any) => void }).addLayer(marker);
+        (marker as any).on('click', handleClick);
+        (marker as any).on('dragend', handleDragEnd)
       },
       { immediate: true },
     )
@@ -39,7 +39,7 @@ export const Marker = defineComponent({
       (pos) => {
         if (!marker || !pos)
           return
-        ;(marker as unknown as { setLatLng: (p: [number, number]) => void }).setLatLng(pos)
+        (marker as unknown as { setLatLng: (p: [number, number]) => void }).setLatLng(pos)
       },
     )
 

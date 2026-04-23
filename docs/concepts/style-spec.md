@@ -23,7 +23,7 @@ ts-maps understands a subset of the Mapbox GL Style Specification. A _style docu
 
 ```ts
 map.setStyle(styleDoc)           // full swap with automatic diff
-map.addSource('pois', { /* ... */ })
+map.addSource('pois', { /_ ... _/ })
 map.addStyleLayer({ id: 'pois-dots', type: 'circle', source: 'pois', paint: { 'circle-radius': 3 } })
 map.setPaintProperty('roads', 'line-color', '#0ea5e9')
 map.setLayoutProperty('roads', 'visibility', 'none')
@@ -41,7 +41,7 @@ Most paint and layout properties accept _expressions_ — JSON arrays whose firs
 "fill-color": ["match", ["get", "class"],
   "water", "#0ea5e9",
   "park",  "#65a30d",
-  /* other */ "#e5e7eb"
+  /_ other _/ "#e5e7eb"
 ]
 
 // zoom-interpolated line width

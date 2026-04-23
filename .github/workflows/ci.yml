@@ -80,8 +80,8 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
-      - name: Unit Test
-        run: bun test
+      - name: Unit Test (all workspace packages)
+        run: bun run test
 
   build:
     runs-on: ubuntu-latest
@@ -100,29 +100,19 @@ jobs:
           restore-keys: |
             node-modules-
 
-      - name: Debug - List files
-        run: |
-          echo "=== Current directory ==="
-          pwd
-          echo "=== Package.json exists ==="
-          ls -la package.json
-          echo "=== Packages directory ==="
-          ls -la packages/
-          echo "=== Bun version ==="
-          bun --version
-
       - name: Install Dependencies
         run: bun install
 
-      - name: Debug - Check workspace packages
-        run: |
-          echo "=== Workspace packages ==="
-          bun pm ls
-          echo "=== Package.json scripts ==="
-          cat package.json | grep -A 10 '"scripts"'
-
-      - name: Build
+      - name: Build all workspace packages
         run: bun run build
+
+      - name: Verify dist outputs
+        run: |
+          test -f packages/ts-maps/dist/index.js
+          test -f packages/ts-maps/dist/index.d.ts
+          test -f packages/react/dist/index.js
+          test -f packages/vue/dist/index.js
+          test -f packages/react-native/dist/index.js
 
   publish-commit:
     needs: [lint, typecheck, test]

@@ -30,8 +30,17 @@ export function buildHtml(options: BuildHtmlOptions): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <style>
-  html, body { margin: 0; padding: 0; height: 100%; width: 100%; background: transparent; }
-  #map { height: 100%; width: 100%; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background: transparent;
+  }
+  #map {
+    height: 100%;
+    width: 100%;
+  }
 </style>
 </head>
 <body>
