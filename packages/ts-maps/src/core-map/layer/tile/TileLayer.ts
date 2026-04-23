@@ -2,10 +2,13 @@ import type { Point } from '../../geometry/Point'
 import Browser from '../../core/Browser'
 import * as Util from '../../core/Util'
 import * as DomEvent from '../../dom/DomEvent'
+import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { GridLayer } from './GridLayer'
 
 export class TileLayer extends GridLayer {
   declare _url: string
+  declare _offlineCache?: TileCache
+  declare _activeBlobUrls: Set<string>
 
   initialize(url: string, options?: any): void {
     super.initialize(options)
@@ -40,6 +43,14 @@ export class TileLayer extends GridLayer {
     if (typeof this.options!.subdomains === 'string')
     this.options!.subdomains = this.options!.subdomains.split('')
 
+    const offline = this.options!.offlineCache
+    if (offline instanceof TileCache)
+      this._offlineCache = offline
+    else if (offline === true)
+      this._offlineCache = getDefaultCache()
+
+    this._activeBlobUrls = new Set<string>()
+
     this.on('tileunload', this._onTileRemove)
   }
 
@@ -65,8 +76,36 @@ export class TileLayer extends GridLayer {
     tile.referrerPolicy = this.options!.referrerPolicy
 
     tile.alt = ''
-    tile.src = this.getTileUrl(coords)
+
+    const url = this.getTileUrl(coords)
+    if (this._offlineCache)
+      this._resolveThroughCache(tile, url)
+    else
+      tile.src = url
+
     return tile
+  }
+
+  _resolveThroughCache(tile: HTMLImageElement, url: string): void {
+    cachedFetch(url, { cache: this._offlineCache }).then((res) => {
+      const URLCtor = (globalThis as any).URL
+      if (URLCtor && typeof URLCtor.createObjectURL === 'function' && typeof (globalThis as any).Blob === 'function') {
+        const blob = new (globalThis as any).Blob([res.data], { type: res.mime })
+        const blobUrl = URLCtor.createObjectURL(blob) as string
+        this._activeBlobUrls.add(blobUrl)
+        tile.src = blobUrl
+      }
+      else {
+        // No Blob / URL.createObjectURL — fall back to plain URL; `res.data`
+        // still populated the cache, which is the point of the trip.
+        tile.src = url
+      }
+    }).catch(() => {
+      // Network + cache both failed: surface a load error via the browser's
+      // own pathway by attempting the original URL, which will then hit the
+      // `errorTileUrl` handler.
+      tile.src = url
+    })
   }
 
   getTileUrl(coords: Point & { z: number }): string {
@@ -140,7 +179,15 @@ export class TileLayer extends GridLayer {
     const tile = this._tiles[key]
     if (!tile)
     return
-    tile.el.setAttribute('src', '')
+    const el = tile.el as HTMLImageElement
+    const src = el.getAttribute('src') ?? ''
+    if (src.startsWith('blob:') && this._activeBlobUrls.has(src)) {
+      const URLCtor = (globalThis as any).URL
+      if (URLCtor && typeof URLCtor.revokeObjectURL === 'function')
+        URLCtor.revokeObjectURL(src)
+      this._activeBlobUrls.delete(src)
+    }
+    el.setAttribute('src', '')
     super._removeTile(key)
   }
 

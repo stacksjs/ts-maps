@@ -90,12 +90,7 @@
       </nav>
       <h1>1. Camera — bearing + pitch</h1>
       <p class='subtitle'>
-        Phase 1.2 added Mapbox-style <code>bearing</code>; Phase 1.3 adds
-        <code>pitch</code> (camera tilt). Drag the sliders to rotate and tilt
-        the map. Markers, popups and tooltips stay visually upright thanks to
-        counter-rotating/pitching upright panes (see
-        <code>TsMap._applyCameraTransform</code>). The unified camera animation
-        engine lands in Phase 1.4.
+        Rotate, pitch, and fly — smooth animated camera.
       </p>
 
       <div class='camera-layout'>
@@ -114,6 +109,8 @@
             </label>
             <input id='pitch' type='range' min='0' max='60' step='1' value='0' />
           </div>
+          <button id='fly-nyc' type='button'>Fly to NYC</button>
+          <button id='ease-tokyo' type='button'>Ease to Tokyo</button>
           <button id='reset-camera' type='button'>Reset camera</button>
         </div>
 

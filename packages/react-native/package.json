@@ -1,0 +1,61 @@
+{
+  "name": "@ts-maps/react-native",
+  "type": "module",
+  "version": "0.2.7",
+  "description": "React Native bindings for ts-maps — interactive SVG-based vector maps rendered inside a WebView.",
+  "author": "Chris Breuer <chris@stacksjs.org>",
+  "license": "MIT",
+  "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/react-native#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stacksjs/ts-maps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stacksjs/ts-maps/issues"
+  },
+  "keywords": [
+    "react-native",
+    "maps",
+    "webview",
+    "interactive",
+    "typescript",
+    "ts-maps",
+    "vector"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun --bun tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun --bun run build",
+    "lint": "bunx --bun pickier .",
+    "lint:fix": "bunx --bun pickier . --fix",
+    "test": "bun test",
+    "typecheck": "bun --bun tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.72",
+    "react-native-webview": ">=13"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "typescript": "^5.9.3",
+    "very-happy-dom": "file:/Users/chrisbreuer/Code/Tools/very-happy-dom"
+  }
+}

@@ -1,0 +1,6 @@
+export type { CollisionBox, CollisionIndexOptions } from './CollisionIndex'
+export { CollisionIndex } from './CollisionIndex'
+export type { GlyphAtlasOptions, GlyphMetrics } from './GlyphAtlas'
+export { GlyphAtlas } from './GlyphAtlas'
+export type { SpriteEntry } from './IconAtlas'
+export { IconAtlas } from './IconAtlas'

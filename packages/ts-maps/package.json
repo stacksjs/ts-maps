@@ -23,6 +23,7 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
       "import": "./dist/index.js"
     },
     "./brasil": {
@@ -97,6 +98,7 @@
   "scripts": {
     "bench": "bun bench/suites/index.ts",
     "build": "bun --bun build.ts",
+    "check:declare": "bun scripts/check-declare.ts",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",
     "prepublishOnly": "bun --bun run build",

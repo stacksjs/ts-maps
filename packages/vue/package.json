@@ -1,0 +1,59 @@
+{
+  "name": "@ts-maps/vue",
+  "type": "module",
+  "version": "0.2.7",
+  "description": "Vue 3 bindings for ts-maps — interactive SVG-based vector maps.",
+  "author": "Chris Breuer <chris@stacksjs.org>",
+  "license": "MIT",
+  "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/vue#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stacksjs/ts-maps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stacksjs/ts-maps/issues"
+  },
+  "keywords": [
+    "vue",
+    "vue3",
+    "maps",
+    "interactive",
+    "typescript",
+    "ts-maps",
+    "vector"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./../ts-maps/src/core-map/ts-maps.css"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun --bun tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun --bun run build",
+    "lint": "bunx --bun pickier .",
+    "lint:fix": "bunx --bun pickier . --fix",
+    "test": "bun test",
+    "typecheck": "bun --bun tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue": ">=3.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "very-happy-dom": "file:/Users/chrisbreuer/Code/Tools/very-happy-dom",
+    "vue": "^3.4.0"
+  }
+}

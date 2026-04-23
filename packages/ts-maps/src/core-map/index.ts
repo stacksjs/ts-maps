@@ -16,11 +16,15 @@ export * from './geometry/index'
 export * from './geo/index'
 export * from './layer/index'
 export * from './map/index'
+export * from './storage/index'
+export { earcut, flatten, deviation } from './geometry/earcut'
+export { WebGLTileRenderer, WebGLUnsupportedError } from './renderer/webgl/index'
+export type { CircleOptions as WebGLCircleOptions, GLContextOptions, LineOptions as WebGLLineOptions, Mat4 } from './renderer/webgl/index'
 
 // Shorthand factory helpers (similar to upstream's function-style API).
 import { AttributionControl, Control, LayersControl, ScaleControl, ZoomControl } from './control/index'
 import { Browser, Class, Evented, Handler, Util } from './core/index'
-import { Draggable, PosAnimation } from './dom/index'
+import { Animation, Draggable, PosAnimation } from './dom/index'
 import { CRS, EPSG3395, EPSG3857, EPSG4326, LatLng, LatLngBounds, Projection, SimpleCRS, toLatLng, toLatLngBounds } from './geo/index'
 import { Bounds, LineUtil, Point, PolyUtil, toBounds, toPoint, Transformation, toTransformation } from './geometry/index'
 import {
@@ -31,6 +35,8 @@ import {
   FeatureGroup,
   GeoJSON,
   GridLayer,
+  HeatmapLayer,
+  RasterDEMLayer,
   Icon,
   ImageOverlay,
   Layer,
@@ -43,10 +49,14 @@ import {
   SVGOverlay,
   TileLayer,
   Tooltip,
+  VectorTileMapLayer,
   VideoOverlay,
   WMSTileLayer,
 } from './layer/index'
 import { createMap, TsMap } from './map/index'
+import * as services from './services/index'
+
+export { services }
 
 // Factory helper: turns a constructor into a callable function.
 type Factory < A extends any[], T> = (...args: A) => T
@@ -67,6 +77,9 @@ export const tileLayer: Factory < ConstructorParameters < typeof TileLayer>, Til
 factory(TileLayer),
 { wms: factory(WMSTileLayer) },
 )
+export const vectorTileLayer: Factory < ConstructorParameters < typeof VectorTileMapLayer>, VectorTileMapLayer> = factory(VectorTileMapLayer)
+export const heatmapLayer: Factory < ConstructorParameters < typeof HeatmapLayer>, HeatmapLayer> = factory(HeatmapLayer)
+export const rasterDEMLayer: Factory < ConstructorParameters < typeof RasterDEMLayer>, RasterDEMLayer> = factory(RasterDEMLayer)
 export const imageOverlay: Factory < ConstructorParameters < typeof ImageOverlay>, ImageOverlay> = factory(ImageOverlay)
 export const videoOverlay: Factory < ConstructorParameters < typeof VideoOverlay>, VideoOverlay> = factory(VideoOverlay)
 export const svgOverlay: Factory < ConstructorParameters < typeof SVGOverlay>, SVGOverlay> = factory(SVGOverlay)
@@ -119,6 +132,7 @@ const tsMap: Record<string, unknown> = {
   toLatLng,
   toLatLngBounds,
   // dom
+  Animation,
   Draggable,
   PosAnimation,
   // map
@@ -140,6 +154,7 @@ const tsMap: Record<string, unknown> = {
   Marker,
   GridLayer,
   TileLayer,
+  VectorTileMapLayer,
   WMSTileLayer,
   Polyline,
   Polygon,
@@ -163,6 +178,7 @@ const tsMap: Record<string, unknown> = {
   geoJson,
   gridLayer,
   tileLayer,
+  vectorTileLayer,
   imageOverlay,
   videoOverlay,
   svgOverlay,
@@ -174,6 +190,8 @@ const tsMap: Record<string, unknown> = {
   circle,
   circleMarker,
   control,
+  // services
+  services,
 }
 
 // In browser environments, expose as `window.tsMap` for convenient global access.

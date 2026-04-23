@@ -1,15 +1,23 @@
+import type { EasingFunction } from '../dom/Animation'
 import Browser from '../core/Browser'
 import * as Util from '../core/Util'
 import * as DomEvent from '../dom/DomEvent'
 import * as PointerEvents from '../dom/DomEvent.PointerEvents'
 import * as DomUtil from '../dom/DomUtil'
 import { Evented } from '../core/Events'
+import { Animation } from '../dom/Animation'
 import { PosAnimation } from '../dom/PosAnimation'
 import { EPSG3857 } from '../geo/crs/EPSG3857'
 import { LatLng } from '../geo/LatLng'
 import { LatLngBounds } from '../geo/LatLngBounds'
 import { Bounds } from '../geometry/Bounds'
 import { Point } from '../geometry/Point'
+import { Style } from './Style'
+import type { LayerSpecification, SourceSpecification, Style as StyleSpec } from '../style-spec/types'
+import { diffStyles } from '../style-spec/diff'
+import type { OfflineRegionOptions, OfflineRegionResult } from '../storage'
+import { getDefaultCache, saveOfflineRegion } from '../storage'
+import { TerrainSource } from '../geo/TerrainSource'
 
 export interface MapOptions {
   crs?: any
@@ -64,6 +72,52 @@ export interface MapOptions {
   [key: string]: any
 }
 
+// Atmospheric fog settings. Applied by the WebGL renderer when present;
+// ignored by the Canvas2D path. Mirrors the property naming used by Mapbox
+// GL JS (`map.setFog(...)`) so existing muscle-memory transfers.
+export interface FogOptions {
+  color?: string
+  'horizon-blend'?: number
+  range?: [number, number]
+  'high-color'?: string
+  'star-intensity'?: number
+}
+
+// Sky-layer settings. Same WebGL-only caveat as FogOptions.
+export interface SkyOptions {
+  'sky-color'?: string
+  'horizon-color'?: string
+  'fog-ground-blend'?: number
+  'sun-position'?: [number, number]
+  'sun-intensity'?: number
+}
+
+// Pluggable 3D layer contract. A `CustomLayerInterface` object can be handed
+// to `map.addCustomLayer(...)`; the renderer will call `render()` each frame
+// alongside the tile-layer draw calls with the current GL context and
+// projection matrix. `onAdd` / `onRemove` bracket the layer's lifetime and
+// are invoked only when a GL context is available.
+export interface CustomLayerInterface {
+  id: string
+  type: 'custom'
+  renderingMode?: '2d' | '3d'
+  onAdd?: (map: TsMap, gl: WebGL2RenderingContext) => void
+  onRemove?: (map: TsMap, gl: WebGL2RenderingContext) => void
+  render: (gl: WebGL2RenderingContext, projectionMatrix: Float32Array) => void
+}
+
+// Terrain (3D DEM mesh warping) settings. The map keeps an in-memory
+// `TerrainSource` populated from a raster-dem source; the WebGL renderer
+// consumes it to build per-tile warped ground meshes. The API shape mirrors
+// Mapbox GL JS's `setTerrain()` — `source` names a raster-dem source (added
+// via `addSource()`), `exaggeration` scales vertical relief.
+export interface TerrainOptions {
+  /** Name of a raster-dem source previously added via `addSource`. */
+  source: string
+  /** Vertical exaggeration applied to elevation. Default `1`. */
+  exaggeration?: number
+}
+
 // The central class of the API — used to create a map on a page and manipulate it.
 export class TsMap extends Evented {
   static _pointerEvents: string[] = ['click', 'dblclick', 'pointerover', 'pointerout', 'contextmenu']
@@ -83,8 +137,8 @@ export class TsMap extends Evented {
   declare _bearing: number
   // Camera pitch (tilt) in degrees. `0` = looking straight down (default).
   // Clamped to `[minPitch, maxPitch]` on `setPitch()`. Populated in
-  // `initialize()` from `options.pitch`. `declare`-only for the same reason
-  // as `_bearing` (see class-field invariant in ROADMAP.md).
+  // `initialize()` from `options.pitch`. `declare`-only so the emitted
+  // class field doesn't wipe the value set from `super()`.
   declare _pitch: number
   declare _container: HTMLElement & { _tsmap_id?: number }
   declare _containerId?: number
@@ -102,7 +156,12 @@ export class TsMap extends Evented {
   declare _animateToCenter?: LatLng
   declare _animateToZoom?: number
   declare _tempFireZoomEvent?: boolean
+  // Legacy pan-only animation, used by `panBy`. Kept alongside `_camAnim`
+  // for the classic tile-pan flow.
   declare _panAnim?: PosAnimation
+  // Unified camera animation engine. Drives `flyTo`, `easeTo`, and animated
+  // `rotateTo` / `pitchTo`. Created lazily on first use.
+  declare _camAnim?: Animation
   declare _flyToFrame?: number
   declare _resizeRequest?: number | null
   declare _sizeTimer?: ReturnType<typeof setTimeout>
@@ -127,8 +186,36 @@ export class TsMap extends Evented {
   declare scrollWheelZoom?: any
   declare keyboard?: any
   declare tapHold?: any
+  declare touchRotate?: any
+  declare touchPitch?: any
   declare _popup?: any
   closePopup?: () => void
+  declare _style?: Style
+  declare _featureState?: globalThis.Map<string, Record<string, unknown>>
+  // Atmospheric fog state. `null`/unset means no fog. Stored verbatim and
+  // surfaced via `getFog()`; the renderer pulls it off when assembling frame
+  // uniforms.
+  declare _fog?: FogOptions | null
+  // Sky-layer state. Same storage pattern as `_fog`.
+  declare _sky?: SkyOptions | null
+  // Registered custom 3D layers keyed by `layer.id`. `declare` keeps the field
+  // type-only so it doesn't get re-initialised by the class-field semantics
+  // after the base `Class` constructor runs (see class-field invariant).
+  declare _customLayers?: globalThis.Map<string, CustomLayerInterface>
+  // Active terrain configuration. `null` / undefined disables 3D warping.
+  declare _terrain?: TerrainOptions | null
+  // In-memory DEM tile cache used to answer `queryTerrainElevation` and to
+  // build terrain meshes in the renderer. Lazy-created on the first
+  // `setTerrain()` call.
+  declare _terrainSource?: TerrainSource
+  // Lazy-initialized offline region API. See `getOfflineApi()` / the `offline`
+  // getter below. Holds a small facade over the storage/TileCache pipeline so
+  // callers can pre-download tiles for a bbox × zoom range.
+  declare _offlineApi?: {
+    save: (opts: OfflineRegionOptions) => Promise<OfflineRegionResult>
+    size: () => Promise<{ bytes: number, entries: number }>
+    clear: () => Promise<void>
+  }
 
   initialize(id: string | HTMLElement, options?: MapOptions): void {
     options = Util.setOptions(this as any, options) as MapOptions
@@ -306,9 +393,15 @@ export class TsMap extends Evented {
     const to = this.project(targetCenter)
     const size = this.getSize()
     const startZoom = this._zoom
+    const startBearing = this._bearing
+    const startPitch = this._pitch
 
     targetCenter = new LatLng(targetCenter)
     const tz = targetZoom === undefined ? startZoom : this._limitZoom(targetZoom)
+    const targetBearing = typeof options.bearing === 'number'
+    ? ((options.bearing % 360) + 360) % 360
+    : startBearing
+    const targetPitch = typeof options.pitch === 'number' ? this._clampPitch(options.pitch) : startPitch
 
     const w0 = Math.max(size.x, size.y)
     const w1 = w0 * this.getZoomScale(startZoom, tz)
@@ -333,31 +426,67 @@ export class TsMap extends Evented {
     const r0 = r(0)
     function w(s: number): number { return w0 * (cosh(r0) / cosh(r0 + rho * s)) }
     function u(s: number): number { return w0 * (cosh(r0) * tanh(r0 + rho * s) - sinh(r0)) / rho2 }
-    function easeOut(t: number): number { return 1 - (1 - t) ** 1.5 }
 
-    const start = Date.now()
     const S = (r(1) - r0) / rho
-    const duration = options.duration ? 1000 * options.duration : 1000 * S * 0.8
+    // Duration is in **milliseconds**. Older callers that passed seconds
+    // (e.g. `duration: 0.8`) will animate roughly instantaneously — the
+    // unified animation engine standardises on ms.
+    const duration = options.duration ? options.duration : 1000 * S * 0.8
 
-    const frame = (): void => {
-      const t = (Date.now() - start) / duration
-      const s = easeOut(t) * S
-
-      if (t <= 1) {
-        this._flyToFrame = requestAnimationFrame(frame)
-        this._move(
-        this.unproject(from.add(to.subtract(from).multiplyBy(u(s) / u1)), startZoom),
-        this.getScaleZoom(w0 / w(s), startZoom),
-        { flyTo: true },
-        )
-      }
-      else {
-        this._move(targetCenter, tz)._moveEnd(true)
-      }
-    }
+    const anim = this._getCamAnim()
+    const bearingChanged = Math.abs(((targetBearing - startBearing + 540) % 360) - 180) > 1e-6
+    const pitchChanged = Math.abs(targetPitch - startPitch) > 1e-6
+    const zoomChanged = Math.abs(tz - startZoom) > 1e-6
 
     this._moveStart(true, options.noMoveStart)
-    frame()
+    if (bearingChanged)
+      this.fire('rotatestart', { bearing: startBearing })
+    if (pitchChanged)
+      this.fire('pitchstart', { pitch: startPitch })
+
+    anim.run({
+      duration,
+      easing: t => 1 - (1 - t) ** 1.5,
+      onFrame: ({ t }) => {
+        const s = t * S
+        const center = this.unproject(from.add(to.subtract(from).multiplyBy(u(s) / u1)), startZoom)
+        const zoom = this.getScaleZoom(w0 / w(s), startZoom)
+        if (bearingChanged)
+          this._bearing = TsMap._lerpBearing(startBearing, targetBearing, t)
+        if (pitchChanged)
+          this._pitch = startPitch + (targetPitch - startPitch) * t
+        this._move(center, zoom, { flyTo: true })
+        if (bearingChanged || pitchChanged)
+          this._applyCameraTransform()
+        if (bearingChanged)
+          this.fire('rotate', { bearing: this._bearing })
+        if (pitchChanged)
+          this.fire('pitch', { pitch: this._pitch })
+      },
+      onEnd: (completed) => {
+        if (completed) {
+          if (bearingChanged)
+            this._bearing = targetBearing
+          if (pitchChanged)
+            this._pitch = targetPitch
+          this._move(targetCenter, tz)
+          if (bearingChanged || pitchChanged)
+            this._applyCameraTransform()
+          this._moveEnd(zoomChanged)
+          if (bearingChanged)
+            this.fire('rotateend', { bearing: targetBearing })
+          if (pitchChanged)
+            this.fire('pitchend', { pitch: targetPitch })
+        }
+        else {
+          this._moveEnd(zoomChanged)
+          if (bearingChanged)
+            this.fire('rotateend', { bearing: this._bearing })
+          if (pitchChanged)
+            this.fire('pitchend', { pitch: this._pitch })
+        }
+      },
+    })
     return this
   }
 
@@ -658,12 +787,22 @@ export class TsMap extends Evented {
   }
 
   /**
-  * Alias of `setBearing()` with an (optional) animation hook. Animation is
-  * not yet wired — Phase 1.4 will merge this into the unified camera
-  * animation engine. For now, this is always a no-animation snap.
+  * Rotates the camera to `bearing` (degrees). Without options (or with
+  * `animate: false`) this snaps instantly and is a thin alias for
+  * `setBearing()`. With `animate: true`, the bearing is interpolated via
+  * the unified camera animation engine (`_camAnim`), firing
+  * `rotatestart` / `rotate` / `rotateend` events over the course of the
+  * animation. Passing an `easing` function overrides the default
+  * `easeInOutCubic`.
   */
-  rotateTo(bearing: number, _options?: { animate?: boolean, duration?: number }): this {
-    return this.setBearing(bearing)
+  rotateTo(bearing: number, options?: { animate?: boolean, duration?: number, easing?: EasingFunction }): this {
+    if (!options?.animate)
+      return this.setBearing(bearing)
+    return this.easeTo({
+      bearing,
+      duration: options.duration ?? 300,
+      easing: options.easing,
+    })
   }
 
   /**
@@ -693,18 +832,268 @@ export class TsMap extends Evented {
   }
 
   /**
-  * Alias of `setPitch()` with an (optional) animation hook. Animation is
-  * not yet wired — Phase 1.4 will merge this into the unified camera
-  * animation engine. For now, this is always a no-animation snap.
+  * Tilts the camera to `pitch` (degrees). Without options (or with
+  * `animate: false`) this snaps instantly and is a thin alias for
+  * `setPitch()`. With `animate: true`, the pitch is interpolated via the
+  * unified camera animation engine, firing `pitchstart` / `pitch` /
+  * `pitchend` events. `easing` defaults to `easeInOutCubic`.
   */
-  pitchTo(pitch: number, _options?: { animate?: boolean, duration?: number }): this {
-    return this.setPitch(pitch)
+  pitchTo(pitch: number, options?: { animate?: boolean, duration?: number, easing?: EasingFunction }): this {
+    if (!options?.animate)
+      return this.setPitch(pitch)
+    return this.easeTo({
+      pitch,
+      duration: options.duration ?? 300,
+      easing: options.easing,
+    })
   }
 
   _clampPitch(pitch: number): number {
     const min = this.options.minPitch ?? 0
     const max = this.options.maxPitch ?? 60
     return Math.max(min, Math.min(max, pitch))
+  }
+
+  /**
+   * Canonical Mapbox-ergonomic camera move. Interpolates any subset of
+   * `{center, zoom, bearing, pitch}` together through the unified animation
+   * engine (`_camAnim`).
+   *
+   * Center interpolation: we lerp in projected **pixel** space at the
+   * **start** zoom, then unproject at the interpolated zoom. This avoids
+   * the antimeridian / polar issues you get from lerping raw `lat/lng`
+   * (a lerp between `lng = 170` and `lng = -170` would go the long way
+   * around) and gives a smooth great-circle-ish arc through the Mercator
+   * projection.
+   *
+   * Bearing interpolation: shortest-angular-path (`((Δ + 540) % 360) - 180`)
+   * so a `0° → 350°` move rotates 10° counter-clockwise, not 350° clockwise.
+   *
+   * Zoom and pitch are linear.
+   *
+   * Starting a new `easeTo` while another camera animation is in flight
+   * cancels the old one (the engine fires `onEnd(false)`); the `moveend` /
+   * `rotateend` / `pitchend` events for the superseded animation fire once
+   * against the cancelled camera pose, and a fresh `movestart` fires for
+   * the new one.
+   */
+  easeTo(options: {
+    center?: any
+    zoom?: number
+    bearing?: number
+    pitch?: number
+    duration?: number
+    easing?: EasingFunction
+    padding?: any
+    noMoveStart?: boolean
+  } = {}): this {
+    // Cancel any in-flight animation on this map. `_camAnim.run` would do
+    // this too, but we also need to quiesce the legacy pan/fly fallbacks.
+    this._stop()
+
+    const startCenter = this.getCenter()
+    const startZoom = this._zoom
+    const startBearing = this._bearing
+    const startPitch = this._pitch
+
+    const endCenter = options.center !== undefined ? new LatLng(options.center) : startCenter
+    const endZoom = options.zoom !== undefined ? this._limitZoom(options.zoom) : startZoom
+    const endBearing = typeof options.bearing === 'number'
+      ? ((options.bearing % 360) + 360) % 360
+      : startBearing
+    const endPitch = typeof options.pitch === 'number' ? this._clampPitch(options.pitch) : startPitch
+
+    const duration = options.duration ?? 300
+
+    const centerChanged = !startCenter.equals(endCenter)
+    const zoomChanged = Math.abs(endZoom - startZoom) > 1e-9
+    const bearingDelta = ((endBearing - startBearing + 540) % 360) - 180
+    const bearingChanged = Math.abs(bearingDelta) > 1e-9
+    const pitchChanged = Math.abs(endPitch - startPitch) > 1e-9
+
+    // Nothing to do — match Mapbox by just firing a synthetic moveend.
+    if (!centerChanged && !zoomChanged && !bearingChanged && !pitchChanged) {
+      if (!options.noMoveStart)
+        this.fire('movestart')
+      this.fire('moveend')
+      return this
+    }
+
+    // Project both centers to **start-zoom** world pixels so the lerp stays
+    // consistent even as zoom changes mid-animation. Unproject each frame
+    // at the interpolated zoom so marker positions track correctly.
+    const fromPx = this.project(startCenter, startZoom)
+    const toPx = this.project(endCenter, startZoom)
+
+    // Zero-duration: snap instantly but still drive the engine so we fire
+    // events in the right order.
+    if (duration <= 0) {
+      if (!options.noMoveStart)
+        this._moveStart(zoomChanged, false)
+      if (bearingChanged)
+        this.fire('rotatestart', { bearing: startBearing })
+      if (pitchChanged)
+        this.fire('pitchstart', { pitch: startPitch })
+
+      this._bearing = endBearing
+      this._pitch = endPitch
+      this._move(endCenter, endZoom)
+      if (bearingChanged || pitchChanged)
+        this._applyCameraTransform()
+      this._moveEnd(zoomChanged)
+      if (bearingChanged) {
+        this.fire('rotate', { bearing: endBearing })
+        this.fire('rotateend', { bearing: endBearing })
+      }
+      if (pitchChanged) {
+        this.fire('pitch', { pitch: endPitch })
+        this.fire('pitchend', { pitch: endPitch })
+      }
+      return this
+    }
+
+    const anim = this._getCamAnim()
+
+    if (!options.noMoveStart)
+      this._moveStart(zoomChanged, false)
+    if (bearingChanged)
+      this.fire('rotatestart', { bearing: startBearing })
+    if (pitchChanged)
+      this.fire('pitchstart', { pitch: startPitch })
+
+    anim.run({
+      duration,
+      easing: options.easing,
+      onFrame: ({ t }) => {
+        const lerpZoom = startZoom + (endZoom - startZoom) * t
+        const px = fromPx.add(toPx.subtract(fromPx).multiplyBy(t))
+        const center = this.unproject(px, startZoom)
+        if (bearingChanged)
+          this._bearing = TsMap._lerpBearing(startBearing, endBearing, t)
+        if (pitchChanged)
+          this._pitch = startPitch + (endPitch - startPitch) * t
+        this._move(center, lerpZoom, { easeTo: true })
+        if (bearingChanged || pitchChanged)
+          this._applyCameraTransform()
+        if (bearingChanged)
+          this.fire('rotate', { bearing: this._bearing })
+        if (pitchChanged)
+          this.fire('pitch', { pitch: this._pitch })
+      },
+      onEnd: (completed) => {
+        if (completed) {
+          if (bearingChanged)
+            this._bearing = endBearing
+          if (pitchChanged)
+            this._pitch = endPitch
+          this._move(endCenter, endZoom)
+          if (bearingChanged || pitchChanged)
+            this._applyCameraTransform()
+          this._moveEnd(zoomChanged)
+          if (bearingChanged)
+            this.fire('rotateend', { bearing: endBearing })
+          if (pitchChanged)
+            this.fire('pitchend', { pitch: endPitch })
+        }
+        else {
+          this._moveEnd(zoomChanged)
+          if (bearingChanged)
+            this.fire('rotateend', { bearing: this._bearing })
+          if (pitchChanged)
+            this.fire('pitchend', { pitch: this._pitch })
+        }
+      },
+    })
+    return this
+  }
+
+  /**
+   * Returns `true` if a camera animation (ease / fly / animated
+   * rotateTo / animated pitchTo) is currently running.
+   */
+  isEasing(): boolean {
+    return !!this._camAnim?.isRunning()
+  }
+
+  /**
+   * Read the map's current camera as a single object. Mirrors Mapbox GL JS
+   * ergonomics — pair with `jumpTo`/`easeTo`/`flyTo` for a full camera API.
+   */
+  getCamera(): { center: LatLng, zoom: number, bearing: number, pitch: number } {
+    return {
+      center: this.getCenter(),
+      zoom: this.getZoom(),
+      bearing: this.getBearing(),
+      pitch: this.getPitch(),
+    }
+  }
+
+  /**
+   * Snap the camera to the given target — no animation, no intermediate
+   * events, correct `move`/`zoom`/`rotate`/`pitch` notifications on fields
+   * that actually changed.
+   */
+  jumpTo(options: {
+    center?: any
+    zoom?: number
+    bearing?: number
+    pitch?: number
+  } = {}): this {
+    this._stop()
+
+    const prevCenter = this.getCenter()
+    const prevZoom = this._zoom
+    const prevBearing = this._bearing
+    const prevPitch = this._pitch
+
+    if (options.bearing !== undefined) {
+      const wrapped = ((options.bearing % 360) + 360) % 360
+      if (wrapped !== prevBearing) {
+        this._bearing = wrapped
+        this.fire('rotate')
+      }
+    }
+
+    if (options.pitch !== undefined) {
+      const clamped = this._clampPitch(options.pitch)
+      if (clamped !== prevPitch) {
+        this._pitch = clamped
+        this.fire('pitch')
+      }
+    }
+
+    if (options.center !== undefined || options.zoom !== undefined) {
+      const nextCenter = options.center !== undefined ? new LatLng(options.center) : prevCenter
+      const nextZoom = options.zoom !== undefined ? this._limitZoom(options.zoom) : prevZoom
+      if (!nextCenter.equals(prevCenter) || nextZoom !== prevZoom) {
+        this._move(nextCenter, nextZoom)
+      }
+    }
+
+    this._applyCameraTransform()
+    return this
+  }
+
+  /**
+   * Lazily allocates the shared `Animation` instance. Exactly one per map —
+   * starting a new camera move cancels whatever's in flight, which is the
+   * correct semantic for gestures.
+   */
+  _getCamAnim(): Animation {
+    if (!this._camAnim)
+      this._camAnim = new Animation()
+    return this._camAnim
+  }
+
+  /**
+   * Shortest-angular-path lerp on a `[0, 360)` value. Returns a value in
+   * `[0, 360)`. Extracted as a static helper so both `easeTo` and `flyTo`
+   * share identical wrap semantics.
+   */
+  static _lerpBearing(from: number, to: number, t: number): number {
+    const delta = ((to - from + 540) % 360) - 180
+    const raw = from + delta * t
+    return ((raw % 360) + 360) % 360
   }
 
   getBounds(): LatLngBounds {
@@ -997,6 +1386,7 @@ export class TsMap extends Evented {
     if (this._flyToFrame !== undefined)
     cancelAnimationFrame(this._flyToFrame)
     this._panAnim?.stop()
+    this._camAnim?.stop()
     return this
   }
 
@@ -1500,6 +1890,565 @@ export class TsMap extends Evented {
     this.fire('move')
 
     this._moveEnd(true)
+  }
+
+  // ---------- style-document API ----------
+
+  // Replace the whole style. Emits `styledata` once the new style is live.
+  // When both previous and next styles are set and `opts.diff` is true
+  // (default), only the minimum diff commands are applied.
+  setStyle(style: StyleSpec, opts?: { diff?: boolean, validate?: boolean }): this {
+    const useDiff = opts?.diff !== false
+    const validate = opts?.validate !== false
+
+    if (useDiff && this._style) {
+      const diff = diffStyles(this._style.spec, style)
+      const resetCmd = diff.commands.find(c => c.command === 'setStyle')
+      if (!resetCmd) {
+        // Apply command-by-command.
+        for (const cmd of diff.commands) this._applyStyleCommand(cmd)
+        this.fire('styledata')
+        return this
+      }
+      // Fall through to full reset.
+    }
+
+    // Tear down any existing style-layer hosts.
+    if (this._style) {
+      for (const host of this._style.sourceLayers.values()) {
+        (this as any).removeLayer(host as any)
+      }
+    }
+
+    this._style = new Style(style, { validate })
+    for (const [sourceId, source] of Object.entries(this._style.spec.sources)) {
+      const host = this._makeSourceLayer(sourceId, source as SourceSpecification)
+      this._installFeatureStateLookup(sourceId, host)
+      ;(this as any).addLayer(host as any)
+    }
+    this.fire('styledata')
+    return this
+  }
+
+  getStyle(): StyleSpec | undefined {
+    return this._style?.serialize()
+  }
+
+  isStyleLoaded(): boolean {
+    return !!this._style
+  }
+
+  addSource(sourceId: string, source: SourceSpecification): this {
+    if (!this._style) {
+      this._style = new Style({ version: 8, sources: { [sourceId]: source }, layers: [] })
+    }
+    else {
+      this._style.spec.sources[sourceId] = source
+    }
+    const host = this._makeSourceLayer(sourceId, source)
+    this._installFeatureStateLookup(sourceId, host)
+    ;(this as any).addLayer(host as any)
+    this.fire('styledata')
+    return this
+  }
+
+  getSource(sourceId: string): SourceSpecification | undefined {
+    return this._style?.spec.sources[sourceId]
+  }
+
+  removeSource(sourceId: string): this {
+    if (!this._style) return this
+    const host = this._style.sourceLayers.get(sourceId)
+    if (host) {
+      ;(this as any).removeLayer(host as any)
+      this._style.sourceLayers.delete(sourceId)
+    }
+    delete this._style.spec.sources[sourceId]
+    this.fire('styledata')
+    return this
+  }
+
+  // Build the concrete hosted Layer instance for a given source spec.
+  // Uses dynamic `require` to avoid a module-init cycle: Map.ts →
+  // VectorTileMapLayer → GridLayer → Layer → (include on TsMap).
+  _makeSourceLayer(sourceId: string, source: SourceSpecification): unknown {
+    if (source.type === 'raster') {
+      const { TileLayer } = require('../layer/tile/TileLayer')
+      const urls = source.tiles ?? []
+      const url = urls[0]
+      if (!url) throw new Error(`source "${sourceId}" has no tiles URL`)
+      const tile = new TileLayer(url, {
+        tileSize: source.tileSize ?? 256,
+        minZoom: source.minzoom,
+        maxZoom: source.maxzoom,
+        attribution: source.attribution,
+      })
+      this._style!.sourceLayers.set(sourceId, tile)
+      return tile
+    }
+    if (source.type === 'vector') {
+      const { VectorTileMapLayer } = require('../layer/tile/VectorTileMapLayer')
+      const urls = source.tiles ?? []
+      const url = urls[0]
+      if (!url) throw new Error(`source "${sourceId}" has no tiles URL`)
+      const styleLayers = this._style!.spec.layers
+        .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === sourceId)
+        .map(l => this._style!.toVectorStyleLayer(l))
+      const vector = new VectorTileMapLayer({
+        url,
+        tileSize: (source as any).tileSize ?? 512,
+        minZoom: source.minzoom,
+        maxZoom: source.maxzoom,
+        attribution: source.attribution,
+        layers: styleLayers,
+      })
+      this._style!.sourceLayers.set(sourceId, vector)
+      return vector
+    }
+    if (source.type === 'raster-dem') {
+      const { TileLayer } = require('../layer/tile/TileLayer')
+      const urls = source.tiles ?? []
+      const url = urls[0] ?? ''
+      const tile = new TileLayer(url, {
+        tileSize: source.tileSize ?? 512,
+        minZoom: source.minzoom,
+        maxZoom: source.maxzoom,
+        attribution: source.attribution,
+      })
+      this._style!.sourceLayers.set(sourceId, tile)
+      return tile
+    }
+    throw new Error(`source type "${source.type}" is not supported in setStyle yet`)
+  }
+
+  // Style-spec layer API. Note: `map.addLayer(Layer)` still works for the
+  // base Layer instance via the mixin in `layer/Layer.ts`. We distinguish
+  // here by the argument having a `type` string literal and an `id`.
+  addStyleLayer(layer: LayerSpecification, before?: string): this {
+    if (!this._style) throw new Error('addStyleLayer requires a loaded style')
+    const layers = this._style.spec.layers
+    if (before) {
+      const idx = layers.findIndex(l => l.id === before)
+      if (idx >= 0) layers.splice(idx, 0, layer)
+      else layers.push(layer)
+    }
+    else {
+      layers.push(layer)
+    }
+    this._style.layerSpecs.set(layer.id, layer)
+    // Repaint the source host so the new layer takes effect.
+    if ((layer as any).source) {
+      const host = this._style.sourceLayers.get((layer as any).source)
+      if (typeof (host as any)?.setStyleLayers === 'function') {
+        // Rebuild its style-layer list.
+        const next = layers
+          .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === (layer as any).source)
+          .map(l => this._style!.toVectorStyleLayer(l))
+        ;(host as any).setStyleLayers(next)
+        (host as any).redraw?.()
+      }
+    }
+    this.fire('styledata')
+    return this
+  }
+
+  removeStyleLayer(id: string): this {
+    if (!this._style) return this
+    const idx = this._style.spec.layers.findIndex(l => l.id === id)
+    if (idx < 0) return this
+    const removed = this._style.spec.layers.splice(idx, 1)[0]!
+    this._style.layerSpecs.delete(id)
+    if ((removed as any).source) {
+      const host = this._style.sourceLayers.get((removed as any).source)
+      if (typeof (host as any)?.setStyleLayers === 'function') {
+        const next = this._style.spec.layers
+          .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === (removed as any).source)
+          .map(l => this._style!.toVectorStyleLayer(l))
+        ;(host as any).setStyleLayers(next)
+        (host as any).redraw?.()
+      }
+    }
+    this.fire('styledata')
+    return this
+  }
+
+  getStyleLayer(id: string): LayerSpecification | undefined {
+    return this._style?.layerSpecs.get(id)
+  }
+
+  setPaintProperty(layerId: string, name: string, value: unknown): this {
+    this._style?.setPaintProperty(layerId, name, value)
+    this.fire('styledata')
+    return this
+  }
+
+  setLayoutProperty(layerId: string, name: string, value: unknown): this {
+    this._style?.setLayoutProperty(layerId, name, value)
+    this.fire('styledata')
+    return this
+  }
+
+  setFilter(layerId: string, filter: unknown): this {
+    this._style?.setFilter(layerId, filter)
+    this.fire('styledata')
+    return this
+  }
+
+  // --- feature-state API ------------------------------------------------
+  // Persistent per-feature state keyed by `{source, sourceLayer, id}`. Style
+  // expressions read from this via `['feature-state', <key>]` — the classic
+  // use case is hover/selected highlighting that shouldn't require tile
+  // refetches.
+
+  _featureStateKey(lookup: { source: string, sourceLayer?: string, id: number | string }): string {
+    // Keep numbers and strings distinct so the id `1` and the id `"1"` don't
+    // collide. `typeof` prefix is cheap and unambiguous.
+    const idTag = typeof lookup.id === 'number' ? `n:${lookup.id}` : `s:${lookup.id}`
+    return `${lookup.source}|${lookup.sourceLayer ?? ''}|${idTag}`
+  }
+
+  _ensureFeatureStateMap(): globalThis.Map<string, Record<string, unknown>> {
+    if (!this._featureState)
+      this._featureState = new globalThis.Map()
+    return this._featureState
+  }
+
+  _repaintSource(sourceId: string): void {
+    // Light repaint: re-rasterize tiles we already have rather than the full
+    // refetch `redraw()` does. Only VectorTileMapLayer tracks decoded tiles.
+    const host: any = this._style?.sourceLayers.get(sourceId)
+    if (!host)
+      return
+    if (typeof host._repaintDecodedTiles === 'function')
+      host._repaintDecodedTiles()
+  }
+
+  setFeatureState(
+    lookup: { source: string, sourceLayer?: string, id: number | string },
+    state: Record<string, unknown>,
+  ): this {
+    const store = this._ensureFeatureStateMap()
+    const key = this._featureStateKey(lookup)
+    const existing = store.get(key)
+    if (existing)
+      Object.assign(existing, state)
+    else
+      store.set(key, { ...state })
+    this._repaintSource(lookup.source)
+    return this
+  }
+
+  getFeatureState(lookup: { source: string, sourceLayer?: string, id: number | string }): Record<string, unknown> {
+    const store = this._featureState
+    if (!store)
+      return {}
+    const key = this._featureStateKey(lookup)
+    return store.get(key) ?? {}
+  }
+
+  removeFeatureState(
+    lookup: { source: string, sourceLayer?: string, id: number | string },
+    key?: string,
+  ): this {
+    const store = this._featureState
+    if (!store)
+      return this
+    const fullKey = this._featureStateKey(lookup)
+    if (key === undefined) {
+      store.delete(fullKey)
+    }
+    else {
+      const existing = store.get(fullKey)
+      if (existing) {
+        delete existing[key]
+        if (Object.keys(existing).length === 0)
+          store.delete(fullKey)
+      }
+    }
+    this._repaintSource(lookup.source)
+    return this
+  }
+
+  // Wire a per-source feature-state lookup into the given vector-tile host so
+  // its paint-pass can resolve `['feature-state', …]` without re-architecting
+  // the draw path.
+  _installFeatureStateLookup(sourceId: string, host: any): void {
+    if (typeof host?.setFeatureStateLookup !== 'function')
+      return
+    host.setFeatureStateLookup((src: string, srcLayer: string, id: number | string) => {
+      const store = this._featureState
+      if (!store)
+        return {}
+      const idTag = typeof id === 'number' ? `n:${id}` : `s:${id}`
+      return store.get(`${src}|${srcLayer}|${idTag}`) ?? {}
+    })
+    // Let the host know which source id it represents so callbacks round-trip
+    // the same key used by setFeatureState.
+    if (typeof host.setSourceId === 'function')
+      host.setSourceId(sourceId)
+  }
+
+  _applyStyleCommand(cmd: any): void {
+    switch (cmd.command) {
+      case 'addSource': {
+        const [sourceId, source] = cmd.args
+        if (!this._style) this._style = new Style({ version: 8, sources: {}, layers: [] }, { validate: false })
+        this._style.spec.sources[sourceId] = source
+        const host = this._makeSourceLayer(sourceId, source)
+        this._installFeatureStateLookup(sourceId, host)
+        ;(this as any).addLayer(host as any)
+        break
+      }
+      case 'removeSource': {
+        const [sourceId] = cmd.args
+        this.removeSource(sourceId)
+        break
+      }
+      case 'addLayer': {
+        const [layer, before] = cmd.args
+        this.addStyleLayer(layer, before)
+        break
+      }
+      case 'removeLayer': {
+        const [id] = cmd.args
+        this.removeStyleLayer(id)
+        break
+      }
+      case 'setPaintProperty': {
+        const [layerId, name, value] = cmd.args
+        this._style?.setPaintProperty(layerId, name, value)
+        break
+      }
+      case 'setLayoutProperty': {
+        const [layerId, name, value] = cmd.args
+        this._style?.setLayoutProperty(layerId, name, value)
+        break
+      }
+      case 'setFilter': {
+        const [layerId, filter] = cmd.args
+        this._style?.setFilter(layerId, filter)
+        break
+      }
+      case 'setLayerZoomRange': {
+        const [layerId, minzoom, maxzoom] = cmd.args
+        this._style?.setLayerZoomRange(layerId, minzoom, maxzoom)
+        break
+      }
+      // Other commands are no-ops for now.
+    }
+  }
+
+  /**
+  * Sets (or clears) the atmospheric fog. Pass `null` to disable. The options
+  * object is stored verbatim and is ignored by the Canvas2D renderer — the
+  * WebGL renderer reads it from `getFog()` when assembling frame uniforms.
+  * Fires a `fogchange` event.
+  *
+  * Throws `RangeError` when `range[0] >= range[1]` or when `star-intensity`
+  * is negative.
+  */
+  setFog(fog: FogOptions | null): this {
+    if (fog !== null) {
+      if (fog.range !== undefined) {
+        const [start, end] = fog.range
+        if (!(start < end))
+          throw new RangeError(`setFog: range[0] (${start}) must be < range[1] (${end}).`)
+      }
+      if (fog['star-intensity'] !== undefined && fog['star-intensity'] < 0)
+        throw new RangeError(`setFog: star-intensity must be >= 0 (got ${fog['star-intensity']}).`)
+    }
+    this._fog = fog === null ? null : { ...fog }
+    // TODO: apply fog uniforms in renderer
+    this.fire('fogchange', { fog: this._fog })
+    return this
+  }
+
+  /** Returns the stored fog options, or `null` when fog is disabled/unset. */
+  getFog(): FogOptions | null {
+    return this._fog ?? null
+  }
+
+  /**
+  * Sets (or clears) the sky layer. Pass `null` to disable. `fog-ground-blend`
+  * and `sun-intensity` are clamped into `[0, 1]`; `NaN` anywhere in the
+  * options throws `RangeError`. Fires a `skychange` event.
+  */
+  setSky(sky: SkyOptions | null): this {
+    if (sky !== null) {
+      const numericFields: (keyof SkyOptions)[] = ['fog-ground-blend', 'sun-intensity']
+      for (const key of numericFields) {
+        const value = sky[key] as number | undefined
+        if (value !== undefined && Number.isNaN(value))
+          throw new RangeError(`setSky: ${key} is NaN.`)
+      }
+      if (sky['sun-position'] !== undefined) {
+        const [az, alt] = sky['sun-position']
+        if (Number.isNaN(az) || Number.isNaN(alt))
+          throw new RangeError('setSky: sun-position contains NaN.')
+      }
+      const normalized: SkyOptions = { ...sky }
+      if (normalized['fog-ground-blend'] !== undefined)
+        normalized['fog-ground-blend'] = Math.max(0, Math.min(1, normalized['fog-ground-blend']))
+      if (normalized['sun-intensity'] !== undefined)
+        normalized['sun-intensity'] = Math.max(0, Math.min(1, normalized['sun-intensity']))
+      this._sky = normalized
+    }
+    else {
+      this._sky = null
+    }
+    // TODO: apply sky uniforms in renderer
+    this.fire('skychange', { sky: this._sky })
+    return this
+  }
+
+  /** Returns the stored sky options, or `null` when the sky is disabled/unset. */
+  getSky(): SkyOptions | null {
+    return this._sky ?? null
+  }
+
+  /**
+   * Enables 3D terrain (DEM-based mesh warping). `source` must name a
+   * raster-dem source previously registered via `addSource()`.
+   * `exaggeration` scales the vertical relief (default 1). Passing `null`
+   * disables terrain and frees the in-memory elevation cache.
+   *
+   * Fires `'terrainchange'` on every call.
+   */
+  setTerrain(terrain: TerrainOptions | null): this {
+    if (terrain !== null) {
+      if (typeof terrain.source !== 'string' || terrain.source.length === 0)
+        throw new TypeError('setTerrain: `source` must be a non-empty string.')
+      if (terrain.exaggeration !== undefined && !Number.isFinite(terrain.exaggeration))
+        throw new RangeError(`setTerrain: exaggeration must be a finite number (got ${terrain.exaggeration}).`)
+      if (terrain.exaggeration !== undefined && terrain.exaggeration < 0)
+        throw new RangeError(`setTerrain: exaggeration must be >= 0 (got ${terrain.exaggeration}).`)
+      this._terrain = { source: terrain.source, exaggeration: terrain.exaggeration ?? 1 }
+      if (!this._terrainSource)
+        this._terrainSource = new TerrainSource({ exaggeration: this._terrain.exaggeration })
+      else
+        this._terrainSource.setExaggeration(this._terrain.exaggeration ?? 1)
+    }
+    else {
+      this._terrain = null
+      this._terrainSource?.clear()
+    }
+    this.fire('terrainchange', { terrain: this._terrain })
+    return this
+  }
+
+  /** Returns the stored terrain options, or `null` when terrain is off. */
+  getTerrain(): TerrainOptions | null {
+    return this._terrain ?? null
+  }
+
+  /**
+   * Returns the `TerrainSource` instance backing the current terrain
+   * config, or `undefined` when terrain is off. Exposed for the renderer
+   * and for callers that want to ingest DEM tiles directly (e.g. from a
+   * worker decode or a pre-downloaded offline region).
+   */
+  getTerrainSource(): TerrainSource | undefined {
+    return this._terrainSource
+  }
+
+  /**
+   * Bilinear elevation query at an arbitrary lng/lat. Returns the best
+   * available sample (walking up the pyramid when the preferred zoom
+   * isn't loaded) or `null` when no DEM tile covers the point yet.
+   * Always returns `null` when terrain is disabled.
+   */
+  queryTerrainElevation(lngLat: LatLng | { lng: number, lat: number }): number | null {
+    if (!this._terrain || !this._terrainSource)
+      return null
+    const z = Math.max(0, Math.floor(this.getZoom?.() ?? 0))
+    return this._terrainSource.queryElevation(lngLat.lng, lngLat.lat, z)
+  }
+
+  /**
+  * Best-effort lookup for a WebGL2 context on the map's container. Custom
+  * layers only need this for their `onAdd` / `onRemove` callbacks; the
+  * renderer wires the per-frame `render()` call through its own GL handle.
+  */
+  _getCustomLayerGL(): WebGL2RenderingContext | null {
+    const container = this._container
+    if (!container || typeof container.querySelector !== 'function')
+      return null
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement | null
+    if (!canvas || typeof canvas.getContext !== 'function')
+      return null
+    try {
+      return (canvas.getContext('webgl2') as WebGL2RenderingContext | null) ?? null
+    }
+    catch {
+      return null
+    }
+  }
+
+  /**
+  * Registers a custom 3D layer. `layer.onAdd` is called immediately if the
+  * map already has a GL context; otherwise the call is deferred to when one
+  * becomes available. Throws if `layer.id` is already registered.
+  */
+  addCustomLayer(layer: CustomLayerInterface): this {
+    if (!this._customLayers)
+      this._customLayers = new globalThis.Map()
+    if (this._customLayers.has(layer.id))
+      throw new Error(`addCustomLayer: a custom layer with id "${layer.id}" is already registered.`)
+    this._customLayers.set(layer.id, layer)
+    const gl = this._getCustomLayerGL()
+    if (gl && typeof layer.onAdd === 'function')
+      layer.onAdd(this, gl)
+    // TODO: invoke custom layer render() after tile draw
+    this.fire('customlayer:add', { id: layer.id, layer })
+    return this
+  }
+
+  /** Removes a custom 3D layer by id. No-op for unknown ids. */
+  removeCustomLayer(id: string): this {
+    const layer = this._customLayers?.get(id)
+    if (!layer)
+      return this
+    const gl = this._getCustomLayerGL()
+    if (gl && typeof layer.onRemove === 'function')
+      layer.onRemove(this, gl)
+    this._customLayers!.delete(id)
+    this.fire('customlayer:remove', { id, layer })
+    return this
+  }
+
+  /** Returns the custom layer registered under `id`, or `undefined`. */
+  getCustomLayer(id: string): CustomLayerInterface | undefined {
+    return this._customLayers?.get(id)
+  }
+
+  /** Returns the list of registered custom layers in insertion order. */
+  getCustomLayers(): CustomLayerInterface[] {
+    return this._customLayers ? Array.from(this._customLayers.values()) : []
+  }
+
+  // Lazy offline-region facade. Delegates to the shared `TileCache` unless the
+  // caller supplies their own via `OfflineRegionOptions.cache`. Progress
+  // updates are fired as `offline:progress` events on the map.
+  get offline(): {
+    save: (opts: OfflineRegionOptions) => Promise<OfflineRegionResult>
+    size: () => Promise<{ bytes: number, entries: number }>
+    clear: () => Promise<void>
+  } {
+    if (!this._offlineApi) {
+      const self = this
+      this._offlineApi = {
+        save(opts: OfflineRegionOptions): Promise<OfflineRegionResult> {
+          return saveOfflineRegion(opts, self)
+        },
+        async size(): Promise<{ bytes: number, entries: number }> {
+          return (getDefaultCache()).size()
+        },
+        async clear(): Promise<void> {
+          await (getDefaultCache()).clear()
+        },
+      }
+    }
+    return this._offlineApi
   }
 }
 

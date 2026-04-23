@@ -1,3 +1,5 @@
+export { Globe } from './Projection.Globe'
+export type { GlobeProjection, GlobeVec3 } from './Projection.Globe'
 export { LonLat } from './Projection.LonLat'
 export { Mercator } from './Projection.Mercator'
 export { SphericalMercator } from './Projection.SphericalMercator'

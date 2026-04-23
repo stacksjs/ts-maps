@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "isolatedDeclarations": false,
+    "baseUrl": ".",
+    "paths": {
+      "ts-maps": ["../ts-maps/src"],
+      "ts-maps/*": ["../ts-maps/src/*"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

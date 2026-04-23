@@ -1,8 +1,8 @@
 # ts-maps benchmarks
 
 Zero-dep micro-benchmarks that measure the hot paths of the core library.
-Numbers here are the baseline for regression checks in later phases
-(Phase 2.3 VectorTileLayer, Phase 6 WebGL renderer).
+Numbers here are the baseline for regression checks on the vector-tile
+and WebGL rendering pipelines.
 
 ## Run
 

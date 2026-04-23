@@ -8,10 +8,12 @@
     "paths": {
       "ts-maps": ["./packages/ts-maps/src"],
       "ts-maps/*": ["./packages/ts-maps/src/maps/*"],
-      "ts-maps-vue": ["./packages/vue/src"],
-      "ts-maps-vue/*": ["./packages/vue/src/*"],
-      "ts-maps-react": ["./packages/react/src"],
-      "ts-maps-react/*": ["./packages/react/src/*"]
+      "@ts-maps/vue": ["./packages/vue/src"],
+      "@ts-maps/vue/*": ["./packages/vue/src/*"],
+      "@ts-maps/react": ["./packages/react/src"],
+      "@ts-maps/react/*": ["./packages/react/src/*"],
+      "@ts-maps/react-native": ["./packages/react-native/src"],
+      "@ts-maps/react-native/*": ["./packages/react-native/src/*"]
     },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
@@ -28,5 +30,5 @@
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
   },
-  "exclude": ["playground/**/*", "**/dist/**/*", "**/node_modules/**/*", "packages/react/**/*", "packages/nuxt/**/*", "**/*.md"]
+  "exclude": ["playground/**/*", "**/dist/**/*", "**/node_modules/**/*", "packages/react/**/*", "packages/react-native/**/*", "packages/nuxt/**/*", "**/*.md"]
 }

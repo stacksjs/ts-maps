@@ -1,13 +1,16 @@
 /**
- * Phase 1.2/1.3 demo — Camera: bearing (map rotation) + pitch (camera tilt).
+ * Camera demo — bearing (map rotation), pitch (camera tilt), and smooth
+ * animated moves via `flyTo` / `easeTo`.
  *
  * A TsMap with an OSM tile layer and a marker. Range sliders drive
- * `map.setBearing(...)` and `map.setPitch(...)`. Markers stay visually
- * upright because the marker / popup / tooltip panes counter-rotate and
- * counter-pitch (see `TsMap._applyCameraTransform`).
+ * `map.setBearing(...)` and `map.setPitch(...)`. Buttons showcase the
+ * unified camera animation engine: `flyTo` for zoom-out/zoom-in long hops,
+ * `easeTo` for a tween of any `{center, zoom, bearing, pitch}` combination.
+ * Markers stay visually upright because the marker / popup / tooltip panes
+ * counter-rotate and counter-pitch (see `TsMap._applyCameraTransform`).
  */
 
-import { DivIcon, Marker, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, LatLng, Marker, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
 
 const TIMES_SQUARE: [number, number] = [40.758, -73.9855]
 const INITIAL_ZOOM = 13
@@ -51,6 +54,8 @@ const bearingLabel = document.getElementById('bearing-value') as HTMLSpanElement
 const pitchSlider = document.getElementById('pitch') as HTMLInputElement
 const pitchLabel = document.getElementById('pitch-value') as HTMLSpanElement
 const resetBtn = document.getElementById('reset-camera') as HTMLButtonElement
+const flyNycBtn = document.getElementById('fly-nyc') as HTMLButtonElement
+const easeTokyoBtn = document.getElementById('ease-tokyo') as HTMLButtonElement
 
 function updateBearingLabel(bearing: number): void {
   bearingLabel.textContent = `${Math.round(bearing)}°`
@@ -70,6 +75,20 @@ pitchSlider.addEventListener('input', () => {
   const pitch = Number(pitchSlider.value)
   map.setPitch(pitch)
   updatePitchLabel(pitch)
+})
+
+flyNycBtn.addEventListener('click', () => {
+  map.flyTo(new LatLng(40.7128, -74.0060), 11, { duration: 1200 })
+})
+
+easeTokyoBtn.addEventListener('click', () => {
+  map.easeTo({
+    center: new LatLng(35.6762, 139.6503),
+    zoom: 11,
+    bearing: 0,
+    pitch: 0,
+    duration: 1000,
+  })
 })
 
 resetBtn.addEventListener('click', () => {

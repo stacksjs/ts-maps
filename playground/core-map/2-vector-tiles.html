@@ -4,7 +4,82 @@
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <title>ts-maps — 2. Vector tiles</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .vt-layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      @media (max-width: 720px) {
+        .vt-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .vt-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+      .vt-sidebar h3 {
+        margin: 0;
+        font-size: 13px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .vt-sidebar .layer-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .vt-sidebar label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text);
+      }
+      .vt-sidebar .swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        border: 1px solid var(--border);
+      }
+
+      .vt-info {
+        padding: 12px 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        color: var(--muted);
+        min-height: 54px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .vt-info strong {
+        color: var(--text);
+      }
+
+      .note {
+        background: rgba(79, 70, 229, 0.08);
+        border: 1px solid rgba(79, 70, 229, 0.35);
+        padding: 10px 12px;
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+    </style>
   </head>
   <body>
     <div class='demo-page'>
@@ -13,22 +88,41 @@
         <span>/</span>
         <span>2. Vector tiles</span>
       </nav>
-      <h1>2. Vector tiles &amp; style spec</h1>
-      <p class='subtitle'>Coming soon in Phase 2 of the roadmap.</p>
+      <h1>2. Vector tiles</h1>
+      <p class='subtitle'>
+        Zero-dep MVT pipeline. Fetches <code>.pbf</code> tiles, decodes them
+        through the in-house protobuf reader, and rasterizes with Canvas2D.
+        Style layers declare the source layer, the draw type (fill / line /
+        circle), and the paint properties. Click anywhere on the map to
+        <code>queryRenderedFeatures</code> and inspect the hit features below.
+      </p>
 
-      <div class='stub-card'>
-        <h2>Coming soon in Phase 2</h2>
-        <p>This demo will load the OpenMapTiles basic style via ts-maps&rsquo;s
-          in-house MVT pipeline. Planned pieces:</p>
-        <ul>
-          <li>Zero-dep PBF decoder + MVT parser</li>
-          <li><code>VectorTileLayer</code> backed by <code>GridLayer</code></li>
-          <li>Canvas2D vector-tile renderer (fill / line / circle / symbol)</li>
-          <li>Style spec v1 and expressions engine</li>
-          <li><code>map.setStyle / addSource / addLayer</code></li>
-          <li><code>map.queryRenderedFeatures(point, { layers })</code></li>
-        </ul>
+      <div class='vt-layout'>
+        <aside class='vt-sidebar'>
+          <h3>Style layers</h3>
+          <div class='layer-list'>
+            <label><span class='swatch' style='background: #0ea5e9'></span> water (fill)</label>
+            <label><span class='swatch' style='background: #6b7280'></span> roads (line)</label>
+            <label><span class='swatch' style='background: #f59e0b'></span> place (circle)</label>
+          </div>
+
+          <h3>Hit features</h3>
+          <div id='info' class='vt-info'>Click the map to query features.</div>
+
+          <div class='note'>
+            <strong>Synthetic tile source.</strong> Keyless MVT basemaps on the
+            public internet are unreliable, so this demo generates a single
+            <code>.pbf</code> tile in the browser and intercepts
+            <code>fetch</code> for the <code>demo-tiles/</code> path. To point
+            at a real tile server, reload with
+            <code>?tiles=https://your/{z}/{x}/{y}.pbf</code> in the URL.
+          </div>
+        </aside>
+
+        <div id='map' class='map-host'></div>
       </div>
     </div>
+
+    <script type='module' src='./2-vector-tiles.ts'></script>
   </body>
 </html>
