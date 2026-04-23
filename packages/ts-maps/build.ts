@@ -6,19 +6,6 @@ await Bun.build({
   target: 'browser',
   entrypoints: [
     './src/index.ts',
-    './src/analytics/index.ts',
-    './src/maps/brasil.ts',
-    './src/maps/canada.ts',
-    './src/maps/iraq.ts',
-    './src/maps/italy.ts',
-    './src/maps/russia.ts',
-    './src/maps/spain.ts',
-    './src/maps/us-aea-en.ts',
-    './src/maps/us-lcc-en.ts',
-    './src/maps/us-merc-en.ts',
-    './src/maps/us-mill-en.ts',
-    './src/maps/world-merc.ts',
-    './src/maps/world.ts',
     // Subpath exports — callers importing from
     // `ts-maps/services`, `ts-maps/style-spec`, etc. only pull in that
     // slice rather than the full index bundle.
@@ -32,16 +19,17 @@ await Bun.build({
   outdir: './dist',
 })
 
-// Flatten `dist/src/*` onto `dist/*` — Bun.build echoes the source tree
-// when `./src/index.ts` is an entrypoint, but published consumers expect
-// `dist/index.js` at the root.
+// Flatten `dist/src/*` onto `dist/*` — older Bun.build passes echoed the
+// source tree when `./src/index.ts` was an entrypoint. The current Bun
+// emits directly into `dist/`, so the flatten is a best-effort no-op.
 try {
-  await Bun.$`cp -r dist/src/* dist/`
-  await Bun.$`rm -rf dist/src`
+  await Bun.$`test -d dist/src`.quiet()
+  await Bun.$`cp -r dist/src/. dist/`.quiet()
+  await Bun.$`rm -rf dist/src`.quiet()
 }
 catch {
-  // no-op — handled by the tsc step below which will error loudly if
-  // the JS layout is actually broken.
+  // no-op — `dist/src/` doesn't exist with newer Bun.build layouts. The
+  // tsc step below will error loudly if the JS layout is actually broken.
 }
 
 // Emit declarations via tsc directly. `bun-plugin-dtsx` only generates

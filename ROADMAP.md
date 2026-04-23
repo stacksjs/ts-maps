@@ -30,7 +30,6 @@ before the previous one's exit criteria are green.
 
   helpers (`marker()`, `tileLayer()`, `map()`, …).
 
-- **Legacy**: existing `VectorMap` (choropleth/country maps) still exported.
 - **Toolchain**: `bun run typecheck` passes under `isolatedDeclarations: true`.
 
 ## Where we are going

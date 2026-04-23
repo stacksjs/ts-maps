@@ -2,183 +2,58 @@
 
 # Introduction to ts-maps
 
-> A powerful TypeScript library for creating beautiful, interactive vector maps with advanced data visualization capabilities.
+> A zero-dependency, TypeScript-native, interactive mapping library — Mapbox-class features with a Leaflet-style API.
 
-## Key Features
+## Key features
 
-- **Advanced Vector Mapping**
-  - Interactive SVG-based maps with smooth rendering
-  - Multiple projection support (Mercator & Miller)
-  - Responsive and scalable design
-  - Built-in map collections
-  - Custom region styling and interactions
+- **Interactive slippy maps** — fractional zoom, bearing (rotation), pitch (tilt), unified `flyTo` / `easeTo` / `jumpTo` camera animations.
+- **Vector tiles + style spec** — in-house MVT decoder, a subset of the Mapbox GL Style Specification, and an expression engine (`interpolate` / `step` / `case` / `match` / `coalesce` / `feature-state`).
+- **3D** — `fill-extrusion`, `setFog`, `setSky`, and DEM-based `setTerrain` with auto-loaded tiles from a `raster-dem` source. `addCustomLayer()` for raw WebGL2.
+- **Globe** — seamless transition between Mercator and a spherical projection around zoom 5.5, with an atmosphere halo.
+- **Services** — geocoding, directions, isochrones, and a distance matrix behind a common interface. Keyless defaults (Nominatim, OSRM, Valhalla), opt-in commercial providers (Mapbox, Google, Maptiler, Photon).
+- **Offline** — IndexedDB-backed `TileCache`, `saveOfflineRegion` pre-fetcher, worker pool for off-main-thread tile decode.
+- **Layer-scoped events** — `map.on('click', 'layer-id', handler)`.
+- **Zero runtime dependencies.** Subpath exports let you import just the slice you need.
+- **Framework bindings** — React, Vue, Svelte, Solid, Nuxt, React Native.
 
-- **Rich Data Visualization**
-  - Comprehensive visualization options
-  - Dynamic data binding
-  - Custom scales and legends
-  - Multiple series support
-  - Marker and region-based visualizations
+## Basic usage
 
-- **Interactive Features**
-  - Smooth zooming and panning
-  - Region and marker selection
-  - Custom tooltips
-  - Event-driven architecture
-  - Touch device support
+```ts
+import 'ts-maps/styles.css'
+import { Marker, tileLayer, TsMap } from 'ts-maps'
 
-- **Developer Experience**
-  - Framework-agnostic core library
-  - TypeScript-first development
-  - Comprehensive documentation
-  - Flexible configuration
-
-## Basic Usage
-
-```typescript
-import { VectorMap } from 'ts-maps'
-
-// Initialize the map
-const map = new VectorMap({
-  selector: '#map',
-  map: {
-    name: 'world',
-    projection: 'mercator'
-  },
-  backgroundColor: '#4a4a4a',
-  zoomOnScroll: true,
-  zoomButtons: true,
-  // Customize region appearance
-  regionStyle: {
-    initial: {
-      fill: '#e4e4e4',
-      stroke: '#ffffff',
-      strokeWidth: 0.5,
-    },
-    hover: {
-      fill: '#ccc',
-    },
-    selected: {
-      fill: '#2ca25f',
-    },
-  },
+const map = new TsMap('map', {
+  center: [40.758, -73.9855],
+  zoom: 13,
+  bearing: 0,
+  pitch: 0,
 })
 
-// Add data visualization
-map.params.visualizeData = {
-  scale: ['#C8EEFF', '#0071A4'],
-  values: {
-    US: 100,
-    GB: 75,
-    FR: 80,
-    DE: 85,
-    IT: 60,
-    ES: 65,
-  },
-}
+tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+}).addTo(map)
 
-// Add markers
-map.addMarkers([
-  {
-    name: 'New York',
-    coords: [40.7128, -74.0060],
-    style: {
-      fill: '#ff0000',
-      stroke: '#ffffff',
-      r: 5,
-    },
-  },
-])
-
-// Handle interactions
-map.params.onRegionClick = (event, code) => {
-  console.log(`Clicked region: ${code}`)
-}
+new Marker([40.758, -73.9855])
+  .addTo(map)
+  .bindPopup('Hello from ts-maps')
+  .openPopup()
 ```
 
-## Advanced Features
+## Next steps
 
-### Custom Styling
-
-```typescript
-// Apply custom styles to regions
-map.params.regionStyle = {
-  initial: {
-    fill: '#e4e4e4',
-    stroke: '#ffffff',
-    strokeWidth: 0.5,
-  },
-  hover: {
-    fill: '#ccc',
-  },
-  selected: {
-    fill: '#2ca25f',
-  },
-  selectedHover: {
-    fill: '#1a9850',
-  },
-}
-
-// Style markers
-map.params.markerStyle = {
-  initial: {
-    fill: '#ff0000',
-    stroke: '#ffffff',
-    r: 5,
-  },
-  hover: {
-    fill: '#ff5555',
-    r: 7,
-  },
-}
-```
-
-### Event Handling
-
-```typescript
-// Region events
-map.params.onRegionClick = (event, code) => {
-  console.log(`Clicked region: ${code}`)
-}
-
-map.params.onRegionSelected = (event, code, isSelected, selectedRegions) => {
-  console.log(`Region ${code} selection state: ${isSelected}`)
-  console.log('Currently selected regions:', selectedRegions)
-}
-
-// Marker events
-map.params.onMarkerClick = (event, index) => {
-  console.log(`Clicked marker: ${index}`)
-}
-
-// Viewport events
-map.params.onViewportChange = (scale, transX, transY) => {
-  console.log(`Map viewport changed: scale=${scale}, x=${transX}, y=${transY}`)
-}
-```
-
-## Next Steps
-
-- Check out the [Installation Guide](/install) for setup instructions
-- Explore the [API Reference](/api/) for detailed documentation
-
-## Stargazers
-
-[![Stargazers over time](https://starchart.cc/stacksjs/ts-maps.svg?variant=adaptive)](https://starchart.cc/stacksjs/ts-maps)
+- [Installation](/install) — package-manager snippets and framework bindings.
+- [Getting started](/getting-started) — a guided walkthrough from a blank page to a styled vector map.
+- [Concepts](/concepts/map) — camera, style spec, 3D, terrain, offline, services.
+- [API reference](/api/TsMap) — every public class and function.
+- [Examples](/examples/) — runnable demos for each major feature.
 
 ## Community
 
-Join our community to get help, share your work, and connect with other developers:
-
 - [GitHub Discussions](https://github.com/stacksjs/ts-maps/discussions)
-- [Discord Community](https://discord.gg/stacksjs)
+- [Discord](https://discord.gg/stacksjs)
 
 ## License
 
-ts-maps is released under the MIT License. See the [LICENSE](https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md) file for more details.
+ts-maps is released under the MIT License. See [LICENSE](https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md).
 
 Made with 💙
-
-<!-- Badges -->
-
-<!-- [codecov-src]: https://img.shields.io/codecov/c/gh/stacksjs/mail-server/main?style=flat-square -->

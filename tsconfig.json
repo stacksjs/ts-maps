@@ -7,13 +7,18 @@
     "moduleResolution": "bundler",
     "paths": {
       "ts-maps": ["./packages/ts-maps/src"],
-      "ts-maps/*": ["./packages/ts-maps/src/maps/*"],
+      "ts-maps/*": ["./packages/ts-maps/src/core-map/*"],
       "@ts-maps/vue": ["./packages/vue/src"],
       "@ts-maps/vue/*": ["./packages/vue/src/*"],
       "@ts-maps/react": ["./packages/react/src"],
       "@ts-maps/react/*": ["./packages/react/src/*"],
       "@ts-maps/react-native": ["./packages/react-native/src"],
-      "@ts-maps/react-native/*": ["./packages/react-native/src/*"]
+      "@ts-maps/react-native/*": ["./packages/react-native/src/*"],
+      "@ts-maps/svelte": ["./packages/svelte/src"],
+      "@ts-maps/svelte/*": ["./packages/svelte/src/*"],
+      "@ts-maps/solid": ["./packages/solid/src"],
+      "@ts-maps/solid/*": ["./packages/solid/src/*"],
+      "ts-maps-nuxt": ["./packages/nuxt/src"]
     },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
@@ -30,5 +35,5 @@
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
   },
-  "exclude": ["playground/**/*", "docs/**/*", "**/dist/**/*", "**/node_modules/**/*", "packages/react/**/*", "packages/react-native/**/*", "packages/vue/**/*", "packages/stx/**/*", "packages/nuxt/**/*", "pantry/**/*", "**/*.md"]
+  "exclude": ["playground/**/*", "docs/**/*", "**/dist/**/*", "**/node_modules/**/*", "packages/react/**/*", "packages/react-native/**/*", "packages/vue/**/*", "packages/svelte/**/*", "packages/solid/**/*", "packages/nuxt/**/*", "pantry/**/*", "**/*.md"]
 }

@@ -194,6 +194,15 @@ export class TsMap extends Evented {
   closePopup?: () => void
   declare _style?: Style
   declare _featureState?: globalThis.Map<string, Record<string, unknown>>
+  // Layer-scoped DOM-event handlers registered via `map.on(type, layerId, fn)`.
+  // Keyed by event type (e.g. `'click'`); each inner map maps the listener
+  // back to its wrapping handler so `map.off(...)` can remove the right one.
+  declare _layerHandlers?: globalThis.Map<string, Array<{
+    layerId: string
+    listener: (e: any) => void
+    wrapped: (e: any) => void
+    context?: any
+  }>>
   // Atmospheric fog state. `null`/unset means no fog. Stored verbatim and
   // surfaced via `getFog()`; the renderer pulls it off when assembling frame
   // uniforms.
@@ -2127,6 +2136,107 @@ export class TsMap extends Evented {
     return this
   }
 
+  /**
+   * Mapbox-style layer-scoped event subscription: fire `handler` only when
+   * a pointer event hits a feature belonging to the named style layer.
+   *
+   * Signatures accepted:
+   *   - `map.on(type, fn, context?)` — classic `Evented` behaviour.
+   *   - `map.on(type, layerId, fn, context?)` — layer-scoped.
+   *
+   * The handler is called with `{ ...ev, features }` where `features` is
+   * the array returned by `queryRenderedFeatures` restricted to `layerId`.
+   */
+  on(type: any, a?: any, b?: any, c?: any): this {
+    if (typeof a === 'string' && typeof type === 'string' && typeof b === 'function') {
+      const layerId = a as string
+      // eslint-disable-next-line pickier/no-unused-vars
+      const listener = b as (ev: any) => void
+      const context = c
+      const wrapped = (e: any): void => {
+        if (!e || !e.containerPoint)
+          return
+        const hits = this.queryRenderedFeatures(e.containerPoint, { layers: [layerId] })
+        if (!hits.length)
+          return
+        listener.call(context ?? this, Object.assign({}, e, { features: hits }))
+      }
+      if (!this._layerHandlers)
+        this._layerHandlers = new globalThis.Map()
+      const arr = this._layerHandlers.get(type) ?? []
+      arr.push({ layerId, listener, wrapped, context })
+      this._layerHandlers.set(type, arr)
+      return (Evented.prototype as any).on.call(this, type, wrapped, this)
+    }
+    return (Evented.prototype as any).on.call(this, type, a, b)
+  }
+
+  off(type?: any, a?: any, b?: any, c?: any): this {
+    if (typeof a === 'string' && typeof type === 'string' && typeof b === 'function') {
+      const layerId = a as string
+      // eslint-disable-next-line pickier/no-unused-vars
+      const listener = b as (ev: any) => void
+      const arr = this._layerHandlers?.get(type)
+      if (arr) {
+        const idx = arr.findIndex(h => h.layerId === layerId && h.listener === listener)
+        if (idx >= 0) {
+          const [entry] = arr.splice(idx, 1)
+          const baseOff = (Evented.prototype as any).off
+          baseOff.call(this, type, entry!.wrapped, this)
+          if (arr.length === 0)
+            this._layerHandlers!.delete(type)
+          return this
+        }
+      }
+      return this
+    }
+    return (Evented.prototype as any).off.call(this, type, a, b, c)
+  }
+
+  /**
+   * Returns features visible in the current viewport across every vector
+   * source on the map. Mirrors Mapbox GL JS's `map.queryRenderedFeatures`.
+   *
+   * Accepts either a container-pixel `Point`, a container-pixel bbox as
+   * `[[minX, minY], [maxX, maxY]]`, or an options bag; when called with no
+   * arguments it returns every filtered feature across every decoded tile.
+   */
+  queryRenderedFeatures(pointOrOpts?: any, maybeOpts?: any): any[] {
+    if (!this._style)
+      return []
+    const out: any[] = []
+    for (const host of this._style.sourceLayers.values()) {
+      const anyHost = host as any
+      if (typeof anyHost.queryRenderedFeatures === 'function') {
+        const hits = pointOrOpts === undefined
+          ? anyHost.queryRenderedFeatures()
+          : anyHost.queryRenderedFeatures(pointOrOpts, maybeOpts)
+        for (const h of hits) out.push(h)
+      }
+    }
+    return out
+  }
+
+  /**
+   * Returns every feature in a given vector source, regardless of whether
+   * it is currently painted. Restricted to tiles that have been fetched;
+   * untouched tiles contribute nothing. Mirrors Mapbox GL JS's
+   * `map.querySourceFeatures(sourceId, { sourceLayer, filter })`.
+   */
+  querySourceFeatures(
+    sourceId: string,
+    opts?: { sourceLayer?: string, filter?: unknown },
+  ): any[] {
+    if (!this._style)
+      return []
+    const host: any = this._style.sourceLayers.get(sourceId)
+    if (!host)
+      return []
+    if (typeof host.querySourceFeatures !== 'function')
+      return []
+    return host.querySourceFeatures(opts ?? {})
+  }
+
   // --- feature-state API ------------------------------------------------
   // Persistent per-feature state keyed by `{source, sourceLayer, id}`. Style
   // expressions read from this via `['feature-state', <key>]` — the classic
@@ -2548,11 +2658,155 @@ export class TsMap extends Evented {
   }
 
   /**
+   * Composites the current map view — every `<canvas>` and `<img>` nested
+   * inside the map container — onto a single offscreen canvas. Returns that
+   * canvas so callers can `toDataURL` / `toBlob` / hand to `WebGL.texImage2D`.
+   *
+   * Images drawn cross-origin without CORS headers will cause the returned
+   * canvas to be "tainted" — calling `.toDataURL()` on it throws. Use a
+   * tile provider that sends CORS headers to export static images.
+   */
+  toCanvas(): HTMLCanvasElement {
+    const container = this._container
+    const doc = container.ownerDocument ?? document
+    const size = this.getSize()
+    const dpr = (globalThis as any).devicePixelRatio ?? 1
+    const out = doc.createElement('canvas')
+    const w = Math.max(1, Math.round(size.x))
+    const h = Math.max(1, Math.round(size.y))
+    out.width = Math.round(w * dpr)
+    out.height = Math.round(h * dpr)
+    out.style.width = `${w}px`
+    out.style.height = `${h}px`
+    const ctx = out.getContext('2d')
+    if (!ctx)
+      return out
+    ctx.scale(dpr, dpr)
+    const rootRect = container.getBoundingClientRect()
+    // Walk the DOM in paint order so layers render back-to-front.
+    const walker = doc.createTreeWalker(container, 1 /* NodeFilter.SHOW_ELEMENT */)
+    let node = walker.nextNode() as HTMLElement | null
+    while (node) {
+      if ((node as any).tagName === 'CANVAS' || (node as any).tagName === 'IMG') {
+        const r = (node as any).getBoundingClientRect?.()
+        if (r && r.width > 0 && r.height > 0) {
+          try {
+            ctx.drawImage(
+              node as any,
+              r.left - rootRect.left,
+              r.top - rootRect.top,
+              r.width,
+              r.height,
+            )
+          }
+          catch {
+            // Tainted canvas or broken image — skip rather than abort.
+          }
+        }
+      }
+      node = walker.nextNode() as HTMLElement | null
+    }
+    return out
+  }
+
+  /**
+   * Static image export as a PNG data URL. Equivalent to
+   * `map.toCanvas().toDataURL(type, quality)` but handles the WebGL
+   * `preserveDrawingBuffer` subtlety: it requests a fresh frame from any
+   * WebGL tile renderers so the readback is not empty.
+   */
+  toDataURL(type: string = 'image/png', quality?: number): string {
+    this._requestExportFrame()
+    return this.toCanvas().toDataURL(type, quality)
+  }
+
+  /**
+   * Static image export as a Blob. Resolves to `null` if the browser
+   * cannot synthesize a blob (e.g. tainted canvas).
+   */
+  toBlob(type: string = 'image/png', quality?: number): Promise<Blob | null> {
+    this._requestExportFrame()
+    return new Promise((resolve) => {
+      const canvas = this.toCanvas()
+      if (typeof (canvas as any).toBlob === 'function') {
+        (canvas as any).toBlob((blob: Blob | null) => resolve(blob), type, quality)
+      }
+      else {
+        // very-happy-dom (used in tests) doesn't implement toBlob — fall
+        // back to synthesising from the data URL.
+        try {
+          const dataUrl = canvas.toDataURL(type, quality)
+          const comma = dataUrl.indexOf(',')
+          const b64 = dataUrl.slice(comma + 1)
+          const binary = atob(b64)
+          const bytes = new Uint8Array(binary.length)
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+          resolve(new Blob([bytes], { type }))
+        }
+        catch {
+          resolve(null)
+        }
+      }
+    })
+  }
+
+  _requestExportFrame(): void {
+    // Force WebGL tile renderers to paint before readback — otherwise the
+    // next swap might clear the backbuffer.
+    if (!this._style)
+      return
+    for (const host of this._style.sourceLayers.values()) {
+      const redraw = (host as any).redraw
+      if (typeof redraw === 'function') {
+        try {
+          redraw.call(host)
+        }
+        catch {
+          // ignore — don't let a single layer's failure abort the export
+        }
+      }
+    }
+  }
+
+  /**
+   * Detects whether the active projection is the Globe (spherical) one,
+   * either wired via `options.projection === 'globe'` or via an `crs`
+   * whose `projection` exposes a `globeToMercatorMix` helper.
+   */
+  _isGlobeProjection(): boolean {
+    const opts: any = this.options ?? {}
+    if (opts.projection === 'globe')
+      return true
+    const crsProj = (opts.crs as any)?.projection
+    return typeof crsProj?.globeToMercatorMix === 'function'
+  }
+
+  /**
+   * Smoothstep for the atmosphere halo — `1` when fully spherical,
+   * falling to `0` as we zoom past the Mercator transition.
+   */
+  _globeAtmosphereMix(): number {
+    const opts: any = this.options ?? {}
+    const proj: any = (opts.crs as any)?.projection
+    const zoom = this.getZoom?.() ?? 0
+    if (typeof proj?.globeToMercatorMix === 'function')
+      return proj.globeToMercatorMix(zoom)
+    // Standalone `projection: 'globe'` fallback matches Mapbox v3 defaults.
+    const start = 5.5
+    const end = 6.0
+    if (zoom <= start) return 1
+    if (zoom >= end) return 0
+    const t = (zoom - start) / (end - start)
+    return 1 - t * t * (3 - 2 * t)
+  }
+
+  /**
    * Builds / updates / removes the atmosphere overlay inside the map
    * container. The overlay is a single `<div>` absolutely positioned over
-   * the map pane with two stacked linear gradients — one for the sky, one
-   * for the fog band around the horizon. Visibility scales with pitch, so
-   * a top-down map (pitch 0) sees no overlay at all.
+   * the map pane with two stacked gradients — one for the sky, one for
+   * the fog band around the horizon. When the globe projection is active
+   * and we're inside its transition window, a radial atmosphere halo is
+   * painted around the globe instead of the linear sky/fog band.
    */
   _updateAtmosphereOverlay(): void {
     const container = this._container
@@ -2561,7 +2815,10 @@ export class TsMap extends Evented {
 
     const hasSky = this._sky !== null && this._sky !== undefined
     const hasFog = this._fog !== null && this._fog !== undefined
-    if (!hasSky && !hasFog) {
+    const globeMix = this._isGlobeProjection() ? this._globeAtmosphereMix() : 0
+    const hasHalo = globeMix > 0
+
+    if (!hasSky && !hasFog && !hasHalo) {
       if (this._atmosphereOverlay && this._atmosphereOverlay.parentNode)
         this._atmosphereOverlay.parentNode.removeChild(this._atmosphereOverlay)
       this._atmosphereOverlay = undefined
@@ -2582,8 +2839,8 @@ export class TsMap extends Evented {
     }
 
     const pitch = this.getPitch?.() ?? 0
-    // Only become visible once the camera tilts past ~5° — a top-down map
-    // has no horizon to tint.
+    // Linear-gradient sky/fog band fades in with pitch; a top-down map has
+    // no horizon to tint.
     const pitchT = Math.max(0, Math.min(1, (pitch - 5) / 55))
 
     const skyColor = this._sky?.['sky-color'] ?? '#87ceeb'
@@ -2592,6 +2849,19 @@ export class TsMap extends Evented {
     const horizonBlend = this._fog?.['horizon-blend'] ?? 0.1
 
     const gradients: string[] = []
+
+    // Globe atmosphere halo — a soft ring painted around the disc of the
+    // planet. Kept in sync with `globeToMercatorMix` so it cross-fades
+    // away as we zoom past the Mercator transition (roughly zoom 5.5–6).
+    if (hasHalo) {
+      const haloColor = this._sky?.['sky-color'] ?? fogColor
+      // The globe occupies ~40% of the shorter viewport dimension at the
+      // transition zoom; the halo extends another ~12% outside.
+      gradients.push(
+        `radial-gradient(circle at 50% 50%, transparent 36%, ${haloColor} 46%, transparent 62%)`,
+      )
+    }
+
     if (hasSky) {
       gradients.push(
         `linear-gradient(to bottom, ${skyColor} 0%, ${horizonColor} 40%, transparent 60%)`,
@@ -2611,8 +2881,12 @@ export class TsMap extends Evented {
     if (!style)
       return
     style.background = gradients.join(', ')
-    style.opacity = String(pitchT.toFixed(3))
-    style.display = pitchT <= 0 ? 'none' : 'block'
+    // Halo contributes even when pitch == 0 (the globe reads just fine
+    // top-down); otherwise fall back to the original pitch-gated opacity.
+    const linearOpacity = (hasSky || hasFog) ? pitchT : 0
+    const opacity = Math.max(linearOpacity, hasHalo ? globeMix * 0.9 : 0)
+    style.opacity = String(opacity.toFixed(3))
+    style.display = opacity <= 0 ? 'none' : 'block'
   }
 
   /**

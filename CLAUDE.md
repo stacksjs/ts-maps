@@ -2,7 +2,7 @@
 
 ## About
 
-A zero-dependency TypeScript library for creating interactive SVG-based vector maps with data visualization support (choropleth maps, heat maps, bubble charts). It provides multiple map projections (Mercator, Equal Earth), built-in world and country maps, interactive legends and tooltips, and official React, Vue, and Nuxt bindings. Inspired by jsvectormap.
+A zero-dependency, TypeScript-native interactive mapping library. Mapbox-class feature set (vector tiles + Mapbox GL Style Spec subset, expressions, 3D fill-extrusion + terrain + fog/sky, globe projection, collision-aware symbol labels, WebGL renderer) with a Leaflet-style ergonomic API. Ships geocoding / directions / matrix adapters, offline tile caching, and official React, Vue, Svelte, Solid, Nuxt, and React-Native bindings.
 
 ## Linting
 

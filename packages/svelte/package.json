@@ -1,0 +1,57 @@
+{
+  "name": "@ts-maps/svelte",
+  "type": "module",
+  "version": "0.2.7",
+  "description": "Svelte bindings for ts-maps.",
+  "author": "Chris Breuer <chris@stacksjs.org>",
+  "license": "MIT",
+  "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/svelte#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stacksjs/ts-maps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stacksjs/ts-maps/issues"
+  },
+  "keywords": [
+    "svelte",
+    "maps",
+    "interactive",
+    "typescript",
+    "ts-maps",
+    "vector"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./src/index.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./../ts-maps/src/core-map/ts-maps.css"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun --bun tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun --bun run build",
+    "lint": "bunx --bun pickier .",
+    "lint:fix": "bunx --bun pickier . --fix",
+    "typecheck": "bun --bun tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*"
+  },
+  "peerDependencies": {
+    "svelte": ">=4"
+  },
+  "devDependencies": {
+    "svelte": "^5.0.0",
+    "typescript": "^5.9.3"
+  }
+}

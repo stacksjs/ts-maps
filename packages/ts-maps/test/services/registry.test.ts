@@ -6,7 +6,9 @@ import {
   defaultMatrix,
   NominatimGeocoder,
   OSRMDirections,
+  OSRMMatrix,
   valhallaDirections,
+  valhallaMatrix,
   ValhallaDirections,
   ValhallaIsochrone,
   ValhallaMatrix,
@@ -31,8 +33,14 @@ describe('default provider registry', () => {
     expect(i.name).toBe('valhalla')
   })
 
-  test('defaultMatrix returns a ValhallaMatrix', () => {
+  test('defaultMatrix returns an OSRMMatrix (keyless default)', () => {
     const m = defaultMatrix()
+    expect(m).toBeInstanceOf(OSRMMatrix)
+    expect(m.name).toBe('osrm')
+  })
+
+  test('valhallaMatrix convenience exposes ValhallaMatrix', () => {
+    const m = valhallaMatrix()
     expect(m).toBeInstanceOf(ValhallaMatrix)
     expect(m.name).toBe('valhalla')
   })

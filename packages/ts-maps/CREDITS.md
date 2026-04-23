@@ -15,11 +15,11 @@ The derived work has been translated to idiomatic TypeScript, adapted to
 the ts-maps build toolchain (bun, pickier, better-dx) and rebranded.
 Class, CSS and identifier names have been changed to the ts-maps namespace.
 
-We are grateful to the Leaflet authors and contributors for the years of
-careful work that made this derivative possible.
+The style spec, expression engine, and vector-tile renderer follow the
+public design of [Mapbox GL JS](https://github.com/mapbox/mapbox-gl-js)
+and [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js), both
+of which are referenced for compatibility but not used as dependencies.
 
-## Other acknowledgements
-
-- The vector-map / choropleth module (originally `src/`) was inspired by
-
-  [jsvectormap](https://github.com/themustafaomar/jsvectormap) (MIT License).
+We are grateful to the Leaflet, Mapbox, and MapLibre authors and
+contributors for the years of careful work that made this derivative
+possible.

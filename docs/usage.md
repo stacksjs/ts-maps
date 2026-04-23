@@ -1,149 +1,109 @@
-# Usage Guide
+# Usage guide
 
-ts-maps provides a powerful way to create interactive vector maps with data visualization capabilities. This guide covers the basic usage patterns.
+`ts-maps` is an interactive, zero-dependency vector mapping library. This
+guide covers the basic usage patterns.
 
-## Quick Start
+## Quick start
 
-```typescript
-import { VectorMap } from 'ts-maps'
+```ts
+import 'ts-maps/styles.css'
+import { Marker, tileLayer, TsMap } from 'ts-maps'
 
-const map = new VectorMap({
-  selector: '#map',
-  map: {
-    name: 'world',
-    projection: 'mercator'
-  },
-  backgroundColor: '#4a4a4a',
-  zoomOnScroll: true,
-  zoomButtons: true,
+const map = new TsMap('map', {
+  center: [40.758, -73.9855],
+  zoom: 13,
+  bearing: 0,
+  pitch: 0,
 })
+
+tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+}).addTo(map)
+
+new Marker([40.758, -73.9855]).addTo(map).bindPopup('Hi').openPopup()
 ```
 
-## Features
+## Concept guides
 
-ts-maps comes with a rich set of features for creating interactive maps:
+- [Map](./concepts/map.md) — `TsMap`, camera API, events.
+- [Layers](./concepts/layers.md) — tile, vector, overlay.
+- [Vector tiles](./concepts/vector-tiles.md) — MVT + style spec.
+- [Style spec](./concepts/style-spec.md) — sources, layers, paint/layout.
+- [3D](./concepts/3d.md) — fill-extrusion, fog, sky.
+- [Terrain](./concepts/terrain.md) — DEM sources, `setTerrain`.
+- [Services](./concepts/services.md) — geocoding, directions, matrix.
+- [Offline](./concepts/offline.md) — tile caching, offline regions.
 
-- [Vector Maps](./features/vector-map.md) - Create and customize vector maps with different projections
-- [Markers](./features/markers.md) - Add interactive markers to your maps
-- [Regions](./features/regions.md) - Add interactive regions to your maps
-- [Data Visualization](./features/data-visualization.md) - Visualize data with customizable color scales
+## Framework bindings
 
-## Vue Components
+ts-maps ships first-class bindings for every major framework.
 
-ts-maps provides Vue 3 components for easy integration:
+### React
 
-### VectorMap Component
+```tsx
+import { Map, Marker, Popup, TileLayer } from '@ts-maps/react'
 
-The main component for displaying any supported map:
+export function App() {
+  return (
+    <Map center={[40.758, -73.9855]} zoom={13} style={{ height: 500 }}>
+      <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <Marker position={[40.758, -73.9855]}>
+        <Popup>Hello from ts-maps</Popup>
+      </Marker>
+    </Map>
+  )
+}
+```
+
+### Vue
 
 ```vue
 <script setup lang="ts">
-import { VectorMap } from 'ts-maps-vue'
-
-const options = {
-  backgroundColor: '#ffffff',
-  zoomOnScroll: true,
-  regionsSelectable: true,
-}
+import { Map, Marker, Popup, TileLayer } from '@ts-maps/vue'
 </script>
 
 <template>
-  <VectorMap
-    :options="options"
-    map-name="world"
-    height="500px"
-    @region-click="handleRegionClick"
-  />
+  <Map :center="[40.758, -73.9855]" :zoom="13" style="height: 500px">
+    <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <Marker :position="[40.758, -73.9855]">
+      <Popup>Hello from ts-maps</Popup>
+    </Marker>
+  </Map>
 </template>
 ```
 
-### UnitedStates Component
+### Svelte, Solid, Nuxt
 
-Specialized component for United States maps with different projections:
+Matching component APIs ship as `@ts-maps/svelte`, `@ts-maps/solid`, and
+the `ts-maps-nuxt` module.
 
-```vue
-<script setup lang="ts">
-import { UnitedStates } from 'ts-maps-vue'
+## Map options
 
-const options = {
-  visualizeData: {
-    scale: ['#e3f2fd', '#1976d2'],
-    values: {
-      CA: 100, // California
-      TX: 85, // Texas
-      NY: 80, // New York
-    },
-  },
-}
-</script>
+`TsMap` accepts the standard camera options plus anything you'd expect
+from a slippy-map library:
 
-<template>
-  <UnitedStates
-    :options="options"
-    height="600px"
-    @region-click="handleStateClick"
-  />
-</template>
-```
-
-### Canada Component
-
-Specialized component for Canadian provinces and territories:
-
-```vue
-<script setup lang="ts">
-import { Canada } from 'ts-maps-vue'
-
-const options = {
-  visualizeData: {
-    scale: ['#fff3e0', '#f57c00'],
-    values: {
-      ON: 100, // Ontario
-      QC: 85, // Quebec
-      BC: 80, // British Columbia
-      AB: 75, // Alberta
-    },
-  },
-}
-</script>
-
-<template>
-  <Canada
-    :options="options"
-    height="600px"
-    @region-click="handleProvinceClick"
-  />
-</template>
-```
-
-## Configuration Options
-
-```typescript
-interface MapOptions {
-  selector: string
-  map: {
-    name: string
-    projection: 'mercator' | 'miller'
-  }
-  backgroundColor?: string
-  draggable?: boolean
-  zoomButtons?: boolean
-  zoomOnScroll?: boolean
-  zoomOnScrollSpeed?: number
-  zoomMax?: number
-  zoomMin?: number
-  zoomAnimate?: boolean
-  showTooltip?: boolean
-  zoomStep?: number
-  bindTouchEvents?: boolean
-  regionsSelectable?: boolean
-  regionsSelectableOne?: boolean
-  markersSelectable?: boolean
-  markersSelectableOne?: boolean
-  regionStyle?: RegionStyle
-  markerStyle?: MarkerStyle
-  visualizeData?: DataVisualizationOptions
+```ts
+interface TsMapOptions {
+  center?: [lat: number, lng: number]
+  zoom?: number
+  minZoom?: number
+  maxZoom?: number
+  zoomSnap?: number // 0 = fractional
+  bearing?: number
+  pitch?: number
+  maxBounds?: LatLngBoundsLike
+  crs?: CRS
+  attributionControl?: boolean
+  zoomControl?: boolean
+  scrollWheelZoom?: boolean
+  doubleClickZoom?: boolean
+  dragging?: boolean
+  touchZoom?: boolean
+  boxZoom?: boolean
+  keyboard?: boolean
+  tap?: boolean
+  renderer?: 'canvas2d' | 'webgl' | 'svg'
 }
 ```
 
-For detailed documentation on each feature, please refer to the feature-specific guides linked above.
+For the full API, see the [API reference](./api/TsMap.md).

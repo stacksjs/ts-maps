@@ -9,7 +9,7 @@ export { GoogleDirections, GoogleGeocoder } from './providers/Google'
 export { MapboxDirections, MapboxGeocoder, MapboxIsochrone, MapboxMatrix } from './providers/Mapbox'
 export { MaptilerGeocoder } from './providers/Maptiler'
 export { NominatimGeocoder } from './providers/Nominatim'
-export { OSRMDirections } from './providers/OSRM'
+export { OSRMDirections, OSRMMatrix } from './providers/OSRM'
 export { PhotonGeocoder } from './providers/Photon'
 export { ValhallaDirections, ValhallaIsochrone, ValhallaMatrix } from './providers/Valhalla'
 
@@ -20,13 +20,16 @@ import type {
   MatrixProvider,
 } from './types'
 import { NominatimGeocoder } from './providers/Nominatim'
-import { OSRMDirections } from './providers/OSRM'
+import { OSRMDirections, OSRMMatrix } from './providers/OSRM'
 import { ValhallaDirections, ValhallaIsochrone, ValhallaMatrix } from './providers/Valhalla'
 
 export const defaultGeocoder: () => GeocoderProvider = () => new NominatimGeocoder()
 export const defaultDirections: () => DirectionsProvider = () => new OSRMDirections()
 export const defaultIsochrone: () => IsochroneProvider = () => new ValhallaIsochrone()
-export const defaultMatrix: () => MatrixProvider = () => new ValhallaMatrix()
+// Prefer OSRM's /table (keyless public demo, aligned with the default
+// directions provider) and fall back to Valhalla when callers need it.
+export const defaultMatrix: () => MatrixProvider = () => new OSRMMatrix()
+export const valhallaMatrix: () => MatrixProvider = () => new ValhallaMatrix()
 
 // Convenience alias: Valhalla can also serve directions. Prefer OSRM by default
 // (faster on its own fleet), but expose Valhalla's as a drop-in alternative.

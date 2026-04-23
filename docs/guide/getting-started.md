@@ -1,6 +1,8 @@
-# Getting Started
+# Getting started
 
-ts-maps is a modern vector map library for TypeScript that provides interactive, SVG-based maps with support for markers, lines, data visualization, and more.
+`ts-maps` is an interactive, zero-dependency vector mapping library for
+TypeScript. This guide walks through a first map, styled vector tiles,
+and common options.
 
 ## Installation
 
@@ -24,299 +26,117 @@ yarn add ts-maps
 
 :::
 
-## Basic Usage
+## Your first map
 
-### Creating a Map
-
-First, create a container element in your HTML:
+Create a container in your HTML:
 
 ```html
 <div id="map" style="width: 800px; height: 500px;"></div>
 ```
 
-Then initialize the map:
+Then initialise the map:
 
-```typescript
-import { VectorMap } from 'ts-maps'
-import 'ts-maps/dist/maps/world'
+```ts
+import 'ts-maps/styles.css'
+import { Marker, tileLayer, TsMap } from 'ts-maps'
 
-const map = new VectorMap({
-  selector: '#map',
-  map: {
-    name: 'world',
-    projection: 'mercator',
-  },
+const map = new TsMap('map', {
+  center: [40.758, -73.9855],
+  zoom: 13,
 })
+
+tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+}).addTo(map)
+
+new Marker([40.758, -73.9855])
+  .addTo(map)
+  .bindPopup('Hello from ts-maps')
+  .openPopup()
 ```
 
-### Map Options
+## Map options
 
-The `VectorMap` constructor accepts a comprehensive configuration object:
-
-```typescript
-interface MapOptions {
-  // Required
-  selector: string                    // CSS selector for container
-
-  // Map configuration
-  map: {
-    name: string                      // Map name (e.g., 'world', 'us-aea-en')
-    projection: 'mercator' | 'miller' // Map projection type
-  }
-
-  // Appearance
-  backgroundColor?: string            // Background color
-
-  // Interaction
-  draggable?: boolean                 // Enable map dragging
-  zoomButtons?: boolean               // Show zoom controls
-  zoomOnScroll?: boolean              // Enable scroll wheel zoom
-  zoomOnScrollSpeed?: number          // Scroll zoom speed
-  zoomMax?: number                    // Maximum zoom level
-  zoomMin?: number                    // Minimum zoom level
-  zoomStep?: number                   // Zoom increment
-  zoomAnimate?: boolean               // Animate zoom transitions
-  bindTouchEvents?: boolean           // Enable touch events
-
-  // Focus
-  focusOn?: {
-    region?: string                   // Focus on specific region
-    regions?: string[]                // Focus on multiple regions
-    coords?: [number, number]         // Focus on coordinates
-    scale?: number                    // Initial zoom scale
-    animate?: boolean                 // Animate focus transition
-  }
-
-  // Markers
-  markers?: Array<{
-    name: string
-    coords: [number, number]          // [latitude, longitude]
-    style?: object
-  }>
-
-  // Lines
-  lines?: {
-    elements?: Array<{
-      from: string
-      to: string
-      style?: object
-    }>
-    style?: object
-    curvature?: number
-  }
-
-  // Selection
-  regions?: string[]                  // Initial regions
-  selectedRegions?: string[]          // Pre-selected regions
-  selectedMarkers?: string[]          // Pre-selected markers
-  regionsSelectable?: boolean         // Enable region selection
-  regionsSelectableOne?: boolean      // Single region selection
-  markersSelectable?: boolean         // Enable marker selection
-  markersSelectableOne?: boolean      // Single marker selection
-
-  // Styling
-  regionStyle?: RegionStyle
-  regionLabelStyle?: RegionLabelStyle
-  markerStyle?: MarkerStyle
-  markerLabelStyle?: MarkerLabelStyle
-
-  // Data visualization
-  visualizeData?: {
-    scale: [string, string]           // Color gradient [min, max]
-    values: Record<string, number>    // Region values
-  }
-
-  // Events
-  onLoaded?: () => void
-  onViewportChange?: (scale: number, transX: number, transY: number) => void
-  onRegionClick?: (event: MouseEvent, code: string) => void
-  onRegionSelected?: (event: MouseEvent, code: string, isSelected: boolean, selectedRegions: string[]) => void
-  onMarkerClick?: (event: MouseEvent, index: string) => void
-  onMarkerSelected?: (event: MouseEvent, index: string, isSelected: boolean, selectedMarkers: string[]) => void
-  onRegionTooltipShow?: (event: MouseEvent, tooltip: HTMLElement, code: string) => void
-  onMarkerTooltipShow?: (event: MouseEvent, tooltip: HTMLElement, code: string) => void
+```ts
+interface TsMapOptions {
+  center?: [lat: number, lng: number]
+  zoom?: number
+  minZoom?: number
+  maxZoom?: number
+  zoomSnap?: number // 0 = fractional zoom
+  bearing?: number
+  pitch?: number
+  maxBounds?: LatLngBoundsLike
+  attributionControl?: boolean
+  zoomControl?: boolean
+  scrollWheelZoom?: boolean
+  doubleClickZoom?: boolean
+  dragging?: boolean
+  touchZoom?: boolean
+  boxZoom?: boolean
+  keyboard?: boolean
+  tap?: boolean
+  renderer?: 'canvas2d' | 'webgl' | 'svg'
 }
 ```
 
-### Styling Regions
+## Camera API
 
-Customize region appearance with states:
+`TsMap` implements a Mapbox-style camera:
 
-```typescript
-const map = new VectorMap({
-  selector: '#map',
-  map: { name: 'world', projection: 'mercator' },
-  regionStyle: {
-    initial: {
-      fill: '#e2e8f0',
-      stroke: '#cbd5e1',
-      strokeWidth: 0.5,
-    },
-    hover: {
-      fill: '#93c5fd',
-    },
-    selected: {
-      fill: '#3b82f6',
-    },
-    selectedHover: {
-      fill: '#2563eb',
-    },
-  },
-})
+```ts
+map.jumpTo({ center: [51.5, -0.12], zoom: 10, bearing: 30, pitch: 40 })
+map.easeTo({ zoom: 14, duration: 800 })
+map.flyTo({ center: [35.67, 139.65], zoom: 9 })
+
+map.getCamera() // { center, zoom, bearing, pitch, padding }
 ```
 
-### Adding Markers
+## Vector tiles & the style spec
 
-Add interactive markers to the map:
+```ts
+import { vectorTileLayer } from 'ts-maps'
 
-```typescript
-const map = new VectorMap({
-  selector: '#map',
-  map: { name: 'world', projection: 'mercator' },
-  markers: [
-    { name: 'New York', coords: [40.7128, -74.0060] },
-    { name: 'London', coords: [51.5074, -0.1278] },
-    { name: 'Tokyo', coords: [35.6762, 139.6503] },
-    { name: 'Sydney', coords: [-33.8688, 151.2093] },
+vectorTileLayer({
+  url: 'https://tiles.example.com/{z}/{x}/{y}.pbf',
+  layers: [
+    { id: 'water', type: 'fill', sourceLayer: 'water', paint: { 'fill-color': '#0ea5e9' } },
+    { id: 'roads', type: 'line', sourceLayer: 'transportation',
+      filter: ['match', ['get', 'class'], ['primary', 'trunk'], true, false],
+      paint: {
+        'line-color': '#6b7280',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 3],
+      } },
   ],
-  markerStyle: {
-    initial: {
-      fill: '#ef4444',
-      stroke: '#ffffff',
-      strokeWidth: 2,
-      r: 6,
-    },
-    hover: {
-      fill: '#f97316',
-      r: 8,
-    },
-  },
+}).addTo(map)
+
+// Layer-scoped events:
+map.on('click', 'roads', (e) => {
+  console.log(e.features[0].properties)
 })
 ```
 
-### Drawing Lines
+## Adding your own data
 
-Connect markers with curved lines:
+```ts
+import { GeoJSON, Marker, Polyline } from 'ts-maps'
 
-```typescript
-const map = new VectorMap({
-  selector: '#map',
-  map: { name: 'world', projection: 'mercator' },
-  markers: [
-    { name: 'Source', coords: [40.7128, -74.0060] },
-    { name: 'Target', coords: [51.5074, -0.1278] },
-  ],
-  lines: {
-    elements: [
-      { from: 'Source', to: 'Target' },
-    ],
-    style: {
-      stroke: '#3b82f6',
-      strokeWidth: 2,
-      strokeLinecap: 'round',
-    },
-    curvature: 0.5,
-  },
-})
+new Marker([48.8566, 2.3522]).addTo(map).bindPopup('Paris')
+
+new Polyline([
+  [40.7128, -74.0060],
+  [51.5074, -0.1278],
+], { color: '#3b82f6', weight: 2 }).addTo(map)
+
+new GeoJSON(featureCollection, {
+  style: (f) => ({ color: '#2563eb', weight: 1, fillOpacity: 0.3 }),
+}).addTo(map)
 ```
 
-### Data Visualization
+## Next steps
 
-Visualize data with color gradients:
-
-```typescript
-const map = new VectorMap({
-  selector: '#map',
-  map: { name: 'world', projection: 'mercator' },
-  visualizeData: {
-    scale: ['#dbeafe', '#1e40af'], // Light blue to dark blue
-    values: {
-      US: 331,
-      CN: 1412,
-      IN: 1408,
-      ID: 273,
-      PK: 220,
-      BR: 212,
-      NG: 211,
-    },
-  },
-})
-```
-
-## Map Methods
-
-Access map methods through the instance:
-
-```typescript
-const map = new VectorMap({ /* options */ })
-
-// Get/set selected regions
-const selected = map.getSelectedRegions()
-map.setSelectedRegions(['US', 'CA'])
-map.clearSelectedRegions()
-
-// Get/set selected markers
-const markers = map.getSelectedMarkers()
-map.setSelectedMarkers(['0', '1'])
-map.clearSelectedMarkers()
-
-// Add/remove markers dynamically
-map.addMarkers([
-  { name: 'Paris', coords: [48.8566, 2.3522] }
-])
-map.removeMarkers(['Paris'])
-
-// Add/remove lines
-map.addLine('New York', 'Paris', { stroke: '#3b82f6' })
-map.removeLine('New York', 'Paris')
-
-// Focus and zoom
-map.setFocus({
-  region: 'US',
-  scale: 3,
-  animate: true
-})
-
-// Reset map
-map.reset()
-
-// Update size (after container resize)
-map.updateSize()
-
-// Coordinate conversion
-const point = map.coordsToPoint(40.7128, -74.0060)
-console.log(point) // { x: 123, y: 456 }
-```
-
-## Static Methods
-
-Register custom maps:
-
-```typescript
-import { VectorMap } from 'ts-maps'
-
-// Add a custom map
-VectorMap.addMap('custom', {
-  width: 900,
-  height: 600,
-  paths: {
-    'REGION-1': {
-      path: 'M 100 100 L 200 200...',
-      name: 'Region One'
-    },
-    // ... more regions
-  }
-})
-
-// Use the custom map
-const map = new VectorMap({
-  selector: '#map',
-  map: { name: 'custom', projection: 'mercator' }
-})
-```
-
-## Next Steps
-
-- [Vue Integration](/guide/vue) - Use ts-maps with Vue components
-- [React Integration](/guide/react) - Use ts-maps with React components
-- [Nuxt Module](/guide/nuxt) - Use ts-maps as a Nuxt module
+- [Vue integration](/guide/vue)
+- [React integration](/guide/react)
+- [Nuxt module](/guide/nuxt)
+- [Concepts: map](/concepts/map), [style spec](/concepts/style-spec),
+  [3D](/concepts/3d), [offline](/concepts/offline).

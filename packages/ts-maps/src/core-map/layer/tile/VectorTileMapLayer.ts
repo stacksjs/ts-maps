@@ -169,6 +169,12 @@ export interface QueryRenderedFeaturesOptions {
   layers?: string[]
 }
 
+export interface QuerySourceFeature {
+  feature: VectorTileFeature
+  sourceLayer: string
+  tile: { x: number, y: number, z: number }
+}
+
 // Each R-tree entry holds enough info to recover the originating feature
 // cheaply during the precise-geometry pass.
 interface RTreeItem {
@@ -395,6 +401,56 @@ export class VectorTileMapLayer extends GridLayer {
       }
     }
 
+    return out
+  }
+
+  /**
+   * Scan every decoded tile for features in a given source-layer, ignoring
+   * whether the feature is actually painted in the current style. Matches
+   * Mapbox GL JS's `map.querySourceFeatures(...)` for vector sources.
+   *
+   * Note that the results still reflect only what has been fetched — tiles
+   * that the map hasn't requested yet won't contribute features.
+   */
+  querySourceFeatures(opts: { sourceLayer?: string, filter?: unknown } = {}): QuerySourceFeature[] {
+    const out: QuerySourceFeature[] = []
+    const wantLayer = opts.sourceLayer
+    const queryZoom = this._map?.getZoom?.() ?? 0
+
+    // eslint-disable-next-line pickier/no-unused-vars
+    let filterFn: ((feat: VectorTileFeature, zoomAt: number) => boolean) | null = null
+    if (opts.filter !== undefined && isExpression(opts.filter)) {
+      const compiled: CompiledExpression = compileExpression(opts.filter as any)
+      filterFn = (feature, z) => {
+        const ctx: EvaluationContext = { zoom: z, feature }
+        return !!compiled.evaluate(ctx)
+      }
+    }
+
+    const seen = new Set<string>()
+    for (const entry of this._decodedTiles.values()) {
+      if (!entry.tile)
+        continue
+      for (const [layerName, mvtLayer] of Object.entries(entry.tile.layers)) {
+        if (wantLayer && layerName !== wantLayer)
+          continue
+        for (let i = 0; i < mvtLayer.length; i++) {
+          const feature = mvtLayer.feature(i)
+          if (filterFn && !filterFn(feature, queryZoom))
+            continue
+          // Dedup features that appear in multiple tiles via their id when
+          // present; otherwise allow duplicates (no reliable global identity).
+          const id = (feature as any).id
+          if (id !== undefined) {
+            const key = `${layerName}|${typeof id}|${id}`
+            if (seen.has(key))
+              continue
+            seen.add(key)
+          }
+          out.push({ feature, sourceLayer: layerName, tile: entry.coords })
+        }
+      }
+    }
     return out
   }
 

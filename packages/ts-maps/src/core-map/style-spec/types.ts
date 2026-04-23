@@ -378,6 +378,23 @@ export interface RasterPaintSpecification {
   'raster-contrast'?: PropertyValueSpecification<number>
   'raster-resampling'?: PropertyValueSpecification<'linear' | 'nearest'>
   'raster-fade-duration'?: PropertyValueSpecification<number>
+  /**
+   * Single-channel color ramp applied per-pixel to single-band raster
+   * tiles. Expression returning a `rgba()` color, evaluated against the
+   * decoded luminance (`0..1`). Mirrors Mapbox GL JS v3's `raster-color`.
+   */
+  'raster-color'?: ExpressionSpecification
+  /**
+   * Linear mixing coefficients used to reduce RGBA channels down to a
+   * single luminance value before applying `raster-color`. Defaults to
+   * `[0.2126, 0.7152, 0.0722, 0]` (Rec. 709 luma).
+   */
+  'raster-color-mix'?: [number, number, number, number]
+  /**
+   * `[min, max]` clamp applied to the computed luminance before the
+   * color ramp is indexed. Defaults to `[0, 1]`.
+   */
+  'raster-color-range'?: [number, number]
 }
 
 export interface RasterLayoutSpecification {

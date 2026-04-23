@@ -1,119 +1,98 @@
 # Installation
 
-Installing `ts-maps` is straightforward. You can install it via your preferred package manager.
+Install `ts-maps` with your preferred package manager.
 
-## Package Managers
-
-Choose your preferred package manager:
+## Package managers
 
 ::: code-group
 
 ```sh [npm]
-# Install the package
 npm install ts-maps
-
-# Or install with TypeScript development dependencies
-npm install ts-maps typescript @types/node --save-dev
 ```
 
 ```sh [pnpm]
-# Install the package
 pnpm add ts-maps
-
-# Or install with TypeScript development dependencies
-pnpm add ts-maps typescript @types/node -D
 ```
 
 ```sh [yarn]
-# Install the package
 yarn add ts-maps
-
-# Or install with TypeScript development dependencies
-yarn add ts-maps typescript @types/node --dev
 ```
 
 ```sh [bun]
-# Install the package
 bun add ts-maps
-
-# Or install with TypeScript development dependencies
-bun add -d ts-maps typescript @types/node
 ```
 
 :::
 
 ## Subpath imports for tree-shaking
 
-ts-maps exposes several subpath entries so you only pay for what you
-use — a caller that just needs the geocoder ships ~8 KB gzipped instead
-of the full 138 KB bundle.
+`ts-maps` exposes several subpath entries so you only pay for what you
+use:
 
 ```ts
-import { defaultGeocoder } from 'ts-maps/services'        // ~8 KB gz
-import { validateStyle } from 'ts-maps/style-spec'         // ~15 KB gz
-import { TileCache, cachedFetch } from 'ts-maps/storage'   // ~4 KB gz
-import { LatLng, LatLngBounds } from 'ts-maps/geo'         // ~8 KB gz
-import { Point, Bounds } from 'ts-maps/geometry'           // ~10 KB gz
-import { GlyphAtlas } from 'ts-maps/symbols'               // ~4 KB gz
+import { defaultGeocoder } from 'ts-maps/services'
+import { validateStyle } from 'ts-maps/style-spec'
+import { TileCache, cachedFetch } from 'ts-maps/storage'
+import { LatLng, LatLngBounds } from 'ts-maps/geo'
+import { Bounds, Point } from 'ts-maps/geometry'
+import { GlyphAtlas } from 'ts-maps/symbols'
 ```
 
-Every built-in country map also lives on its own subpath
-(`ts-maps/world`, `ts-maps/canada`, `ts-maps/us-merc-en`, …) so bundlers
-only include the regions you import.
+Available subpaths: `services`, `style-spec`, `storage`, `geo`,
+`geometry`, `symbols`.
 
-## Framework Bindings
+## Framework bindings
 
-### Nuxt Components
+### React
 
-For Nuxt applications, install the official Nuxt module:
+```sh
+npm install ts-maps @ts-maps/react
+```
 
-```bash
+### Vue
+
+```sh
+npm install ts-maps @ts-maps/vue
+```
+
+### Svelte
+
+```sh
+npm install ts-maps @ts-maps/svelte
+```
+
+### Solid
+
+```sh
+npm install ts-maps @ts-maps/solid
+```
+
+### Nuxt
+
+```sh
 npm install ts-maps-nuxt
 ```
 
-Add to your `nuxt.config.ts`:
-
 ```ts
+// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: [
-    'ts-maps-nuxt'
-  ]
+  modules: ['ts-maps-nuxt'],
 })
 ```
 
-Then use the components directly in your Vue templates:
+### React Native
 
-```vue
-<template>
-  <VectorMap
-    :options="mapOptions"
-    map-name="world"
-    height="500px"
-  />
-</template>
+```sh
+npm install ts-maps @ts-maps/react-native
 ```
 
-See [Nuxt Components](/components/nuxt) for detailed documentation.
+A `<MapView>` component hosted inside a WebView, bridged to the full
+`TsMap` API.
 
-### React Components
+## TypeScript configuration
 
-For React applications:
-
-```bash
-npm install ts-maps ts-maps-react
-```
-
-### Vue Components
-
-For Vue applications:
-
-```bash
-npm install ts-maps ts-maps-vue
-```
-
-## TypeScript Configuration
-
-ts-maps is built with TypeScript and includes type definitions. For the best development experience, configure your `tsconfig.json`:
+`ts-maps` is built with TypeScript and ships declarations. For the best
+experience:
 
 ```json
 {
@@ -130,48 +109,25 @@ ts-maps is built with TypeScript and includes type definitions. For the best dev
 }
 ```
 
-## Quick Start
-
-After installation, you can import and use ts-maps in your project:
-
-```typescript
-import { VectorMap } from 'ts-maps'
-
-// Initialize the map
-const map = new VectorMap({
-  selector: '#map',
-  map: {
-    name: 'world',
-    projection: 'mercator'
-  },
-  backgroundColor: '#4a4a4a',
-  zoomOnScroll: true,
-})
-
-// Add interactivity
-map.params.onRegionClick = (event, code) => {
-  console.log(`Clicked region: ${code}`)
-}
-```
-
-### HTML Setup
-
-Make sure you have a container element in your HTML:
+## HTML setup
 
 ```html
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ts-maps Example</title>
+  <title>ts-maps</title>
+  <link rel="stylesheet" href="https://unpkg.com/ts-maps/dist/ts-maps.css" />
+  <style>#map { width: 100%; height: 500px; }</style>
 </head>
 <body>
-  <!-- Map container -->
-  <div id="map" style="width: 100%; height: 500px;"></div>
-
-  <!-- Your script -->
+  <div id="map"></div>
   <script type="module">
-    import { VectorMap } from 'ts-maps'
-    // Your map initialization code here
+    import { TsMap, tileLayer } from 'ts-maps'
+
+    const map = new TsMap('map', { center: [40.758, -73.9855], zoom: 13 })
+    tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map)
   </script>
 </body>
 </html>
@@ -183,19 +139,7 @@ Make sure you have a container element in your HTML:
 - TypeScript 5.0 or higher (for TypeScript users)
 - Node.js 18.x or higher (for development)
 
-## Next Steps
+## Next steps
 
-- Explore the [Basic Usage Guide](/intro#basic-usage) to learn core concepts
-- Check out [Advanced Features](/intro#advanced-features) for more capabilities
-- View the [API Reference](/api/) for detailed documentation
-
-## Troubleshooting
-
-If you encounter any issues during installation:
-
-1. Make sure your package manager is up to date
-2. Check that your TypeScript version is compatible
-3. Verify your `tsconfig.json` settings
-4. Clear your package manager's cache and node_modules
-
-For additional help, visit our [GitHub Issues](https://github.com/stacksjs/ts-maps/issues) page.
+- [Getting started](/getting-started) — a walkthrough from a blank page.
+- [API reference](/api/TsMap)
