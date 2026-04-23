@@ -5,9 +5,9 @@ export class Renderer extends BlanketOverlay {
   declare _layers: Record<number, any>
 
   initialize(options?: any): void {
-    super.initialize( { ...options, continuous: false })
-    Util.stamp(this)
-    ; (this as any)._layers ??= {}
+    super.initialize({ ...options, continuous: false })
+    Util.stamp(this);
+    (this as any)._layers ??= {}
   }
 
   onAdd(map?: any): void {

@@ -27,9 +27,9 @@ export class SVG extends Renderer {
     this._container!.style.height = `${size.y}px`
 
     if (!this._svgSize || !this._svgSize.equals(size)) {
-      this._svgSize = size
-      ; (this._container as any).setAttribute('width', size.x)
-      ; (this._container as any).setAttribute('height', size.y)
+      this._svgSize = size;
+      (this._container as any).setAttribute('width', size.x);
+      (this._container as any).setAttribute('height', size.y)
     }
 
     const b = this._bounds
@@ -44,8 +44,8 @@ export class SVG extends Renderer {
     return
 
     const b = this._bounds!
-    const size = b.getSize()
-    ; (this._container as any).setAttribute('viewBox', [b.min.x, b.min.y, size.x, size.y].join(' '))
+    const size = b.getSize();
+    (this._container as any).setAttribute('viewBox', [b.min.x, b.min.y, size.x, size.y].join(' '))
     this.fire('update')
   }
 

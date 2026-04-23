@@ -314,7 +314,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 
 /* general typography */
 .tsmap-container {
-  font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+  font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif;
   font-size: 12px;
   font-size: 0.75rem;
   line-height: 1.5;
@@ -389,7 +389,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 
 .tsmap-control-zoom-in,
 .tsmap-control-zoom-out {
-  font: bold 18px "Lucida Console", Monaco, monospace;
+  font: bold 18px 'Lucida Console', Monaco, monospace;
   text-indent: 1px;
   .tsmap-touch & {
     font-size: 22px;
@@ -659,7 +659,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   pointer-events: none;
   border: 6px solid transparent;
   background: transparent;
-  content: "";
+  content: '';
 }
 
 /* Directions */

@@ -1931,8 +1931,8 @@ export class TsMap extends Evented {
     this._style = new Style(style, { validate })
     for (const [sourceId, source] of Object.entries(this._style.spec.sources)) {
       const host = this._makeSourceLayer(sourceId, source as SourceSpecification)
-      this._installFeatureStateLookup(sourceId, host)
-      ;(this as any).addLayer(host as any)
+      this._installFeatureStateLookup(sourceId, host);
+      (this as any).addLayer(host as any)
     }
     this.fire('styledata')
     return this
@@ -1954,8 +1954,8 @@ export class TsMap extends Evented {
       this._style.spec.sources[sourceId] = source
     }
     const host = this._makeSourceLayer(sourceId, source)
-    this._installFeatureStateLookup(sourceId, host)
-    ;(this as any).addLayer(host as any)
+    this._installFeatureStateLookup(sourceId, host);
+    (this as any).addLayer(host as any)
     this.fire('styledata')
     return this
   }
@@ -1968,7 +1968,7 @@ export class TsMap extends Evented {
     if (!this._style) return this
     const host = this._style.sourceLayers.get(sourceId)
     if (host) {
-      ;(this as any).removeLayer(host as any)
+      (this as any).removeLayer(host as any)
       this._style.sourceLayers.delete(sourceId)
     }
     delete this._style.spec.sources[sourceId]
@@ -2052,8 +2052,9 @@ export class TsMap extends Evented {
         const next = layers
           .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === (layer as any).source)
           .map(l => this._style!.toVectorStyleLayer(l))
-        ;(host as any).setStyleLayers(next)
-        (host as any).redraw?.()
+        const hostAny = host as any
+        hostAny.setStyleLayers(next)
+        hostAny.redraw?.()
       }
     }
     this.fire('styledata')
@@ -2072,8 +2073,9 @@ export class TsMap extends Evented {
         const next = this._style.spec.layers
           .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === (removed as any).source)
           .map(l => this._style!.toVectorStyleLayer(l))
-        ;(host as any).setStyleLayers(next)
-        (host as any).redraw?.()
+        const hostAny = host as any
+        hostAny.setStyleLayers(next)
+        hostAny.redraw?.()
       }
     }
     this.fire('styledata')
@@ -2203,8 +2205,8 @@ export class TsMap extends Evented {
         if (!this._style) this._style = new Style({ version: 8, sources: {}, layers: [] }, { validate: false })
         this._style.spec.sources[sourceId] = source
         const host = this._makeSourceLayer(sourceId, source)
-        this._installFeatureStateLookup(sourceId, host)
-        ;(this as any).addLayer(host as any)
+        this._installFeatureStateLookup(sourceId, host);
+        (this as any).addLayer(host as any)
         break
       }
       case 'removeSource': {

@@ -158,7 +158,7 @@ export function registerLogicalOps(): void {
         ['case', ...args],
         path,
       )
-    const branches: Array<{ cond: CompiledExpression; val: CompiledExpression }> = []
+    const branches: Array<{ cond: CompiledExpression, val: CompiledExpression }> = []
     for (let i = 0; i < args.length - 1; i += 2) {
       branches.push({
         cond: compile(args[i], 'boolean', path.concat(i + 1)),
@@ -193,7 +193,7 @@ export function registerLogicalOps(): void {
         path,
       )
     const input = compile(args[0], 'value', path.concat(1))
-    const branches: Array<{ labels: unknown[]; val: CompiledExpression }> = []
+    const branches: Array<{ labels: unknown[], val: CompiledExpression }> = []
     for (let i = 1; i < args.length - 1; i += 2) {
       const label = args[i]
       const labels = Array.isArray(label) ? label : [label]

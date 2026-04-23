@@ -246,12 +246,36 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   let r = 0
   let g = 0
   let b = 0
-  if (hn < 60) { r = c; g = x; b = 0 }
-  else if (hn < 120) { r = x; g = c; b = 0 }
-  else if (hn < 180) { r = 0; g = c; b = x }
-  else if (hn < 240) { r = 0; g = x; b = c }
-  else if (hn < 300) { r = x; g = 0; b = c }
-  else { r = c; g = 0; b = x }
+  if (hn < 60) {
+    r = c
+    g = x
+    b = 0
+  }
+  else if (hn < 120) {
+    r = x
+    g = c
+    b = 0
+  }
+  else if (hn < 180) {
+    r = 0
+    g = c
+    b = x
+  }
+  else if (hn < 240) {
+    r = 0
+    g = x
+    b = c
+  }
+  else if (hn < 300) {
+    r = x
+    g = 0
+    b = c
+  }
+  else {
+    r = c
+    g = 0
+    b = x
+  }
   return [clamp01(r + m), clamp01(g + m), clamp01(b + m)]
 }
 

@@ -580,9 +580,9 @@ export class GridLayer extends Layer {
     tile.classList.add('tsmap-tile')
     const tileSize = this.getTileSize()
     tile.style.width = `${tileSize.x}px`
-    tile.style.height = `${tileSize.y}px`
-    ; (tile as any).onselectstart = Util.falseFn
-    ; (tile as any).onpointermove = Util.falseFn
+    tile.style.height = `${tileSize.y}px`;
+    (tile as any).onselectstart = Util.falseFn;
+    (tile as any).onpointermove = Util.falseFn
   }
 
   _addTile(coords: Point & { z: number }, container: DocumentFragment): void {

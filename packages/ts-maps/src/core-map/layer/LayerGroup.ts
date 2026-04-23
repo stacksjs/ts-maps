@@ -5,10 +5,10 @@ export class LayerGroup extends Layer {
   declare _layers: Record<number | string, Layer>
 
   initialize(layers?: Layer[], options?: any): void {
-    Util.setOptions(this as any, options)
-    ; (this as any)._layers = {}
+    Util.setOptions(this as any, options);
+    (this as any)._layers = {}
     for (const layer of layers ?? [])
-    this.addLayer(layer)
+      this.addLayer(layer)
   }
 
   addLayer(layer: Layer): this {

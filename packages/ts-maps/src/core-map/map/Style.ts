@@ -35,20 +35,26 @@ export class Style {
 
   setPaintProperty(layerId: string, name: string, value: unknown): void {
     const spec = this.layerSpecs.get(layerId)
-    if (!spec) throw new Error(`no layer with id ${layerId}`)
-    ;(spec as any).paint = { ...((spec as any).paint ?? {}), [name]: value }
+    if (!spec)
+      throw new Error(`no layer with id ${layerId}`)
+    const anySpec = spec as any
+    anySpec.paint = { ...(anySpec.paint ?? {}), [name]: value }
   }
 
   setLayoutProperty(layerId: string, name: string, value: unknown): void {
     const spec = this.layerSpecs.get(layerId)
-    if (!spec) throw new Error(`no layer with id ${layerId}`)
-    ;(spec as any).layout = { ...((spec as any).layout ?? {}), [name]: value }
+    if (!spec)
+      throw new Error(`no layer with id ${layerId}`)
+    const anySpec = spec as any
+    anySpec.layout = { ...(anySpec.layout ?? {}), [name]: value }
   }
 
   setFilter(layerId: string, filter: unknown): void {
     const spec = this.layerSpecs.get(layerId)
-    if (!spec) throw new Error(`no layer with id ${layerId}`)
-    ;(spec as any).filter = filter
+    if (!spec)
+      throw new Error(`no layer with id ${layerId}`)
+    const anySpec = spec as any
+    anySpec.filter = filter
   }
 
   setLayerZoomRange(layerId: string, minzoom?: number, maxzoom?: number): void {

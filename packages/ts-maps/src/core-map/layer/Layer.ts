@@ -79,9 +79,9 @@ TsMap.include( {
     const id = Util.stamp(layer)
     if (this._layers[id])
     return this
-    this._layers[id] = layer
+    this._layers[id] = layer;
 
-    ; (layer as any)._mapToAdd = this
+    (layer as any)._mapToAdd = this
 
     layer.beforeAdd(this)
     this.whenReady((layer as any)._layerAdd, layer)

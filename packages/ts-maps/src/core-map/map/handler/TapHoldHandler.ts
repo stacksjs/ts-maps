@@ -77,8 +77,8 @@ export class TapHoldHandler extends Handler {
       clientX: e.clientX,
       clientY: e.clientY,
     })
-    simulatedEvent._simulated = true
-    ; (e.target as Element).dispatchEvent(simulatedEvent)
+    simulatedEvent._simulated = true;
+    (e.target as Element).dispatchEvent(simulatedEvent)
   }
 }
 

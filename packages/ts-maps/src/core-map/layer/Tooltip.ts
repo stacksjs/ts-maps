@@ -177,8 +177,8 @@ Layer.include( {
       events.add = this._openTooltip
     }
     if (this._tooltip.options.sticky)
-    events.pointermove = this._moveTooltip
-    ; (this as any)[onOff](events)
+      events.pointermove = this._moveTooltip;
+    (this as any)[onOff](events)
     this._tooltipHandlersAdded = !remove
   },
 
@@ -243,10 +243,10 @@ Layer.include( {
       }
 
       if (el._tsmap_focus_handler)
-      (DomEvent as any)[onOff](el, 'focus', el._tsmap_focus_handler, this)
-      ; (DomEvent as any)[onOff](el, 'blur', this.closeTooltip, this)
+        (DomEvent as any)[onOff](el, 'focus', el._tsmap_focus_handler, this);
+      (DomEvent as any)[onOff](el, 'blur', this.closeTooltip, this)
       if (remove)
-      delete el._tsmap_focus_handler
+        delete el._tsmap_focus_handler
     }
   },
 

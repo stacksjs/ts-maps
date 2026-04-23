@@ -1,8 +1,9 @@
 # `mvt/` — in-house Mapbox Vector Tile (v2) decoder
 
 A zero-dependency TypeScript decoder for the [Mapbox Vector Tile
-specification v2][spec]. Pairs with the [`proto/` Pbf reader](../proto/)
-to turn a raw tile buffer into named layers, features, and GeoJSON.
+specification v2](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
+Pairs with the [`proto/` Pbf reader](../proto/) to turn a raw tile buffer
+into named layers, features, and GeoJSON.
 
 ## What MVT is
 
@@ -89,9 +90,8 @@ is forward-compatible with vendor extensions that stick to the wire format.
 ## Acknowledgement
 
 This is an independent TypeScript implementation inspired by the API shape
-of [mapbox/vector-tile-js][mapbox-vt] (BSD-3-Clause) and the [MVT
-spec][spec]. No code was copied; the layout and naming align with
-vector-tile-js to keep the mental model familiar to anyone who's used it.
-
-[spec]: https://github.com/mapbox/vector-tile-spec/tree/master/2.1
-[mapbox-vt]: https://github.com/mapbox/vector-tile-js
+of [mapbox/vector-tile-js](https://github.com/mapbox/vector-tile-js)
+(BSD-3-Clause) and the
+[MVT spec](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
+No code was copied; the layout and naming align with vector-tile-js to keep
+the mental model familiar to anyone who's used it.

@@ -66,9 +66,9 @@ export class Canvas extends Renderer {
     this._container!.style.width = `${size.x}px`
     this._container!.style.height = `${size.y}px`
 
-    const m = this._ctxScale = window.devicePixelRatio
-    ; (this._container as HTMLCanvasElement).width = m * size.x
-    ; (this._container as HTMLCanvasElement).height = m * size.y
+    const m = this._ctxScale = window.devicePixelRatio;
+    (this._container as HTMLCanvasElement).width = m * size.x;
+    (this._container as HTMLCanvasElement).height = m * size.y
     return size
   }
 
@@ -372,8 +372,8 @@ export class Canvas extends Renderer {
     else if (next)
     this._drawFirst = next
 
-    order.prev = this._drawLast as Order
-    ; (this._drawLast as Order).next = order
+    order.prev = this._drawLast as Order;
+    (this._drawLast as Order).next = order
 
     order.next = null
     this._drawLast = order
@@ -399,8 +399,8 @@ export class Canvas extends Renderer {
     this._drawLast = prev
 
     order.prev = null
-    order.next = this._drawFirst as Order
-    ; (this._drawFirst as Order).prev = order
+    order.next = this._drawFirst as Order;
+    (this._drawFirst as Order).prev = order
     this._drawFirst = order
 
     this._requestRedraw(layer)
