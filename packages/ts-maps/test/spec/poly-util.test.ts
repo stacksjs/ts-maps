@@ -114,9 +114,23 @@ describe('PolyUtil', () => {
       }
     })
 
-    // Ported from PolyUtilSpec.js#L67, #L73 — rely on `Polygon.addTo(map)` with
-    // a real rendered map. Skipped until we have a proper headless map test helper.
-    it.skip('computes center of a small polygon — needs a real rendered map', () => {})
-    it.skip('computes center of a big polygon — needs a real rendered map', () => {})
+    // Ported from PolyUtilSpec.js#L67, #L73. `polygonCenter` takes latlngs
+    // and a CRS directly — no live map is required despite upstream
+    // driving it through `polygon.addTo(map).getCenter()`.
+    it('computes center of a small polygon', () => {
+      // Tiny square around the equator, ≪ 1700 m² → centroid-first path.
+      const e = 1e-3
+      const latlngs = [[-e, -e], [e, -e], [e, e], [-e, e]] as any[]
+      const center = PolyUtil.polygonCenter(latlngs, EPSG3857)
+      expectNearLatLng(center, [0, 0], 1e-3)
+    })
+
+    it('computes center of a big polygon', () => {
+      // Large square — the area-weighted centroid should still land at
+      // the geometric middle.
+      const latlngs = [[-10, -10], [10, -10], [10, 10], [-10, 10]] as any[]
+      const center = PolyUtil.polygonCenter(latlngs, EPSG3857)
+      expectNearLatLng(center, [0, 0], 0.05)
+    })
   })
 })

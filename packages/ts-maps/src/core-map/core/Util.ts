@@ -80,18 +80,20 @@ export function setOptions < T extends { options?: Record<string, any> } > (obj:
   return obj.options!
 }
 
-const templateRe = /\{ *([\w\- ]+) *\}/g
+// Matches `{<anything-but-braces>}`. The captured key is trimmed at call
+// time — keeping the quantifier non-overlapping avoids the catastrophic
+// backtracking path of the naive `\{ *([\w\- ]+) *\}` form.
+const templateRe = /\{([^{}]+)\}/g
 
 // Simple templating facility: `'Hello {a}, {b}'` + `{a: 'foo', b: 'bar'}` -> `'Hello foo, bar'`.
 export function template(str: string, data: Record<string, any>): string {
   return str.replace(templateRe, (match, key) => {
-    let value = data[key]
-    if (value === undefined) {
+    const k = (key as string).trim()
+    let value = data[k]
+    if (value === undefined)
       throw new Error(`No value provided for variable ${match}`)
-    }
-    else if (typeof value === 'function') {
+    else if (typeof value === 'function')
       value = value(data)
-    }
     return value
   })
 }

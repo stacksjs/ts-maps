@@ -17,7 +17,9 @@ import type { LayerSpecification, SourceSpecification, Style as StyleSpec } from
 import { diffStyles } from '../style-spec/diff'
 import type { OfflineRegionOptions, OfflineRegionResult } from '../storage'
 import { getDefaultCache, saveOfflineRegion } from '../storage'
+import { buildTerrainMesh } from '../geo/terrainMesh'
 import { TerrainSource } from '../geo/TerrainSource'
+import type { WebGLTileRenderer } from '../renderer/webgl/WebGLTileRenderer'
 
 export interface MapOptions {
   crs?: any
@@ -208,6 +210,10 @@ export class TsMap extends Evented {
   // build terrain meshes in the renderer. Lazy-created on the first
   // `setTerrain()` call.
   declare _terrainSource?: TerrainSource
+  // DOM overlay host for atmospheric effects (sky + fog). The overlay lives
+  // inside the map's container and is driven entirely via inline CSS
+  // gradients so it works identically on Canvas2D and WebGL backends.
+  declare _atmosphereOverlay?: HTMLElement
   // Lazy-initialized offline region API. See `getOfflineApi()` / the `offline`
   // getter below. Holds a small facade over the storage/TileCache pipeline so
   // callers can pre-download tiles for a bbox × zoom range.
@@ -826,6 +832,8 @@ export class TsMap extends Evented {
     this.fire('pitchstart', { pitch: this._pitch })
     this._pitch = clamped
     this._applyCameraTransform()
+    if (this._atmosphereOverlay)
+      this._updateAtmosphereOverlay()
     this.fire('pitch', { pitch: clamped })
     this.fire('pitchend', { pitch: clamped })
     return this
@@ -2258,7 +2266,7 @@ export class TsMap extends Evented {
         throw new RangeError(`setFog: star-intensity must be >= 0 (got ${fog['star-intensity']}).`)
     }
     this._fog = fog === null ? null : { ...fog }
-    // TODO: apply fog uniforms in renderer
+    this._updateAtmosphereOverlay()
     this.fire('fogchange', { fog: this._fog })
     return this
   }
@@ -2296,7 +2304,7 @@ export class TsMap extends Evented {
     else {
       this._sky = null
     }
-    // TODO: apply sky uniforms in renderer
+    this._updateAtmosphereOverlay()
     this.fire('skychange', { sky: this._sky })
     return this
   }
@@ -2365,6 +2373,74 @@ export class TsMap extends Evented {
   }
 
   /**
+   * Builds / updates / removes the atmosphere overlay inside the map
+   * container. The overlay is a single `<div>` absolutely positioned over
+   * the map pane with two stacked linear gradients — one for the sky, one
+   * for the fog band around the horizon. Visibility scales with pitch, so
+   * a top-down map (pitch 0) sees no overlay at all.
+   */
+  _updateAtmosphereOverlay(): void {
+    const container = this._container
+    if (!container || typeof container.appendChild !== 'function')
+      return
+
+    const hasSky = this._sky !== null && this._sky !== undefined
+    const hasFog = this._fog !== null && this._fog !== undefined
+    if (!hasSky && !hasFog) {
+      if (this._atmosphereOverlay && this._atmosphereOverlay.parentNode)
+        this._atmosphereOverlay.parentNode.removeChild(this._atmosphereOverlay)
+      this._atmosphereOverlay = undefined
+      return
+    }
+
+    if (!this._atmosphereOverlay) {
+      const div = (container.ownerDocument ?? document).createElement('div')
+      div.className = 'ts-maps-atmosphere'
+      if (div.style) {
+        div.style.position = 'absolute'
+        div.style.inset = '0'
+        div.style.pointerEvents = 'none'
+        div.style.zIndex = '400'
+      }
+      container.appendChild(div)
+      this._atmosphereOverlay = div
+    }
+
+    const pitch = this.getPitch?.() ?? 0
+    // Only become visible once the camera tilts past ~5° — a top-down map
+    // has no horizon to tint.
+    const pitchT = Math.max(0, Math.min(1, (pitch - 5) / 55))
+
+    const skyColor = this._sky?.['sky-color'] ?? '#87ceeb'
+    const horizonColor = this._sky?.['horizon-color'] ?? '#ffffff'
+    const fogColor = this._fog?.color ?? 'rgb(245, 247, 250)'
+    const horizonBlend = this._fog?.['horizon-blend'] ?? 0.1
+
+    const gradients: string[] = []
+    if (hasSky) {
+      gradients.push(
+        `linear-gradient(to bottom, ${skyColor} 0%, ${horizonColor} 40%, transparent 60%)`,
+      )
+    }
+    if (hasFog) {
+      const band = Math.max(0.05, Math.min(0.4, horizonBlend * 2))
+      const mid = 0.45
+      const from = Math.max(0, mid - band / 2)
+      const to = Math.min(1, mid + band / 2)
+      gradients.push(
+        `linear-gradient(to bottom, transparent ${(from * 100).toFixed(1)}%, ${fogColor} ${(mid * 100).toFixed(1)}%, transparent ${(to * 100).toFixed(1)}%)`,
+      )
+    }
+
+    const style = this._atmosphereOverlay.style
+    if (!style)
+      return
+    style.background = gradients.join(', ')
+    style.opacity = String(pitchT.toFixed(3))
+    style.display = pitchT <= 0 ? 'none' : 'block'
+  }
+
+  /**
   * Best-effort lookup for a WebGL2 context on the map's container. Custom
   * layers only need this for their `onAdd` / `onRemove` callbacks; the
   * renderer wires the per-frame `render()` call through its own GL handle.
@@ -2398,9 +2474,68 @@ export class TsMap extends Evented {
     const gl = this._getCustomLayerGL()
     if (gl && typeof layer.onAdd === 'function')
       layer.onAdd(this, gl)
-    // TODO: invoke custom layer render() after tile draw
     this.fire('customlayer:add', { id: layer.id, layer })
     return this
+  }
+
+  /**
+   * Convenience ingest for a single DEM tile. Decodes `pixels` (RGBA byte
+   * stream, left-to-right top-to-bottom) into the configured encoding's
+   * elevation grid and stores it in the backing `TerrainSource`.
+   * No-op when terrain is disabled.
+   */
+  addTerrainTile(coord: { z: number, x: number, y: number }, pixels: Uint8Array | Uint8ClampedArray): void {
+    if (!this._terrain || !this._terrainSource)
+      return
+    this._terrainSource.addTilePixels(coord, pixels)
+  }
+
+  /**
+   * Draws the terrain mesh for a single tile coordinate into the supplied
+   * GL renderer as the underlay for the regular tile content. Called by
+   * `VectorTileMapLayer._drawTile` during the WebGL path; no-op when
+   * terrain is off or the DEM tile isn't loaded yet.
+   */
+  _drawTerrainForTile(glRenderer: WebGLTileRenderer, coord: { z: number, x: number, y: number }, tileSize: number, projectionMatrix: Float32Array): void {
+    if (!this._terrain || !this._terrainSource)
+      return
+    const src = this._terrainSource
+    if (!src.hasTile(coord))
+      return
+    const elev = src.getTile(coord)
+    if (!elev)
+      return
+    const mesh = buildTerrainMesh({
+      elevation: elev,
+      demSize: src.demSize,
+      tileSize,
+      resolution: src.meshResolution,
+      exaggeration: src.exaggeration,
+      // Metres → tile units. Holding this small keeps z well-inside the
+      // orthographic frustum so mountain peaks don't clip.
+      unitsPerMeter: 0.001,
+    })
+    glRenderer.drawTerrain(mesh.positions, mesh.indices, [0.78, 0.80, 0.75, 1], 1, projectionMatrix)
+  }
+
+  /**
+   * Invokes `render(gl, projectionMatrix)` on every registered custom layer
+   * in insertion order. Called by WebGL-backed tile layers after drawing
+   * their own content so custom GL code can composite on top. Errors from
+   * individual layers are trapped so one broken layer doesn't stop the
+   * others from rendering.
+   */
+  _invokeCustomLayerRender(gl: WebGL2RenderingContext, projectionMatrix: Float32Array): void {
+    if (!this._customLayers || this._customLayers.size === 0)
+      return
+    for (const layer of this._customLayers.values()) {
+      try {
+        layer.render(gl, projectionMatrix)
+      }
+      catch (err) {
+        console.warn(`[ts-maps] custom layer "${layer.id}" threw during render:`, err)
+      }
+    }
   }
 
   /** Removes a custom 3D layer by id. No-op for unknown ids. */

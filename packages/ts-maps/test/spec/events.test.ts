@@ -412,11 +412,21 @@ describe('Events', () => {
     })
 
     // Ported from EventsSpec.js#L404
-    // ts-maps: the underlying implementation doesn't currently validate the `type`
-    // argument (it warns instead), so upstream's "throws with wrong types" behaviour
-    // is not implemented — marked skip rather than changing production code.
-    it.skip('throws with wrong types passed — not enforced in ts-maps', () => {
-      // No-op: behavioural gap documented above.
+    it('throws when the type argument is the wrong shape', () => {
+      const obj = new Evented()
+      const fn = (): void => {}
+
+      for (const bad of [undefined, null, 42, true, false, ['click'], Symbol('x')] as any[]) {
+        expect(() => obj.on(bad, fn)).toThrow(TypeError)
+        expect(() => obj.once(bad, fn)).toThrow(TypeError)
+      }
+      // Empty string is also rejected.
+      expect(() => obj.on('', fn)).toThrow(TypeError)
+
+      // `off` with a bad first argument throws (but `off()` with no args
+      // still legally clears every listener).
+      for (const bad of [null, 42, true, ['click']] as any[])
+        expect(() => obj.off(bad, fn)).toThrow(TypeError)
     })
 
     // Ported from EventsSpec.js#L417

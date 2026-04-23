@@ -196,9 +196,21 @@ describe('LineUtil', () => {
       }
     })
 
-    // Ported from LineUtilSpec.js#L133 — requires Polyline.addTo(map) with a real
-    // rendered map (pixel-projection relies on the map pane position). Skipped
-    // until we have a proper headless map test helper.
-    it.skip('computes center of a small line — needs a real rendered map', () => {})
+    // Ported from LineUtilSpec.js#L133. `polylineCenter` takes latlngs +
+    // a CRS directly — no live map is needed despite upstream's test
+    // driving it through `polyline.addTo(map).getCenter()`.
+    it('computes center of a small line', () => {
+      const latlngs = [[0, 0], [1, 0]] as any[]
+      const center = LineUtil.polylineCenter(latlngs, EPSG3857)
+      // Midpoint of a 2-point line is the segment midpoint.
+      expectNearLatLng(center, [0.5, 0], 1e-6)
+    })
+
+    it('computes center of a multi-segment line', () => {
+      // Three collinear points — the midpoint of the *total* length.
+      const latlngs = [[0, 0], [0, 2], [0, 4]] as any[]
+      const center = LineUtil.polylineCenter(latlngs, EPSG3857)
+      expectNearLatLng(center, [0, 2], 1e-6)
+    })
   })
 })

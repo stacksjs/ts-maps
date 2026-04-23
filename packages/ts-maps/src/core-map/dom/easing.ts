@@ -9,7 +9,7 @@
  * the box.
  */
 
-export type EasingFunction = (t: number) => number
+export type EasingFunction = (_t: number) => number
 
 export function linear(t: number): number {
   return t

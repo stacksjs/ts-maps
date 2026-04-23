@@ -678,6 +678,18 @@ export class VectorTileMapLayer extends GridLayer {
         }
       }
     }
+
+    // WebGL post-pass: terrain underlay, custom layers, sky overlay. The
+    // map owns all of this state; the tile layer just gives each hook a
+    // live GL context + projection matrix.
+    if (glRenderer && this._map) {
+      const proj = ortho(0, size, size, 0, -1, 1)
+      const map = this._map as any
+      if (typeof map._drawTerrainForTile === 'function')
+        map._drawTerrainForTile(glRenderer, coords, size, proj)
+      if (typeof map._invokeCustomLayerRender === 'function')
+        map._invokeCustomLayerRender(glRenderer.ctx.gl, proj)
+    }
   }
 }
 

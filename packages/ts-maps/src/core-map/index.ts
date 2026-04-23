@@ -59,8 +59,8 @@ import * as services from './services/index'
 export { services }
 
 // Factory helper: turns a constructor into a callable function.
-type Factory < A extends any[], T> = (...args: A) => T
-function factory < A extends any[], T > (Ctor: new (...args: A) => T): Factory < A, T> {
+type Factory<A extends any[], T> = (..._args: A) => T
+function factory<A extends any[], T>(Ctor: new (...args: A) => T): Factory<A, T> {
   return (...args: A): T => new Ctor(...args)
 }
 

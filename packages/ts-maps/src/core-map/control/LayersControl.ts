@@ -186,16 +186,12 @@ export class LayersControl extends Control {
     this._overlaysList.replaceChildren()
 
     this._layerControlInputs = []
-    let baseLayersPresent = false
-    let overlaysPresent = false
-    let baseLayersCount = 0
-
-    for (const obj of this._layers) {
+    for (const obj of this._layers)
       this._addItem(obj)
-      overlaysPresent ||= !!obj.overlay
-      baseLayersPresent ||= !obj.overlay
-      baseLayersCount += !obj.overlay ? 1 : 0
-    }
+
+    const overlaysPresent = this._layers.some(o => !!o.overlay)
+    const baseLayersCount = this._layers.filter(o => !o.overlay).length
+    let baseLayersPresent = baseLayersCount > 0
 
     if (this.options!.hideSingleBase) {
       baseLayersPresent = baseLayersPresent && baseLayersCount > 1

@@ -7,7 +7,7 @@ export interface EventListener {
   once?: boolean
 }
 
-export type EventHandler = (event?: any) => void
+export type EventHandler = (_event?: any) => void
 
 // A set of methods shared between event-powered classes (like Map and Marker).
 export class Evented extends Class {
@@ -18,6 +18,7 @@ export class Evented extends Class {
   declare _firingCount?: number
 
   on(types: string | Record<string, EventHandler>, fn?: EventHandler | any, context?: any): this {
+    assertEventTypes('on', types)
     if (typeof types === 'object') {
       for (const [type, f] of Object.entries(types)) {
         this._on(type, f as EventHandler, fn)
@@ -36,11 +37,13 @@ export class Evented extends Class {
       delete this._events
     }
     else if (typeof types === 'object') {
+      assertEventTypes('off', types)
       for (const [type, f] of Object.entries(types)) {
         this._off(type, f as EventHandler, fn)
       }
     }
     else {
+      assertEventTypes('off', types)
       const removeAll = arguments.length === 1
       for (const type of Util.splitWords(types as string)) {
         if (removeAll) {
@@ -190,6 +193,7 @@ export class Evented extends Class {
   }
 
   once(types: string | Record<string, EventHandler>, fn?: EventHandler | any, context?: any): this {
+    assertEventTypes('once', types)
     if (typeof types === 'object') {
       for (const [type, f] of Object.entries(types)) {
         this._on(type, f as EventHandler, fn, true)
@@ -228,4 +232,23 @@ export class Evented extends Class {
   addOneTimeEventListener: Evented['once'] = this.once
   fireEvent: Evented['fire'] = this.fire
   hasEventListeners: Evented['listens'] = this.listens
+}
+
+// Validates the `types` argument to `on` / `off` / `once` up front so the
+// caller gets a useful error instead of a downstream `Cannot read properties
+// of undefined` or `Object.entries requires...`. Accepts either a non-empty
+// string or a plain object (map of type → handler).
+function assertEventTypes(method: string, types: unknown): void {
+  if (typeof types === 'string') {
+    if (types.length === 0)
+      throw new TypeError(`Evented.${method}: event type must be a non-empty string.`)
+    return
+  }
+  if (types !== null && typeof types === 'object' && !Array.isArray(types))
+    return
+  throw new TypeError(
+    `Evented.${method}: first argument must be a string or a { type: handler } object, got ${
+      types === null ? 'null' : Array.isArray(types) ? 'array' : typeof types
+    }.`,
+  )
 }

@@ -1,5 +1,4 @@
 /* eslint-disable no-console, ts/no-top-level-await */
-import { dts } from 'bun-plugin-dtsx'
 
 await Bun.$`rm -rf dist`
 
@@ -22,14 +21,24 @@ await Bun.build({
     './src/maps/world.ts',
   ],
   outdir: './dist',
-  plugins: [dts()],
 })
 
-// Safely move files from dist/src/* to dist/*
+// Flatten `dist/src/*` onto `dist/*` — Bun.build echoes the source tree
+// when `./src/index.ts` is an entrypoint, but published consumers expect
+// `dist/index.js` at the root.
 try {
   await Bun.$`cp -r dist/src/* dist/`
   await Bun.$`rm -rf dist/src`
 }
-catch (error) {
-  console.log('Build completed successfully', error)
+catch {
+  // no-op — handled by the tsc step below which will error loudly if
+  // the JS layout is actually broken.
 }
+
+// Emit declarations via tsc directly. `bun-plugin-dtsx` only generates
+// top-level entrypoint `.d.ts`s, not the tree of modules they re-export,
+// so any consumer importing `TsMap`, `LatLng`, `Marker`, etc. would lose
+// types. A straight `tsc --emitDeclarationOnly` pass against
+// `tsconfig.build.json` writes the full `core-map/**/*.d.ts` graph into
+// `dist/`.
+await Bun.$`bunx --bun tsc --project tsconfig.build.json`

@@ -129,7 +129,7 @@ function parseInterp(spec: unknown, path: (string | number)[]): Interp {
 // Pick the blender for a given return type. For types we don't know how to
 // interpolate (strings, booleans, resolved images) we fall back to stepping —
 // the spec says this is the required behaviour.
-type Blender = (a: unknown, b: unknown, t: number) => unknown
+type Blender = (_a: unknown, _b: unknown, _t: number) => unknown
 
 function pickBlender(returnType: CompiledExpression['returnType']): Blender {
   if (returnType === 'number') {
