@@ -57,6 +57,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.9.3",
-    "very-happy-dom": "file:/Users/chrisbreuer/Code/Tools/very-happy-dom"
+    "very-happy-dom": "^0.0.9"
   }
 }

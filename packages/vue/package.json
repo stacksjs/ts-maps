@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "very-happy-dom": "file:/Users/chrisbreuer/Code/Tools/very-happy-dom",
+    "very-happy-dom": "^0.0.9",
     "vue": "^3.4.0"
   }
 }
