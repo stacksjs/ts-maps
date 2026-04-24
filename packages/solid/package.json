@@ -26,12 +26,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "solid": "./src/index.tsx",
-      "import": "./dist/index.js"
+      "development": "./src/index.tsx",
+      "import": "./src/index.tsx"
     },
     "./styles.css": "./../ts-maps/src/core-map/ts-maps.css"
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
+  "main": "./src/index.tsx",
+  "module": "./src/index.tsx",
   "types": "./dist/index.d.ts",
   "files": [
     "README.md",

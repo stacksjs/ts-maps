@@ -417,15 +417,13 @@ export class VectorTileMapLayer extends GridLayer {
     const wantLayer = opts.sourceLayer
     const queryZoom = this._map?.getZoom?.() ?? 0
 
-    // eslint-disable-next-line pickier/no-unused-vars
-    let filterFn: ((feat: VectorTileFeature, zoomAt: number) => boolean) | null = null
-    if (opts.filter !== undefined && isExpression(opts.filter)) {
-      const compiled: CompiledExpression = compileExpression(opts.filter as any)
-      filterFn = (feature, z) => {
-        const ctx: EvaluationContext = { zoom: z, feature }
-        return !!compiled.evaluate(ctx)
-      }
-    }
+    // Delegate to the same filter evaluator the renderer uses so we
+    // accept both expression form (`['==', ['get', 'x'], 'y']`) and
+    // legacy filter form (`['==', 'x', 'y']`). A `null`/`undefined`
+    // filter means no filtering.
+    const shimLayer: VectorTileStyleLayer | null = opts.filter === undefined
+      ? null
+      : ({ id: '_query', type: 'fill', sourceLayer: '', filter: opts.filter } as VectorTileStyleLayer)
 
     const seen = new Set<string>()
     for (const entry of this._decodedTiles.values()) {
@@ -436,7 +434,7 @@ export class VectorTileMapLayer extends GridLayer {
           continue
         for (let i = 0; i < mvtLayer.length; i++) {
           const feature = mvtLayer.feature(i)
-          if (filterFn && !filterFn(feature, queryZoom))
+          if (shimLayer && !filterPasses(shimLayer, feature, queryZoom))
             continue
           // Dedup features that appear in multiple tiles via their id when
           // present; otherwise allow duplicates (no reliable global identity).

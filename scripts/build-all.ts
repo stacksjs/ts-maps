@@ -21,7 +21,8 @@ interface Pkg {
 const ROOT = new URL('..', import.meta.url).pathname
 
 // Order matters: ts-maps builds first, then the bindings that depend on it.
-const BUILD_ORDER = ['ts-maps', 'vue', 'react', 'react-native', 'stx']
+// `nuxt` depends on `vue`, so it comes after.
+const BUILD_ORDER = ['ts-maps', 'vue', 'react', 'react-native', 'svelte', 'solid', 'nuxt']
 
 function loadPkg(name: string): Pkg | null {
   const dir = join(ROOT, 'packages', name)

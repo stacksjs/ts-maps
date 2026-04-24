@@ -52,6 +52,10 @@ function parseCssColor(css: string): [number, number, number] {
 // Fetches RGB-encoded terrain tiles and shades them with a simple
 // Lambertian light model. Decoding and shading both run on the main
 // thread for now; the worker path is a future optimisation.
+//
+// This class backs both the raster-dem source type and the `hillshade`
+// style-spec layer type — `HillshadeLayer` below is an alias that
+// matches Mapbox GL JS's naming.
 export class RasterDEMLayer extends TileLayer {
   declare _encoding: DEMEncoding
 
@@ -152,3 +156,12 @@ export class RasterDEMLayer extends TileLayer {
     ctx.putImageData(out2, 0, 0)
   }
 }
+
+/**
+ * Mapbox-style alias: the `hillshade` style-spec layer type resolves to
+ * this class. Exposed so callers who speak the style spec can write
+ * `new HillshadeLayer(url, { encoding, exaggeration, shadowColor, accentColor })`
+ * without having to know it's the same runtime as `raster-dem`.
+ */
+export const HillshadeLayer: typeof RasterDEMLayer = RasterDEMLayer
+export type HillshadeLayerOptions = RasterDEMLayerOptions

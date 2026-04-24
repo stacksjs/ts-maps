@@ -3,8 +3,12 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 7. 3D</title>
+    <title>ts-maps — 7. 3D (fog + sky + pitch)</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .map-host { position: relative; }
+    </style>
   </head>
   <body>
     <div class='demo-page'>
@@ -13,19 +17,16 @@
         <span>/</span>
         <span>7. 3D</span>
       </nav>
-      <h1>7. 3D terrain &amp; extrusions</h1>
-      <p class='subtitle'>Coming soon in Phase 7 of the roadmap.</p>
-
-      <div class='stub-card'>
-        <h2>Coming soon in Phase 7</h2>
-        <p>Planned features:</p>
-        <ul>
-          <li><code>map.setTerrain({ source, exaggeration })</code></li>
-          <li><code>sky</code> + <code>fog</code> layers</li>
-          <li><code>fill-extrusion</code> for 3D buildings</li>
-          <li><code>CustomLayerInterface</code> for user WebGL/Three.js</li>
-        </ul>
-      </div>
+      <h1>7. 3D — pitch, sky, fog</h1>
+      <p class='subtitle'>
+        Tilt the camera with <code>setPitch</code>, rotate with
+        <code>setBearing</code>, colour the sky with <code>setSky</code>,
+        and blend the horizon with <code>setFog</code>. The atmosphere
+        overlay is painted via the same pipeline used by the globe
+        halo — pure DOM, no WebGL dependency.
+      </p>
+      <div id='map' class='map-host'></div>
     </div>
+    <script type='module' src='./7-3d.ts'></script>
   </body>
 </html>

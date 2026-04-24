@@ -49,6 +49,7 @@
     "typecheck": "bunx tsc --noEmit",
     "bench:ts-maps": "cd packages/ts-maps && bun run bench",
     "playground:core-map": "bun --bun run playground/core-map/serve.ts",
+    "render:check": "bun --bun scripts/verify-render.ts",
     "dev:docs": "bun --bun bunpress dev docs",
     "build:docs": "bun --bun bunpress build docs",
     "preview:docs": "bun --bun bunpress preview docs"
@@ -67,7 +68,6 @@
   },
   "workspaces": [
     "packages/**",
-    "playground",
     "playground/core-map"
   ]
 }

@@ -57,6 +57,28 @@ The root class. An instance owns one DOM container, one camera, one style docume
 | `setPaintProperty(id, name, value)` / `setLayoutProperty(id, name, value)` | Update a single property. |
 | `setFilter(id, filter)` | Update a layer's filter expression. |
 
+## Feature queries
+
+| Method | Summary |
+| ------ | ------- |
+| `queryRenderedFeatures(pointOrOpts?, opts?)` | Iterate every vector source on the map and return the features painted at a container-pixel point, bbox, or globally. Results carry `{ feature, layer, tile }`. Options: `{ layers, point, bbox }`. |
+| `querySourceFeatures(sourceId, { sourceLayer?, filter? })` | Iterate features in a given vector source across every decoded tile, regardless of whether they're rendered. Respects style-spec filter expressions. |
+
+## Renderer selection
+
+| Method | Summary |
+| ------ | ------- |
+| `setRenderer('canvas2d' \| 'webgl' \| 'svg')` | Switch the preferred rendering backend for every source-backed host layer on this map. Fires `rendererchange`. |
+| `getPreferredRenderer()` | Currently active renderer name. Note: `getRenderer(layer)` is an internal mixin used by vector overlays — don't confuse the two. |
+
+## Static image export
+
+| Method | Summary |
+| ------ | ------- |
+| `toCanvas()` | Composite the visible map — every nested `<canvas>` and `<img>` — onto a single `HTMLCanvasElement`. Respects `devicePixelRatio`. |
+| `toDataURL(type?, quality?)` | Convenience wrapper: `toCanvas().toDataURL(...)`. Forces WebGL tile renderers to repaint first so the readback is correct. |
+| `toBlob(type?, quality?)` | Same as above but yields a `Blob`. |
+
 ## Layers (OO, legacy-style)
 
 | Method | Summary |

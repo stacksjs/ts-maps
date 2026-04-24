@@ -4,7 +4,11 @@
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <title>ts-maps — 8. Globe</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .map-host { position: relative; }
+    </style>
   </head>
   <body>
     <div class='demo-page'>
@@ -14,17 +18,13 @@
         <span>8. Globe</span>
       </nav>
       <h1>8. Globe view</h1>
-      <p class='subtitle'>Coming soon in Phase 8 of the roadmap.</p>
-
-      <div class='stub-card'>
-        <h2>Coming soon in Phase 8</h2>
-        <p>Planned features:</p>
-        <ul>
-          <li><code>GlobeProjection</code> CRS + vertex-shader warping</li>
-          <li>Seamless globe &lt;-&gt; Mercator transition around zoom 5.5</li>
-          <li>Atmosphere halo</li>
-        </ul>
-      </div>
+      <p class='subtitle'>
+        The globe projection — spherical at low zooms, Mercator past zoom
+        6, with a smoothstep crossover at zoom 5.5. Drag the slider to
+        cross the window and watch the atmosphere halo fade out.
+      </p>
+      <div id='map' class='map-host'></div>
     </div>
+    <script type='module' src='./8-globe.ts'></script>
   </body>
 </html>

@@ -112,9 +112,6 @@ const rasterPaint: Record<string, PropertySchema> = {
   'raster-contrast': { type: 'number', default: 0, minimum: -1, maximum: 1, transition: true, sdk: 'gl' },
   'raster-resampling': { type: 'enum', values: ['linear', 'nearest'], default: 'linear', sdk: 'gl' },
   'raster-fade-duration': { type: 'number', default: 300, minimum: 0, sdk: 'gl' },
-  'raster-color': { type: 'color', sdk: 'gl' },
-  'raster-color-mix': { type: 'array', length: 4, default: [0.2126, 0.7152, 0.0722, 0], sdk: 'gl' },
-  'raster-color-range': { type: 'array', length: 2, default: [0, 1], sdk: 'gl' },
 }
 
 export const paintPropertySchemas: Record<LayerType, Record<string, PropertySchema>> = {
@@ -229,6 +226,9 @@ export const layoutPropertySchemas: Record<LayerType, Record<string, PropertySch
 
 // The set of known layer types — exported separately so the validator can
 // decide whether an unknown layer `type` is user error vs. an SDK mismatch.
+// `hillshade` and `heatmap` are intentionally excluded — their renderers
+// ship as standalone classes (`HillshadeLayer`, `HeatmapLayer`) rather
+// than through the style-spec path.
 export const layerTypes: readonly LayerType[] = ['background', 'fill', 'fill-extrusion', 'line', 'circle', 'symbol', 'raster']
 
 // Source types we currently recognise in the validator.

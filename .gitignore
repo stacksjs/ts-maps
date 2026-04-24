@@ -19,3 +19,4 @@ storage
 .stx
 pantry
 packages/ts-maps/bench/reports/*.json
+.render-check/

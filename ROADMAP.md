@@ -2,7 +2,7 @@
 
 > _A zero-dependency, TypeScript-native, batteries-included interactive mapping library._
 > Target: parity with Mapbox GL JS feature set, with a Leaflet-style developer experience.
-> Constraints: **no runtime deps**, everything in-house, tooling = bun/pickier/better-dx/stx.
+> Constraints: **no runtime deps**, everything in-house, tooling = bun/pickier/better-dx.
 
 This document is the authoritative execution plan. Each phase is scoped to be
 independently testable and shippable. Phases are **gated** — do not start a phase
@@ -374,7 +374,8 @@ so nobody is forced into a vendor account.
 
 - **9.7 `MapGeocoderControl`, `MapDirectionsControl`** — drop-in UI
 
-  controls matching Mapbox's plugin set, built with stx.
+  controls matching Mapbox's plugin set, built with vanilla DOM (no
+  templating dependency).
 
 **Exit:** the playground has search, turn-by-turn, reachable-within-X-min,
 all fully functional against OSRM+Nominatim with no API keys.
@@ -404,32 +405,32 @@ all fully functional against OSRM+Nominatim with no API keys.
 
 ---
 
-## Phase 11 — Framework integrations (ride the existing packages)
+## Phase 11 — Framework integrations
 
-The repo already has `packages/vue` and `packages/react`. Update + add:
+All six bindings ship from this repo:
 
-- **11.1 `ts-maps-react`** — `<Map>`, `<TileLayer>`, `<Marker>`, `<Source>`,
-
-  `<Layer>`, `<Popup>`, hooks (`useMap`, `useMapEvent`).
-
-- **11.2 `ts-maps-vue`** — matching SFC components.
-- **11.3 `ts-maps-svelte`** (new).
-- **11.4 `ts-maps-solid`** (new).
-- **11.5 `ts-maps-nuxt`** module (already scaffolded; wire it).
-- **11.6 `ts-maps-stx`** — native components for our own stx templating.
+- **11.1 `@ts-maps/react`** — `<Map>`, `<TileLayer>`, `<Marker>`,
+  `<Source>`, `<Layer>`, `<Popup>`, hooks (`useMap`, `useMapEvent`).
+- **11.2 `@ts-maps/vue`** — matching SFC components + composables.
+- **11.3 `@ts-maps/svelte`** — `<Map>` / `<TileLayer>` / `<Marker>` /
+  `<Popup>` / `<Source>` / `<Layer>` Svelte components.
+- **11.4 `@ts-maps/solid`** — Solid JSX components with a
+  `MapContext` / `useMap` pair.
+- **11.5 `ts-maps-nuxt`** — Nuxt 3 module; auto-imports the Vue
+  bindings with a configurable component prefix.
+- **11.6 `@ts-maps/react-native`** — WebView-hosted `<MapView>`
+  bridged to the full `TsMap` API for native mobile apps.
 
 **Exit:** `npm create ts-maps@latest` scaffolds a demo app in any of the
-five frameworks.
+six frameworks.
 
 ---
 
 ## Phase 12 — Docs, site, ecosystem
 
-- **12.1 Docs site.** Built with stx + crosswind. Hosted. API reference
-
-  generated from TSDoc (zero-dep custom extractor).
-
-- **12.2 Examples gallery.** ~40 examples matching Mapbox's + Leaflet's.
+- **12.1 Docs site.** Built with `@stacksjs/bunpress`; hosted at
+  `ts-maps.dev`. API reference generated from TSDoc.
+- **12.2 Examples gallery.** Runnable demos matching Mapbox's + Leaflet's.
 - **12.3 Style playground** (edit style JSON, see the map re-render).
 - **12.4 Plugin guide + public plugin registry.**
 - **12.5 Migration guides.** From Leaflet, from Mapbox GL JS, from MapLibre.

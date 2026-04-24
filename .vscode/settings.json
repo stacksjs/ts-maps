@@ -59,7 +59,8 @@
   "todo-tree.highlights.enabled": true,
   "cSpell.ignorePaths": [
     "node_modules",
-    "packages/ts-maps/src/maps"
+    "packages/ts-maps/dist",
+    "pantry"
   ],
   "cSpell.dictionaries": [
     "custom-dictionary"
@@ -81,8 +82,7 @@
     "**/*.txt"
   ],
   "grammarly.files.exclude": [
-    "**/dictionary.txt",
-    "**/maps"
+    "**/dictionary.txt"
   ],
   "cSpell.words": [
     "unconfig"

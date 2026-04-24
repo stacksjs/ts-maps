@@ -5,8 +5,9 @@
     "emitDeclarationOnly": true,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "allowImportingTsExtensions": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/**/*.test.ts", "dist", "node_modules", "test"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.svelte", "dist", "node_modules", "test"]
 }

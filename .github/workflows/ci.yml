@@ -113,6 +113,9 @@ jobs:
           test -f packages/react/dist/index.js
           test -f packages/vue/dist/index.js
           test -f packages/react-native/dist/index.js
+          test -f packages/svelte/dist/index.d.ts
+          test -f packages/solid/dist/index.d.ts
+          test -f packages/nuxt/dist/index.d.ts
 
   publish-commit:
     needs: [lint, typecheck, test]

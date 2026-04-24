@@ -3,8 +3,12 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 9. Services</title>
+    <title>ts-maps — 9. Services (geocoding + directions)</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .map-host { position: relative; }
+    </style>
   </head>
   <body>
     <div class='demo-page'>
@@ -13,20 +17,15 @@
         <span>/</span>
         <span>9. Services</span>
       </nav>
-      <h1>9. Geocoding, directions &amp; isochrones</h1>
-      <p class='subtitle'>Coming soon in Phase 9 of the roadmap.</p>
-
-      <div class='stub-card'>
-        <h2>Coming soon in Phase 9</h2>
-        <p>Pluggable service adapters defaulting to free/OSM backends:</p>
-        <ul>
-          <li>Geocoding: <code>OsmNominatim</code> (default), <code>Photon</code>, <code>Maptiler</code>, <code>Mapbox</code></li>
-          <li>Directions: <code>OSRM</code> (default), <code>Valhalla</code>, <code>Mapbox</code>, <code>GraphHopper</code></li>
-          <li>Isochrone &amp; matrix via Valhalla</li>
-          <li>Static image export from any renderer</li>
-          <li><code>MapGeocoderControl</code> + <code>MapDirectionsControl</code> UI</li>
-        </ul>
-      </div>
+      <h1>9. Services — geocoder + directions</h1>
+      <p class='subtitle'>
+        Keyless geocoding via Nominatim and keyless routing via OSRM's
+        public demo server. Type two place names and draw the driving
+        route between them; swap providers via the <code>services</code>
+        namespace to talk to Mapbox / Google / MapTiler instead.
+      </p>
+      <div id='map' class='map-host'></div>
     </div>
+    <script type='module' src='./9-services.ts'></script>
   </body>
 </html>

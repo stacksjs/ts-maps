@@ -12,9 +12,14 @@ A zero-dependency, TypeScript-native interactive mapping library. Mapbox-class f
 
 ## Frontend
 
-- Use **stx** for templating — never write vanilla JS (`var`, `document.*`, `window.*`) in stx templates
-- Use **crosswind** as the default CSS framework which enables standard Tailwind-like utility classes
-- stx `<script>` tags should only contain stx-compatible code (signals, composables, directives)
+- Framework bindings live under `packages/react`, `packages/vue`,
+  `packages/svelte`, `packages/solid`, `packages/nuxt`, and
+  `packages/react-native`. When touching one, keep them in parity:
+  same component names, same prop shape, same event names.
+- `packages/ts-maps/src/core-map/` is the implementation. Everything
+  else is a thin wrapper; avoid forking logic into bindings.
+- Docs are built with `@stacksjs/bunpress`; follow the file layout in
+  `docs/`.
 
 ## Dependencies
 

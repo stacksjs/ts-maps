@@ -3,8 +3,12 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 6. WebGL renderer</title>
+    <title>ts-maps — 6. WebGL</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .map-host { position: relative; }
+    </style>
   </head>
   <body>
     <div class='demo-page'>
@@ -14,20 +18,14 @@
         <span>6. WebGL</span>
       </nav>
       <h1>6. WebGL renderer</h1>
-      <p class='subtitle'>Coming soon in Phase 6 of the roadmap.</p>
-
-      <div class='stub-card'>
-        <h2>Coming soon in Phase 6</h2>
-        <p>The WebGL leap. Planned pieces:</p>
-        <ul>
-          <li><code>WebGLRenderer</code> subclass of <code>Renderer</code></li>
-          <li>In-house earcut triangulator</li>
-          <li>Fill, line, circle, SDF text/icon shaders</li>
-          <li>Raster shader with raster-color ramps</li>
-          <li>Fade-in + cross-fade on zoom</li>
-          <li><code>map.setRenderer('webgl' | 'canvas2d' | 'svg')</code></li>
-        </ul>
-      </div>
+      <p class='subtitle'>
+        The same synthetic MVT tile rendered through either the Canvas2D
+        or WebGL backend. The WebGL path triangulates polygons with the
+        in-house earcut port and paints fills/lines/circles via instanced
+        shaders. Toggle the backend to eyeball parity.
+      </p>
+      <div id='map' class='map-host'></div>
     </div>
+    <script type='module' src='./6-webgl.ts'></script>
   </body>
 </html>

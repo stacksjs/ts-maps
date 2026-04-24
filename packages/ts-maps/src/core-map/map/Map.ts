@@ -2048,7 +2048,8 @@ export class TsMap extends Evented {
     if (source.type === 'raster-dem') {
       const { TileLayer } = require('../layer/tile/TileLayer')
       const urls = source.tiles ?? []
-      const url = urls[0] ?? ''
+      const url = urls[0]
+      if (!url) throw new Error(`source "${sourceId}" (raster-dem) has no tiles URL`)
       const tile = new TileLayer(url, {
         tileSize: source.tileSize ?? 512,
         minZoom: source.minzoom,
@@ -2191,6 +2192,28 @@ export class TsMap extends Evented {
       return this
     }
     return (Evented.prototype as any).off.call(this, type, a, b, c)
+  }
+
+  /**
+   * `map.once(type, layerId, fn)` — same as `on(type, layerId, fn)` but
+   * auto-removes after the first hit. Falls through to the base
+   * Evented.once for the legacy `(type, fn)` signature.
+   */
+  once(type: any, a?: any, b?: any, c?: any): this {
+    if (typeof a === 'string' && typeof type === 'string' && typeof b === 'function') {
+      const layerId = a as string
+      // eslint-disable-next-line pickier/no-unused-vars
+      const listener = b as (ev: any) => void
+      const context = c
+      const self = this
+      const wrapped = function onceHandler(ev: any): void {
+        self.off(type, layerId, wrapped as any)
+        listener.call(context ?? self, ev)
+      }
+      self.on(type, layerId, wrapped as any)
+      return this
+    }
+    return (Evented.prototype as any).once.call(this, type, a, b)
   }
 
   /**
@@ -2650,6 +2673,56 @@ export class TsMap extends Evented {
    * isn't loaded) or `null` when no DEM tile covers the point yet.
    * Always returns `null` when terrain is disabled.
    */
+  /**
+   * Preferred rendering backend for every source-backed tile layer on
+   * this map. `'canvas2d'` is the default, `'webgl'` is chosen by
+   * vector-tile layers that have a GL2 context available, and `'svg'`
+   * is the SVG fallback used by older browsers. Stored on `options`
+   * and inspected by layers when they attach.
+   *
+   * Calling this *after* layers are attached rewires every host layer
+   * that supports the target renderer and forces a repaint; layers that
+   * can't honour the request keep their current renderer.
+   */
+  setRenderer(name: 'canvas2d' | 'webgl' | 'svg'): this {
+    // `options.renderer` already holds a Renderer instance for vector
+    // overlays, so the preferred-backend flag lives on its own key.
+    const opts = this.options as any
+    opts.preferredRenderer = name
+    if (this._style) {
+      for (const host of this._style.sourceLayers.values()) {
+        const anyHost = host as any
+        if (typeof anyHost.setRenderer === 'function') {
+          try {
+            anyHost.setRenderer(name)
+          }
+          catch {
+            // ignore — host is free to reject an unsupported renderer.
+          }
+        }
+        if (typeof anyHost.redraw === 'function') {
+          try {
+            anyHost.redraw()
+          }
+          catch {
+            // ignore — same rationale as above.
+          }
+        }
+      }
+    }
+    this.fire('rendererchange', { renderer: name })
+    return this
+  }
+
+  /**
+   * The preferred rendering backend for tile layers on this map.
+   * Distinct from `getRenderer(layer)` (the vector-overlay Renderer
+   * mixin), which is internal plumbing.
+   */
+  getPreferredRenderer(): 'canvas2d' | 'webgl' | 'svg' {
+    return ((this.options as any).preferredRenderer as 'canvas2d' | 'webgl' | 'svg') ?? 'canvas2d'
+  }
+
   queryTerrainElevation(lngLat: LatLng | { lng: number, lat: number }): number | null {
     if (!this._terrain || !this._terrainSource)
       return null
@@ -2676,8 +2749,10 @@ export class TsMap extends Evented {
     const h = Math.max(1, Math.round(size.y))
     out.width = Math.round(w * dpr)
     out.height = Math.round(h * dpr)
-    out.style.width = `${w}px`
-    out.style.height = `${h}px`
+    if (out.style) {
+      out.style.width = `${w}px`
+      out.style.height = `${h}px`
+    }
     const ctx = out.getContext('2d')
     if (!ctx)
       return out

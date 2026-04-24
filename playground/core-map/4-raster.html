@@ -3,7 +3,8 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 4. Raster &amp; hillshade</title>
+    <title>ts-maps — 4. Raster &amp; heatmap</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
   </head>
   <body>
@@ -11,22 +12,17 @@
       <nav class='crumbs'>
         <a href='./index.html'>core-map playground</a>
         <span>/</span>
-        <span>4. Raster &amp; hillshade</span>
+        <span>4. Raster &amp; heatmap</span>
       </nav>
-      <h1>4. Raster, hillshade &amp; heatmap</h1>
-      <p class='subtitle'>Coming soon in Phase 4 of the roadmap.</p>
-
-      <div class='stub-card'>
-        <h2>Coming soon in Phase 4</h2>
-        <p>Planned features:</p>
-        <ul>
-          <li><code>raster</code> source + layer (style-spec wrapper)</li>
-          <li><code>raster-dem</code> with Terrain-RGB + Terrarium decoders</li>
-          <li>Canvas2D <code>hillshade</code> layer (slope/aspect convolution)</li>
-          <li><code>heatmap</code> via Gaussian density + color ramp</li>
-          <li><code>raster-color</code> single-band ramps</li>
-        </ul>
-      </div>
+      <h1>4. Raster &amp; heatmap</h1>
+      <p class='subtitle'>
+        An OpenStreetMap raster basemap with a <code>HeatmapLayer</code>
+        of 800 points around Manhattan, concentrated around five
+        attractor sites. Gaussian density + a 5-stop color ramp produce
+        the heat map; it repaints on every pan/zoom.
+      </p>
+      <div id='map' class='map-host'></div>
     </div>
+    <script type='module' src='./4-raster.ts'></script>
   </body>
 </html>
