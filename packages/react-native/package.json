@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
-    "react": "^19.0.0",
+    "react": "^19.2.5",
     "typescript": "^5.9.3",
     "very-happy-dom": "^0.0.9"
   }
