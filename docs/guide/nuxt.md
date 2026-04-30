@@ -53,7 +53,7 @@ export default defineNuxtConfig({
       </TsMapsMarker>
     </TsMapsMap>
     <template #fallback>
-      <div class="h-[500px] rounded-lg bg-gray-100 animate-pulse" />
+      <div class="h-[500px] bg-gray-100 rounded-lg animate-pulse" />
     </template>
   </ClientOnly>
 </template>

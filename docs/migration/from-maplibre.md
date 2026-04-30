@@ -21,6 +21,7 @@ events.
 | `maplibregl.Popup`      | `Popup`                                      |
 
 ```diff
+
 - import maplibregl from 'maplibre-gl'
 - import 'maplibre-gl/dist/maplibre-gl.css'
 - const map = new maplibregl.Map({ container: 'map', style: 'https://.../style.json' })
@@ -29,6 +30,7 @@ events.
 + const styleJson = await (await fetch('https://.../style.json')).json()
 + const map = new TsMap('map', { center: [0, 0], zoom: 2 })
 + map.setStyle(styleJson)
+
 ```
 
 ## Style URLs
@@ -65,7 +67,10 @@ automatically (see [concepts/3d](../concepts/3d.md)).
 ## Not yet on parity
 
 - `globeControl`, `maptilerAttributionControl`, and other MapLibre-specific
+
   controls are not shipped. The built-in `ZoomControl`, `ScaleControl`,
   `AttributionControl`, and `LayersControl` cover most use cases.
+
 - MapLibre's WebGL2-only features (e.g. `render-world-copies: false` at
+
   extreme zooms) may behave slightly differently.

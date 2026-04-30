@@ -8,16 +8,23 @@ runtime dependency or the Mapbox account requirement.
 ## What stays the same
 
 - The style spec: `fill`, `line`, `circle`, `symbol`, `raster`,
+
   `background`, `fill-extrusion`, `heatmap` layer types.
+
 - Expressions: `interpolate`, `step`, `case`, `match`, `coalesce`,
+
   `get`, `has`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `all`, `any`,
   `zoom`, `literal`, `concat`, `to-number`, `to-string`, `to-boolean`,
   `feature-state`, `number-format`.
+
 - Layer-scoped events: `map.on('click', 'layer-id', handler)`.
 - Camera API: `jumpTo` / `easeTo` / `flyTo` / `getCamera`.
 - 3D: `setFog`, `setSky`, `setTerrain`, `fill-extrusion`,
+
   `CustomLayerInterface`.
+
 - Services: geocoding / directions / isochrones / matrix share the same
+
   conceptual shape; the providers are named here (Nominatim, OSRM,
   Valhalla, Mapbox, Google).
 
@@ -33,6 +40,7 @@ runtime dependency or the Mapbox account requirement.
 | `map.setFilter(id, filter)` | `map.setFilter(id, filter)` (same)           |
 
 ```diff
+
 - import mapboxgl from 'mapbox-gl'
 - import 'mapbox-gl/dist/mapbox-gl.css'
 - mapboxgl.accessToken = 'pk.xxx'
@@ -41,6 +49,7 @@ runtime dependency or the Mapbox account requirement.
 + import { TsMap, tileLayer } from 'ts-maps'
 + const map = new TsMap('map', { center: [40, -74], zoom: 13 })
 + tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map)
+
 ```
 
 Note: `ts-maps` uses `[lat, lng]` in its camera options (to match its
@@ -109,6 +118,8 @@ on map construction; `ts-maps` handles the readback issue for you.
 ## Not yet on parity
 
 - `map.setMaxBounds` accepts the same shape as Mapbox, but fit-to-bounds
+
   semantics are Leaflet-style (no automatic padding).
+
 - `map.getFreeCameraOptions()` is not implemented.
 - Mapbox's 3D lighting / ambient-occlusion controls are only partial.

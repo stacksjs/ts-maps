@@ -11,34 +11,42 @@
 ## Features
 
 - 🗺️ **`TsMap`** — modern interactive slippy map with fractional zoom,
+
   bearing, pitch, and unified camera animations (`flyTo`, `easeTo`,
   `jumpTo`).
 
 - 🧱 **Vector tiles** — in-house MVT decoder + Mapbox GL Style Spec
+
   subset with a full expression engine (`interpolate`, `step`, `case`,
   `match`, `coalesce`, `feature-state`). `queryRenderedFeatures` and
   `querySourceFeatures` backed by a per-tile R-tree.
 
 - 🏔️ **3D** — `fill-extrusion`, atmospheric `setFog`, `setSky`, and
+
   DEM-based `setTerrain` with auto-loaded tiles from a `raster-dem`
   source. `addCustomLayer()` lets apps render raw WebGL2 alongside.
 
 - 🌍 **Globe** — seamless Mercator-to-globe transition around zoom 5.5
+
   with an atmosphere halo.
 
 - 🧭 **Services** — geocoding / directions / isochrones / matrix
+
   adapters with keyless defaults (Nominatim, OSRM, Valhalla) and
   opt-in commercial providers (Mapbox, Google, Maptiler, Photon).
 
 - 📴 **Offline** — IndexedDB-backed `TileCache`, `saveOfflineRegion`
+
   pre-fetcher, worker pool for off-main-thread tile decode.
 
 - 🧩 **Layer-scoped events** — `map.on('click', 'layer-id', handler)`.
 
 - 🎯 **Zero runtime deps.** Subpath exports (`ts-maps/services`,
+
   `ts-maps/style-spec`, …) let callers pull in just one slice.
 
 - 🔒 **TypeScript-native** — strict types, `isolatedDeclarations`
+
   compliant, typed events, declaration files for every public module.
 
 ## Installation
@@ -252,9 +260,13 @@ We would like to extend our thanks to the following sponsors for funding Stacks 
 ## Credits
 
 - [Leaflet][leaflet] — the module layout and public API shape of the
+
   interactive map API follow its design.
+
 - [Mapbox GL JS][mapbox-gl-js] — the style spec, expression engine, and
+
   vector-tile renderer are modeled after its design.
+
 - [Chris Breuer][chris-breuer]
 - [All Contributors][all-contributors]
 

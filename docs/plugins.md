@@ -74,9 +74,12 @@ discoverable:
 
 - **Name:** `ts-maps-plugin-<name>` (unscoped) or `@<scope>/ts-maps-<name>`.
 - **Keywords:** include `ts-maps`, `ts-maps-plugin`, and the relevant
+
   extension surface (`geocoder`, `directions`, `layer`, `control`).
+
 - **Peer:** `"peerDependencies": { "ts-maps": "^0.2.0" }`.
 - **Readme:** add a "Requires" section listing any external services
+
   (tile endpoints, API keys, etc.).
 
 ## Plugin registry
@@ -91,11 +94,18 @@ description and a link to your package.
 ## Best practices
 
 - **Keep runtime deps to zero** if you can. `ts-maps` core has none;
+
   plugins that inherit that discipline are easier to ship.
+
 - **Declare `ts-maps` as a peer**, not a dependency — otherwise apps
+
   end up with two copies.
+
 - **Use subpath imports** (`ts-maps/style-spec`, `ts-maps/services`, …)
+
   so bundlers only pull in the slice you actually use.
+
 - **Fail soft.** If your plugin wraps a third-party API, handle 4xx /
+
   5xx responses gracefully and surface them as a rejected Promise —
   don't throw synchronously from a `render()` callback.

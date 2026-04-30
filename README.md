@@ -11,43 +11,53 @@
 ## Features
 
 - 🗺️ **Interactive slippy maps** — `TsMap` gives you fractional zoom, bearing
+
   (rotation), pitch (tilt), and unified `flyTo` / `easeTo` / `jumpTo` camera
   animations.
 
 - 🧱 **Vector tiles + style spec** — in-house MVT (`.pbf`) decoder, full
+
   subset of the Mapbox GL Style Specification, and an expression engine
   that understands `interpolate` / `step` / `case` / `match` / `coalesce`
   and friends. `setStyle`, `addSource`, `addLayer`, `setPaintProperty`,
   `setFilter`, `queryRenderedFeatures`, `querySourceFeatures` — the works.
 
 - 🏔️ **3D** — `fill-extrusion`, atmospheric `setFog`, a sky layer via
+
   `setSky`, and DEM-based terrain via `setTerrain` (auto-loads tiles from
   a `raster-dem` source). A `CustomLayerInterface` lets apps render raw
   WebGL2 alongside the built-in layers.
 
 - 🌍 **Globe** — seamless transition between Mercator and globe projection
+
   around zoom 5.5, with an atmosphere halo.
 
 - 🧭 **Services** — geocoding (Nominatim, Photon, Mapbox, Maptiler,
+
   Google), directions (OSRM, Valhalla, Mapbox, Google), isochrones,
   and distance matrix adapters behind a common interface. Defaults are
   keyless.
 
 - 📴 **Offline** — IndexedDB-backed `TileCache`, `saveOfflineRegion` for
+
   pre-fetching bboxes, and a worker pool for off-main-thread tile decode.
 
 - 🧩 **Layer-scoped events** — `map.on('click', 'layer-id', handler)`,
+
   Mapbox-style: handler only fires when a feature on the named style
   layer is hit.
 
 - 🎯 **Zero runtime dependencies.** Subpath exports (`ts-maps/services`,
+
   `ts-maps/style-spec`, …) let you import just the slice you need.
 
 - 🧩 **Framework bindings** — `@ts-maps/react`, `@ts-maps/vue`,
+
   `@ts-maps/svelte`, `@ts-maps/solid`, `@ts-maps/nuxt`,
   `@ts-maps/react-native` (WebView-hosted).
 
 - 🔒 **TypeScript-native** — full `isolatedDeclarations` compliance,
+
   strict types, and declaration files for every public module.
 
 ## Installation
@@ -265,9 +275,13 @@ We would like to extend our thanks to the following sponsors for funding Stacks 
 ## Credits
 
 - [Leaflet][leaflet] — the module layout and public API shape of the
+
   interactive map API follow its design.
+
 - [Mapbox GL JS][mapbox-gl-js] — the style spec, expression engine, and
+
   vector-tile renderer are modeled after its design.
+
 - [Chris Breuer][chris-breuer]
 - [All Contributors][all-contributors]
 

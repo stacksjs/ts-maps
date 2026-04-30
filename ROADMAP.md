@@ -410,15 +410,24 @@ all fully functional against OSRM+Nominatim with no API keys.
 All six bindings ship from this repo:
 
 - **11.1 `@ts-maps/react`** — `<Map>`, `<TileLayer>`, `<Marker>`,
+
   `<Source>`, `<Layer>`, `<Popup>`, hooks (`useMap`, `useMapEvent`).
+
 - **11.2 `@ts-maps/vue`** — matching SFC components + composables.
 - **11.3 `@ts-maps/svelte`** — `<Map>` / `<TileLayer>` / `<Marker>` /
+
   `<Popup>` / `<Source>` / `<Layer>` Svelte components.
+
 - **11.4 `@ts-maps/solid`** — Solid JSX components with a
+
   `MapContext` / `useMap` pair.
+
 - **11.5 `ts-maps-nuxt`** — Nuxt 3 module; auto-imports the Vue
+
   bindings with a configurable component prefix.
+
 - **11.6 `@ts-maps/react-native`** — WebView-hosted `<MapView>`
+
   bridged to the full `TsMap` API for native mobile apps.
 
 **Exit:** `npm create ts-maps@latest` scaffolds a demo app in any of the
@@ -429,7 +438,9 @@ six frameworks.
 ## Phase 12 — Docs, site, ecosystem
 
 - **12.1 Docs site.** Built with `@stacksjs/bunpress`; hosted at
+
   `ts-maps.dev`. API reference generated from TSDoc.
+
 - **12.2 Examples gallery.** Runnable demos matching Mapbox's + Leaflet's.
 - **12.3 Style playground** (edit style JSON, see the map re-render).
 - **12.4 Plugin guide + public plugin registry.**

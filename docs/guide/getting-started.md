@@ -139,4 +139,5 @@ new GeoJSON(featureCollection, {
 - [React integration](/guide/react)
 - [Nuxt module](/guide/nuxt)
 - [Concepts: map](/concepts/map), [style spec](/concepts/style-spec),
+
   [3D](/concepts/3d), [offline](/concepts/offline).

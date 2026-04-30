@@ -92,6 +92,7 @@ import { useMap, useMapEvent } from '@ts-maps/react'
 
 - `useMap()` — returns the `TsMap` instance from a descendant component.
 - `useMapEvent(name, handler)` — subscribe to a map event with automatic
+
   teardown on unmount.
 
 ```tsx

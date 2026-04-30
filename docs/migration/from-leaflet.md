@@ -10,10 +10,13 @@ they don't change how your existing code works.
 - `LatLng`, `LatLngBounds`, `Point`, `Bounds`.
 - `Layer`, `LayerGroup`, `FeatureGroup`, `GeoJSON`.
 - `TileLayer`, `Marker`, `Popup`, `Tooltip`, `Polyline`, `Polygon`,
+
   `Rectangle`, `Circle`, `CircleMarker`, `ImageOverlay`, `VideoOverlay`,
   `SVGOverlay`.
+
 - `Class`, `Evented`, `Handler`, `Control`.
 - The namespace object (`L.marker(...)` → `tsMap.marker(...)`) and the
+
   classic `new Marker([lat, lng]).addTo(map)` flow.
 
 ## Renames
@@ -26,6 +29,7 @@ they don't change how your existing code works.
 | `window.L`         | `window.tsMap`        |
 
 ```diff
+
 - import L from 'leaflet'
 + import tsMap, { TsMap, Marker, tileLayer } from 'ts-maps'
 
@@ -35,6 +39,7 @@ they don't change how your existing code works.
 + const map = new TsMap('map', { center: [40.7, -74], zoom: 13 })
 + tileLayer('https://tile.example.com/{z}/{x}/{y}.png').addTo(map)
 + new Marker([40.7, -74]).addTo(map).bindPopup('hi')
+
 ```
 
 ## Camera API
@@ -55,8 +60,10 @@ existing code.
 ## CSS
 
 ```diff
+
 - import 'leaflet/dist/leaflet.css'
 + import 'ts-maps/styles.css'
+
 ```
 
 Class names are rebranded from `leaflet-*` to `tsmap-*` / `ts-maps-*`.

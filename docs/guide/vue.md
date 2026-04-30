@@ -87,8 +87,11 @@ import { useMap, useMapEvent } from '@ts-maps/vue'
 ```
 
 - `useMap()` — returns the current `TsMap` instance from inside a child
+
   component.
+
 - `useMapEvent(name, handler)` — subscribe to any `TsMap` event with
+
   automatic teardown on unmount.
 
 ```vue

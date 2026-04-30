@@ -7,14 +7,21 @@ package.
 ## Overview
 
 - [`TsMap`](./TsMap.md) — the interactive map class; camera, sources,
+
   layers, events, style spec.
+
 - [Layers](./layer.md) — `TileLayer`, `VectorTileMapLayer`, `Marker`,
+
   `Popup`, `Polyline`, `Polygon`, `Rectangle`, `Circle`, `CircleMarker`,
   `HeatmapLayer`, `RasterDEMLayer`, `ImageOverlay`, `VideoOverlay`,
   `SVGOverlay`, `LayerGroup`, `FeatureGroup`, `GeoJSON`.
+
 - [Geometry](./geometry.md) — `LatLng`, `LatLngBounds`, `Point`,
+
   `Bounds`, `Transformation`.
+
 - [Expressions](./expressions.md) — style-spec expression operators
+
   (`get`, `match`, `interpolate`, …).
 
 ## Services
