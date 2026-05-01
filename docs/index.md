@@ -41,4 +41,3 @@ features:
     icon: "🧩"
     details: "Official React, Vue, Svelte, Solid, Nuxt, and React-Native bindings."
 ---
-
