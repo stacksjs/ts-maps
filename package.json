@@ -69,5 +69,8 @@
   "workspaces": [
     "packages/**",
     "playground/core-map"
-  ]
+  ],
+  "patchedDependencies": {
+    "very-happy-dom@0.1.2": "patches/very-happy-dom@0.1.2.patch"
+  }
 }

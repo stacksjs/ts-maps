@@ -36,7 +36,7 @@
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "typescript": "^5.9.3",
-        "very-happy-dom": "^0.0.9",
+        "very-happy-dom": "^0.1.2",
       },
       "peerDependencies": {
         "react": ">=18",
@@ -53,7 +53,7 @@
         "@types/react": "^19.0.0",
         "react": "^19.0.0",
         "typescript": "^5.9.3",
-        "very-happy-dom": "^0.0.9",
+        "very-happy-dom": "^0.1.2",
       },
       "peerDependencies": {
         "react": ">=18",
@@ -95,7 +95,7 @@
       "devDependencies": {
         "bunfig": "^0.15.6",
         "typescript": "^5.9.3",
-        "very-happy-dom": "^0.0.9",
+        "very-happy-dom": "^0.1.2",
       },
     },
     "packages/vue": {
@@ -106,7 +106,7 @@
       },
       "devDependencies": {
         "typescript": "^5.9.3",
-        "very-happy-dom": "^0.0.9",
+        "very-happy-dom": "^0.1.2",
         "vue": "^3.4.0",
       },
       "peerDependencies": {
@@ -120,6 +120,9 @@
         "ts-maps": "workspace:*",
       },
     },
+  },
+  "patchedDependencies": {
+    "very-happy-dom@0.1.2": "patches/very-happy-dom@0.1.2.patch",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw=="],
@@ -850,7 +853,7 @@
 
     "utils-merge": ["utils-merge@1.0.1", "", {}, "sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA=="],
 
-    "very-happy-dom": ["very-happy-dom@0.0.9", "", { "bin": { "very-happy-dom": "dist/bin/cli.js" } }, "sha512-hx8so1V0PYwEtS0Va4cAeLpyXR2xEDxfi9Ini9kXr4bL18GDVln+I4U1UKezBlQTrsHKZuPt8xbRqavztwAxUg=="],
+    "very-happy-dom": ["very-happy-dom@0.1.2", "", {}, "sha512-0hCFk/JiMn7hXi2WzP/6Y2faDydNogk89ufvCwVjJZkcn1YBZDQpJkJDMjfbzMxlCHDISQUyqfAfYUFy+ToKxA=="],
 
     "vlq": ["vlq@1.0.1", "", {}, "sha512-gQpnTgkubC6hQgdIcRdYGDSDc+SaujOdyesZQMv6JlfQee/9Mp0Qhnys6WxDWvQnL5WZdT7o2Ul187aSt0Rq+w=="],
 

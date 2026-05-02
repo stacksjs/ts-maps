@@ -1,0 +1,15 @@
+diff --git a/dist/browser/BrowserPage.d.ts b/dist/browser/BrowserPage.d.ts
+index d71d4bf93e8e8d2d5e24c9d08bd1277675c306dd..95c1a8586196d05d994ad1db5c2c47f895f4d1fd 100644
+--- a/dist/browser/BrowserPage.d.ts
++++ b/dist/browser/BrowserPage.d.ts
+@@ -72,7 +72,9 @@ export declare class BrowserPage {
+       timeout?: number
+       css?: string
+       baseUrl?: string
+-      fonts?: Array<{ family: string, url: string, weight?: string, style?: string }>): Promise<string | Buffer>;
++      fonts?: Array<{ family: string, url: string, weight?: string, style?: string }>
++    }
++  }): Promise<string | Buffer>;
+   pdf(options?: {
+     path?: string
+     scale?: number

@@ -12,7 +12,8 @@ logs
 node_modules
 temp
 docs/.vitepress/cache
-storage
+# Root-level only — packages/ts-maps/src/core-map/storage/ is legit source
+/storage
 /pantry
 .zed
 .cursor

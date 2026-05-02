@@ -87,7 +87,8 @@ export class TileLayer extends GridLayer {
   }
 
   _resolveThroughCache(tile: HTMLImageElement, url: string): void {
-    cachedFetch(url, { cache: this._offlineCache }).then((res) => {
+    const cache = this._offlineCache ?? getDefaultCache()
+    cachedFetch(url, { cache }).then((res) => {
       const URLCtor = (globalThis as any).URL
       if (URLCtor && typeof URLCtor.createObjectURL === 'function' && typeof (globalThis as any).Blob === 'function') {
         const blob = new (globalThis as any).Blob([res.data], { type: res.mime })

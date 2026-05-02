@@ -86,7 +86,7 @@
   "devDependencies": {
     "bunfig": "^0.15.6",
     "typescript": "^5.9.3",
-    "very-happy-dom": "^0.0.9"
+    "very-happy-dom": "^0.1.2"
   },
   "lint-staged": {
     "*.{js,ts}": "bunx --bun pickier . --fix"
