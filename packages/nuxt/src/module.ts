@@ -7,7 +7,15 @@ export interface ModuleOptions {
   css?: boolean
 }
 
-export default defineNuxtModule<ModuleOptions>({
+// Minimal local shape for the Nuxt instance — we only touch `options.css`.
+// Declaring it here avoids depending on `@nuxt/schema` purely for typing.
+interface NuxtLike {
+  options: { css?: string[] }
+}
+
+// `isolatedDeclarations` requires the default export's type to be spellable
+// without inference, so we name the module first.
+const tsMapsNuxtModule: ReturnType<typeof defineNuxtModule<ModuleOptions>> = defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'ts-maps-nuxt',
     configKey: 'tsMaps',
@@ -17,7 +25,7 @@ export default defineNuxtModule<ModuleOptions>({
     prefix: 'TsMaps',
     css: true,
   },
-  setup(options, nuxt) {
+  setup(options: ModuleOptions, nuxt: NuxtLike) {
     const { resolve } = createResolver(import.meta.url)
 
     if (options.css) {
@@ -52,3 +60,5 @@ export default defineNuxtModule<ModuleOptions>({
     ])
   },
 })
+
+export default tsMapsNuxtModule

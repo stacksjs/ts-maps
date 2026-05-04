@@ -21,3 +21,7 @@ docs/.vitepress/cache
 pantry
 packages/ts-maps/bench/reports/*.json
 .render-check/
+
+# Stray .d.ts files that escape into src/ during local builds.
+# Source is .ts only — declarations are emitted to dist/ at publish time.
+packages/*/src/**/*.d.ts

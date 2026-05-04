@@ -8,7 +8,15 @@
     "rootDir": "./src",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    // The root tsconfig points `ts-maps` at the package source, which
+    // pulls those files into the program and trips `rootDir`. For build
+    // we want types to come from the already-built dist instead.
+    "baseUrl": ".",
+    "paths": {
+      "ts-maps": ["../ts-maps/dist/index.d.ts"],
+      "ts-maps/*": ["../ts-maps/dist/core-map/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/*.test.ts", "dist", "node_modules", "test"]
