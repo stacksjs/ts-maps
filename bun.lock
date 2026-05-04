@@ -82,7 +82,7 @@
         "ts-maps": "workspace:*",
       },
       "devDependencies": {
-        "svelte": "^5.0.0",
+        "svelte": "^5.55.5",
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
