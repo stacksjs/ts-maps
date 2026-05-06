@@ -84,7 +84,7 @@
     "typecheck": "bun --bun tsc --noEmit"
   },
   "devDependencies": {
-    "bunfig": "^0.15.6",
+    "bunfig": "^0.15.11",
     "typescript": "^5.9.3",
     "very-happy-dom": "^0.1.4"
   },
