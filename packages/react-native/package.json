@@ -48,13 +48,13 @@
     "ts-maps": "workspace:*"
   },
   "peerDependencies": {
-    "react": ">=18",
-    "react-native": ">=0.72",
-    "react-native-webview": ">=13"
+    "react": ">=18.3.1",
+    "react-native": ">=0.85.3",
+    "react-native-webview": ">=13.16.1"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "react": "^19.0.0",
+    "@types/react": "^19.2.14",
+    "react": "^19.2.5",
     "typescript": "^5.9.3",
     "very-happy-dom": "^0.1.4"
   }
