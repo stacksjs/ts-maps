@@ -86,12 +86,12 @@
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
-        "svelte": ">=4",
+        "svelte": ">=5.56.3",
       },
     },
     "packages/ts-maps": {
       "name": "ts-maps",
-      "version": "0.2.7",
+      "version": "0.2.8",
       "devDependencies": {
         "bunfig": "^0.15.6",
         "typescript": "^5.9.3",
