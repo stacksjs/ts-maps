@@ -55,7 +55,7 @@
     "preview:docs": "bun --bun bunpress preview docs"
   },
   "devDependencies": {
-    "@stacksjs/bunpress": "^0.1.4",
+    "@stacksjs/bunpress": "^0.1.9",
     "better-dx": "^0.2.15"
   },
   "git-hooks": {
