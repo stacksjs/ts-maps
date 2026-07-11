@@ -58,7 +58,7 @@
       "peerDependencies": {
         "react": ">=18",
         "react-native": ">=0.72",
-        "react-native-webview": ">=13",
+        "react-native-webview": ">=16.0.0",
       },
     },
     "packages/solid": {
