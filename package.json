@@ -1,7 +1,7 @@
 {
   "name": "ts-maps",
   "type": "module",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "private": true,
   "description": "A modern vector map library.",
   "author": "Chris Breuer <chris@stacksjs.org>",
@@ -52,7 +52,8 @@
     "render:check": "bun --bun scripts/verify-render.ts",
     "dev:docs": "bun --bun bunpress dev docs",
     "build:docs": "bun --bun bunpress build docs",
-    "preview:docs": "bun --bun bunpress preview docs"
+    "preview:docs": "bun --bun bunpress preview docs",
+    "release:patch": "bunx --bun bumpx patch --recursive --commit --tag --push --yes"
   },
   "devDependencies": {
     "@stacksjs/bunpress": "^0.1.4",
