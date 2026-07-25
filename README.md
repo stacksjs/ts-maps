@@ -306,7 +306,7 @@ Made with 💙
 [releases]: https://github.com/stacksjs/ts-maps/releases
 [contributing]: https://github.com/stacksjs/stacks/blob/main/.github/CONTRIBUTING.md
 [discussions-on-github]: https://github.com/stacksjs/ts-maps/discussions
-[join-the-stacks-discord-server]: https://discord.gg/stacksjs
+[join-the-stacks-discord-server]: https://stacksjs.com/discord
 [jetbrains]: https://www.jetbrains.com/
 [the-solana-foundation]: https://solana.com/
 [leaflet]: https://leafletjs.com/

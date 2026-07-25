@@ -50,7 +50,7 @@ new Marker([40.758, -73.9855])
 ## Community
 
 - [GitHub Discussions](https://github.com/stacksjs/ts-maps/discussions)
-- [Discord](https://discord.gg/stacksjs)
+- [Discord](https://stacksjs.com/discord)
 
 ## License
 
