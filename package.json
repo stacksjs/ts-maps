@@ -1,7 +1,7 @@
 {
   "name": "ts-maps",
   "type": "module",
-  "version": "0.2.10",
+  "version": "0.3.0",
   "private": true,
   "description": "A modern vector map library.",
   "author": "Chris Breuer <chris@stacksjs.org>",
@@ -26,6 +26,7 @@
   ],
   "exports": {
     ".": {
+      "types": "./packages/ts-maps/dist/index.d.ts",
       "import": "./packages/ts-maps/dist/index.js"
     }
   },
@@ -33,7 +34,7 @@
   "types": "./packages/ts-maps/dist/index.d.ts",
   "files": [
     "README.md",
-    "packages/post/dist"
+    "packages/ts-maps/dist"
   ],
   "scripts": {
     "build": "bun --bun scripts/build-all.ts",

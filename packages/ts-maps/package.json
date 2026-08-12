@@ -1,10 +1,13 @@
 {
   "name": "ts-maps",
   "type": "module",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "description": "A modern vector map library.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "homepage": "https://github.com/stacksjs/ts-maps#readme",
   "repository": {
     "type": "git",
@@ -59,10 +62,7 @@
       "import": "./dist/core-map/symbols/index.js"
     },
     "./styles.css": "./src/core-map/ts-maps.css",
-    "./css": "./src/core-map/ts-maps.css",
-    "./*": {
-      "import": "./dist/*"
-    }
+    "./css": "./src/core-map/ts-maps.css"
   },
   "style": "./src/core-map/ts-maps.css",
   "main": "./dist/index.js",
@@ -70,20 +70,25 @@
   "types": "./dist/index.d.ts",
   "files": [
     "README.md",
+    "LICENSE.md",
+    "src/core-map/ts-maps.css",
     "dist"
   ],
   "scripts": {
     "bench": "bun bench/suites/index.ts",
     "build": "bun --bun build.ts",
+    "check:package": "bun scripts/verify-package.ts",
     "check:declare": "bun scripts/check-declare.ts",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",
+    "prepack": "bun --bun run build",
     "prepublishOnly": "bun --bun run build",
     "release": "bun publish --access public",
     "test": "bun test",
     "typecheck": "bun --bun tsc --noEmit"
   },
   "devDependencies": {
+    "bun-plugin-dtsx": "^0.11.5",
     "bunfig": "^0.15.6",
     "typescript": "^5.9.3",
     "very-happy-dom": "^0.1.4"

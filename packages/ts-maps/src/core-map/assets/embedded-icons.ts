@@ -5,7 +5,7 @@
  */
 
 /** Classic map pin (Leaflet-compatible proportions). */
-export const MARKER_ICON_DATA_URI =
+export const MARKER_ICON_DATA_URI: string =
   'data:image/svg+xml,'
   + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">'
@@ -15,7 +15,7 @@ export const MARKER_ICON_DATA_URI =
   )
 
 /** Soft drop shadow under the default pin. */
-export const MARKER_SHADOW_DATA_URI =
+export const MARKER_SHADOW_DATA_URI: string =
   'data:image/svg+xml,'
   + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="41" height="41" viewBox="0 0 41 41">'
@@ -24,7 +24,7 @@ export const MARKER_SHADOW_DATA_URI =
   )
 
 /** Layers control toggle (stacked tiles). */
-export const LAYERS_TOGGLE_DATA_URI =
+export const LAYERS_TOGGLE_DATA_URI: string =
   'data:image/svg+xml,'
   + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">'
