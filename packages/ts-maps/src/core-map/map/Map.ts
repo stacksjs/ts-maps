@@ -191,7 +191,6 @@ export class TsMap extends Evented {
   declare touchRotate?: any
   declare touchPitch?: any
   declare _popup?: any
-  closePopup?: () => void
   declare _style?: Style
   declare _featureState?: globalThis.Map<string, Record<string, unknown>>
   // Layer-scoped DOM-event handlers registered via `map.on(type, layerId, fn)`.

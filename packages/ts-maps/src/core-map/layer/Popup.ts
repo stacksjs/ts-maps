@@ -167,6 +167,26 @@ export class Popup extends DivOverlay {
   }
 }
 
+declare module '../map/Map' {
+  interface TsMap {
+    openPopup: (popup: Popup | string | HTMLElement, latlng?: unknown, options?: Record<string, unknown>) => this
+    closePopup: (popup?: Popup) => this
+  }
+}
+
+declare module './Layer' {
+  interface Layer {
+    bindPopup: (content: Popup | string | HTMLElement, options?: Record<string, unknown>) => this
+    unbindPopup: () => this
+    openPopup: (latlng?: unknown) => this
+    closePopup: () => this
+    togglePopup: () => this
+    isPopupOpen: () => boolean
+    setPopupContent: (content: string | HTMLElement) => this
+    getPopup: () => Popup | undefined
+  }
+}
+
 Popup.setDefaultOptions( {
   pane: 'popupPane',
   offset: [0, 7],

@@ -7,7 +7,7 @@
 * for details; all identifiers and classnames here are part of ts - maps.
 */
 
-export const version: string = '0.3.0'
+export const version: string = '0.3.1'
 
 export * from './control/index'
 export * from './core/index'

@@ -64,6 +64,15 @@ export class Layer extends Evented {
   }
 }
 
+declare module '../map/Map' {
+  interface TsMap {
+    addLayer: (layer: Layer) => this
+    removeLayer: (layer: Layer) => this
+    hasLayer: (layer: Layer) => boolean
+    eachLayer: (method: (layer: Layer) => void, context?: unknown) => this
+  }
+}
+
 Layer.setDefaultOptions( {
   pane: 'overlayPane',
   attribution: null,
