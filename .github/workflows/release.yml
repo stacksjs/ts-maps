@@ -20,12 +20,20 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Pantry
-        uses: home-lang/pantry/packages/action@main
+        uses: pantry-pm/pantry/packages/action@main
+        with:
+          install: 'false'
 
       - name: Install Dependencies
         run: bun install
 
+      - name: Build and verify package
+        run: |
+          bun run build
+          bun --cwd packages/ts-maps run check:package
+
       - name: Publish
+        working-directory: packages/ts-maps
         run: pantry publish --npm --access public
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

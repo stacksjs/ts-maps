@@ -109,6 +109,14 @@ jobs:
           test -f packages/solid/dist/index.d.ts
           test -f packages/nuxt/dist/index.d.ts
 
+      - name: Verify publishable package exports
+        working-directory: packages/ts-maps
+        run: bun run check:package
+
+      - name: Verify packed artifact
+        working-directory: packages/ts-maps
+        run: npm pack --dry-run
+
   publish-commit:
     needs: [lint, typecheck, test]
     runs-on: ubuntu-latest
