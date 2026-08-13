@@ -90,7 +90,7 @@
   "devDependencies": {
     "bun-plugin-dtsx": "^0.11.5",
     "bunfig": "^0.15.6",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "very-happy-dom": "^0.1.4"
   },
   "lint-staged": {
