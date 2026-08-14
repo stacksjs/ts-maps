@@ -39,8 +39,8 @@
         "very-happy-dom": "^0.1.4",
       },
       "peerDependencies": {
-        "react": ">=18",
-        "react-dom": ">=18",
+        "react": ">=19.2.8",
+        "react-dom": ">=19.2.8",
       },
     },
     "packages/react-native": {
@@ -56,7 +56,7 @@
         "very-happy-dom": "^0.1.4",
       },
       "peerDependencies": {
-        "react": ">=18",
+        "react": ">=19.2.8",
         "react-native": ">=0.72",
         "react-native-webview": ">=13",
       },
@@ -91,7 +91,7 @@
     },
     "packages/ts-maps": {
       "name": "ts-maps",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "bun-plugin-dtsx": "^0.11.5",
         "bunfig": "^0.15.6",
