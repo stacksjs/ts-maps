@@ -52,7 +52,7 @@
     "vue": ">=3.4"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "very-happy-dom": "^0.1.4",
     "vue": "^3.4.0"
   }
