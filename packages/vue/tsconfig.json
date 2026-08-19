@@ -3,7 +3,6 @@
   "compilerOptions": {
     "jsx": "preserve",
     "isolatedDeclarations": false,
-    "baseUrl": ".",
     "paths": {
       "ts-maps": ["../ts-maps/src"],
       "ts-maps/*": ["../ts-maps/src/*"]

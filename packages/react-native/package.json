@@ -2,7 +2,7 @@
   "name": "@ts-maps/react-native",
   "type": "module",
   "version": "0.2.7",
-  "description": "React Native bindings for ts-maps — interactive SVG-based vector maps rendered inside a WebView.",
+  "description": "React Native bindings for ts-maps \u2014 interactive SVG-based vector maps rendered inside a WebView.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/react-native#readme",
@@ -55,7 +55,7 @@
   "devDependencies": {
     "@types/react": "^19.0.0",
     "react": "^19.0.0",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "very-happy-dom": "^0.1.4"
   }
 }

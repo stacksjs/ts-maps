@@ -3,12 +3,24 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "isolatedDeclarations": false,
-    "baseUrl": ".",
     "paths": {
-      "ts-maps": ["../ts-maps/src"],
-      "ts-maps/*": ["../ts-maps/src/*"]
-    }
+      "ts-maps": [
+        "../ts-maps/src"
+      ],
+      "ts-maps/*": [
+        "../ts-maps/src/*"
+      ]
+    },
+    "types": [
+      "bun"
+    ]
   },
-  "include": ["src/**/*", "test/**/*"],
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }
