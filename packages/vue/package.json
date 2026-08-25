@@ -1,8 +1,8 @@
 {
   "name": "@ts-maps/vue",
   "type": "module",
-  "version": "0.2.7",
-  "description": "Vue 3 bindings for ts-maps \u2014 interactive SVG-based vector maps.",
+  "version": "0.3.2",
+  "description": "Vue 3 bindings for ts-maps — interactive SVG-based vector maps.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/vue#readme",

@@ -1,8 +1,8 @@
 {
   "name": "@ts-maps/react",
   "type": "module",
-  "version": "0.2.7",
-  "description": "React bindings for ts-maps \u2014 interactive SVG-based vector maps.",
+  "version": "0.3.2",
+  "description": "React bindings for ts-maps — interactive SVG-based vector maps.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/react#readme",

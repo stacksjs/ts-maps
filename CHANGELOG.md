@@ -1,5 +1,26 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.1...v0.3.2)
+
+## 🚀 Features
+
+- **control**: add LocateControl, and modernise the map chrome ([532a9d2](https://github.com/stacksjs/ts-maps/commit/532a9d2)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🐛 Bug Fixes
+
+- **docs**: use the config keys bunpress actually has ([2b7498e](https://github.com/stacksjs/ts-maps/commit/2b7498e)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.2 ([f942923](https://github.com/stacksjs/ts-maps/commit/f942923)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **deps**: move the whole workspace to TypeScript 7 ([0c3d714](https://github.com/stacksjs/ts-maps/commit/0c3d714)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **deps**: update shivammathur/setup-php action to v2.37.1 [security] (#6210) ([284d0b5](https://github.com/stacksjs/ts-maps/commit/284d0b5)) _(by [renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>](https://github.com/renovate[bot]))_ ([#6210](https://github.com/stacksjs/ts-maps/issues/6210), [#6210](https://github.com/stacksjs/ts-maps/issues/6210))
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+- _[renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>](https://github.com/renovate[bot])_
+
 ## v0.2.7
 
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.2.6...v0.2.7)
