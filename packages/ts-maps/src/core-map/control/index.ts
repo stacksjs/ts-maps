@@ -1,5 +1,7 @@
 export { AttributionControl } from './AttributionControl'
 export { Control } from './Control'
 export { LayersControl } from './LayersControl'
+export { LocateControl } from './LocateControl'
+export type { LocateControlOptions } from './LocateControl'
 export { ScaleControl } from './ScaleControl'
 export { ZoomControl } from './ZoomControl'
