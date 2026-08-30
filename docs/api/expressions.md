@@ -21,6 +21,8 @@ evaluate(['*', 2, 3], {})  // → 6
 | `min`, `max` | Variadic min / max. |
 | `abs`, `floor`, `ceil`, `round` | Single-number utilities. |
 | `sqrt`, `ln`, `log10`, `log2` | Single-number utilities (domain-checked). |
+| `sin`, `cos`, `tan` | Trigonometry, in radians. |
+| `asin`, `acos`, `atan` | Inverses; `asin`/`acos` are domain-checked. |
 | `e`, `pi` | Constants: `["e"]`, `["pi"]`. |
 | `rand` | `["rand"]` or `["rand", min, max]`. |
 
@@ -65,7 +67,46 @@ evaluate(['*', 2, 3], {})  // → 6
 | -------- | ------- |
 | `concat` | Variadic string concatenation. |
 | `downcase`, `upcase` | Locale-agnostic case mapping. |
+| `index-of` | `["index-of", needle, haystack, start?]` — position in a string or array, or `-1`. |
+| `slice` | `["slice", input, start, end?]` — a sub-range of a string or array. |
+| `number-format` | `["number-format", n, { locale, currency, min-fraction-digits, max-fraction-digits }]`. |
+| `format` | Sectioned text. Sections are concatenated; per-section styling is not rendered yet. |
 | `resolved-locale` | Returns a BCP-47 tag for a collator. |
+
+## Bindings
+
+| Operator | Summary |
+| -------- | ------- |
+| `let` | `["let", name, value, …, body]` — bind names for the body. |
+| `var` | `["var", name]` — read one back. An unbound name is an error, not `null`. |
+
+Bind a sub-expression you would otherwise repeat:
+
+```js
+['let', 'p', ['get', 'population'],
+  ['interpolate', ['linear'], ['var', 'p'], 0, 4, 1e6, 20]]
+```
+
+## Geometry
+
+| Operator | Summary |
+| -------- | ------- |
+| `within` | `["within", polygon]` — is every vertex of the feature inside this GeoJSON Polygon or MultiPolygon? |
+| `distance` | `["distance", geometry]` — metres from the feature to the nearest vertex of the given geometry. |
+
+Both need the feature's coordinates, which are supplied when a **filter** is
+evaluated:
+
+```js
+{ filter: ['within', downtownPolygon] }
+{ filter: ['<', ['distance', { type: 'Point', coordinates: [-118.47, 34.02] }], 500] }
+```
+
+Paint and layout properties are evaluated without geometry, where `within`
+returns `false` and `distance` returns `Infinity` — the answers that leave a
+feature unstyled rather than styling it wrongly. Projecting a feature back to
+lng/lat is not free, so it happens lazily and only when one of these operators
+actually asks.
 
 ## Type conversions
 

@@ -70,3 +70,21 @@ Missing template variables throw eagerly so typos fail loudly.
 ---
 
 Architecture inspired by mapbox-gl-js / maplibre-gl-js. Independent TypeScript implementation with no runtime dependencies.
+
+## Rendering resolution
+
+Tiles are rasterised at the display's own pixel density. A canvas sized in CSS
+pixels is stretched across twice as many device pixels on a retina screen, and
+everything drawn into it — roads, buildings, labels alike — arrives upscaled
+and soft. The backing store is sized by `devicePixelRatio` (capped at 2, since
+3x costs nine times the fill rate for a difference nobody can see) and the 2D
+context carries a matching transform, so every draw call still works in CSS
+pixels and none of them needs to know.
+
+Text is drawn through the canvas's own text engine rather than blitted from the
+glyph atlas. The atlas holds a distance field rasterised at one size, so every
+label was a resample of it — thresholded and softened, which is what made
+labels look blurry next to the crisp vector lines beside them. `fillText`
+renders at the device resolution with real hinting, and `strokeText` gives a
+halo that follows the glyph outline instead of approximating it. The atlas
+remains the measurement authority and the WebGL path's texture.
