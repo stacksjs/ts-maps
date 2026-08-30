@@ -1,0 +1,57 @@
+<script server>
+/**
+ * A marker.
+ *
+ * The default pin needs only a coordinate; `html` swaps in your own markup,
+ * which is how emoji-in-a-ring pins are built:
+ *
+ * ```stx
+ * <Marker :lat="34.02" :lng="-118.47" />
+ *
+ * <Marker
+ *   :lat="34.02"
+ *   :lng="-118.47"
+ *   :html="'<span class=\'pin\'>🔥</span>'"
+ *   :iconSize="[46, 46]"
+ *   :iconAnchor="[23, 23]"
+ * />
+ * ```
+ *
+ * A `<Popup>` nested inside opens when the marker is clicked. Clicks also
+ * dispatch a bubbling `marker:click` DOM event, so a page can listen once on
+ * an ancestor rather than per marker.
+ *
+ * This renders inert markup: `<Map>` reads it and builds the marker. See
+ * runtime.ts for why children cannot build themselves here.
+ */
+export const lat = $props.lat ?? 0
+export const lng = $props.lng ?? 0
+/** Custom marker markup. Renders a DivIcon instead of the default pin. */
+export const html = $props.html
+export const iconSize = $props.iconSize
+export const iconAnchor = $props.iconAnchor
+export const iconClass = $props.iconClass || 'ts-map-marker'
+export const title = $props.title
+export const draggable = $props.draggable
+export const interactive = $props.interactive
+export const opacity = $props.opacity
+export const zIndexOffset = $props.zIndexOffset
+/** Name of the DOM event dispatched when this marker is clicked. */
+export const clickEvent = $props.clickEvent || 'marker:click'
+
+export const markerJson = JSON.stringify({ title, draggable, interactive, opacity, zIndexOffset })
+export const iconJson = JSON.stringify({ html, iconSize, iconAnchor, className: iconClass })
+</script>
+
+<span
+  hidden
+  data-ts-map-child="marker"
+  data-lat="{{ lat }}"
+  data-lng="{{ lng }}"
+  data-options="{{ markerJson }}"
+  data-icon="{{ iconJson }}"
+  data-click-event="{{ clickEvent }}"
+>
+  {{-- A nested <Popup> renders here and is bound to this marker. --}}
+  <slot />
+</span>

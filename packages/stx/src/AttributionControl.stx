@@ -1,0 +1,17 @@
+<script server>
+/**
+ * Layer credits. Usually a licence condition, so prefer moving it to hiding it.
+ *
+ * ```stx
+ * <AttributionControl position="topright" />
+ * ```
+ *
+ * Named for parity with the React, Vue, Svelte and Solid bindings; the
+ * lifecycle lives in MapControl.stx. See the Controls guide for the options
+ * this one accepts.
+ */
+export const position = $props.position
+export const options = $props.options || {}
+</script>
+
+<MapControl type="attribution" :position="position" :options="options" />

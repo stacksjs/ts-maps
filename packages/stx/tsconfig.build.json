@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "allowImportingTsExtensions": false,
+    // The root tsconfig points `ts-maps` at the package source, which pulls
+    // those files into the program and trips `rootDir`. For a build we want
+    // types from the already-built dist instead.
+    "paths": {
+      "ts-maps": ["../ts-maps/dist/index.d.ts"],
+      "ts-maps/*": ["../ts-maps/dist/core-map/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "dist", "node_modules", "test"]
+}

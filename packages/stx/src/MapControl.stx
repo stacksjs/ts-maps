@@ -1,0 +1,24 @@
+<script server>
+/**
+ * The markup behind every control component.
+ *
+ * The named components (`NavigationControl`, `GeocoderControl`, …) are
+ * one-line wrappers around this, so nothing is forked per control.
+ *
+ * `LayersControl` is deliberately absent: it takes dictionaries of live layer
+ * instances rather than plain data, which does not survive a prop boundary.
+ * Reach for the map and `control.layers(...)` for that one.
+ */
+export const type = $props.type || 'zoom'
+export const position = $props.position
+export const options = $props.options || {}
+
+export const optionsJson = JSON.stringify({ ...options, position })
+</script>
+
+<span
+  hidden
+  data-ts-map-child="control"
+  data-type="{{ type }}"
+  data-options="{{ optionsJson }}"
+></span>

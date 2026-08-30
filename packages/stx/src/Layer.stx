@@ -1,0 +1,43 @@
+<script server>
+/**
+ * A style-spec layer — how a source gets drawn.
+ *
+ * ```stx
+ * <Layer
+ *   id="incident-dots"
+ *   type="circle"
+ *   source="incidents"
+ *   sourceLayer="incidents"
+ *   :paint="{ 'circle-radius': 6, 'circle-color': '#ff3b30' }"
+ * />
+ * ```
+ *
+ * `paint`, `layout` and `filter` take the same values the style spec does,
+ * expressions included.
+ */
+export const id = $props.id || ''
+export const type = $props.type || 'circle'
+export const source = $props.source
+export const sourceLayer = $props.sourceLayer
+export const paint = $props.paint
+export const layout = $props.layout
+export const filter = $props.filter
+export const minzoom = $props.minzoom
+export const maxzoom = $props.maxzoom
+/** Insert before this layer id, rather than on top. */
+export const before = $props.before || ''
+
+export const specJson = JSON.stringify({
+  id,
+  type,
+  source,
+  'source-layer': sourceLayer,
+  paint,
+  layout,
+  filter,
+  minzoom,
+  maxzoom,
+})
+</script>
+
+<span hidden data-ts-map-child="layer" data-spec="{{ specJson }}" data-before="{{ before }}"></span>

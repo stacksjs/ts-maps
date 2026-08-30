@@ -1,0 +1,37 @@
+<script server>
+/**
+ * A raster tile layer.
+ *
+ * ```stx
+ * <TileLayer
+ *   url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+ *   attribution="© OpenStreetMap contributors"
+ * />
+ * ```
+ */
+export const url = $props.url || ''
+export const attribution = $props.attribution
+export const subdomains = $props.subdomains
+export const tileSize = $props.tileSize
+export const minZoom = $props.minZoom
+export const maxZoom = $props.maxZoom
+export const opacity = $props.opacity
+export const layerClass = $props.layerClass
+
+export const optionsJson = JSON.stringify({
+  attribution,
+  subdomains,
+  tileSize,
+  minZoom,
+  maxZoom,
+  opacity,
+  className: layerClass,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="tile-layer"
+  data-url="{{ url }}"
+  data-options="{{ optionsJson }}"
+></span>

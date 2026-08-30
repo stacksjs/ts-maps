@@ -1,0 +1,17 @@
+<script server>
+/**
+ * A place-search box over the geocoding providers.
+ *
+ * ```stx
+ * <GeocoderControl position="topright" />
+ * ```
+ *
+ * Named for parity with the React, Vue, Svelte and Solid bindings; the
+ * lifecycle lives in MapControl.stx. See the Controls guide for the options
+ * this one accepts.
+ */
+export const position = $props.position
+export const options = $props.options || {}
+</script>
+
+<MapControl type="geocoder" :position="position" :options="options" />

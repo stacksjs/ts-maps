@@ -1,0 +1,64 @@
+{
+  "name": "@ts-maps/stx",
+  "type": "module",
+  "version": "0.3.2",
+  "description": "stx bindings for ts-maps.",
+  "author": "Chris Breuer <chris@stacksjs.org>",
+  "license": "MIT",
+  "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/stx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stacksjs/ts-maps.git",
+    "directory": "./packages/stx"
+  },
+  "bugs": {
+    "url": "https://github.com/stacksjs/ts-maps/issues"
+  },
+  "keywords": [
+    "stx",
+    "stacksjs",
+    "maps",
+    "interactive",
+    "typescript",
+    "ts-maps",
+    "vector"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./stx-plugin": {
+      "bun": "./stx-plugin.ts",
+      "import": "./stx-plugin.ts"
+    },
+    "./styles.css": "./../ts-maps/src/core-map/ts-maps.css"
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist",
+    "src",
+    "stx-plugin.ts"
+  ],
+  "scripts": {
+    "build": "bun --bun tsc -p tsconfig.build.json",
+    "prepublishOnly": "bun --bun run build",
+    "test": "bun test",
+    "lint": "bunx --bun pickier .",
+    "lint:fix": "bunx --bun pickier . --fix",
+    "typecheck": "bun --bun tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-maps": "workspace:*"
+  },
+  "peerDependencies": {
+    "@stacksjs/stx": ">=0.0.10"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

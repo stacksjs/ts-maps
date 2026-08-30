@@ -1,0 +1,17 @@
+<script server>
+/**
+ * Zoom in and out.
+ *
+ * ```stx
+ * <ZoomControl position="topright" />
+ * ```
+ *
+ * Named for parity with the React, Vue, Svelte and Solid bindings; the
+ * lifecycle lives in MapControl.stx. See the Controls guide for the options
+ * this one accepts.
+ */
+export const position = $props.position
+export const options = $props.options || {}
+</script>
+
+<MapControl type="zoom" :position="position" :options="options" />

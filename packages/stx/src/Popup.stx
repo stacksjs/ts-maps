@@ -1,0 +1,53 @@
+<script server>
+/**
+ * A popup — the bubble with a tip that points at something.
+ *
+ * Nested inside a `<Marker>` it binds to that marker and opens on click.
+ * Given its own `lat`/`lng` it stands alone on the map:
+ *
+ * ```stx
+ * <Marker :lat="34.02" :lng="-118.47">
+ *   <Popup>Ocean Park</Popup>
+ * </Marker>
+ *
+ * <Popup :lat="34.02" :lng="-118.47" :open="true">Standalone</Popup>
+ * ```
+ *
+ * The content is whatever is written between the tags, so it is ordinary
+ * markup — styled, server-rendered and translatable like the rest of the page.
+ * It sits in a `<template>` until the map wants it, which keeps it out of the
+ * document flow in the meantime.
+ */
+export const lat = $props.lat
+export const lng = $props.lng
+/** Open immediately. On a bound popup this opens it without a click. */
+export const open = $props.open ?? false
+export const closeButton = $props.closeButton ?? true
+export const autoPan = $props.autoPan ?? true
+export const closeOnClick = $props.closeOnClick
+export const maxWidth = $props.maxWidth
+export const minWidth = $props.minWidth
+export const offset = $props.offset
+export const popupClass = $props.popupClass || $props.className
+
+export const optionsJson = JSON.stringify({
+  closeButton,
+  autoPan,
+  closeOnClick,
+  maxWidth,
+  minWidth,
+  offset,
+  className: popupClass,
+})
+export const hasPosition = lat !== undefined && lng !== undefined
+</script>
+
+@if (open && hasPosition)
+  <template data-ts-map-child="popup" data-options="{{ optionsJson }}" data-open data-lat="{{ lat }}" data-lng="{{ lng }}"><slot /></template>
+@elseif (open)
+  <template data-ts-map-child="popup" data-options="{{ optionsJson }}" data-open><slot /></template>
+@elseif (hasPosition)
+  <template data-ts-map-child="popup" data-options="{{ optionsJson }}" data-lat="{{ lat }}" data-lng="{{ lng }}"><slot /></template>
+@else
+  <template data-ts-map-child="popup" data-options="{{ optionsJson }}"><slot /></template>
+@endif

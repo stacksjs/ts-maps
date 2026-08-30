@@ -1,0 +1,40 @@
+<script server>
+/**
+ * A style-spec source: vector tiles, raster tiles, terrain, or GeoJSON.
+ *
+ * ```stx
+ * <Source id="incidents" type="geojson" :data="featureCollection" />
+ * <Source id="basemap" type="vector" :tiles="['https://…/{z}/{x}/{y}.pbf']" />
+ * ```
+ *
+ * A source on its own draws nothing — pair it with `<Layer>`s that reference
+ * it by `source`. For a whole basemap in one step, hand `<Map>` a `styleSpec`
+ * instead.
+ */
+export const id = $props.id || ''
+export const type = $props.type || 'vector'
+export const tiles = $props.tiles
+export const data = $props.data
+export const minzoom = $props.minzoom
+export const maxzoom = $props.maxzoom
+export const attribution = $props.attribution
+export const tileSize = $props.tileSize
+export const cluster = $props.cluster
+export const clusterRadius = $props.clusterRadius
+export const clusterMaxZoom = $props.clusterMaxZoom
+
+export const specJson = JSON.stringify({
+  type,
+  tiles,
+  data,
+  minzoom,
+  maxzoom,
+  attribution,
+  tileSize,
+  cluster,
+  clusterRadius,
+  clusterMaxZoom,
+})
+</script>
+
+<span hidden data-ts-map-child="source" data-id="{{ id }}" data-spec="{{ specJson }}"></span>

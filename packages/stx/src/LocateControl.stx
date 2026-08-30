@@ -1,0 +1,17 @@
+<script server>
+/**
+ * Centre on the device's position and follow it.
+ *
+ * ```stx
+ * <LocateControl position="topright" />
+ * ```
+ *
+ * Named for parity with the React, Vue, Svelte and Solid bindings; the
+ * lifecycle lives in MapControl.stx. See the Controls guide for the options
+ * this one accepts.
+ */
+export const position = $props.position
+export const options = $props.options || {}
+</script>
+
+<MapControl type="locate" :position="position" :options="options" />

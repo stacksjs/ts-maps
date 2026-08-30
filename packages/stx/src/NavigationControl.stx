@@ -1,0 +1,17 @@
+<script server>
+/**
+ * Zoom buttons plus a compass that returns the map to north.
+ *
+ * ```stx
+ * <NavigationControl position="topright" />
+ * ```
+ *
+ * Named for parity with the React, Vue, Svelte and Solid bindings; the
+ * lifecycle lives in MapControl.stx. See the Controls guide for the options
+ * this one accepts.
+ */
+export const position = $props.position
+export const options = $props.options || {}
+</script>
+
+<MapControl type="navigation" :position="position" :options="options" />

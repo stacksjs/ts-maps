@@ -1,0 +1,119 @@
+<script server>
+/**
+ * The map itself, and the thing every other component in this package nests
+ * inside.
+ *
+ * ```stx
+ * <Map :center="[34.02, -118.47]" :zoom="14" theme="dark" basemap="dark" tiles="https://…/{z}/{x}/{y}.pbf">
+ *   <NavigationControl position="topright" />
+ *   <Marker :lat="34.02" :lng="-118.47" />
+ * </Map>
+ * ```
+ *
+ * The container is server-rendered so the page has its shape before any
+ * JavaScript runs; the map fills it on mount. Give it a height — a container
+ * with no height is the single most common reason a map appears not to load.
+ *
+ * Note `className`, not `class`: stx seeds every prop into the client scope as
+ * a variable, and `class` is a reserved word.
+ *
+ * Every prop is forwarded raw and defaulted on the other side, in
+ * `mapOptionsFrom`. Defaulting here does not work: stx materialises a `const`
+ * only for props the caller actually passed, so `$props.pitch ?? 0` yields
+ * undefined rather than 0 for a map that never mentioned pitch — and the
+ * option then vanishes from the serialised object entirely.
+ */
+export const center = $props.center
+export const zoom = $props.zoom
+export const minZoom = $props.minZoom
+export const maxZoom = $props.maxZoom
+export const bearing = $props.bearing
+export const pitch = $props.pitch
+/** 'light' | 'dark' | 'auto' — the map's own chrome. */
+export const theme = $props.theme
+/** A StyleSpec object, or a URL to one. */
+export const styleSpec = $props.styleSpec
+/**
+ * Build one of the bundled basemaps instead of passing a whole style:
+ * `<Map basemap="dark" tiles="https://…/{z}/{x}/{y}.pbf" />`.
+ *
+ * Plain strings on purpose. A `:prop` binding carrying a server-computed
+ * object makes stx re-evaluate that expression during hydration, where the
+ * server scope does not exist.
+ */
+export const basemap = $props.basemap
+export const tiles = $props.tiles
+export const tilesAttribution = $props.tilesAttribution
+export const basemapMode = $props.basemapMode
+export const zoomControl = $props.zoomControl
+export const attributionControl = $props.attributionControl
+export const className = $props.className || ''
+/** Inline styles for the container. Defaults to filling its parent. */
+export const containerStyle = $props.containerStyle || 'width: 100%; height: 100%;'
+
+export const mapPropsJson = JSON.stringify({
+  center,
+  zoom,
+  minZoom,
+  maxZoom,
+  bearing,
+  pitch,
+  theme,
+  styleSpec,
+  basemap,
+  tiles,
+  tilesAttribution,
+  basemapMode,
+  zoomControl,
+  attributionControl,
+})
+</script>
+
+{{--
+  The props ride on the element rather than being interpolated into the script
+  below. stx seeds server variables into a client script only when that script
+  has no imports; this one imports ts-maps, so it is bundled instead — and a
+  bundled script sees none of the server scope. Reading them from the DOM is
+  also exactly how every child here passes its own data.
+--}}
+<div
+  ref="root"
+  class="ts-map {{ className }}"
+  style="{{ containerStyle }}"
+  data-ts-map-props="{{ mapPropsJson }}"
+>
+  {{-- Children render inert markup here; the script below builds from it. --}}
+  <slot />
+</div>
+
+<script client>
+  import { TsMap } from 'ts-maps'
+  import { mapOptionsFrom, mountChildren, publishMap, readJson, unpublishMap } from './runtime'
+
+  const root = useRef('root')
+
+  onMount(() => {
+    const container = root.value
+    if (!container) return
+
+    const map = new TsMap(container, mapOptionsFrom(readJson(container, 'data-ts-map-props', {})))
+    publishMap(container, map)
+
+    // One pass over the subtree builds every declared child. stx emits a
+    // component's client script once per definition rather than per use, so
+    // this is the only place that can see all ten of your markers.
+    const teardown = mountChildren(map, container)
+
+    onDestroy(() => {
+      teardown()
+      unpublishMap(container)
+      map.remove()
+    })
+  })
+</script>
+
+<style>
+  .ts-map {
+    position: relative;
+  }
+</style>
