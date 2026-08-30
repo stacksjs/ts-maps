@@ -31,6 +31,16 @@ export interface EvaluationContext {
     type: 1 | 2 | 3
     id?: number | string
     properties: Record<string, unknown>
+    /**
+     * The feature's coordinates as GeoJSON, in lng/lat.
+     *
+     * A function rather than data: projecting a feature back out of tile space
+     * costs real work, and only `within` and `distance` ever ask. Absent when
+     * the caller has no geometry to give — those operators then answer `false`
+     * and `Infinity` rather than guessing.
+     */
+    // eslint-disable-next-line no-unused-vars
+    geometry?: () => unknown
   }
   featureState?: Record<string, unknown>
   // Progress along a line [0, 1]. Set by the line-gradient sampler when
@@ -41,6 +51,10 @@ export interface EvaluationContext {
     pitch?: number
     zoom: number
   }
+  // Names bound by an enclosing `["let", ...]`, read back by `["var", name]`.
+  // Absent for the overwhelming majority of expressions, so nothing is
+  // allocated unless a style actually uses bindings.
+  bindings?: Record<string, unknown>
 }
 
 // A compiled expression: a closure plus metadata the renderer uses to decide

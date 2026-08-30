@@ -5,7 +5,9 @@
 import type { CompiledExpression, ExpressionType } from './types'
 import { parseColor } from './Color'
 import { ExpressionError } from './errors'
+import { registerBindingOps } from './operators/binding'
 import { registerConversionOps } from './operators/conversion'
+import { registerGeometryOps } from './operators/geometry'
 import { registerInterpolateOps } from './operators/interpolate'
 import { registerLogicalOps } from './operators/logical'
 import { registerLookupOps } from './operators/lookup'
@@ -25,6 +27,8 @@ export function boot(): void {
   registerConversionOps()
   registerStringOps()
   registerInterpolateOps()
+  registerBindingOps()
+  registerGeometryOps()
 }
 
 // Wrap a plain literal into a CompiledExpression. Reuse this shape so the

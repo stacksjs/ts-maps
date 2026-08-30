@@ -208,6 +208,19 @@ export function registerMathOps(): void {
     if (n <= 0) throw new ExpressionError('"log2": input must be positive', expr)
   })
 
+  // Trigonometry. All in radians, matching the style spec (and `pi`, which is
+  // already here for exactly this purpose).
+  unary('sin', Math.sin)
+  unary('cos', Math.cos)
+  unary('tan', Math.tan)
+  unary('asin', Math.asin, (n, expr) => {
+    if (n < -1 || n > 1) throw new ExpressionError('"asin": input must be in [-1, 1]', expr)
+  })
+  unary('acos', Math.acos, (n, expr) => {
+    if (n < -1 || n > 1) throw new ExpressionError('"acos": input must be in [-1, 1]', expr)
+  })
+  unary('atan', Math.atan)
+
   // Constants.
   registerOperator('e', (args, _compile, path) => {
     if (args.length !== 0)
