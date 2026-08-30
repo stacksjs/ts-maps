@@ -1,5 +1,8 @@
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { DivIcon } from '../layer/marker/DivIcon'
+import { Marker } from '../layer/marker/Marker'
+import { Circle } from '../layer/vector/Circle'
 import { Control } from './Control'
 
 /**
@@ -46,8 +49,9 @@ export class LocateControl extends Control {
   declare _button?: HTMLAnchorElement
   declare _watchId?: number
   declare _following?: boolean
-  declare _marker?: any
-  declare _accuracyCircle?: any
+  declare _selfMoving?: boolean
+  declare _marker?: Marker
+  declare _accuracyCircle?: Circle
 
   onAdd(map: any): HTMLElement {
     const options = this.options as LocateControlOptions
@@ -152,7 +156,16 @@ export class LocateControl extends Control {
 
     if (recenter && this._map) {
       const zoom = options.zoom === null ? this._map.getZoom() : (options.zoom ?? 16)
-      this._map.setView(latlng, zoom)
+      // The recentre fires the same dragstart/zoomstart the "user took over"
+      // guard listens for, so without this flag the control cancels its own
+      // following on the very first fix.
+      this._selfMoving = true
+      try {
+        this._map.setView(latlng, zoom)
+      }
+      finally {
+        this._selfMoving = false
+      }
     }
 
     if (options.showMarker !== false)
@@ -166,36 +179,51 @@ export class LocateControl extends Control {
     if (!map)
       return
 
-    // Drawn through the map's own layer API so it participates in panning and
-    // zooming like anything else on the map.
-    const circleFactory = (map as any).circle ?? (globalThis as any).tsmapCircle
-    if (typeof circleFactory !== 'function')
-      return
-
+    // Both are ordinary layers, so they pan, zoom, and clip with everything
+    // else on the map for free.
     if (this._accuracyCircle) {
-      this._accuracyCircle.setLatLng?.(latlng)
-      this._accuracyCircle.setRadius?.(accuracy)
+      this._accuracyCircle.setLatLng(latlng)
+      this._accuracyCircle.setRadius(accuracy)
+    }
+    else {
+      this._accuracyCircle = new Circle(latlng, {
+        radius: accuracy,
+        className: 'tsmap-locate-accuracy',
+        interactive: false,
+      }).addTo(map)
+    }
+
+    if (this._marker) {
+      this._marker.setLatLng(latlng)
       return
     }
 
-    this._accuracyCircle = circleFactory.call(map, latlng, {
-      radius: accuracy,
-      className: 'tsmap-locate-accuracy',
+    // The dot is a DivIcon rather than a vector circle: it is a fixed screen
+    // size at every zoom (the halo is the thing that carries scale), and CSS
+    // can give it the pulse without touching the render loop.
+    this._marker = new Marker(latlng, {
+      icon: new DivIcon({
+        className: 'tsmap-locate-dot',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+        html: '<span class="tsmap-locate-dot-pulse" aria-hidden="true"></span>',
+      }),
       interactive: false,
-    })
-    this._accuracyCircle?.addTo?.(map)
+      keyboard: false,
+      zIndexOffset: 1000,
+    }).addTo(map)
   }
 
   _clearMarker(): void {
-    this._accuracyCircle?.remove?.()
+    this._accuracyCircle?.remove()
     this._accuracyCircle = undefined
-    this._marker?.remove?.()
+    this._marker?.remove()
     this._marker = undefined
   }
 
   _stopFollowing(): void {
     // Keep the fix and the marker; just stop yanking the viewport back.
-    if (!this._following)
+    if (!this._following || this._selfMoving)
       return
     this._following = false
     this._clearWatch()
