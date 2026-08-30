@@ -16,6 +16,8 @@ interface Pkg {
   name: string
   dir: string
   hasTests: boolean
+  /** The package's own `test` script, where it needs one. */
+  script?: string
 }
 
 function loadPkgs(): Pkg[] {
@@ -29,9 +31,9 @@ function loadPkgs(): Pkg[] {
     const pkgJson = join(dir, 'package.json')
     if (!existsSync(pkgJson))
       continue
-    const json = JSON.parse(readFileSync(pkgJson, 'utf8')) as { name?: string }
+    const json = JSON.parse(readFileSync(pkgJson, 'utf8')) as { name?: string, scripts?: Record<string, string> }
     const hasTests = existsSync(join(dir, 'test')) || existsSync(join(dir, 'tests'))
-    out.push({ name: json.name ?? entry, dir, hasTests })
+    out.push({ name: json.name ?? entry, dir, hasTests, script: json.scripts?.test })
   }
   return out
 }
@@ -46,8 +48,11 @@ async function main(): Promise<void> {
   let failed = 0
   for (const pkg of pkgs) {
     console.log(`\n=== [test-all] ${pkg.name} ===`)
+    // Some packages need flags of their own — Solid and Svelte resolve their
+    // client runtimes through the `browser` export condition — so a declared
+    // `test` script wins over a bare `bun test`.
     const proc = Bun.spawn({
-      cmd: ['bun', 'test'],
+      cmd: pkg.script ? ['bun', 'run', 'test'] : ['bun', 'test'],
       cwd: pkg.dir,
       stdout: 'inherit',
       stderr: 'inherit',
