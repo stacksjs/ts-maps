@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>ts-maps — 11. Territory capture</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
+    <style>
+      body {
+        background: #0b0e13;
+        color: #e6edf3;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .toolbar button {
+        font: inherit;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid rgb(255 255 255 / 15%);
+        background: #161b22;
+        color: #e6edf3;
+        cursor: pointer;
+      }
+
+      .toolbar button:hover {
+        background: #1f262e;
+      }
+
+      .stage {
+        position: relative;
+      }
+
+      #map {
+        height: 560px;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .panel {
+        position: absolute;
+        z-index: 500;
+        background: rgb(13 17 23 / 88%);
+        border: 1px solid rgb(255 255 255 / 10%);
+        border-radius: 12px;
+        padding: 12px 14px;
+        backdrop-filter: blur(8px);
+        font-size: 13px;
+      }
+
+      #board {
+        top: 14px;
+        left: 14px;
+        min-width: 210px;
+      }
+
+      #board .row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 5px 0;
+      }
+
+      #board .row.self .name {
+        font-weight: 700;
+      }
+
+      #board .swatch {
+        width: 11px;
+        height: 11px;
+        border-radius: 3px;
+        flex: none;
+      }
+
+      #board .name {
+        flex: 1;
+      }
+
+      #board .area {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.85;
+      }
+
+      #board .empty {
+        opacity: 0.6;
+      }
+
+      #status {
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        white-space: nowrap;
+      }
+
+      #status .dim {
+        opacity: 0.4;
+      }
+
+      #toast {
+        top: 14px;
+        left: 50%;
+        transform: translate(-50%, -14px);
+        opacity: 0;
+        transition: opacity 0.22s ease, transform 0.22s ease;
+        pointer-events: none;
+        background: rgb(20 26 34 / 95%);
+      }
+
+      #toast.visible {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .legend {
+        margin-top: 12px;
+        font-size: 13px;
+        opacity: 0.75;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>11. Territory capture</h1>
+    <p class='intro'>
+      A simulated runner emits GPS positions; <code>LoopDetector</code> notices when
+      the path closes, <code>TerritoryStore</code> merges the claim and takes the
+      overlap off the rivals, and <code>TerritoryLayer</code> draws it. Click any
+      territory to ask who holds it.
+    </p>
+
+    <div class='toolbar'>
+      <button id='run' type='button'>Start run</button>
+      <button id='reset' type='button'>Reset</button>
+    </div>
+
+    <div class='stage'>
+      <div id='map'></div>
+      <div id='board' class='panel'></div>
+      <div id='status' class='panel'></div>
+      <div id='toast' class='panel'></div>
+    </div>
+
+    <div class='legend'>
+      The dashed leg on the trail is the part the runner has <em>not</em> run — the
+      shape it closes is what the lap would be worth from here.
+    </div>
+
+    <script type='module' src='./11-territory.ts'></script>
+  </body>
+</html>

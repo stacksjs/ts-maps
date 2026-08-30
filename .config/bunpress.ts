@@ -43,6 +43,7 @@ const config: BunPressConfig = {
         { text: 'Vector Tiles', link: '/concepts/vector-tiles' },
         { text: '3D & Terrain', link: '/concepts/3d' },
         { text: 'Terrain', link: '/concepts/terrain' },
+        { text: 'Territory Capture', link: '/concepts/territory-capture' },
         { text: 'Services', link: '/concepts/services' },
         { text: 'Offline', link: '/concepts/offline' },
       ],
