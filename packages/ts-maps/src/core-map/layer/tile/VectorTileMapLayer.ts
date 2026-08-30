@@ -17,8 +17,8 @@ import type { Point } from '../../geometry/Point'
 import type { CompiledExpression, EvaluationContext } from '../../style-spec/expressions'
 import { compile as compileExpression, isExpression } from '../../style-spec/expressions'
 import { Pbf } from '../../proto/Pbf'
+import type { DecodedFeature, DecodedTile } from '../../mvt/DecodedTile'
 import { VectorTile } from '../../mvt/VectorTile'
-import { VectorTileFeature } from '../../mvt/VectorTileFeature'
 import { RTree } from '../../geometry/RTree'
 import type { TextAnchor } from '../../symbols/placement'
 import { CollisionIndex } from '../../symbols/CollisionIndex'
@@ -192,7 +192,7 @@ export interface VectorTileLayoutProperties {
 }
 
 export interface QueryRenderedFeature {
-  feature: VectorTileFeature
+  feature: DecodedFeature
   layer: VectorTileStyleLayer
   tile: { x: number, y: number, z: number }
 }
@@ -210,7 +210,7 @@ export interface QueryRenderedFeaturesOptions {
 }
 
 export interface QuerySourceFeature {
-  feature: VectorTileFeature
+  feature: DecodedFeature
   sourceLayer: string
   tile: { x: number, y: number, z: number }
 }
@@ -230,7 +230,7 @@ interface DecodedTileEntry {
   sourceKey?: string
   sourcePending?: boolean
   canvas: HTMLCanvasElement
-  tile: VectorTile | null
+  tile: DecodedTile | null
   coords: { x: number, y: number, z: number }
   abort: AbortController
   /** Per-tile spatial index built once decoding completes. */
@@ -258,9 +258,9 @@ export class VectorTileMapLayer extends GridLayer {
    * some tile still needs it", which the tile lifecycle already tells us. At
    * `f = 1` every tile has its own ancestor, so this behaves as it did before.
    */
-  declare _sourceCache: Map<string, { tile: VectorTile, index: RTree<RTreeItem>, refs: number }>
+  declare _sourceCache: Map<string, { tile: DecodedTile, index: RTree<RTreeItem>, refs: number }>
   /** Ancestors currently being fetched, so siblings await one request. */
-  declare _sourcePending: Map<string, { promise: Promise<{ tile: VectorTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
+  declare _sourcePending: Map<string, { promise: Promise<{ tile: DecodedTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
   declare _symbolOverlay?: SymbolOverlay
   declare _symbolHandlers?: Record<string, () => void>
   declare _featureStateLookup?: (src: string, srcLayer: string, id: number | string) => Record<string, unknown>
@@ -835,9 +835,9 @@ export class VectorTileMapLayer extends GridLayer {
     coords: Point & { z: number },
     done: (err: any, tile: HTMLElement) => void,
   ): void {
-    let tile: VectorTile | null
+    let tile: DecodedTile | null
     try {
-      tile = source.getTile(coords.z, coords.x, coords.y) as VectorTile | null
+      tile = source.getTile(coords.z, coords.x, coords.y) as DecodedTile | null
     }
     catch (err) {
       done(err, canvas)
@@ -865,6 +865,34 @@ export class VectorTileMapLayer extends GridLayer {
     done(null, canvas)
   }
 
+  /**
+   * Drop requests for tiles the map has already moved past.
+   *
+   * GridLayer calls this whenever the view changes zoom. Without it, a quick
+   * sequence of zooms leaves every intermediate level still downloading,
+   * competing for the handful of connections the browser allows with the
+   * tiles actually wanted now — the map fills in slowest exactly when someone
+   * is moving around it fastest.
+   *
+   * Only requests nothing is waiting on are cancelled; a tile that is still
+   * current keeps its claim.
+   */
+  _abortLoading(): void {
+    const wanted = new Set<string>()
+    for (const key of Object.keys(this._tiles ?? {})) {
+      const tile = this._tiles![key]
+      if (tile?.current && tile.coords)
+        wanted.add(this._sourceKey(tile.coords))
+    }
+
+    for (const [key, pending] of [...this._sourcePending.entries()]) {
+      if (wanted.has(key))
+        continue
+      pending.abort.abort()
+      this._sourcePending.delete(key)
+    }
+  }
+
   /** Key an ancestor by the tile actually published, not the grid tile. */
   _sourceKey(coords: { x: number, y: number, z: number }): string {
     const sub = this._subTile(coords)
@@ -881,7 +909,7 @@ export class VectorTileMapLayer extends GridLayer {
     key: string,
     url: string,
     entry: DecodedTileEntry,
-  ): Promise<{ tile: VectorTile, index: RTree<RTreeItem> }> {
+  ): Promise<{ tile: DecodedTile, index: RTree<RTreeItem> }> {
     const cached = this._sourceCache.get(key)
     if (cached) {
       cached.refs += 1
@@ -959,7 +987,7 @@ export class VectorTileMapLayer extends GridLayer {
     coords: Point & { z: number },
     done: (err: any, tile: HTMLElement) => void,
   ): Promise<void> {
-    let source: { tile: VectorTile, index: RTree<RTreeItem> }
+    let source: { tile: DecodedTile, index: RTree<RTreeItem> }
     try {
       source = await this._acquireSource(this._sourceKey(coords), url, entry)
     }
@@ -1014,7 +1042,7 @@ export class VectorTileMapLayer extends GridLayer {
     return new Uint8Array(await response.arrayBuffer())
   }
 
-  _drawTile(canvas: HTMLCanvasElement, tile: VectorTile, coords: Point & { z: number }): void {
+  _drawTile(canvas: HTMLCanvasElement, tile: DecodedTile, coords: Point & { z: number }): void {
     const size = this.getTileSize().x
     // Which published tile backs this one. Beyond the source's top zoom the
     // ancestor's features are drawn magnified into this tile's own canvas, so
@@ -1190,7 +1218,7 @@ VectorTileMapLayer.setDefaultOptions({
 function resolvePaintExpression(
   value: unknown,
   zoom: number,
-  feature: VectorTileFeature | undefined,
+  feature: DecodedFeature | undefined,
   featureState: Record<string, unknown> | undefined,
   coords?: { x: number, y: number, z: number },
 ): unknown {
@@ -1222,7 +1250,7 @@ function resolvePaintExpression(
 
 /** A `geometry()` accessor that projects once, however many operators ask. */
 function memoGeometry(
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   coords: { x: number, y: number, z: number },
 ): () => unknown {
   let cached: unknown
@@ -1247,7 +1275,7 @@ function drawFill(
   scale: number,
   paint: VectorTilePaintProperties | undefined,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState?: Record<string, unknown>,
 ): void {
   if (rings.length === 0)
@@ -1293,7 +1321,7 @@ function buildLineGradient(
   scale: number,
   gradientCompiled: CompiledExpression,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState: Record<string, unknown> | undefined,
 ): CanvasGradient | string | null {
   if (firstRing.length < 2)
@@ -1332,7 +1360,7 @@ function drawLine(
   scale: number,
   paint: VectorTilePaintProperties | undefined,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState?: Record<string, unknown>,
   dashResolved?: number[],
   gradientCompiled?: CompiledExpression | null,
@@ -1382,7 +1410,7 @@ function drawCircle(
   scale: number,
   paint: VectorTilePaintProperties | undefined,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState?: Record<string, unknown>,
 ): void {
   if (rings.length === 0)
@@ -1424,7 +1452,7 @@ function drawCircle(
 function resolveLayoutExpression(
   value: unknown,
   zoom: number,
-  feature: VectorTileFeature | undefined,
+  feature: DecodedFeature | undefined,
   featureState: Record<string, unknown> | undefined,
 ): unknown {
   return resolvePaintExpression(value, zoom, feature, featureState)
@@ -1449,7 +1477,7 @@ function drawSymbol(
   ctx: CanvasRenderingContext2D,
   rings: Point[][],
   styleLayer: VectorTileStyleLayer,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   zoom: number,
   featureState: Record<string, unknown> | undefined,
   glyphAtlas: GlyphAtlas,
@@ -1766,7 +1794,7 @@ const LEGACY_FILTER_OPS = new Set<string>([
 // say, 50,000 features only compiles once per tile pass.
 function filterPasses(
   styleLayer: VectorTileStyleLayer,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   mapZoom: number,
   coords?: { x: number, y: number, z: number },
 ): boolean {
@@ -1838,7 +1866,7 @@ function isLegacyShape(filter: unknown[]): boolean {
   return true
 }
 
-function evaluateFilterLegacy(filter: unknown[], feature: VectorTileFeature): boolean {
+function evaluateFilterLegacy(filter: unknown[], feature: DecodedFeature): boolean {
   const [op, ...rest] = filter as any[]
 
   if (op === 'all')
@@ -1882,11 +1910,11 @@ function evaluateFilterLegacy(filter: unknown[], feature: VectorTileFeature): bo
 }
 
 // Back-compat shim for any external caller that imported the old name.
-function evaluateFilter(filter: unknown, feature: VectorTileFeature): boolean {
+function evaluateFilter(filter: unknown, feature: DecodedFeature): boolean {
   return filterPasses({ id: '_shim', type: 'fill', sourceLayer: '', filter } as VectorTileStyleLayer, feature, 0)
 }
 
-function resolveOperand(node: unknown, feature: VectorTileFeature): unknown {
+function resolveOperand(node: unknown, feature: DecodedFeature): unknown {
   if (Array.isArray(node)) {
     if (node[0] === 'get' && typeof node[1] === 'string')
       return feature.properties[node[1]] ?? null
@@ -1914,7 +1942,7 @@ interface LocalQuery {
   scale: number // extent per container pixel
 }
 
-function buildTileIndex(tile: VectorTile): RTree<RTreeItem> {
+function buildTileIndex(tile: DecodedTile): RTree<RTreeItem> {
   const items: Array<{ bbox: BBox, data: RTreeItem }> = []
   for (const sourceLayerName of Object.keys(tile.layers)) {
     const mvtLayer = tile.layers[sourceLayerName]
@@ -2027,7 +2055,7 @@ function collectCandidates(entry: DecodedTileEntry, q: LocalQuery): RTreeItem[] 
 }
 
 function featurePreciseHit(
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   q: LocalQuery,
   styleLayer: VectorTileStyleLayer,
   tileSize: number,
@@ -2127,7 +2155,7 @@ function drawFillGL(
   scale: number,
   paint: VectorTilePaintProperties | undefined,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState?: Record<string, unknown>,
 ): void {
   if (rings.length === 0)
@@ -2161,7 +2189,7 @@ function drawFillExtrusionGL(
   scale: number,
   paint: VectorTilePaintProperties | undefined,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState?: Record<string, unknown>,
 ): void {
   if (rings.length === 0)
@@ -2193,7 +2221,7 @@ function drawLineGL(
   scale: number,
   paint: VectorTilePaintProperties | undefined,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState?: Record<string, unknown>,
 ): void {
   if (rings.length === 0)
@@ -2227,7 +2255,7 @@ function drawCircleGL(
   scale: number,
   paint: VectorTilePaintProperties | undefined,
   zoom: number,
-  feature: VectorTileFeature,
+  feature: DecodedFeature,
   featureState?: Record<string, unknown>,
 ): void {
   if (rings.length === 0)
