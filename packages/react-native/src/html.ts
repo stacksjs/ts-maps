@@ -1,4 +1,4 @@
-import type { ControlSpec, MapRuntime, MarkerSpec } from './types'
+import type { ControlSpec, MapRuntime, MarkerSpec, TerritorySpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -10,6 +10,9 @@ export interface BuildHtmlOptions {
     styleSpec?: unknown
     controls?: ControlSpec[]
     markers?: MarkerSpec[]
+    territories?: TerritorySpec[]
+    self?: string
+    runTrail?: number[][]
   }
 }
 
@@ -152,6 +155,46 @@ const RUNTIME_SCRIPT = [
   '    });',
   '  }',
   '  applyMarkers(initial.markers);',
+  // Territories and the run trail are drawn by the same layers the other
+  // bindings use; only the way they are configured differs, because a store
+  // cannot cross the bridge and its geometry can.
+  '  let territoryLayer = null;',
+  '  let trailLayer = null;',
+  '  function applyTerritories(list) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!Array.isArray(list) || !ns.TerritoryLayer) return;',
+  '    if (!territoryLayer) {',
+  '      const styles = {};',
+  '      list.forEach(function (t) {',
+  '        if (t && t.owner && (t.color || t.fillOpacity != null || t.weight != null)) {',
+  '          styles[t.owner] = {};',
+  '          if (t.color) styles[t.owner].color = t.color;',
+  '          if (t.fillOpacity != null) styles[t.owner].fillOpacity = t.fillOpacity;',
+  '          if (t.weight != null) styles[t.owner].weight = t.weight;',
+  '        }',
+  '      });',
+  '      const opts = { styles: styles };',
+  '      if (initial.self != null) opts.self = initial.self;',
+  '      try { territoryLayer = new ns.TerritoryLayer(opts); map.addLayer(territoryLayer); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '    }',
+  '    list.forEach(function (t) {',
+  '      if (!t || !t.owner) return;',
+  '      if (t.color) territoryLayer.setOwnerStyle(t.owner, { color: t.color });',
+  '      territoryLayer.setTerritory(t.owner, t.geometry || []);',
+  '    });',
+  '  }',
+  '  function applyTrail(track) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!Array.isArray(track) || !ns.RunTrailLayer) return;',
+  '    if (!trailLayer) {',
+  '      try { trailLayer = new ns.RunTrailLayer({}); map.addLayer(trailLayer); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '    }',
+  '    trailLayer.setTrack(track);',
+  '  }',
+  '  applyTerritories(initial.territories);',
+  '  applyTrail(initial.runTrail);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
@@ -183,6 +226,12 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setMarkers") {',
   '      applyMarkers(env.payload && env.payload.markers);',
+  '    }',
+  '    else if (env.type === "setTerritories") {',
+  '      applyTerritories(env.payload && env.payload.territories);',
+  '    }',
+  '    else if (env.type === "setRunTrail") {',
+  '      applyTrail(env.payload && env.payload.runTrail);',
   '    }',
   '  }',
   '  function onMessage(data) {',

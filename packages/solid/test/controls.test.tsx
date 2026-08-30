@@ -11,6 +11,8 @@ import {
   ZoomControl,
 } from '../src/controls'
 import { Map } from '../src/Map'
+import { RunTrailLayer, TerritoryLayer } from '../src/TerritoryLayer'
+import { TerritoryStore } from 'ts-maps'
 import { Popup } from '../src/Popup'
 import { TileLayer } from '../src/TileLayer'
 import { useMapEvent } from '../src/useMapEvent'
@@ -157,6 +159,56 @@ describe('useMapEvent', () => {
     target.fire?.('move')
     expect(moves).toBe(before)
 
+    el.remove()
+  })
+})
+
+describe('territory components', () => {
+  const RING: number[][] = [
+    [-118.475, 34.018],
+    [-118.470, 34.018],
+    [-118.470, 34.022],
+    [-118.475, 34.022],
+    [-118.475, 34.018],
+  ]
+
+  /**
+   * The overlay pane both layers draw into. A canvas is not matched by a class
+   * selector in this DOM, so the pane is what gets counted.
+   */
+  function overlay(el: HTMLElement): HTMLElement {
+    return el.querySelector('.tsmap-overlay-pane') as HTMLElement
+  }
+
+  test('a territory layer mounts and detaches with the map', () => {
+    const store = new TerritoryStore()
+    store.capture('sam', RING)
+
+    const el = host()
+    const dispose = render(() => (
+      <Map class="map" center={[34.02, -118.47]} zoom={15}>
+        <TerritoryLayer store={store} self="sam" />
+      </Map>
+    ), el)
+
+    const pane = overlay(el)
+    expect(pane.children.length).toBe(1)
+
+    dispose()
+    expect(pane.children.length).toBe(0)
+    el.remove()
+  })
+
+  test('a run trail layer takes its track', () => {
+    const el = host()
+    const dispose = render(() => (
+      <Map class="map" center={[34.02, -118.47]} zoom={15}>
+        <RunTrailLayer track={[[-118.47, 34.02], [-118.469, 34.021]]} />
+      </Map>
+    ), el)
+
+    expect(overlay(el).children.length).toBe(1)
+    dispose()
     el.remove()
   })
 })

@@ -301,3 +301,46 @@ describe('definedOnly', () => {
       .toEqual({ a: 1, c: null, d: false, e: 0 })
   })
 })
+
+describe('territory layers', () => {
+  test('a territory-layer child is built and handed to the page', () => {
+    const map = fakeMap()
+    const el = container(`<span data-ts-map-child="territory-layer" data-options='{"self":"sam"}'></span>`)
+
+    // The store is a live object markup cannot carry, so the layer is
+    // announced for the page to configure.
+    let announced: any = null
+    el.addEventListener('territory:ready', (e: any) => {
+      announced = e.detail.layer
+    })
+
+    const unmount = mountChildren(map, el)
+
+    expect(map.added.length).toBe(1)
+    expect(announced).not.toBeNull()
+    expect(typeof announced.setStore).toBe('function')
+    expect(announced.options.self).toBe('sam')
+
+    unmount()
+    expect(map.removed.length).toBe(1)
+  })
+
+  test('a run-trail-layer child is built and announced too', () => {
+    const map = fakeMap()
+    const el = container(`<span data-ts-map-child="run-trail-layer" data-options='{"color":"#38bdf8"}'></span>`)
+
+    let announced: any = null
+    el.addEventListener('runtrail:ready', (e: any) => {
+      announced = e.detail.layer
+    })
+
+    const unmount = mountChildren(map, el)
+
+    expect(map.added.length).toBe(1)
+    expect(typeof announced.setTrack).toBe('function')
+    expect(announced.options.color).toBe('#38bdf8')
+
+    unmount()
+    expect(map.removed.length).toBe(1)
+  })
+})

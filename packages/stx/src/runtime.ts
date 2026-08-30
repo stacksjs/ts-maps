@@ -1,5 +1,5 @@
 import type { TsMap } from 'ts-maps'
-import { control, divIcon, marker as makeMarker, popup as makePopup, styles, tileLayer } from 'ts-maps'
+import { control, divIcon, marker as makeMarker, popup as makePopup, RunTrailLayer, styles, TerritoryLayer, tileLayer } from 'ts-maps'
 
 /**
  * How the components in this package become things on a map.
@@ -181,6 +181,26 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           const url = el.getAttribute('data-url') ?? ''
           const options = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
           created.push(tileLayer(url, options).addTo(map) as Removable)
+          break
+        }
+
+        case 'territory-layer': {
+          const options = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
+          const layer = new TerritoryLayer(options)
+          anyMap.addLayer(layer)
+          created.push(layer as unknown as Removable)
+          // The store and its geometry are live objects that markup cannot
+          // carry, so the page is handed the layer to configure.
+          root.dispatchEvent(new CustomEvent('territory:ready', { bubbles: true, detail: { layer } }))
+          break
+        }
+
+        case 'run-trail-layer': {
+          const options = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
+          const layer = new RunTrailLayer(options)
+          anyMap.addLayer(layer)
+          created.push(layer as unknown as Removable)
+          root.dispatchEvent(new CustomEvent('runtrail:ready', { bubbles: true, detail: { layer } }))
           break
         }
 

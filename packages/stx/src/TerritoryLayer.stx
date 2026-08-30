@@ -1,0 +1,41 @@
+<script server>
+/**
+ * Territories on the map.
+ *
+ * ```stx
+ * <Map center="[34.02, -118.47]" zoom="16">
+ *   <TerritoryLayer self="me" :styles="{ me: { color: '#38bdf8' } }" />
+ * </Map>
+ * ```
+ *
+ * A `TerritoryStore` cannot be written in markup, so the layer is created
+ * empty and the page hands it a store afterwards:
+ *
+ * ```js
+ * const layer = container.querySelector('.tsmap-territory-canvas')._tsLayer
+ * layer.setStore(store)
+ * ```
+ *
+ * The map dispatches `territory:ready` with the layer when it is built, which
+ * is the tidier way to get hold of it.
+ */
+export const self = $props.self
+export const styles = $props.styles
+export const captureDuration = $props.captureDuration
+export const labelMinZoom = $props.labelMinZoom
+export const units = $props.units
+
+export const optionsJson = JSON.stringify({
+  self,
+  styles,
+  captureDuration,
+  labelMinZoom,
+  units,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="territory-layer"
+  data-options="{{ optionsJson }}"
+></span>

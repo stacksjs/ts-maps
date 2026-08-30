@@ -97,3 +97,54 @@ describe('children', () => {
     el.remove()
   })
 })
+
+describe('territory components', () => {
+  const RING: number[][] = [
+    [-118.475, 34.018],
+    [-118.470, 34.018],
+    [-118.470, 34.022],
+    [-118.475, 34.022],
+    [-118.475, 34.018],
+  ]
+
+  /**
+   * The overlay pane both layers draw into. A canvas is not matched by a class
+   * selector in this DOM, so the pane is what gets counted.
+   */
+  function overlay(el: HTMLElement): HTMLElement {
+    return el.querySelector('.tsmap-overlay-pane') as HTMLElement
+  }
+
+  test('a territory layer mounts and detaches with the map', async () => {
+    const WithTerritory = (await import('./fixtures/WithTerritory.svelte')).default
+    const { TerritoryStore } = await import('ts-maps')
+    const store = new TerritoryStore()
+    store.capture('sam', RING)
+
+    const el = host()
+    const app = mount(WithTerritory, { target: el, props: { store } })
+    flushSync()
+
+    const pane = overlay(el)
+    expect(pane.children.length).toBe(1)
+
+    unmountSync(app)
+    expect(pane.children.length).toBe(0)
+    el.remove()
+  })
+
+  test('a run trail layer takes its track', async () => {
+    const WithTerritory = (await import('./fixtures/WithTerritory.svelte')).default
+
+    const el = host()
+    const app = mount(WithTerritory, {
+      target: el,
+      props: { track: [[-118.47, 34.02], [-118.469, 34.021]] },
+    })
+    flushSync()
+
+    expect(overlay(el).children.length).toBe(1)
+    unmountSync(app)
+    el.remove()
+  })
+})

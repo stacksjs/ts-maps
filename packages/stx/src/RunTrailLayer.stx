@@ -1,0 +1,20 @@
+<script server>
+/**
+ * The live trail behind a runner.
+ *
+ * The track changes every second, which markup cannot express, so the page
+ * feeds it: the map dispatches `runtrail:ready` with the layer, and
+ * `layer.setTrack(track)` from there.
+ */
+export const color = $props.color
+export const weight = $props.weight
+export const showPotential = $props.showPotential
+
+export const optionsJson = JSON.stringify({ color, weight, showPotential })
+</script>
+
+<span
+  hidden
+  data-ts-map-child="run-trail-layer"
+  data-options="{{ optionsJson }}"
+></span>

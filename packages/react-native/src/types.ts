@@ -83,6 +83,24 @@ export interface ControlSpec {
   options?: Record<string, unknown>
 }
 
+/**
+ * One owner's ground, as data.
+ *
+ * The map lives in a WebView, so a `TerritoryStore` cannot be handed across —
+ * what crosses the bridge is the geometry it produced. Keep the store on the
+ * React Native side, and send `store.get(owner)` for each owner whenever it
+ * changes.
+ */
+export interface TerritorySpec {
+  owner: string
+  /** GeoJSON MultiPolygon coordinates: `[[[[lng, lat], …]]]`. */
+  geometry: number[][][][]
+  /** Border and fill colour. One is assigned if omitted. */
+  color?: string
+  fillOpacity?: number
+  weight?: number
+}
+
 export interface MapViewProps {
   style?: ViewStyle
 
@@ -116,6 +134,23 @@ export interface MapViewProps {
    */
   markers?: MarkerSpec[]
 
+  /**
+   * Territories to draw, e.g.
+   * `[{ owner: 'me', geometry: store.get('me') }]`.
+   *
+   * Live, like `markers`: changing the array redraws over the bridge without
+   * reloading the WebView, which is what a capture needs to look immediate.
+   */
+  territories?: TerritorySpec[]
+
+  /** The viewer, whose ground is drawn with the emphasis. */
+  self?: string
+
+  /**
+   * The runner's path so far, as `[lng, lat]` positions. Live.
+   */
+  runTrail?: number[][]
+
   onLoad?: () => void
   // eslint-disable-next-line no-unused-vars
   onMove?: (e: MapMoveEvent) => void
@@ -142,6 +177,8 @@ export type BridgeEnvelope =
   | { type: 'click', id: string, payload: MapClickEvent }
   | { type: 'error', id: string, payload: MapErrorEvent }
   | { type: 'setMarkers', id: string, payload: { markers: unknown[] } }
+  | { type: 'setTerritories', id: string, payload: { territories: unknown[] } }
+  | { type: 'setRunTrail', id: string, payload: { runTrail: number[][] } }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }

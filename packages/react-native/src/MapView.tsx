@@ -35,6 +35,9 @@ export function MapView(props: MapViewProps): ReactElement {
     styleSpec,
     controls,
     markers,
+    territories,
+    self,
+    runTrail,
     onLoad,
     onMove,
     onClick,
@@ -48,7 +51,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -113,6 +116,18 @@ export function MapView(props: MapViewProps): ReactElement {
       return
     post({ type: 'setMarkers', id: nextId(), payload: { markers } })
   }, [markers, post])
+
+  useEffect(() => {
+    if (!readyRef.current || territories === undefined)
+      return
+    post({ type: 'setTerritories', id: nextId(), payload: { territories } })
+  }, [territories, post])
+
+  useEffect(() => {
+    if (!readyRef.current || runTrail === undefined)
+      return
+    post({ type: 'setRunTrail', id: nextId(), payload: { runTrail } })
+  }, [runTrail, post])
 
   const handleMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {

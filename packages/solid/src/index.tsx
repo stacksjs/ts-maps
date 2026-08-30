@@ -21,3 +21,5 @@ export {
 } from './controls'
 export { type MapEventHandler, useMapEvent } from './useMapEvent'
 export type { MapProps } from './Map'
+export type { RunTrailLayerProps, TerritoryLayerProps } from './TerritoryLayer'
+export { RunTrailLayer, TerritoryLayer } from './TerritoryLayer'

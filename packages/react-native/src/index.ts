@@ -2,6 +2,7 @@ export { decode, encode, nextId } from './bridge'
 export { buildHtml } from './html'
 export { MapView } from './MapView'
 export type {
+  TerritorySpec,
   BridgeEnvelope,
   ControlSpec,
   MapApi,

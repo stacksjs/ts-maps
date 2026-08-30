@@ -113,3 +113,46 @@ describe('@ts-maps/vue controls', () => {
     host.remove()
   })
 })
+
+describe('territory components', () => {
+  const RING: number[][] = [
+    [-118.475, 34.018],
+    [-118.470, 34.018],
+    [-118.470, 34.022],
+    [-118.475, 34.022],
+    [-118.475, 34.018],
+  ]
+
+  /**
+   * The overlay pane both layers draw into. A canvas is not matched by a class
+   * selector in this DOM, so the pane is what gets counted.
+   */
+  function overlay(host: HTMLElement): HTMLElement {
+    return host.querySelector('.tsmap-overlay-pane') as HTMLElement
+  }
+
+  test('a territory layer mounts into the map', async () => {
+    const { TerritoryLayer } = await import('../src/TerritoryLayer')
+    const { TerritoryStore } = await import('ts-maps')
+    const store = new TerritoryStore()
+    store.capture('sam', RING)
+
+    const { host, app } = await mount([h(TerritoryLayer as any, { store, self: 'sam' })])
+    expect(overlay(host).children.length).toBe(1)
+
+    const pane = overlay(host)
+    app.unmount()
+    expect(pane.children.length).toBe(0)
+    host.remove()
+  })
+
+  test('a run trail layer takes its track', async () => {
+    const { RunTrailLayer } = await import('../src/TerritoryLayer')
+    const { host, app } = await mount([h(RunTrailLayer as any, {
+      track: [[-118.47, 34.02], [-118.469, 34.021]],
+    })])
+    expect(overlay(host).children.length).toBe(1)
+    app.unmount()
+    host.remove()
+  })
+})

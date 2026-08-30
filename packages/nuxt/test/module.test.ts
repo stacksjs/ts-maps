@@ -92,6 +92,8 @@ describe('component registration', () => {
       'TsMapsPopup',
       'TsMapsSource',
       'TsMapsLayer',
+      'TsMapsTerritoryLayer',
+      'TsMapsRunTrailLayer',
       'TsMapsZoomControl',
       'TsMapsNavigationControl',
       'TsMapsGeocoderControl',

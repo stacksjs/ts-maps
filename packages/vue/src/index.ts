@@ -20,3 +20,4 @@ export { type MapEventHandler, useMapEvent } from './useMapEvent'
 
 // Convenience alias — some users prefer `<TsMap>` to match the class name.
 export { Map as TsMap } from './Map'
+export { RunTrailLayer, TerritoryLayer } from './TerritoryLayer'
