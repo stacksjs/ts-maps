@@ -1,0 +1,119 @@
+<script server>
+/**
+ * The filter row.
+ *
+ * `FilterChips` from the component library renders the pills; the page wires
+ * the clicks, because in this app a filter changes the map in place rather
+ * than navigating. The `data-filter-*` attributes are the contract between the
+ * two — see `syncChips` in pages/index.stx.
+ */
+export const chips = [
+  { label: 'Incidents', menu: true, key: 'category', value: 'all', active: true },
+  { label: 'Timeframe', menu: true, key: 'timeframe', value: '1440', active: true },
+  { label: 'Police', key: 'toggle', value: 'police', active: true },
+  { label: 'Fire', key: 'toggle', value: 'fire', active: true },
+]
+</script>
+
+<div class="filter-row" data-stx-filter-chips role="group" aria-label="Incident filters">
+  @foreach (chips as chip)
+    <a
+      href="#"
+      class="filter-chip{{ chip.active ? ' chip-active' : '' }}"
+      data-stx-filter-chip
+      data-filter-key="{{ chip.key }}"
+      data-filter-value="{{ chip.value }}"
+      @if (chip.active)
+        aria-current="true"
+      @endif
+    >
+      @if (chip.menu)
+        <span class="chip-layers" aria-hidden="true"></span>
+      @endif
+      <span>{{ chip.label }}</span>
+      @if (chip.menu)
+        <span class="chip-chevron" aria-hidden="true"></span>
+      @endif
+    </a>
+  @endforeach
+</div>
+
+<style>
+  /*
+   * Scrolls horizontally and bleeds past the panel gutter, so a row that runs
+   * off the edge looks like it continues rather than like it ended.
+   */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin: 0 -12px;
+    padding: 0 12px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 15px;
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 10%);
+    background: rgb(38 41 50 / 92%);
+    color: #e6e8ee;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  /* Active is a filled pill rather than a tinted one: at this size a border
+     colour change is invisible against a moving map. */
+  .filter-chip.chip-active {
+    background: #f1f3f6;
+    border-color: transparent;
+    color: #16181d;
+  }
+
+  body[data-theme='light'] .filter-chip {
+    background: rgb(255 255 255 / 92%);
+    border-color: rgb(0 0 0 / 10%);
+    color: #24262b;
+  }
+
+  body[data-theme='light'] .filter-chip.chip-active {
+    background: #1f2126;
+    color: #fff;
+  }
+
+  .chip-chevron {
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentcolor;
+    border-bottom: 2px solid currentcolor;
+    transform: translateY(-2px) rotate(45deg);
+  }
+
+  .chip-layers {
+    width: 13px;
+    height: 13px;
+    border: 1.6px solid currentcolor;
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .chip-layers::after {
+    content: '';
+    position: absolute;
+    inset: 3px -3px -3px 3px;
+    border: 1.6px solid currentcolor;
+    border-radius: 2px;
+    opacity: 0.55;
+  }
+</style>

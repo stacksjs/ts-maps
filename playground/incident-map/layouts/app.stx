@@ -1,0 +1,77 @@
+{{--
+  The map's stylesheet is linked rather than imported from the client script.
+  stx extracts vendor CSS that resolves through node_modules; ts-maps is
+  consumed here straight from the repo's source tree, so the import produced no
+  stylesheet at all and every map pane fell back to `position: static` — the
+  panes then stacked down the page in normal flow instead of overlaying.
+
+  `public/ts-maps.css` is a symlink to the real file, so it cannot drift.
+--}}
+<link rel="stylesheet" href="/ts-maps.css">
+
+{{--
+  The phone shell.
+
+  On a desktop the app is centred in a 430px column with the page dark around
+  it, so the layout is read as the phone screen it is rather than as a website
+  that failed to fill the window. On a phone the column simply is the screen.
+--}}
+<div class="app-shell">
+  <div class="app-frame">
+    @yield('content')
+  </div>
+</div>
+
+<style>
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #05060a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* The page follows the map: light mode repaints the surround too, so the
+     phone never floats on a dark page with a light screen. */
+  body[data-theme='light'] {
+    background: #e7e5e0;
+  }
+
+  body[data-theme='light'] :root {
+    color-scheme: light;
+  }
+
+  .app-shell {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    min-height: 100dvh;
+  }
+
+  .app-frame {
+    position: relative;
+    width: 100%;
+    max-width: 430px;
+    height: 100dvh;
+    overflow: hidden;
+    background: #0c0d11;
+  }
+
+  body[data-theme='light'] .app-frame {
+    background: #f3f2ee;
+  }
+
+  @media (min-width: 480px) {
+    .app-frame {
+      height: min(100dvh, 900px);
+      align-self: center;
+      border-radius: 28px;
+      box-shadow: 0 24px 70px rgb(0 0 0 / 55%);
+    }
+  }
+</style>

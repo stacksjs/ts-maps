@@ -1,0 +1,201 @@
+@layout('app')
+
+@section('content')
+  {{--
+    The same map as the front page, written declaratively.
+
+    index.stx builds everything by hand in one client script — which is the
+    right shape when an app wants full control. This page is the other half of
+    the story: the `@ts-maps/stx` components, where nesting is the wiring and
+    no imperative code is needed at all.
+  --}}
+  <div class="screen">
+    {{--
+      `className`, never `class`. stx seeds every prop into the client scope as
+      a variable, and `class` is a reserved word, so `class="…"` on a component
+      emits `var class = …` and the whole script fails to parse.
+    --}}
+    <Map
+      className="map-surface"
+      :center="[34.0215, -118.4735]"
+      :zoom="14"
+      :minZoom="3"
+      :maxZoom="18"
+      theme="dark"
+      :zoomControl="false"
+      basemap="dark"
+      tiles="{{ tileUrl }}"
+      tilesAttribution="© OpenFreeMap © OpenStreetMap"
+      containerStyle="position: absolute; inset: 0; z-index: 0;"
+    >
+      <NavigationControl position="topright" />
+      <ScaleControl position="bottomright" />
+
+      @foreach (incidents as incident)
+        <Marker
+          :lat="incident.coords[0]"
+          :lng="incident.coords[1]"
+          :html="incident.pin"
+          :iconSize="[46, 46]"
+          :iconAnchor="[23, 23]"
+          iconClass="incident-pin-icon"
+          :title="incident.title"
+        >
+          <Popup :closeButton="false" className="incident-callout" :offset="[0, -28]" :open="incident.featured">
+            <div class="callout">
+              <div class="callout-age" style="--pin: {{ incident.color }}">
+                <span class="callout-clock" aria-hidden="true"></span>
+                {{ incident.age }}
+              </div>
+              <div class="callout-title">{{ incident.title }}</div>
+              <div class="callout-meta">
+                <span>{{ incident.status }}</span>
+                <span aria-hidden="true">·</span>
+                <span>{{ incident.views }} views</span>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      @endforeach
+    </Map>
+
+    <header class="top-chrome">
+      <a class="back-link" href="/">← Imperative version</a>
+      <p class="blurb">
+        Declarative: every marker, popup and control below is a component.
+        No client script on this page.
+      </p>
+    </header>
+  </div>
+@endsection
+
+<script server>
+  import { CATEGORY_COLORS, formatViews, INCIDENTS, timeAgo } from '../stores/incidents'
+
+  // Resolved while the page renders, not in the browser. OpenFreeMap publishes
+  // its current tile URL through a TileJSON whose path carries a dated
+  // version, so reading it here keeps the demo working across their rebuilds —
+  // and costs the visitor no round trip.
+  let resolved = ''
+  try {
+    const tilejson = await fetch('https://tiles.openfreemap.org/planet').then(r => r.json())
+    resolved = tilejson?.tiles?.[0] ?? ''
+  }
+  catch {
+    // Offline: the map still renders, just without a basemap under the pins.
+  }
+
+  export const tileUrl = resolved
+
+  // Marker markup is built here rather than in a client script — the pins are
+  // static, so there is nothing for the browser to compute.
+  export const incidents = INCIDENTS.map(incident => ({
+    coords: incident.coords,
+    title: incident.title,
+    status: incident.status,
+    featured: incident.featured ?? false,
+    color: CATEGORY_COLORS[incident.category],
+    age: timeAgo(incident.minutesAgo),
+    views: formatViews(incident.views),
+    pin: `<span class="incident-pin" style="--pin: ${CATEGORY_COLORS[incident.category]}">
+            <span class="incident-pin-emoji">${incident.emoji}</span>
+          </span>`,
+  }))
+</script>
+
+<style>
+  .screen {
+    position: absolute;
+    inset: 0;
+  }
+
+  .top-chrome {
+    position: absolute;
+    z-index: 20;
+    top: max(env(safe-area-inset-top, 0px), 12px);
+    right: 12px;
+    left: 12px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgb(18 20 26 / 78%);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 8px 30px rgb(0 0 0 / 35%);
+  }
+
+  .back-link {
+    color: #8ab4f8;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .blurb {
+    margin: 4px 0 0;
+    color: rgb(232 234 237 / 72%);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .incident-pin-icon {
+    background: none;
+    border: 0;
+  }
+
+  .incident-pin {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgb(16 17 22 / 92%);
+    border: 3px solid var(--pin, #ff4d5e);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--pin, #ff4d5e) 22%, transparent), 0 6px 18px rgb(0 0 0 / 45%);
+  }
+
+  .incident-pin-emoji {
+    font-size: 21px;
+    line-height: 1;
+  }
+
+  .incident-callout .tsmap-popup-content-wrapper,
+  .incident-callout .tsmap-popup-tip {
+    background: rgb(24 26 33 / 96%);
+    color: #f1f3f6;
+    box-shadow: 0 10px 34px rgb(0 0 0 / 55%);
+  }
+
+  .incident-callout .tsmap-popup-content-wrapper {
+    border-radius: 18px;
+  }
+
+  .callout-age {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--pin, #ff4d5e);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .callout-clock {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid currentcolor;
+    border-radius: 50%;
+  }
+
+  .callout-title {
+    margin-top: 3px;
+    font-size: 19px;
+    font-weight: 700;
+  }
+
+  .callout-meta {
+    display: flex;
+    gap: 5px;
+    margin-top: 3px;
+    font-size: 13px;
+    opacity: 0.7;
+  }
+</style>

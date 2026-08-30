@@ -1,0 +1,132 @@
+<script server>
+/**
+ * The floating tab bar, with the record button breaking out of its centre.
+ *
+ * The record control is deliberately not one of the tabs: it is an action, not
+ * a destination, and sizing it like its neighbours would bury the one thing the
+ * app most wants you to press.
+ */
+export const tabs = [
+  { id: 'map', label: 'Map', active: true },
+  { id: 'globe', label: 'Explore' },
+  { id: 'alerts', label: 'Alerts' },
+  { id: 'profile', label: 'You' },
+]
+</script>
+
+<nav class="tab-bar" aria-label="Primary">
+  <a class="tab{{ tabs[0].active ? ' tab-active' : '' }}" href="#" aria-current="page" aria-label="Map">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
+  </a>
+
+  <a class="tab" href="#" aria-label="Explore">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 0c2.5 2.4 3.8 5.4 3.8 9s-1.3 6.6-3.8 9m0-18c-2.5 2.4-3.8 5.4-3.8 9s1.3 6.6 3.8 9M3.4 9h17.2M3.4 15h17.2"/></svg>
+  </a>
+
+  {{-- Spacer: the record button floats above this slot. --}}
+  <span class="tab tab-spacer" aria-hidden="true"></span>
+
+  <a class="tab" href="#" aria-label="Alerts">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.2 2.2 0 0 0 2.2-2.2H9.8A2.2 2.2 0 0 0 12 22Zm7-6.4v-4.8a7 7 0 0 0-5.2-6.8V3a1.8 1.8 0 1 0-3.6 0v1a7 7 0 0 0-5.2 6.8v4.8L3 17.6v.9h18v-.9Z"/></svg>
+  </a>
+
+  <a class="tab" href="#" aria-label="You">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2.2c-4 0-7.5 2.2-7.5 4.9V21h15v-1.9c0-2.7-3.5-4.9-7.5-4.9Z"/></svg>
+  </a>
+</nav>
+
+<button class="record-button" type="button" aria-label="Report an incident">
+  <span class="record-core" aria-hidden="true"></span>
+</button>
+
+<style>
+  /*
+   * `max()` with a floor, not the inset alone: on a device with a home
+   * indicator the inset is real, and on a desktop browser it reports 0px and
+   * the bar would sit on the very edge.
+   */
+  .tab-bar {
+    position: absolute;
+    z-index: 25;
+    right: 14px;
+    bottom: max(env(safe-area-inset-bottom, 0px), 14px);
+    left: 14px;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 8%);
+    background: rgb(18 20 26 / 88%);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 10px 34px rgb(0 0 0 / 45%);
+  }
+
+  body[data-theme='light'] .tab-bar {
+    border-color: rgb(0 0 0 / 8%);
+    background: rgb(255 255 255 / 90%);
+    box-shadow: 0 10px 34px rgb(0 0 0 / 14%);
+  }
+
+  .tab {
+    display: grid;
+    place-items: center;
+    flex: 1;
+    padding: 6px 0;
+    color: rgb(232 234 237 / 55%);
+    text-decoration: none;
+  }
+
+  body[data-theme='light'] .tab {
+    color: rgb(32 33 36 / 45%);
+  }
+
+  .tab svg {
+    width: 24px;
+    height: 24px;
+    fill: currentcolor;
+  }
+
+  .tab-active {
+    color: #fff;
+  }
+
+  body[data-theme='light'] .tab-active {
+    color: #16181d;
+  }
+
+  .tab-spacer {
+    pointer-events: none;
+  }
+
+  .record-button {
+    position: absolute;
+    z-index: 26;
+    bottom: calc(max(env(safe-area-inset-bottom, 0px), 14px) + 4px);
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    padding: 0;
+    transform: translateX(-50%);
+    border: 0;
+    border-radius: 50%;
+    /* The glow is what lifts it off the bar; without it a red disc on a dark
+       bar reads as a disabled tab. */
+    background: radial-gradient(circle at 50% 35%, #2a1116 0%, #16080b 70%);
+    box-shadow:
+      0 0 0 2px rgb(255 61 87 / 55%),
+      0 0 26px 4px rgb(255 61 87 / 45%),
+      0 8px 22px rgb(0 0 0 / 45%);
+    cursor: pointer;
+  }
+
+  .record-core {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ff5f70, #e01e37);
+    box-shadow: 0 0 12px rgb(255 61 87 / 80%);
+  }
+</style>

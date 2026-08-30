@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>ts-maps — 10. Street labels &amp; theming</title>
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .toolbar button {
+        font: inherit;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid rgb(0 0 0 / 15%);
+        background: #fff;
+        cursor: pointer;
+      }
+
+      body[data-theme='dark'] .toolbar button {
+        background: #292a2d;
+        color: #e8eaed;
+        border-color: rgb(255 255 255 / 15%);
+      }
+    </style>
+  </head>
+  <body data-theme='dark'>
+    <div class='demo-page'>
+      <nav class='crumbs'>
+        <a href='./index.html'>core-map playground</a>
+        <span>/</span>
+        <span>10. Street labels &amp; theming</span>
+      </nav>
+      <h1>10. Street labels &amp; theming</h1>
+      <p class='subtitle'>
+        Road names drawn with <code>symbol-placement: 'line'</code> — each glyph
+        rotated to the tangent of the road it names, dropped when the line bends
+        past <code>text-max-angle</code>, and repeated every
+        <code>symbol-spacing</code> pixels. Place names use point placement with
+        <code>text-anchor</code> and <code>text-offset</code>, and outrank street
+        names via <code>symbol-sort-key</code>. One collision index spans every
+        tile, so nothing doubles up across a seam. The toggle flips the map
+        style, the map chrome, and the page together.
+      </p>
+      <div class='toolbar'>
+        <button id='theme-toggle' type='button'>☀︎ Light mode</button>
+      </div>
+      <div id='map' class='map-host'></div>
+    </div>
+    <script type='module' src='./10-labels.ts'></script>
+  </body>
+</html>

@@ -1,0 +1,526 @@
+@layout('app')
+
+@section('content')
+  <div class="screen">
+    {{-- The map fills the screen; every other control floats over it. --}}
+    <div id="map" ref="mapEl" class="map-surface"></div>
+
+    <header class="top-chrome">
+      <div ref="searchEl">
+        <SearchInput placeholder="Search Location..." className="search-field" />
+      </div>
+
+      <div ref="filtersEl">
+        <IncidentFilters />
+      </div>
+    </header>
+
+    <button
+      id="theme-toggle"
+      ref="themeButton"
+      class="round-button theme-button"
+      type="button"
+      aria-label="Switch to light mode"
+      @click="toggleTheme()"
+    >
+      <span aria-hidden="true">☀︎</span>
+    </button>
+
+    <CoordinateReadout />
+    <BottomBar />
+  </div>
+@endsection
+
+<script client>
+  import {
+    divIcon,
+    marker,
+    popup,
+    styles,
+    TsMap,
+  } from '../../../packages/ts-maps/src/core-map'
+  import { NominatimGeocoder } from '../../../packages/ts-maps/src/core-map/services'
+  import {
+    CATEGORY_COLORS,
+    CATEGORY_LABELS,
+    formatViews,
+    INCIDENTS,
+    INITIAL_VIEW,
+    timeAgo,
+    USER_LOCATION,
+  } from '../stores/incidents'
+
+  const mapEl = useRef('mapEl')
+  const filtersEl = useRef('filtersEl')
+  const searchEl = useRef('searchEl')
+  const themeButton = useRef('themeButton')
+
+  const theme = state('dark')
+  const filters = state({ category: 'all', timeframe: 1440, police: true, fire: true })
+
+  let map = null
+  let markers = []
+  let calloutPopup = null
+  let selectedId = null
+
+  // OpenFreeMap publishes the current tile URL through a TileJSON, and the path
+  // carries a dated version that changes when the planet is rebuilt. Reading it
+  // at startup means the demo does not rot the next time they publish.
+  const TILEJSON = 'https://tiles.openfreemap.org/planet'
+  const ATTRIBUTION = '© OpenFreeMap © OpenStreetMap'
+
+  async function resolveTileUrl() {
+    try {
+      const response = await fetch(TILEJSON)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const tilejson = await response.json()
+      return tilejson?.tiles?.[0] ?? null
+    }
+    catch {
+      return null
+    }
+  }
+
+  function visibleIncidents() {
+    const f = filters.value
+    return INCIDENTS.filter((incident) => {
+      if (incident.minutesAgo > f.timeframe) return false
+      if (incident.category === 'police' && !f.police) return false
+      if (incident.category === 'fire' && !f.fire) return false
+      if (f.category !== 'all' && incident.category !== f.category) return false
+      return true
+    })
+  }
+
+  function markerHtml(incident) {
+    const color = CATEGORY_COLORS[incident.category]
+    return `
+      <span class="incident-pin" style="--pin: ${color}">
+        <span class="incident-pin-emoji">${incident.emoji}</span>
+      </span>
+    `
+  }
+
+  function calloutHtml(incident) {
+    return `
+      <div class="callout">
+        <div class="callout-age" style="--pin: ${CATEGORY_COLORS[incident.category]}">
+          <span class="callout-clock" aria-hidden="true"></span>
+          ${timeAgo(incident.minutesAgo)}
+        </div>
+        <div class="callout-title">${incident.title}</div>
+        <div class="callout-meta">
+          <span>${incident.status}</span>
+          <span class="callout-dot" aria-hidden="true">·</span>
+          <span>${formatViews(incident.views)} views</span>
+        </div>
+      </div>
+    `
+  }
+
+  function openCallout(incident) {
+    selectedId = incident.id
+    calloutPopup
+      .setLatLng(incident.coords)
+      .setContent(calloutHtml(incident))
+      .openOn(map)
+  }
+
+  function renderMarkers() {
+    for (const existing of markers) existing.remove()
+    markers = []
+
+    const shown = visibleIncidents()
+    for (const incident of shown) {
+      const pin = marker(incident.coords, {
+        icon: divIcon({
+          className: 'incident-pin-icon',
+          html: markerHtml(incident),
+          iconSize: [46, 46],
+          iconAnchor: [23, 23],
+        }),
+        title: `${CATEGORY_LABELS[incident.category]}: ${incident.title}`,
+        riseOnHover: true,
+      }).addTo(map)
+
+      pin.on('click', () => openCallout(incident))
+      markers.push(pin)
+    }
+
+    // A callout for an incident that has just been filtered out would keep
+    // describing something no longer on the map.
+    if (selectedId && !shown.some(i => i.id === selectedId)) {
+      map.closePopup(calloutPopup)
+      selectedId = null
+    }
+  }
+
+  function addUserDot() {
+    marker(USER_LOCATION, {
+      icon: divIcon({
+        className: 'tsmap-locate-dot',
+        html: '<span class="tsmap-locate-dot-pulse" aria-hidden="true"></span>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      }),
+      interactive: false,
+      keyboard: false,
+      zIndexOffset: 500,
+    }).addTo(map)
+  }
+
+  function applyStyle(tileUrl, mode) {
+    if (!tileUrl) return
+    const build = mode === 'dark' ? styles.dark : styles.light
+    map.setStyle(build({ tiles: tileUrl, attribution: ATTRIBUTION }))
+  }
+
+  let currentTileUrl = null
+
+  function toggleTheme() {
+    const next = theme.value === 'dark' ? 'light' : 'dark'
+    theme.value = next
+
+    // One action, three surfaces: the basemap style, the map's own chrome, and
+    // the page around it.
+    applyStyle(currentTileUrl, next)
+    map.setTheme(next)
+    document.body.dataset.theme = next
+
+    const button = themeButton.value
+    if (button) {
+      button.textContent = next === 'dark' ? '☀︎' : '☾'
+      button.setAttribute('aria-label', next === 'dark' ? 'Switch to light mode' : 'Switch to dark mode')
+    }
+  }
+
+  const geocoder = new NominatimGeocoder()
+
+  async function onSearch(query) {
+    const text = String(query ?? '').trim()
+    if (text.length < 3) return
+    try {
+      const results = await geocoder.search(text, { limit: 1, proximity: map.getCenter() })
+      const hit = results?.[0]
+      if (!hit) return
+      map.flyTo([hit.center.lat, hit.center.lng], 15)
+    }
+    catch (error) {
+      // A failed lookup leaves the map where it is; the search box is a
+      // convenience here, not the point of the demo.
+      console.warn('[incident-map] geocoder lookup failed', error)
+    }
+  }
+
+  /*
+   * The search box is listened to at the wrapper rather than bound with
+   * `@search` on the component: the emit crosses a component boundary, and the
+   * page's handler is not in scope where the component fires it. A listener on
+   * the element the component rendered into needs no such plumbing — and it
+   * catches both the component's own `search` event and plain typing.
+   */
+  function wireSearch() {
+    const host = searchEl.value
+    if (!host) return
+
+    let timer = null
+    const run = (value) => {
+      if (timer) clearTimeout(timer)
+      // Nominatim is a shared public service; one request per keystroke is
+      // both slow and rude.
+      timer = setTimeout(() => onSearch(value), 450)
+    }
+
+    host.addEventListener('search', event => run(event.detail))
+    host.addEventListener('input', event => run(event.target?.value))
+    host.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return
+      event.preventDefault()
+      if (timer) clearTimeout(timer)
+      onSearch(event.target?.value)
+    })
+  }
+
+  /*
+   * The library's filter chips render as links, because in a normal app a
+   * filter is a URL. Here the whole screen is one map that must not reload, so
+   * the clicks are intercepted at the row and turned into state changes.
+   */
+  function wireFilters() {
+    const row = filtersEl.value
+    if (!row) return
+
+    row.addEventListener('click', (event) => {
+      const chip = event.target?.closest?.('[data-stx-filter-chip]')
+      if (!chip || !row.contains(chip)) return
+      event.preventDefault()
+
+      const key = chip.dataset.filterKey
+      const value = chip.dataset.filterValue
+      const next = { ...filters.value }
+
+      if (key === 'toggle') next[value] = !next[value]
+      else if (key === 'category') next.category = value
+      else if (key === 'timeframe') next.timeframe = Number(value)
+
+      filters.value = next
+      syncChips(row)
+      renderMarkers()
+    })
+  }
+
+  /** Reflect state back onto the chips the row rendered server-side. */
+  function syncChips(row) {
+    const f = filters.value
+    for (const chip of row.querySelectorAll('[data-stx-filter-chip]')) {
+      const key = chip.dataset.filterKey
+      const value = chip.dataset.filterValue
+      const active
+        = key === 'toggle'
+          ? !!f[value]
+          : key === 'category'
+            ? f.category === value
+            : key === 'timeframe'
+              ? String(f.timeframe) === value
+              : false
+
+      chip.classList.toggle('chip-active', active)
+      if (active) chip.setAttribute('aria-current', 'true')
+      else chip.removeAttribute('aria-current')
+    }
+  }
+
+  onMount(async () => {
+    map = new TsMap(mapEl.value, {
+      center: INITIAL_VIEW.center,
+      zoom: INITIAL_VIEW.zoom,
+      minZoom: 3,
+      maxZoom: 18,
+      theme: 'dark',
+      // The screenshot's chrome is the app's own; the map contributes only
+      // attribution, which is not optional.
+      zoomControl: false,
+    })
+
+    // The map adds its own attribution control; adding a second one just
+    // prints the credits twice. Drop the library's own prefix — this screen has
+    // no room for it, and the tile credit is the part that is required.
+    map.attributionControl?.setPrefix(false)
+
+    calloutPopup = popup({
+      closeButton: false,
+      className: 'incident-callout',
+      offset: [0, -28],
+      autoPan: true,
+      autoPanPadding: [24, 120],
+    })
+
+    currentTileUrl = await resolveTileUrl()
+    applyStyle(currentTileUrl, 'dark')
+
+    addUserDot()
+    renderMarkers()
+    wireFilters()
+    wireSearch()
+
+    const featured = INCIDENTS.find(i => i.featured)
+    if (featured) openCallout(featured)
+
+    map.on('move', () => {
+      const centre = map.getCenter()
+      window.dispatchEvent(new CustomEvent('map:move', {
+        detail: { lat: centre.lat, lng: centre.lng },
+      }))
+    })
+    map.fire('move')
+
+    // Handy from the console when poking at the demo.
+    window.demo = { map, styles, renderMarkers, filters, onSearch, geocoder }
+  })
+</script>
+
+<style>
+  .screen {
+    position: absolute;
+    inset: 0;
+  }
+
+  /*
+   * `z-index: 0` matters: the map's own panes carry z-indexes up to 1000, and
+   * without a stacking context here they render above sibling chrome no matter
+   * what z-index the chrome is given.
+   */
+  .map-surface {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* --- floating chrome ---------------------------------------------------- */
+
+  .top-chrome {
+    position: absolute;
+    z-index: 20;
+    top: max(env(safe-area-inset-top, 0px), 12px);
+    right: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 12px 10px;
+    border-radius: 22px;
+    /* A single translucent slab behind search + filters, so the controls read
+       as one panel rather than three things that happen to be near each
+       other — and so the map stays visible underneath. */
+    background: rgb(18 20 26 / 72%);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 8px 30px rgb(0 0 0 / 35%);
+  }
+
+  body[data-theme='light'] .top-chrome {
+    background: rgb(255 255 255 / 78%);
+    box-shadow: 0 8px 30px rgb(0 0 0 / 12%);
+  }
+
+  .search-field input {
+    height: 46px;
+    border-radius: 999px;
+  }
+
+  .round-button {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(18 20 26 / 78%);
+    color: #e8eaed;
+    font-size: 17px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+    cursor: pointer;
+  }
+
+  body[data-theme='light'] .round-button {
+    background: rgb(255 255 255 / 85%);
+    color: #202124;
+  }
+
+  .theme-button {
+    position: absolute;
+    z-index: 20;
+    top: calc(max(env(safe-area-inset-top, 0px), 12px) + 132px);
+    right: 12px;
+  }
+
+  /* --- incident pins ------------------------------------------------------ */
+
+  .incident-pin-icon {
+    background: none;
+    border: 0;
+  }
+
+  .incident-pin {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    /* Ring in the category colour over a dark disc: the emoji carries the
+       meaning, the ring carries the severity, and the disc keeps both legible
+       over whatever the basemap happens to be underneath. */
+    background: rgb(16 17 22 / 92%);
+    border: 3px solid var(--pin, #ff4d5e);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--pin, #ff4d5e) 22%, transparent), 0 6px 18px rgb(0 0 0 / 45%);
+  }
+
+  .incident-pin-emoji {
+    font-size: 21px;
+    line-height: 1;
+  }
+
+  /* --- callout ------------------------------------------------------------ */
+
+  .incident-callout .tsmap-popup-content-wrapper,
+  .incident-callout .tsmap-popup-tip {
+    background: rgb(24 26 33 / 96%);
+    color: #f1f3f6;
+    box-shadow: 0 10px 34px rgb(0 0 0 / 55%);
+  }
+
+  .incident-callout .tsmap-popup-content-wrapper {
+    border-radius: 18px;
+  }
+
+  .incident-callout .tsmap-popup-content {
+    margin: 12px 16px;
+  }
+
+  body[data-theme='light'] .incident-callout .tsmap-popup-content-wrapper,
+  body[data-theme='light'] .incident-callout .tsmap-popup-tip {
+    background: rgb(255 255 255 / 97%);
+    color: #1f2126;
+  }
+
+  .callout-age {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--pin, #ff4d5e);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .callout-clock {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid currentcolor;
+    border-radius: 50%;
+    position: relative;
+  }
+
+  .callout-clock::after {
+    content: '';
+    position: absolute;
+    top: 1.5px;
+    left: 50%;
+    width: 1.5px;
+    height: 4px;
+    background: currentcolor;
+  }
+
+  .callout-title {
+    margin-top: 3px;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .callout-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    font-size: 13px;
+    opacity: 0.7;
+  }
+
+  /* --- attribution -------------------------------------------------------- */
+
+  /*
+   * Required credit, so it is never hidden — only moved above the tab bar and
+   * the coordinate readout, which would otherwise sit on top of it.
+   */
+  .tsmap-bottom.tsmap-left {
+    bottom: calc(max(env(safe-area-inset-bottom, 0px), 14px) + 62px);
+    left: 2px;
+  }
+
+  .tsmap-control-attribution {
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+</style>

@@ -1,0 +1,51 @@
+{{--
+  Live centre coordinates, bottom-left, above the attribution.
+
+  Fed by the `map:move` event the page dispatches rather than by touching the
+  map here: the component has no business holding a map reference, and a window
+  event keeps the map's own render loop out of the component's lifecycle.
+--}}
+<div class="coord-readout" aria-live="off">
+  <span ref="coordText" class="coord-value">—</span>
+</div>
+
+<script client>
+  const coordText = useRef('coordText')
+
+  onMount(() => {
+    const onMove = (event) => {
+      const el = coordText.value
+      if (!el) return
+      const { lat, lng } = event.detail ?? {}
+      if (typeof lat !== 'number' || typeof lng !== 'number') return
+      el.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    }
+
+    window.addEventListener('map:move', onMove)
+    onDestroy(() => window.removeEventListener('map:move', onMove))
+  })
+</script>
+
+<style>
+  .coord-readout {
+    position: absolute;
+    z-index: 15;
+    bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 84px);
+    left: 12px;
+    pointer-events: none;
+  }
+
+  .coord-value {
+    /* Tabular figures so the numbers stop jittering as the map moves — a
+       readout that reflows on every frame is unreadable. */
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: rgb(255 255 255 / 72%);
+    text-shadow: 0 1px 3px rgb(0 0 0 / 70%);
+  }
+
+  body[data-theme='light'] .coord-value {
+    color: rgb(20 22 26 / 78%);
+    text-shadow: 0 1px 3px rgb(255 255 255 / 80%);
+  }
+</style>

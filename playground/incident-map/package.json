@@ -1,0 +1,10 @@
+{
+  "name": "@ts-maps/incident-map-demo",
+  "private": true,
+  "type": "module",
+  "description": "Citizen-style incident map demo — ts-maps rendering, stx for the app shell",
+  "scripts": {
+    "dev": "bun ${STX_CLI:-/Users/chris/Code/Tools/stx/packages/stx/dist/cli.js} dev --port ${PORT:-3400}",
+    "build": "bun ${STX_CLI:-/Users/chris/Code/Tools/stx/packages/stx/dist/cli.js} build"
+  }
+}

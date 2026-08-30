@@ -50,6 +50,7 @@
     "typecheck": "bunx tsc --noEmit",
     "bench:ts-maps": "cd packages/ts-maps && bun run bench",
     "playground:core-map": "bun --bun run playground/core-map/serve.ts",
+    "playground:incident-map": "bun ${STX_CLI:-$HOME/Code/Tools/stx/packages/stx/dist/cli.js} dev playground/incident-map --port ${PORT:-3400}",
     "render:check": "bun --bun scripts/verify-render.ts",
     "dev:docs": "bun --bun bunpress dev docs",
     "build:docs": "bun --bun bunpress build docs",
