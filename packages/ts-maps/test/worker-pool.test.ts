@@ -1,3 +1,4 @@
+import type { FlatTile } from '../src/core-map/workers/decodeMvtFlat'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { registerWorkerHandler, WorkerPool } from '../src/core-map/workers/WorkerPool'
 
@@ -64,13 +65,15 @@ describe('WorkerPool', () => {
     }, null)
     const bytes = pbf.finish()
 
-    const result = await pool.run<Uint8Array, { layers: Array<{ name: string, features: unknown[] }> }>({
+    const result = await pool.run<Uint8Array, FlatTile>({
       type: 'mvt-decode',
       payload: bytes,
     })
     expect(result.layers.length).toBe(1)
     expect(result.layers[0].name).toBe('things')
-    expect(result.layers[0].features.length).toBe(1)
+    expect(result.layers[0].types.length).toBe(1)
+    // One point, at the coordinates written above.
+    expect(Array.from(result.layers[0].coords)).toEqual([100, 200])
     await pool.shutdown()
   })
 

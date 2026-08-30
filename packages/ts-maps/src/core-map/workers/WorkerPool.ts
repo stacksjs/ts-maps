@@ -13,8 +13,8 @@
 // transparently falls back to main-thread execution: `run()` still resolves
 // with the handler's result, and `shutdown()` is a no-op.
 
-import { Pbf } from '../proto/Pbf'
-import { VectorTile } from '../mvt/VectorTile'
+import type { FlatTile } from './decodeMvtFlat'
+import { decodeMvtFlat, flatTileBuffers } from './decodeMvtFlat'
 
 export interface WorkerTask<T = unknown, _R = unknown> {
   type: string
@@ -38,57 +38,69 @@ interface PendingTask {
 // Main-thread handler registry. Handlers registered here are used for the
 // synchronous fallback path and also serialised into the inline worker so
 // the worker thread can invoke the same logic on its own.
+//
+// Serialisation is the constraint that shapes everything below: a handler
+// reaches the worker as source text, so anything it closes over — an import,
+// a module constant, a sibling function — is undefined by the time it runs.
+// Handlers may declare the functions they need as `deps`; those are
+// stringified alongside and evaluated in the worker's own scope first.
 // ---------------------------------------------------------------------------
 
-const mainThreadHandlers = new Map<string, WorkerHandler>()
+interface RegisteredHandler {
+  fn: WorkerHandler
+  deps: Array<(...args: any[]) => any>
+  /** Buffers to hand over rather than copy, given a result. */
+  transfer?: (result: any) => ArrayBuffer[]
+}
 
-export function registerWorkerHandler<T, R>(type: string, fn: WorkerHandler<T, R>): void {
-  mainThreadHandlers.set(type, fn as WorkerHandler)
+const mainThreadHandlers = new Map<string, RegisteredHandler>()
+
+export interface RegisterOptions {
+  /**
+   * Functions the handler references. Each is emitted into the worker under
+   * its own name before the handler runs, so a handler can call them exactly
+   * as it does on the main thread. They are subject to the same rule: a dep
+   * that closes over an import will not work in the worker.
+   */
+  deps?: Array<(...args: any[]) => any>
+  /** Given a result, the buffers to transfer instead of copying. */
+  transfer?: (result: any) => ArrayBuffer[]
+}
+
+export function registerWorkerHandler<T, R>(
+  type: string,
+  fn: WorkerHandler<T, R>,
+  options: RegisterOptions = {},
+): void {
+  mainThreadHandlers.set(type, {
+    fn: fn as WorkerHandler,
+    deps: options.deps ?? [],
+    transfer: options.transfer,
+  })
 }
 
 export function getWorkerHandler(type: string): WorkerHandler | undefined {
-  return mainThreadHandlers.get(type)
+  return mainThreadHandlers.get(type)?.fn
 }
 
 // ---------------------------------------------------------------------------
-// Built-in: mvt-decode. Receives a `Uint8Array` payload, runs the in-house
-// Pbf + VectorTile pipeline, and returns a transferable feature summary
-// (plain arrays of numbers / strings, no class instances).
+// Built-in: mvt-decode. Takes the raw `.pbf` bytes and returns flat typed
+// arrays, whose buffers are transferred rather than copied.
+//
+// The shape matters as much as the threading. An earlier version of this
+// handler returned features as arrays of `{ x, y }` objects, which is a
+// straightforward way to lose the entire benefit: a decoded tile is hundreds
+// of thousands of small objects, and structured-clone has to walk and rebuild
+// every one of them on the way back. The clone then costs more than the
+// decode it was meant to move off the main thread. Typed arrays are handed
+// over by reference, so what crosses the boundary is a pointer.
 // ---------------------------------------------------------------------------
 
-export interface MvtDecodeResult {
-  layers: Array<{
-    name: string
-    extent: number
-    features: Array<{
-      id?: number
-      type: number
-      properties: Record<string, string | number | boolean | null>
-      geometry: Array<Array<{ x: number, y: number }>>
-    }>
-  }>
-}
-
-registerWorkerHandler<Uint8Array, MvtDecodeResult>('mvt-decode', ({ payload }) => {
-  const pbf = new Pbf(payload)
-  const tile = new VectorTile(pbf)
-  const layers: MvtDecodeResult['layers'] = []
-  for (const name of Object.keys(tile.layers)) {
-    const layer = tile.layers[name]
-    const features: MvtDecodeResult['layers'][number]['features'] = []
-    for (let i = 0; i < layer.length; i++) {
-      const f = layer.feature(i)
-      features.push({
-        id: f.id,
-        type: f.type,
-        properties: f.properties as Record<string, string | number | boolean | null>,
-        geometry: f.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x, y: pt.y }))),
-      })
-    }
-    layers.push({ name, extent: layer.extent, features })
-  }
-  return { layers }
-})
+registerWorkerHandler<Uint8Array, FlatTile>(
+  'mvt-decode',
+  ({ payload }) => decodeMvtFlat(payload),
+  { deps: [decodeMvtFlat], transfer: (result: FlatTile) => flatTileBuffers(result) },
+)
 
 // ---------------------------------------------------------------------------
 // Inline worker script. Built as a template string so we can inject the
@@ -105,10 +117,35 @@ function buildWorkerScript(): string {
   // logic — if a handler references closure-captured imports, the user must
   // either move it to the payload or supply `scriptUrl`.
   const entries: string[] = []
-  for (const [type, fn] of mainThreadHandlers) {
-    entries.push(`[${JSON.stringify(type)}, (${fn.toString()})]`)
+  const deps: string[] = []
+  const seen = new Set<string>()
+  for (const [type, handler] of mainThreadHandlers) {
+    for (const dep of handler.deps) {
+      // Named, and emitted once: two handlers may legitimately share one.
+      if (!dep.name || seen.has(dep.name))
+        continue
+      seen.add(dep.name)
+      deps.push(`const ${dep.name} = ${dep.toString()};`)
+    }
+    entries.push(`[${JSON.stringify(type)}, (${handler.fn.toString()})]`)
   }
   return [
+    ...deps,
+    // Buffers are handed over rather than copied. Found by walking the
+    // result, so a handler does not have to describe its own layout twice.
+    'function collectTransferables(value) {',
+    '  const out = []; const seen = new Set();',
+    '  const walk = (v) => {',
+    '    if (!v || typeof v !== "object" || seen.has(v)) return;',
+    '    seen.add(v);',
+    '    if (ArrayBuffer.isView(v)) { out.push(v.buffer); return; }',
+    '    if (v instanceof ArrayBuffer) { out.push(v); return; }',
+    '    if (Array.isArray(v)) { for (const item of v) walk(item); return; }',
+    '    for (const key of Object.keys(v)) walk(v[key]);',
+    '  };',
+    '  walk(value);',
+    '  return out;',
+    '}',
     `const registry = new Map([${entries.join(',')}]);`,
     'self.onmessage = async (e) => {',
     '  const data = e.data || {};',
@@ -129,7 +166,8 @@ function buildWorkerScript(): string {
     '  }',
     '  try {',
     '    const result = await handler({ type: type, payload: payload });',
-    '    self.postMessage({ id: id, ok: true, result: result });',
+    '    const transfer = collectTransferables(result);',
+    '    self.postMessage({ id: id, ok: true, result: result }, transfer);',
     '  }',
     '  catch (err) {',
     '    self.postMessage({ id: id, ok: false, error: err && err.message ? err.message : String(err) });',
@@ -233,7 +271,7 @@ export class WorkerPool {
       const handler = mainThreadHandlers.get(task.type)
       if (!handler)
         throw new Error(`unknown task type: ${task.type}`)
-      return await handler(task as WorkerTask) as R
+      return await handler.fn(task as WorkerTask) as R
     }
 
     const id = this._nextId++

@@ -18,7 +18,9 @@ import type { CompiledExpression, EvaluationContext } from '../../style-spec/exp
 import { compile as compileExpression, isExpression } from '../../style-spec/expressions'
 import { Pbf } from '../../proto/Pbf'
 import type { DecodedFeature, DecodedTile } from '../../mvt/DecodedTile'
+import { FlatTile } from '../../mvt/FlatTile'
 import { VectorTile } from '../../mvt/VectorTile'
+import { WorkerPool } from '../../workers/WorkerPool'
 import { RTree } from '../../geometry/RTree'
 import type { TextAnchor } from '../../symbols/placement'
 import { CollisionIndex } from '../../symbols/CollisionIndex'
@@ -70,6 +72,17 @@ export interface VectorTileMapLayerOptions {
    * 512px tiles sit one level above. See `_subTile`.
    */
   sourceMaxZoom?: number
+  /**
+   * Decode tiles on worker threads. `true` (the default) uses a shared pool
+   * sized to the machine; a number sets the pool size; `false` decodes on the
+   * main thread.
+   *
+   * The pool is shared across every layer on the page — a map with a basemap
+   * and two overlays should not run three pools competing for the same cores.
+   * Where workers are unavailable, decoding happens inline and nothing else
+   * changes.
+   */
+  workers?: boolean | number
   tileSize?: number
   attribution?: string
   pane?: string
@@ -243,6 +256,31 @@ interface DecodedTileEntry {
 // Class
 // ---------------------------------------------------------------------------
 
+/**
+ * One decode pool for the whole page.
+ *
+ * Layers are cheap to create — a style with a basemap and a couple of overlays
+ * makes three — and each spawning its own workers would have them competing
+ * for the same cores while multiplying the fixed cost of a thread. Sized to
+ * leave the main thread a core of its own, since that is the one drawing.
+ */
+let decodePool: WorkerPool | null = null
+
+function sharedDecodePool(size?: number): WorkerPool {
+  if (!decodePool) {
+    const cores = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency ?? 4) : 4
+    decodePool = new WorkerPool({ size: size ?? Math.max(1, Math.min(4, cores - 1)) })
+  }
+  return decodePool
+}
+
+/** Drop the shared pool. Tests, and teardown in long-lived hosts. */
+export async function shutdownDecodePool(): Promise<void> {
+  const pool = decodePool
+  decodePool = null
+  await pool?.shutdown()
+}
+
 export class VectorTileMapLayer extends GridLayer {
   declare _styleLayers: VectorTileStyleLayer[]
   declare _decodedTiles: Map<HTMLCanvasElement, DecodedTileEntry>
@@ -258,6 +296,7 @@ export class VectorTileMapLayer extends GridLayer {
    * some tile still needs it", which the tile lifecycle already tells us. At
    * `f = 1` every tile has its own ancestor, so this behaves as it did before.
    */
+  declare _workersUsable: boolean
   declare _sourceCache: Map<string, { tile: DecodedTile, index: RTree<RTreeItem>, refs: number }>
   /** Ancestors currently being fetched, so siblings await one request. */
   declare _sourcePending: Map<string, { promise: Promise<{ tile: DecodedTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
@@ -934,7 +973,7 @@ export class VectorTileMapLayer extends GridLayer {
       abort,
       promise: (async () => {
         const bytes = await this._fetchTileBytes(url, { abort } as DecodedTileEntry)
-        const decoded = new VectorTile(new Pbf(bytes))
+        const decoded = await this._decode(bytes)
         const built = { tile: decoded, index: buildTileIndex(decoded) }
         // Every tile that queued up behind this request still holds a claim,
         // so the count carries over rather than restarting at one.
@@ -952,6 +991,44 @@ export class VectorTileMapLayer extends GridLayer {
     // A failure must not strand the key: the next tile should be free to try.
     record.promise.catch(() => this._sourcePending.delete(key))
     return record.promise
+  }
+
+  /**
+   * Turn tile bytes into a decoded tile, on a worker where there is one.
+   *
+   * A pan at speed asks for a dozen tiles at once; decoding them inline means
+   * a dozen pauses on the thread that is also drawing the map. What comes back
+   * from the worker is flat typed arrays whose buffers are handed over rather
+   * than copied, so the win isn't undone at the boundary.
+   *
+   * If the worker path fails for any reason — a browser that won't build the
+   * inline script, a serialisation problem — the layer drops to main-thread
+   * decoding permanently and says so once. The map keeps working; it just
+   * works the way it did before there was a pool.
+   */
+  async _decode(bytes: Uint8Array): Promise<DecodedTile> {
+    const pool = this._workerPool()
+    if (pool) {
+      try {
+        return new FlatTile(await pool.run({ type: 'mvt-decode', payload: bytes }))
+      }
+      catch (err) {
+        this._workersUsable = false
+        console.warn('[ts-maps] worker decode failed; falling back to the main thread.', err)
+      }
+    }
+    return new VectorTile(new Pbf(bytes))
+  }
+
+  /** The shared pool, unless this layer or this browser has opted out. */
+  _workerPool(): WorkerPool | null {
+    if (this._workersUsable === false)
+      return null
+    const setting = this.options?.workers
+    if (setting === false)
+      return null
+    const pool = sharedDecodePool(typeof setting === 'number' ? setting : undefined)
+    return pool.size() > 0 ? pool : null
   }
 
   /** Give back a tile's claim on its ancestor, freeing it when nothing holds it. */
@@ -1205,6 +1282,7 @@ VectorTileMapLayer.setDefaultOptions({
   sources: undefined,
   localSource: undefined,
   zoomOffset: 0,
+  workers: true,
 })
 
 // ---------------------------------------------------------------------------
