@@ -49,7 +49,7 @@
     "ts-maps": "workspace:*"
   },
   "peerDependencies": {
-    "svelte": ">=4"
+    "svelte": ">=5.57.0"
   },
   "devDependencies": {
     "svelte": "^5.0.0",

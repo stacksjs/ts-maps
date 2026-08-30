@@ -103,7 +103,7 @@
         "typescript": "^7.0.2",
       },
       "peerDependencies": {
-        "svelte": ">=4",
+        "svelte": ">=5.57.0",
       },
     },
     "packages/ts-maps": {
