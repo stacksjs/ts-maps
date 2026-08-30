@@ -1,3 +1,5 @@
+export type { AppliedCapture, CaptureEvent, TerritoryLogOptions } from './TerritoryLog'
+export { compareEvents, TerritoryLog } from './TerritoryLog'
 export type { DetectedLoop, LoopDetectorOptions, LoopOptions } from './loop'
 export { detectLoop, LoopDetector, simplifyTrack } from './loop'
 export type {
