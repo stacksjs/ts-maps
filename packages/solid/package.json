@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7",
-    "@babel/preset-typescript": "^7",
+    "@babel/preset-typescript": "^8.0.1",
     "babel-preset-solid": "^1.9.15",
     "solid-js": "^1.8.0",
     "typescript": "^7.0.2"
