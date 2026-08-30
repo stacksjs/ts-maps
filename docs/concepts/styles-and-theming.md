@@ -138,6 +138,41 @@ downloaded are re-rasterised, rather than being thrown away and fetched again.
 
 See `playground/incident-map` for this wired up end to end.
 
+## Density fields and terrain shading
+
+`heatmap` and `hillshade` layers are reachable from a style document, not only
+as layer instances.
+
+```js
+{
+  sources: {
+    quakes: { type: 'geojson', data: '/quakes.geojson' },
+    terrain: { type: 'raster-dem', tiles: ['https://example.com/dem/{z}/{x}/{y}.png'] },
+  },
+  layers: [
+    { id: 'shade', type: 'hillshade', source: 'terrain',
+      paint: { 'hillshade-exaggeration': 0.6, 'hillshade-shadow-color': '#000044' } },
+    { id: 'heat', type: 'heatmap', source: 'quakes',
+      paint: {
+        'heatmap-radius': 24,
+        'heatmap-weight': ['get', 'mag'],
+        'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+          0, 'rgba(0, 0, 255, 0)', 0.5, 'lime', 1, 'red'],
+      } },
+  ],
+}
+```
+
+`heatmap-color` is sampled into a colour ramp, so any expression the spec can
+write works rather than only the shapes anticipated here. A heatmap over a
+geojson source follows `setSourceData`, which is what makes it usable for a
+live feed.
+
+A `raster-dem` source with no `hillshade` layer over it draws nothing. Its RGB
+encodes elevation rather than colour, so painting it directly gives coloured
+noise; the source is still registered for `setTerrain` and for elevation
+queries.
+
 ## Sprites and glyphs
 
 A style's `sprite` and `glyphs` URLs are now loaded rather than merely

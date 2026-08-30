@@ -172,7 +172,15 @@ export class TsMap extends Evented {
   // A plain record, not a Map: this module exports `Map` as an alias of TsMap
   // (see the bottom of the file), so `new Map()` here builds a map of the
   // cartographic kind.
-  declare _geoJSONSources?: Record<string, { index: any, layer: any, clustered: boolean }>
+  declare _geoJSONSources?: Record<string, {
+    index: any
+    layer: any
+    clustered: boolean
+    /** A `heatmap` style layer over this source, fed the same data. */
+    heatmap?: any
+    /** The property a simple `["get", k]` weight reads, if that is what it is. */
+    heatmapWeightKey?: string
+  }>
   declare _styleLoadToken?: number
   declare _spriteToken?: number
   declare _glyphSource?: any
@@ -2060,6 +2068,10 @@ export class TsMap extends Evented {
     this._style = new Style(style, { validate })
     for (const [sourceId, source] of Object.entries(this._style.spec.sources)) {
       const host = this._makeSourceLayer(sourceId, source as SourceSpecification)
+      // A source may legitimately contribute no rendering layer — a DEM with
+      // no `hillshade` over it is data for terrain, not a picture.
+      if (!host)
+        continue
       this._installFeatureStateLookup(sourceId, host);
       (this as any).addLayer(host as any)
     }
@@ -2270,8 +2282,10 @@ export class TsMap extends Evented {
       this._style.spec.sources[sourceId] = source
     }
     const host = this._makeSourceLayer(sourceId, source)
-    this._installFeatureStateLookup(sourceId, host);
-    (this as any).addLayer(host as any)
+    if (host) {
+      this._installFeatureStateLookup(sourceId, host);
+      (this as any).addLayer(host as any)
+    }
     this.fire('styledata')
     return this
   }
@@ -2355,27 +2369,58 @@ export class TsMap extends Evented {
       return vector
     }
     if (source.type === 'raster-dem') {
-      const { TileLayer } = require('../layer/tile/TileLayer')
       const urls = source.tiles ?? []
       const url = urls[0]
       if (!url) throw new Error(`source "${sourceId}" (raster-dem) has no tiles URL`)
-      const tile = new TileLayer(url, {
+
+      // A DEM is data, not a picture: its RGB encodes elevation, and drawing
+      // it straight gives the purple-and-green noise you see when a style is
+      // wired up wrong. What a style does with one is ask for a `hillshade`
+      // layer — or `setTerrain`, which reads the spec directly and needs no
+      // layer at all.
+      const hillshade = this._style!.spec.layers.find(
+        l => l.type === 'hillshade' && (l as any).source === sourceId && (l as any).layout?.visibility !== 'none',
+      ) as any
+
+      // No hillshade layer means nothing to draw. The source is still
+      // registered in the style — `setTerrain` reads it, and so do elevation
+      // queries — it simply contributes no pixels.
+      if (!hillshade)
+        return undefined
+
+      const { RasterDEMLayer } = require('../layer/tile/RasterDEMLayer')
+      const paint = hillshade.paint ?? {}
+      const dem = new RasterDEMLayer(url, {
+        encoding: (source as any).encoding === 'terrarium' ? 'terrarium' : 'mapbox',
         tileSize: source.tileSize ?? 512,
-        minNativeZoom: source.minzoom,
-        maxNativeZoom: source.maxzoom,
+        minZoom: source.minzoom,
         maxZoom: STYLE_LAYER_MAX_ZOOM,
+        exaggeration: paint['hillshade-exaggeration'],
+        // The spec's illumination direction is the compass bearing the light
+        // comes from, which is the same convention as the layer's azimuth.
+        azimuth: paint['hillshade-illumination-direction'],
+        accentColor: paint['hillshade-highlight-color'] ?? paint['hillshade-accent-color'],
+        shadowColor: paint['hillshade-shadow-color'],
         attribution: source.attribution,
       })
-      this._style!.sourceLayers.set(sourceId, tile)
-      return tile
+      this._style!.sourceLayers.set(sourceId, dem)
+      return dem
     }
     if (source.type === 'geojson') {
       const { VectorTileMapLayer } = require('../layer/tile/VectorTileMapLayer')
       const { GeoJSONTileSource, clusterTileSource } = require('../layer/GeoJSONTileSource')
       const { GeoJSONClusterSource } = require('../layer/GeoJSONClusterSource')
 
+      // A `heatmap` layer over this source draws a density field, not
+      // features, so it is built separately and its style layer is kept out of
+      // the vector layer's list — otherwise every point would also be drawn as
+      // whatever the renderer made of a heatmap paint block.
+      const heatmapSpec = this._style!.spec.layers.find(
+        l => l.type === 'heatmap' && (l as any).source === sourceId && (l as any).layout?.visibility !== 'none',
+      ) as any
+
       const styleLayers = this._style!.spec.layers
-        .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === sourceId)
+        .filter(l => l.type !== 'background' && l.type !== 'raster' && l.type !== 'heatmap' && (l as any).source === sourceId)
         .map(l => this._style!.toVectorStyleLayer(l))
 
       // Style layers reference the source id as their `source-layer`, matching
@@ -2408,9 +2453,35 @@ export class TsMap extends Evented {
         layers: styleLayers,
       })
 
+      let heatmap: any
+      if (heatmapSpec) {
+        const { HeatmapLayer } = require('../layer/HeatmapLayer')
+        const { heatmapGradient } = require('./heatmapStyle')
+        const paint = heatmapSpec.paint ?? {}
+        const radius = typeof paint['heatmap-radius'] === 'number' ? paint['heatmap-radius'] : undefined
+        const intensity = typeof paint['heatmap-intensity'] === 'number' ? paint['heatmap-intensity'] : undefined
+        heatmap = new HeatmapLayer({
+          radius,
+          gradient: heatmapGradient(paint['heatmap-color']),
+          // Intensity scales the whole field: dividing the ceiling by it is
+          // what makes a higher intensity read hotter for the same points.
+          max: intensity !== undefined && intensity > 0 ? 1 / intensity : undefined,
+          minOpacity: paint['heatmap-opacity'],
+          attribution: source.attribution,
+        })
+        const self = this as any
+        self.addLayer(heatmap)
+      }
+
       // Kept so `setSourceData` can reindex without rebuilding the layer.
       this._geoJSONSources ??= {}
-      this._geoJSONSources[sourceId] = { index, layer, clustered: !!geojson.cluster }
+      this._geoJSONSources[sourceId] = {
+        index,
+        layer,
+        clustered: !!geojson.cluster,
+        heatmap,
+        heatmapWeightKey: heatmapSpec ? require('./heatmapStyle').heatmapWeightKey(heatmapSpec.paint?.['heatmap-weight']) : undefined,
+      }
 
       if (geojson.data !== undefined)
         this.setSourceData(sourceId, geojson.data)
@@ -2449,6 +2520,14 @@ export class TsMap extends Evented {
         entry.index.load(features)
       else
         entry.index.setData(value)
+
+      // A heatmap over the same source is fed the same update: the point of a
+      // geojson source is that it changes, and a density field that kept
+      // showing the first load would be worse than not drawing one.
+      if (entry.heatmap) {
+        const { heatmapPoints } = require('./heatmapStyle')
+        entry.heatmap.setData(heatmapPoints(value, entry.heatmapWeightKey))
+      }
 
       entry.layer.redraw?.()
       this.fire('sourcedata', { sourceId, isSourceLoaded: true })
@@ -2802,8 +2881,10 @@ export class TsMap extends Evented {
         if (!this._style) this._style = new Style({ version: 8, sources: {}, layers: [] }, { validate: false })
         this._style.spec.sources[sourceId] = source
         const host = this._makeSourceLayer(sourceId, source)
-        this._installFeatureStateLookup(sourceId, host);
-        (this as any).addLayer(host as any)
+        if (host) {
+          this._installFeatureStateLookup(sourceId, host);
+          (this as any).addLayer(host as any)
+        }
         break
       }
       case 'removeSource': {

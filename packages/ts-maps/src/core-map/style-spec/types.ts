@@ -131,6 +131,8 @@ export type LayerType =
   | 'circle'
   | 'symbol'
   | 'raster'
+  | 'hillshade'
+  | 'heatmap'
 
 // ---------- background ----------
 
@@ -396,12 +398,55 @@ export interface RasterLayerSpecification {
   paint?: RasterPaintSpecification
 }
 
+// ---------- hillshade ----------
+
+export interface HillshadePaintSpecification {
+  'hillshade-illumination-direction'?: PropertyValueSpecification<number>
+  'hillshade-illumination-anchor'?: 'map' | 'viewport'
+  'hillshade-exaggeration'?: PropertyValueSpecification<number>
+  'hillshade-shadow-color'?: PropertyValueSpecification<string>
+  'hillshade-highlight-color'?: PropertyValueSpecification<string>
+  'hillshade-accent-color'?: PropertyValueSpecification<string>
+}
+
+export interface HillshadeLayerSpecification {
+  id: string
+  type: 'hillshade'
+  metadata?: Record<string, unknown>
+  /** A `raster-dem` source. */
+  source: string
+  minzoom?: number
+  maxzoom?: number
+  layout?: { visibility?: 'visible' | 'none' }
+  paint?: HillshadePaintSpecification
+}
+
+// ---------- heatmap ----------
+
+export interface HeatmapPaintSpecification {
+  'heatmap-radius'?: PropertyValueSpecification<number>
+  'heatmap-weight'?: PropertyValueSpecification<number>
+  'heatmap-intensity'?: PropertyValueSpecification<number>
+  /** A colour ramp over the density field, interpolated on `heatmap-density`. */
+  'heatmap-color'?: unknown
+  'heatmap-opacity'?: PropertyValueSpecification<number>
+}
+
+export interface HeatmapLayerSpecification {
+  id: string
+  type: 'heatmap'
+  metadata?: Record<string, unknown>
+  /** A `geojson` or `vector` source of points. */
+  source: string
+  'source-layer'?: string
+  minzoom?: number
+  maxzoom?: number
+  filter?: unknown
+  layout?: { visibility?: 'visible' | 'none' }
+  paint?: HeatmapPaintSpecification
+}
+
 // ---------- layer union ----------
-//
-// Note: `hillshade` and `heatmap` Mapbox layer types are NOT part of the
-// style-spec union because the runtime doesn't render them through the
-// style-spec path. Use `HillshadeLayer` (`RasterDEMLayer`) and
-// `HeatmapLayer` as ordinary layer instances via `layer.addTo(map)`.
 
 export type LayerSpecification =
   | BackgroundLayerSpecification
@@ -411,6 +456,8 @@ export type LayerSpecification =
   | CircleLayerSpecification
   | SymbolLayerSpecification
   | RasterLayerSpecification
+  | HillshadeLayerSpecification
+  | HeatmapLayerSpecification
 
 // ---------- root style ----------
 

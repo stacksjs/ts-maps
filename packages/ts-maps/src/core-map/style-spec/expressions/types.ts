@@ -46,6 +46,10 @@ export interface EvaluationContext {
   // Progress along a line [0, 1]. Set by the line-gradient sampler when
   // evaluating `['line-progress']` stops; undefined elsewhere.
   lineProgress?: number
+  // Density of the heatmap field at the point being coloured, [0, 1]. Set by
+  // the heatmap ramp sampler when evaluating `['heatmap-density']` stops;
+  // undefined elsewhere.
+  heatmapDensity?: number
   globalProperties?: {
     bearing?: number
     pitch?: number

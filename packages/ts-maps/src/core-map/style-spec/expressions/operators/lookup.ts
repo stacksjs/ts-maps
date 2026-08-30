@@ -207,6 +207,21 @@ export function registerLookupOps(): void {
     }
   })
 
+  // heatmap-density — the density of the field at the point being coloured.
+  // Only meaningful inside a `heatmap-color` ramp; elsewhere it resolves to 0
+  // so the ramp samples deterministically during validation.
+  registerOperator('heatmap-density', (args, _compile, path) => {
+    if (args.length !== 0)
+      throw new ExpressionError(`"heatmap-density" takes no arguments, got ${args.length}`, ['heatmap-density', ...args], path)
+    return {
+      evaluate: ctx => ctx.heatmapDensity ?? 0,
+      returnType: 'number',
+      dependsOnZoom: false,
+      dependsOnFeature: false,
+      dependsOnFeatureState: false,
+    }
+  })
+
   // feature-state — reads from an out-of-band state bag (hover, selection).
   // Returns undefined when no state has been set; callers should pair this
   // with `coalesce` for defaults.

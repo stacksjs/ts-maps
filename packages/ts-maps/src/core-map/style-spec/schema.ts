@@ -114,6 +114,23 @@ const rasterPaint: Record<string, PropertySchema> = {
   'raster-fade-duration': { type: 'number', default: 300, minimum: 0, sdk: 'gl' },
 }
 
+const hillshadePaint: Record<string, PropertySchema> = {
+  'hillshade-illumination-direction': { type: 'number', default: 335, minimum: 0, maximum: 359, sdk: 'gl' },
+  'hillshade-illumination-anchor': { type: 'enum', values: ['map', 'viewport'], default: 'viewport', sdk: 'gl' },
+  'hillshade-exaggeration': { type: 'number', default: 0.5, minimum: 0, maximum: 1, transition: true, sdk: 'gl' },
+  'hillshade-shadow-color': { type: 'color', default: '#000000', transition: true, sdk: 'gl' },
+  'hillshade-highlight-color': { type: 'color', default: '#FFFFFF', transition: true, sdk: 'gl' },
+  'hillshade-accent-color': { type: 'color', default: '#000000', transition: true, sdk: 'gl' },
+}
+
+const heatmapPaint: Record<string, PropertySchema> = {
+  'heatmap-radius': { type: 'number', default: 30, minimum: 1, transition: true, sdk: 'gl' },
+  'heatmap-weight': { type: 'number', default: 1, minimum: 0, sdk: 'gl' },
+  'heatmap-intensity': { type: 'number', default: 1, minimum: 0, transition: true, sdk: 'gl' },
+  'heatmap-color': { type: 'color', default: undefined, sdk: 'gl' },
+  'heatmap-opacity': { type: 'number', default: 1, minimum: 0, maximum: 1, transition: true, sdk: 'gl' },
+}
+
 export const paintPropertySchemas: Record<LayerType, Record<string, PropertySchema>> = {
   background: backgroundPaint,
   fill: fillPaint,
@@ -122,6 +139,8 @@ export const paintPropertySchemas: Record<LayerType, Record<string, PropertySche
   circle: circlePaint,
   symbol: symbolPaint,
   raster: rasterPaint,
+  hillshade: hillshadePaint,
+  heatmap: heatmapPaint,
 }
 
 // ---------- layout ----------
@@ -214,6 +233,14 @@ const rasterLayout: Record<string, PropertySchema> = {
   visibility,
 }
 
+const hillshadeLayout: Record<string, PropertySchema> = {
+  visibility,
+}
+
+const heatmapLayout: Record<string, PropertySchema> = {
+  visibility,
+}
+
 export const layoutPropertySchemas: Record<LayerType, Record<string, PropertySchema>> = {
   background: backgroundLayout,
   fill: fillLayout,
@@ -222,14 +249,13 @@ export const layoutPropertySchemas: Record<LayerType, Record<string, PropertySch
   circle: circleLayout,
   symbol: symbolLayout,
   raster: rasterLayout,
+  hillshade: hillshadeLayout,
+  heatmap: heatmapLayout,
 }
 
 // The set of known layer types — exported separately so the validator can
 // decide whether an unknown layer `type` is user error vs. an SDK mismatch.
-// `hillshade` and `heatmap` are intentionally excluded — their renderers
-// ship as standalone classes (`HillshadeLayer`, `HeatmapLayer`) rather
-// than through the style-spec path.
-export const layerTypes: readonly LayerType[] = ['background', 'fill', 'fill-extrusion', 'line', 'circle', 'symbol', 'raster']
+export const layerTypes: readonly LayerType[] = ['background', 'fill', 'fill-extrusion', 'line', 'circle', 'symbol', 'raster', 'hillshade', 'heatmap']
 
 // Source types we currently recognise in the validator.
 export const sourceTypes: readonly string[] = ['vector', 'raster', 'raster-dem', 'geojson']
