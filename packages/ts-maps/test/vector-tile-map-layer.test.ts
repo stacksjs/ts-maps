@@ -323,6 +323,144 @@ describe('VectorTileMapLayer: overzoom', () => {
   })
 })
 
+describe('VectorTileMapLayer: shared ancestor decoding', () => {
+  let restoreFetch: (() => void) | undefined
+  afterEach(() => { restoreFetch?.(); restoreFetch = undefined })
+
+  function overzoomLayer(map: TsMap): VectorTileMapLayer {
+    const layer = new VectorTileMapLayer({
+      url: 'https://tiles/{z}/{x}/{y}.pbf',
+      tileSize: 512,
+      sourceMaxZoom: 4,
+      layers: [
+        { id: 'water', type: 'fill', sourceLayer: 'water', paint: { 'fill-color': '#0af' } },
+      ],
+    })
+    attachLayerForCreateTile(layer, map)
+    return layer
+  }
+
+  test('four children of one tile fetch and decode it once', async () => {
+    const bytes = encodeWaterTile()
+    let fetches = 0
+    restoreFetch = installFetchStub(async () => {
+      fetches += 1
+      return responseFrom(bytes, { status: 200 })
+    })
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    stampSize(map, 512, 512)
+    const layer: any = overzoomLayer(map)
+
+    // Grid 5 is one level past the cap, so these are the four quadrants of
+    // published tile 4/0/0.
+    const ready = [
+      createTileOnLayer(layer, tileCoords(0, 0, 5)),
+      createTileOnLayer(layer, tileCoords(1, 0, 5)),
+      createTileOnLayer(layer, tileCoords(0, 1, 5)),
+      createTileOnLayer(layer, tileCoords(1, 1, 5)),
+    ]
+    const results = await Promise.all(ready.map(r => r.ready))
+
+    for (const r of results)
+      expect(r.err).toBeNull()
+
+    // One request, one parse, one R-tree — not four of each.
+    expect(fetches).toBe(1)
+    expect(layer._sourceCache.size).toBe(1)
+    expect(layer._sourceCache.get('4/0/0').refs).toBe(4)
+  })
+
+  test('siblings share the decoded tile and its index object', async () => {
+    const bytes = encodeWaterTile()
+    restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    stampSize(map, 512, 512)
+    const layer: any = overzoomLayer(map)
+
+    const a = createTileOnLayer(layer, tileCoords(0, 0, 5))
+    const b = createTileOnLayer(layer, tileCoords(1, 1, 5))
+    await Promise.all([a.ready, b.ready])
+
+    const entryA = layer._decodedTiles.get(a.canvas)
+    const entryB = layer._decodedTiles.get(b.canvas)
+
+    // The same objects, not equal copies — the index is the expensive part.
+    expect(entryA.tile).toBe(entryB.tile)
+    expect(entryA.index).toBe(entryB.index)
+  })
+
+  test('the ancestor is freed once the last child goes', async () => {
+    const bytes = encodeWaterTile()
+    restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    stampSize(map, 512, 512)
+    const layer: any = overzoomLayer(map)
+
+    const a = createTileOnLayer(layer, tileCoords(0, 0, 5))
+    const b = createTileOnLayer(layer, tileCoords(1, 0, 5))
+    await Promise.all([a.ready, b.ready])
+    // The test DOM's canvas has no remove(); GridLayer's teardown calls it.
+    for (const c of [a.canvas, b.canvas])
+      (c as any).remove = (): void => {}
+    expect(layer._sourceCache.get('4/0/0').refs).toBe(2)
+
+    layer._removeTile('0:0:5')
+    // Still held by its sibling.
+    expect(layer._sourceCache.get('4/0/0').refs).toBe(1)
+
+    layer._removeTile('1:0:5')
+    expect(layer._sourceCache.has('4/0/0')).toBe(false)
+  })
+
+  test('without overzoom each tile still keeps its own entry', async () => {
+    const bytes = encodeWaterTile()
+    let fetches = 0
+    restoreFetch = installFetchStub(async () => {
+      fetches += 1
+      return responseFrom(bytes, { status: 200 })
+    })
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    stampSize(map, 512, 512)
+    const layer: any = overzoomLayer(map)
+
+    await Promise.all([
+      createTileOnLayer(layer, tileCoords(0, 0, 4)).ready,
+      createTileOnLayer(layer, tileCoords(1, 0, 4)).ready,
+    ])
+
+    // Different ancestors, so nothing is shared and nothing is skipped.
+    expect(fetches).toBe(2)
+    expect(layer._sourceCache.size).toBe(2)
+  })
+
+  test('a failed ancestor does not strand the key', async () => {
+    let attempt = 0
+    const bytes = encodeWaterTile()
+    restoreFetch = installFetchStub(async () => {
+      attempt += 1
+      return attempt === 1
+        ? responseFrom(new Uint8Array(), { status: 500 })
+        : responseFrom(bytes, { status: 200 })
+    })
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    stampSize(map, 512, 512)
+    const layer: any = overzoomLayer(map)
+
+    const first = await createTileOnLayer(layer, tileCoords(0, 0, 5)).ready
+    expect(first.err).not.toBeNull()
+    // The next tile must be free to try again rather than inherit the failure.
+    expect(layer._sourcePending.has('4/0/0')).toBe(false)
+
+    const second = await createTileOnLayer(layer, tileCoords(1, 0, 5)).ready
+    expect(second.err).toBeNull()
+  })
+})
+
 describe('VectorTileMapLayer: decode + render path', () => {
   let restoreFetch: (() => void) | undefined
   afterEach(() => { restoreFetch?.(); restoreFetch = undefined })

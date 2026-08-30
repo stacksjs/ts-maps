@@ -221,6 +221,9 @@ interface RTreeItem {
 // Internal bookkeeping: alongside each Canvas we track the decoded tile so
 // `queryRenderedFeatures` can re-project hit-tests to tile-local coords.
 interface DecodedTileEntry {
+  /** Ancestor this tile draws from, while it holds a claim on it. */
+  sourceKey?: string
+  sourcePending?: boolean
   canvas: HTMLCanvasElement
   tile: VectorTile | null
   coords: { x: number, y: number, z: number }
@@ -238,6 +241,21 @@ interface DecodedTileEntry {
 export class VectorTileMapLayer extends GridLayer {
   declare _styleLayers: VectorTileStyleLayer[]
   declare _decodedTiles: Map<HTMLCanvasElement, DecodedTileEntry>
+  /**
+   * Decoded ancestors, shared by every tile that draws from them.
+   *
+   * When the grid subdivides past a source's top zoom, all `f * f` children
+   * are drawn from one published tile. Decoding and indexing it once per child
+   * repeats the same parse and the same R-tree build several times over for
+   * bytes the HTTP cache already handed back for free.
+   *
+   * Reference counted rather than LRU: the right lifetime is exactly "while
+   * some tile still needs it", which the tile lifecycle already tells us. At
+   * `f = 1` every tile has its own ancestor, so this behaves as it did before.
+   */
+  declare _sourceCache: Map<string, { tile: VectorTile, index: RTree<RTreeItem>, refs: number }>
+  /** Ancestors currently being fetched, so siblings await one request. */
+  declare _sourcePending: Map<string, { promise: Promise<{ tile: VectorTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
   declare _collision?: CollisionIndex
   declare _collisionZoom?: number
   declare _featureStateLookup?: (src: string, srcLayer: string, id: number | string) => Record<string, unknown>
@@ -251,6 +269,8 @@ export class VectorTileMapLayer extends GridLayer {
     super.initialize(options)
     this._styleLayers = this.options!.layers ?? []
     this._decodedTiles = new Map()
+    this._sourceCache = new Map()
+    this._sourcePending = new Map()
     this._glyphAtlas = this.options!.glyphAtlas
     this._iconAtlas = this.options!.iconAtlas
 
@@ -575,9 +595,14 @@ export class VectorTileMapLayer extends GridLayer {
   onRemove(map: any): void {
     for (const entry of this._decodedTiles.values()) {
       entry.abort.abort()
+      this._releaseSource(entry)
       entry.gl?.destroy()
     }
     this._decodedTiles.clear()
+    for (const pending of this._sourcePending.values())
+      pending.abort.abort()
+    this._sourcePending.clear()
+    this._sourceCache.clear()
     super.onRemove(map)
   }
 
@@ -587,6 +612,7 @@ export class VectorTileMapLayer extends GridLayer {
       const entry = this._decodedTiles.get(tile.el as HTMLCanvasElement)
       if (entry) {
         entry.abort.abort()
+        this._releaseSource(entry)
         entry.gl?.destroy()
         this._decodedTiles.delete(tile.el as HTMLCanvasElement)
       }
@@ -702,6 +728,93 @@ export class VectorTileMapLayer extends GridLayer {
     done(null, canvas)
   }
 
+  /** Key an ancestor by the tile actually published, not the grid tile. */
+  _sourceKey(coords: { x: number, y: number, z: number }): string {
+    const sub = this._subTile(coords)
+    return `${sub.z}/${sub.x}/${sub.y}`
+  }
+
+  /**
+   * The decoded ancestor for a tile, decoding it at most once.
+   *
+   * Three ways this can go: already decoded, currently being fetched by a
+   * sibling, or nobody has asked yet. Only the last does any work.
+   */
+  async _acquireSource(
+    key: string,
+    url: string,
+    entry: DecodedTileEntry,
+  ): Promise<{ tile: VectorTile, index: RTree<RTreeItem> }> {
+    const cached = this._sourceCache.get(key)
+    if (cached) {
+      cached.refs += 1
+      entry.sourceKey = key
+      return { tile: cached.tile, index: cached.index }
+    }
+
+    const pending = this._sourcePending.get(key)
+    if (pending) {
+      pending.refs += 1
+      entry.sourceKey = key
+      entry.sourcePending = true
+      return pending.promise
+    }
+
+    // The shared request gets its own controller: one tile being removed must
+    // not cancel a fetch its siblings are still waiting on. It is aborted only
+    // when the last of them has gone.
+    const abort = new AbortController()
+    const record = {
+      refs: 1,
+      abort,
+      promise: (async () => {
+        const bytes = await this._fetchTileBytes(url, { abort } as DecodedTileEntry)
+        const decoded = new VectorTile(new Pbf(bytes))
+        const built = { tile: decoded, index: buildTileIndex(decoded) }
+        // Every tile that queued up behind this request still holds a claim,
+        // so the count carries over rather than restarting at one.
+        const waiting = this._sourcePending.get(key)?.refs ?? 1
+        this._sourcePending.delete(key)
+        this._sourceCache.set(key, { ...built, refs: waiting })
+        return built
+      })(),
+    }
+
+    this._sourcePending.set(key, record)
+    entry.sourceKey = key
+    entry.sourcePending = true
+
+    // A failure must not strand the key: the next tile should be free to try.
+    record.promise.catch(() => this._sourcePending.delete(key))
+    return record.promise
+  }
+
+  /** Give back a tile's claim on its ancestor, freeing it when nothing holds it. */
+  _releaseSource(entry: DecodedTileEntry): void {
+    const key = entry.sourceKey
+    if (!key)
+      return
+    entry.sourceKey = undefined
+
+    const cached = this._sourceCache.get(key)
+    if (cached) {
+      cached.refs -= 1
+      if (cached.refs <= 0)
+        this._sourceCache.delete(key)
+      return
+    }
+
+    const pending = this._sourcePending.get(key)
+    if (pending) {
+      pending.refs -= 1
+      // Nobody is waiting any more, so the request is genuinely unwanted.
+      if (pending.refs <= 0) {
+        pending.abort.abort()
+        this._sourcePending.delete(key)
+      }
+    }
+  }
+
   async _fetchAndDraw(
     url: string,
     canvas: HTMLCanvasElement,
@@ -709,36 +822,27 @@ export class VectorTileMapLayer extends GridLayer {
     coords: Point & { z: number },
     done: (err: any, tile: HTMLElement) => void,
   ): Promise<void> {
-    let bytes: Uint8Array
+    let source: { tile: VectorTile, index: RTree<RTreeItem> }
     try {
-      bytes = await this._fetchTileBytes(url, entry)
+      source = await this._acquireSource(this._sourceKey(coords), url, entry)
     }
     catch (err: any) {
       done(err, canvas)
       return
     }
 
-    // If the tile was aborted after the body arrived, don't bother decoding.
+    // Aborted while the ancestor was in flight: hand the claim straight back.
     if (entry.abort.signal.aborted) {
+      this._releaseSource(entry)
       done(new DOMException('aborted', 'AbortError'), canvas)
       return
     }
 
-    let tile: VectorTile
-    try {
-      const pbf = new Pbf(bytes)
-      tile = new VectorTile(pbf)
-    }
-    catch (err) {
-      done(err, canvas)
-      return
-    }
-
-    entry.tile = tile
-    entry.index = buildTileIndex(tile)
+    entry.tile = source.tile
+    entry.index = source.index
 
     try {
-      this._drawTile(canvas, tile, coords)
+      this._drawTile(canvas, source.tile, coords)
     }
     catch (err) {
       done(err, canvas)
