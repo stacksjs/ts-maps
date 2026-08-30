@@ -14,3 +14,24 @@ import * as Projection from './projection/index'
 
 export { Projection }
 export * from './crs/index'
+export type { FormatAreaOptions } from './area'
+// Renamed on the way out: `Polygon` and `Position` are already taken at the
+// package root by the vector layer and the screen-space point, and a game's
+// coordinate arrays are not either of those.
+export type {
+  MultiPolygon as MultiPolygonCoordinates,
+  Polygon as PolygonCoordinates,
+  Position as LngLat,
+  Ring as LinearRing,
+} from './area'
+export {
+  EARTH_RADIUS,
+  formatArea,
+  formatDistance,
+  haversine,
+  multiPolygonArea,
+  polygonArea,
+  ringArea,
+  ringPerimeter,
+} from './area'
+export { contains, difference, intersects, intersection, union, xor } from './polygonClip'

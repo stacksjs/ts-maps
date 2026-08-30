@@ -13,6 +13,7 @@ export * from './control/index'
 export * from './core/index'
 export * from './dom/index'
 export * from './geometry/index'
+export * from './game/index'
 export * from './geo/index'
 export * from './layer/index'
 export * from './map/index'
@@ -37,6 +38,8 @@ import {
   GridLayer,
   HeatmapLayer,
   RasterDEMLayer,
+  RunTrailLayer,
+  TerritoryLayer,
   Icon,
   ImageOverlay,
   Layer,
@@ -53,6 +56,7 @@ import {
   VideoOverlay,
   WMSTileLayer,
 } from './layer/index'
+import { runTrailLayer, territoryLayer } from './layer/index'
 import { createMap, TsMap } from './map/index'
 import * as services from './services/index'
 import * as styles from './styles/index'
@@ -165,6 +169,8 @@ const tsMap: Record<string, unknown> = {
   TileLayer,
   VectorTileMapLayer,
   WMSTileLayer,
+  TerritoryLayer,
+  RunTrailLayer,
   Polyline,
   Polygon,
   Rectangle,
@@ -192,6 +198,9 @@ const tsMap: Record<string, unknown> = {
   gridLayer,
   tileLayer,
   vectorTileLayer,
+  heatmapLayer,
+  territoryLayer,
+  runTrailLayer,
   imageOverlay,
   videoOverlay,
   svgOverlay,
