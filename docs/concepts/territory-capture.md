@@ -4,7 +4,7 @@ Everything needed for a game where running a loop claims the ground inside it:
 turning a GPS track into a shape, working out what that shape takes from whom,
 and drawing the result so a player can read it at a glance.
 
-Four pieces, usable separately:
+Five pieces, usable separately:
 
 | | |
 | --- | --- |
@@ -12,8 +12,9 @@ Four pieces, usable separately:
 | `TerritoryStore` | Who owns what, and what each capture changed. |
 | `TerritoryLayer` | Draws territories, with the capture animation. |
 | `RunTrailLayer` | The live trail, and what closing it now would be worth. |
+| `TerritoryLog` | Keeps every client's map identical when captures race. |
 
-See `playground/core-map/11-territory.html` for all four wired together.
+See `playground/core-map/11-territory.html` for them wired together.
 
 ## The short version
 
@@ -194,6 +195,129 @@ The trail fades toward its tail, because the runner's recent path is what
 matters now and the start of it is history. With `showPotential`, it also shades
 the shape the trail would enclose if the runner closed it from where they are —
 the closing leg dashed, since it is the only part they have not actually run.
+
+## More than one player
+
+Two runners close overlapping loops in the same second, on phones whose clocks
+disagree. Every device has to end up showing the same thing — otherwise one
+player's app says they hold a block and another's says they lost it, and
+nothing can say which is right.
+
+`TerritoryLog` gives you that. Territory is the fold of captures in an agreed
+order, so a capture arriving late is slotted into its place and the fold
+replayed, rather than jammed onto the end where it would give a different
+answer to everyone who received it differently.
+
+```ts
+import { TerritoryLog } from 'ts-maps'
+
+const log = new TerritoryLog()
+map.addLayer(new TerritoryLayer({ store: log.store, self: 'me' }))
+
+// Local: apply at once so the map responds, then send it.
+const applied = log.apply({ id: crypto.randomUUID(), owner: 'me', ring: loop.ring, at: Date.now() })
+socket.send(applied.event)
+
+// Remote: apply whatever arrives, in whatever order.
+socket.on('capture', event => log.apply(event))
+
+// The server says where a capture really belongs.
+socket.on('ack', ({ id, seq }) => log.confirm(id, seq))
+```
+
+The order is computed from the event alone — server `seq` if present, then
+`at`, then `id` — so every participant derives the same one. That last tiebreak
+is not a formality: phone clocks disagree often enough that identical
+timestamps are common, and without it two clients would order the same pair
+differently and diverge.
+
+Event ids double as idempotency keys, so a client resending after a timeout is
+not paid twice for one run.
+
+```ts
+log.apply(event).duplicate  // true the second time
+log.has(id)                 // whether an acknowledgement needs acting on
+log.compact(500)            // fold settled history into a snapshot
+log.snapshot()              // save; log.restore(saved) to load
+```
+
+`compact` matters for a long-running game: replay is bounded by the log, so an
+unbounded log is an unbounded worst case. What it costs is the ability to
+reorder around events older than the cutoff, which nothing should still be
+doing.
+
+`log.store` is a stable object: a replay refolds it in place rather than
+handing back a new one, so a layer given it once keeps working. The log fires
+`rebuilt` when that happens, if you want to react to it.
+
+## Geometry from a real device
+
+A GPS receiver in a pocket, in a tunnel, on a flat battery produces geometry
+that needs handling rather than trusting. Three cases are dealt with for you:
+
+- **Coordinates that are not numbers.** A receiver losing lock reports NaN,
+  which would spread through every area calculation to a claim worth nothing.
+  `capture` throws `InvalidGeometryError` naming the position at fault, because
+  silence is the wrong answer when a run has just been thrown away.
+- **A track that crosses itself.** A figure of eight has a signed area of
+  nearly zero, since its lobes wind opposite ways and cancel. Both lobes were
+  run around, so the ring is cut at its crossings and both count.
+- **A run across the antimeridian.** The longitude jumps by 360 and one edge
+  reads as spanning the planet — a strip a few metres wide off Fiji measured as
+  forty billion square metres. Longitude differences are taken the short way
+  round.
+
+The first throws; the other two are repaired, because they are valid runs
+described awkwardly rather than bad data.
+
+```ts
+try {
+  store.capture('me', loop.ring)
+}
+catch (error) {
+  if (error instanceof InvalidGeometryError)
+    report(error.message) // names the position at fault
+}
+```
+
+## Scale
+
+Measured on a synthetic season of running: 1,000 irregular laps of 80 points
+each, unioned into one player's territory. Per-capture cost settles at about
+2 ms and the vertex count plateaus around 1,250 — the union collapses interior
+detail as fast as laps add it, so a territory does not grow without bound. The
+worst single capture in that run took 10 ms.
+
+## In a framework
+
+Both layers have components in every binding, with the same names and props:
+
+```tsx
+<Map center={[34.02, -118.47]} zoom={16}>
+  <TerritoryLayer store={store} self="me" />
+  <RunTrailLayer track={track} />
+</Map>
+```
+
+React Native takes them as props rather than components, because its map lives
+in a WebView and a store cannot cross that boundary — the geometry it produced
+can:
+
+```tsx
+<MapView
+  runtime={runtime}
+  self="me"
+  territories={[{ owner: 'me', geometry: store.get('me') }]}
+  runTrail={detector.track}
+/>
+```
+
+stx announces each layer through a DOM event when it builds one, for the same
+reason — a store is a live object markup cannot carry:
+
+```js
+container.addEventListener('territory:ready', e => e.detail.layer.setStore(store))
+```
 
 ## The geometry underneath
 

@@ -216,13 +216,14 @@ export class TerritoryLog extends Evented {
     const settled = this._log.slice(0, excess)
     this._log = this._log.slice(excess)
 
-    const store = this._newStore()
+    // A throwaway store, only to compute what the settled events add up to.
+    const folded = this._newStore()
     for (const [owner, territory] of this._baseline)
-      store.set(owner, territory)
+      folded.set(owner, territory)
     for (const event of settled)
-      store.capture(event.owner, event.ring)
+      folded.capture(event.owner, event.ring)
 
-    this._baseline = new Map(store.owners().map(owner => [owner, store.get(owner)]))
+    this._baseline = new Map(folded.owners().map(owner => [owner, folded.get(owner)]))
     for (const event of settled)
       this._seen.delete(event.id)
 
@@ -254,7 +255,7 @@ export class TerritoryLog extends Evented {
     this._log = []
     this._seen = new Set()
     this._baseline = new Map()
-    this._store = this._newStore()
+    this._store.clear()
     this.fire('rebuilt', {})
     return this
   }
@@ -267,14 +268,23 @@ export class TerritoryLog extends Evented {
     return new Store(this._options.store) as TerritoryStore
   }
 
+  /**
+   * Refold from the baseline, in place.
+   *
+   * The store object is reused rather than replaced, because things hold on to
+   * it — a `TerritoryLayer` is given `log.store` once and follows it from then
+   * on. Handing back a new store on every replay would leave the map drawing
+   * whichever one it was given first, and the bug would only appear when
+   * captures arrived out of order.
+   */
   _rebuild(): void {
-    const store = this._newStore()
+    const store = this._store
+    store.clear()
     for (const [owner, territory] of this._baseline)
       store.set(owner, territory)
     for (const event of this._log)
       store.capture(event.owner, event.ring)
 
-    this._store = store
     this.fire('rebuilt', {})
   }
 }

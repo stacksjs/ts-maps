@@ -347,3 +347,33 @@ describe('events', () => {
     expect(rebuilds).toBe(1)
   })
 })
+
+describe('store identity', () => {
+  test('the store survives a replay', () => {
+    // A `TerritoryLayer` is handed `log.store` once and follows it from then
+    // on. Replacing the store on every replay would leave the map drawing a
+    // stale one, and only when captures arrived out of order.
+    const log = new TerritoryLog()
+    const store = log.store
+
+    log.apply(event('b', 'alex', 0, 0, 2000))
+    log.apply(event('a', 'sam', 0, 0, 1000))
+
+    expect(log.store).toBe(store)
+    expect(store.areaOf('alex')).toBeGreaterThan(0)
+  })
+
+  test('and survives compaction and clearing', () => {
+    const log = new TerritoryLog()
+    const store = log.store
+    for (let i = 0; i < 10; i++)
+      log.apply(event(`e${i}`, 'sam', i * 60, 0, 1000 + i))
+
+    log.compact(2)
+    expect(log.store).toBe(store)
+
+    log.clear()
+    expect(log.store).toBe(store)
+    expect(store.owners()).toEqual([])
+  })
+})
