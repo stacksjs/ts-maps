@@ -165,8 +165,48 @@ as soon as its tiles arrive, and tiles are repainted when the sheet lands. The
 map fires `spriteload`, or `error` if the sheet cannot be fetched — a missing
 sprite costs icons, not the map.
 
-Only the single-URL form is supported. A style declaring an array of named
-sheets needs prefixed ids, which is not implemented.
+#### Several sheets
+
+`sprite` also takes an array, which is how a style layers its own icons over a
+vendor sheet without either having to know the other's names:
+
+```json
+{
+  "sprite": [
+    { "id": "base", "url": "https://example.com/sprites/basic" },
+    { "id": "brand", "url": "https://example.com/sprites/ours" }
+  ]
+}
+```
+
+Ids are namespaced by sheet, so `icon-image` names an icon as
+`"base:marker"` or `"brand:marker"`. Sheets load independently and land as
+they arrive, so one slow or missing sheet costs its own icons rather than
+everyone's.
+
+#### SDF icons
+
+An entry marked `"sdf": true` stores distance from the shape's edge in its
+alpha channel instead of the icon's own colours. Two things follow, and they
+are why the format is worth the trouble: one grey shape can be drawn in any
+colour a style asks for, and the edge is recovered by thresholding rather than
+resampled, so it stays sharp however far the icon is scaled.
+
+```js
+{ id: 'pins', type: 'symbol', source: 'incidents',
+  layout: { 'icon-image': 'pin', 'icon-size': 24 },
+  paint: {
+    'icon-color': ['match', ['get', 'category'], 'fire', '#ff5a36', '#3b82f6'],
+    'icon-halo-color': '#0b0d10',
+    'icon-halo-width': 2,
+  } }
+```
+
+`icon-color`, `icon-halo-color`, `icon-halo-width` and `icon-opacity` are all
+honoured, and all take expressions. A halo needs a width as well as a colour —
+the spec's default colour is transparent black, so honouring the colour alone
+would ring every icon in the style. Ordinary picture sprites ignore
+`icon-color`; they carry their own colours.
 
 ### Glyphs
 

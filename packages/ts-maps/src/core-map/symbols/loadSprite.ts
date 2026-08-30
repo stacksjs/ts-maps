@@ -21,7 +21,7 @@ export interface SpriteIndexEntry {
   width: number
   height: number
   pixelRatio?: number
-  /** Signed-distance icon, recolourable via `icon-color`. Not yet rendered. */
+  /** Signed-distance icon: one shape, any `icon-color`. */
   sdf?: boolean
   content?: [number, number, number, number]
   stretchX?: Array<[number, number]>
@@ -111,11 +111,17 @@ export async function loadSprite(base: string, options: LoadSpriteOptions = {}):
  * Entries carry their own `pixelRatio` in Mapbox's format; where one is
  * missing the sheet's density stands in, so a `@2x` sheet does not render at
  * double size.
+ *
+ * `prefix` namespaces the ids, for the multi-sheet form of `sprite`.
  */
-export function addSpriteToAtlas(atlas: IconAtlas, sprite: LoadedSprite): number {
+export function addSpriteToAtlas(atlas: IconAtlas, sprite: LoadedSprite, prefix?: string): number {
   let added = 0
 
-  for (const [id, entry] of Object.entries(sprite.index)) {
+  for (const [name, entry] of Object.entries(sprite.index)) {
+    // A style may declare several sheets, in which case `icon-image` names an
+    // icon as `sheet:icon`. Prefixing on the way into the atlas keeps that a
+    // detail of loading rather than something the renderer has to know.
+    const id = prefix ? `${prefix}:${name}` : name
     if (!entry || typeof entry.width !== 'number' || typeof entry.height !== 'number')
       continue
     if (entry.width <= 0 || entry.height <= 0)
@@ -128,6 +134,7 @@ export function addSpriteToAtlas(atlas: IconAtlas, sprite: LoadedSprite): number
       width: entry.width,
       height: entry.height,
       pixelRatio: entry.pixelRatio ?? sprite.pixelRatio,
+      sdf: entry.sdf === true,
     }
 
     // The atlas copies out of the sheet at the entry's own rectangle, so the

@@ -2199,37 +2199,59 @@ export class TsMap extends Evented {
    * arrive rather than waiting on a sheet only the symbol layers need. Tiles
    * are repainted when it lands.
    */
+  /**
+   * Load the style's icons.
+   *
+   * `sprite` takes two forms. A single URL is the common one. The array form
+   * — `[{ id, url }, …]` — lets a style layer its own icons over a vendor
+   * sheet without either having to know about the other; ids from each sheet
+   * are namespaced as `sheet:icon`, which is how `icon-image` then names them.
+   *
+   * Sheets load independently and land as they arrive, so one slow or missing
+   * sheet costs its own icons rather than everyone's.
+   */
   _loadSprite(): void {
     const sprite = this._style?.spec.sprite
-    // Only the single-URL form: a style may also declare an array of named
-    // sheets, which needs prefixed ids and is not supported yet.
-    if (typeof sprite !== 'string' || !sprite)
+    if (!sprite)
+      return
+
+    const sheets: Array<{ id?: string, url: string }> = typeof sprite === 'string'
+      ? [{ url: sprite }]
+      : (Array.isArray(sprite) ? sprite.filter(s => s && typeof s.url === 'string') : [])
+    if (sheets.length === 0)
       return
 
     const token = (this._spriteToken = (this._spriteToken ?? 0) + 1)
     const { loadSprite, addSpriteToAtlas } = require('../symbols/loadSprite')
 
-    loadSprite(sprite, { pixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1 })
-      .then((loaded: any) => {
-        // A style swapped while this was in flight owns the atlas now.
-        if (token !== this._spriteToken || !this._style)
-          return
+    for (const sheet of sheets) {
+      loadSprite(sheet.url, { pixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1 })
+        .then((loaded: any) => {
+          // A style swapped while this was in flight owns the atlas now.
+          if (token !== this._spriteToken || !this._style)
+            return
 
-        let added = 0
-        for (const host of this._style.sourceLayers.values()) {
-          const anyHost = host as any
-          if (typeof anyHost.getIconAtlas !== 'function')
-            continue
-          added += addSpriteToAtlas(anyHost.getIconAtlas(), loaded)
-          anyHost._repaintDecodedTiles?.()
-        }
+          let added = 0
+          for (const host of this._style.sourceLayers.values()) {
+            const anyHost = host as any
+            if (typeof anyHost.getIconAtlas !== 'function')
+              continue
+            added += addSpriteToAtlas(anyHost.getIconAtlas(), loaded, sheet.id)
+            anyHost._repaintDecodedTiles?.()
+          }
 
-        this.fire('spriteload', { sprite, icons: Object.keys(loaded.index).length, added })
-      })
-      .catch((error: unknown) => {
-        // A missing sheet costs icons, not the map.
-        this.fire('error', { error, sprite })
-      })
+          this.fire('spriteload', {
+            sprite: sheet.url,
+            id: sheet.id,
+            icons: Object.keys(loaded.index).length,
+            added,
+          })
+        })
+        .catch((error: unknown) => {
+          // A missing sheet costs icons, not the map.
+          this.fire('error', { error, sprite: sheet.url, id: sheet.id })
+        })
+    }
   }
 
   getStyle(): StyleSpec | undefined {

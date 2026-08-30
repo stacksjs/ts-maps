@@ -120,6 +120,39 @@ describe('addSpriteToAtlas', () => {
     expect(atlas.get('pin')?.pixelRatio).toBe(2)
   })
 
+  test('a prefix namespaces ids, for the multi-sheet form', () => {
+    // A style may layer its own icons over a vendor sheet; `icon-image` then
+    // names an icon as `sheet:icon`, and neither sheet has to know about the
+    // other's names.
+    const atlas = new IconAtlas()
+    addSpriteToAtlas(atlas, { index: INDEX, image: fakeSheet(), pixelRatio: 1 }, 'base')
+    addSpriteToAtlas(atlas, {
+      index: { marker: { x: 0, y: 0, width: 8, height: 8 } },
+      image: fakeSheet(),
+      pixelRatio: 1,
+    }, 'brand')
+
+    // Same name in both sheets, and both survive.
+    expect(atlas.get('base:marker')?.width).toBe(20)
+    expect(atlas.get('brand:marker')?.width).toBe(8)
+    expect(atlas.get('marker')).toBeUndefined()
+  })
+
+  test('sdf entries are marked so icon-color can reach them', () => {
+    const atlas = new IconAtlas()
+    addSpriteToAtlas(atlas, {
+      index: {
+        shape: { x: 0, y: 0, width: 8, height: 8, sdf: true },
+        photo: { x: 8, y: 0, width: 8, height: 8 },
+      },
+      image: fakeSheet(),
+      pixelRatio: 1,
+    })
+
+    expect(atlas.get('shape')?.sdf).toBe(true)
+    expect(atlas.get('photo')?.sdf).toBe(false)
+  })
+
   test('malformed entries are skipped, not fatal', () => {
     const atlas = new IconAtlas()
     const added = addSpriteToAtlas(atlas, {
@@ -350,6 +383,31 @@ describe('style wiring', () => {
 
   test('a style without one does not, which is the common case', () => {
     expect(makeMap(base).getGlyphSource()).toBeUndefined()
+  })
+
+  test('an array of sprite sheets loads every one', () => {
+    const requested: string[] = []
+    const map = makeMap(base)
+    const original = globalThis.fetch
+    globalThis.fetch = (async (input: any) => {
+      requested.push(String(input))
+      return { ok: false, status: 404 } as Response
+    }) as any
+
+    try {
+      map.setStyle({
+        ...base,
+        sprite: [
+          { id: 'base', url: 'https://x/sprites/base' },
+          { id: 'brand', url: 'https://x/sprites/brand' },
+        ],
+      })
+      expect(requested.some(u => u.includes('/sprites/base'))).toBe(true)
+      expect(requested.some(u => u.includes('/sprites/brand'))).toBe(true)
+    }
+    finally {
+      globalThis.fetch = original
+    }
   })
 
   test('swapping styles replaces the glyph source', () => {

@@ -173,6 +173,15 @@ export interface VectorTilePaintProperties {
   'text-halo-color'?: string
   'text-halo-width'?: number
   'icon-opacity'?: number
+  /**
+   * Fill for SDF icons. A sprite entry marked `sdf` stores distance from the
+   * shape's edge rather than colours, so one icon serves every colour a style
+   * asks for — which is how a pin turns red for one category and blue for the
+   * next without shipping two sheets. Ignored by ordinary sprites.
+   */
+  'icon-color'?: string
+  'icon-halo-color'?: string
+  'icon-halo-width'?: number
 }
 
 export interface VectorTileLayoutProperties {
@@ -1589,6 +1598,19 @@ function drawSymbol(
   const iconSize = resolveLayoutExpression(layout?.['icon-size'], zoom, feature, featureState) as number | undefined
   const iconRotate = resolveLayoutExpression(layout?.['icon-rotate'], zoom, feature, featureState) as number | undefined
   const iconEntry = iconId && iconAtlas ? iconAtlas.get(iconId) : undefined
+  const iconOpacity = resolveLayoutExpression(paint?.['icon-opacity'], zoom, feature, featureState) as number | undefined
+  // Only meaningful for SDF entries, and only resolved for them: a data-driven
+  // `icon-color` over a picture sheet would be evaluated per feature for
+  // nothing.
+  const iconColor = iconEntry?.sdf
+    ? (resolveLayoutExpression(paint?.['icon-color'], zoom, feature, featureState) as string | undefined) ?? '#000000'
+    : undefined
+  const iconHaloColor = iconEntry?.sdf
+    ? resolveLayoutExpression(paint?.['icon-halo-color'], zoom, feature, featureState) as string | undefined
+    : undefined
+  const iconHaloWidth = iconEntry?.sdf
+    ? resolveLayoutExpression(paint?.['icon-halo-width'], zoom, feature, featureState) as number | undefined
+    : undefined
 
   // `symbol-sort-key` is the style-spec name; `symbol-priority` predates it
   // here and is kept working.
@@ -1706,6 +1728,10 @@ function drawSymbol(
         iconAtlas.drawIcon(ctx, iconId, anchorX, anchorY, {
           size: iconSize ?? iconEntry.width,
           rotation: iconRotate,
+          color: iconColor,
+          opacity: iconOpacity,
+          haloColor: iconHaloColor,
+          haloWidth: iconHaloWidth,
         })
       }
 
