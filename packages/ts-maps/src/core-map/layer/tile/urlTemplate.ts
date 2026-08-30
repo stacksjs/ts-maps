@@ -17,7 +17,7 @@ export interface TileUrlData {
 
 // Pick a subdomain for a given tile coord. Stable, so the same tile always
 // resolves to the same subdomain — important for HTTP-cache friendliness.
-export function getSubdomain(tilePoint: Point, subdomains: string | string[]): string {
+export function getSubdomain(tilePoint: { x: number, y: number }, subdomains: string | string[]): string {
   const arr = typeof subdomains === 'string' ? subdomains.split('') : subdomains
   if (!arr || arr.length === 0)
     return ''

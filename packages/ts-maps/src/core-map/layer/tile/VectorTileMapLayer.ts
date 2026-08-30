@@ -60,6 +60,15 @@ export interface VectorTileMapLayerOptions {
   maxZoom?: number
   maxNativeZoom?: number
   minNativeZoom?: number
+  /**
+   * Highest grid zoom the source actually publishes.
+   *
+   * Beyond it the grid keeps subdividing and each tile is drawn from its
+   * ancestor's data, clipped to its own quadrant — so the map stays at native
+   * resolution instead of magnifying a bitmap. Grid zooms, not the server's:
+   * 512px tiles sit one level above. See `_subTile`.
+   */
+  sourceMaxZoom?: number
   tileSize?: number
   attribution?: string
   pane?: string
@@ -403,7 +412,7 @@ export class VectorTileMapLayer extends GridLayer {
       }
 
       // Project container coords to this tile's local (tile-extent) space.
-      const localQuery = projectQueryToTile(queryPoint, queryBBox, entry.coords, this._map, tileSize)
+      const localQuery = projectQueryToTile(queryPoint, queryBBox, entry.coords, this._map, tileSize, this._subTile(entry.coords))
       if (!localQuery)
         continue
 
@@ -590,11 +599,14 @@ export class VectorTileMapLayer extends GridLayer {
   // -------------------------------------------------------------------------
 
   getTileUrl(coords: Point & { z: number }): string {
+    // The ancestor's URL when overzoomed, so every sibling asks for the same
+    // one and the HTTP cache serves the rest.
+    const sub = this._subTile(coords)
     const data: any = Object.create(this.options!)
-    data.s = getSubdomain(coords, this.options!.subdomains ?? 'abc')
-    data.x = coords.x
-    data.y = coords.y
-    data.z = this._getZoomForUrl(coords.z)
+    data.s = getSubdomain(sub, this.options!.subdomains ?? 'abc')
+    data.x = sub.x
+    data.y = sub.y
+    data.z = this._getZoomForUrl(sub.z)
     data.r = ''
     return composeTileUrl(this.options!.url ?? '', data)
   }
@@ -608,6 +620,29 @@ export class VectorTileMapLayer extends GridLayer {
    * them names a real tile in the wrong part of the world: point a 512px
    * OpenMapTiles source at Santa Monica and it returns open ocean.
    */
+  /**
+   * Which published tile backs this one, and which part of it to draw.
+   *
+   * Past `sourceMaxZoom` there are no tiles to fetch, so the grid keeps going
+   * and every tile beyond the cap renders a sub-rectangle of its nearest
+   * published ancestor. The alternative — clamping the grid and letting the
+   * level scale up — magnifies a finished bitmap, which is why overzoomed
+   * labels and roads went soft.
+   *
+   * `f` is how many tiles across the ancestor now covers, and `sx`/`sy` are
+   * this tile's position within it.
+   */
+  _subTile(coords: { x: number, y: number, z: number }): { x: number, y: number, z: number, f: number, sx: number, sy: number } {
+    const cap = this.options!.sourceMaxZoom
+    if (cap === undefined || coords.z <= cap)
+      return { x: coords.x, y: coords.y, z: coords.z, f: 1, sx: 0, sy: 0 }
+
+    const f = 2 ** (coords.z - cap)
+    const x = Math.floor(coords.x / f)
+    const y = Math.floor(coords.y / f)
+    return { x, y, z: cap, f, sx: coords.x - x * f, sy: coords.y - y * f }
+  }
+
   _getZoomForUrl(z: number): number {
     const tileSize = this.getTileSize().x
     const crsTileSize = 256
@@ -738,16 +773,13 @@ export class VectorTileMapLayer extends GridLayer {
 
   _drawTile(canvas: HTMLCanvasElement, tile: VectorTile, coords: Point & { z: number }): void {
     const size = this.getTileSize().x
-    // Never style a tile for a zoom above its own.
-    //
-    // Past a source's top zoom the grid clamps and the level is scaled up
-    // instead. Evaluating text-size and line-width at the map's zoom then
-    // compounds with that scale, so a label sized for zoom 18 was drawn into a
-    // zoom-15 tile and then magnified eight times over. Styling the tile as
-    // its own level intends leaves the CSS scale as the only enlargement,
-    // which is what overzooming is supposed to look like.
-    const rawZoom = this._map?.getZoom?.() ?? coords.z
-    const mapZoom = Math.min(rawZoom, coords.z)
+    // Which published tile backs this one. Beyond the source's top zoom the
+    // ancestor's features are drawn magnified into this tile's own canvas, so
+    // the result is native resolution rather than a scaled bitmap — and the
+    // style is evaluated at the real zoom, because that is what is being
+    // rendered.
+    const sub = this._subTile(coords)
+    const mapZoom = this._map?.getZoom?.() ?? coords.z
     const sourceId = this._sourceId ?? ''
     const lookup = this._featureStateLookup
 
@@ -761,7 +793,7 @@ export class VectorTileMapLayer extends GridLayer {
         glRenderer = new WebGLTileRenderer(canvas)
         entry.gl = glRenderer
         // Configure an ortho projection from tile-local (0..size) to clip.
-        const proj = ortho(0, size, size, 0, -1, 1)
+        const proj = ortho(sub.sx * size, (sub.sx + 1) * size, (sub.sy + 1) * size, sub.sy * size, -1, 1)
         glRenderer.setProjectionMatrix(proj)
       }
       catch (err) {
@@ -790,9 +822,11 @@ export class VectorTileMapLayer extends GridLayer {
     }
     else if (ctx) {
       // Everything below draws in CSS pixels. One transform here buys the
-      // extra resolution without a single call site having to know about it.
+      // extra resolution without a single call site having to know about it —
+      // and, when overzoomed, slides the ancestor so this tile's quadrant of
+      // it fills the canvas.
       const ratio = this._pixelRatio()
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+      ctx.setTransform(ratio, 0, 0, ratio, -sub.sx * size * ratio, -sub.sy * size * ratio)
     }
 
     // One collision index for the whole layer at this zoom, in world-pixel
@@ -806,8 +840,11 @@ export class VectorTileMapLayer extends GridLayer {
     const owner = `${coords.z}/${coords.x}/${coords.y}`
     collision.removeOwner(owner)
     const placement = {
-      originX: coords.x * size,
-      originY: coords.y * size,
+      // World pixels for the shared collision index. The sub-tile shift is
+      // subtracted back out because drawing coordinates carry it in the
+      // canvas transform, not in the numbers.
+      originX: coords.x * size - sub.sx * size,
+      originY: coords.y * size - sub.sy * size,
       owner,
     }
 
@@ -848,7 +885,9 @@ export class VectorTileMapLayer extends GridLayer {
           continue
 
         const rings = feature.loadGeometry()
-        const scale = size / feature.extent
+        // The ancestor's extent spans `f` tiles' worth of pixels; the
+        // transform above then slides this tile's share into view.
+        const scale = (size * sub.f) / feature.extent
 
         // Resolve feature state for this feature id, if the host supplied a
         // lookup and the feature carries an id.
@@ -1666,6 +1705,7 @@ function projectQueryToTile(
   coords: { x: number, y: number, z: number },
   map: any,
   tileSize: number,
+  sub: { f: number, sx: number, sy: number } = { f: 1, sx: 0, sy: 0 },
 ): LocalQuery | null {
   if (!map)
     return null
@@ -1687,12 +1727,22 @@ function projectQueryToTile(
     // extent that we can't know here without the layer; fall back to 4096
     // (the MVT default) and let the precise hit-test rescale per feature.
     const extent = 4096
-    const scale = extent / tileSize
+    // Indexed geometry is the ancestor's, so a pixel in this tile has to be
+    // mapped back into the ancestor's extent — a scale and an offset when
+    // overzoomed, and the plain case when not.
+    const scale = extent / (tileSize * sub.f)
+    const offX = (sub.sx * extent) / sub.f
+    const offY = (sub.sy * extent) / sub.f
     return {
       kind: 'bbox',
-      px: (localMinX + localMaxX) * 0.5 * scale,
-      py: (localMinY + localMaxY) * 0.5 * scale,
-      bbox: [localMinX * scale, localMinY * scale, localMaxX * scale, localMaxY * scale],
+      px: (localMinX + localMaxX) * 0.5 * scale + offX,
+      py: (localMinY + localMaxY) * 0.5 * scale + offY,
+      bbox: [
+        localMinX * scale + offX,
+        localMinY * scale + offY,
+        localMaxX * scale + offX,
+        localMaxY * scale + offY,
+      ],
       scale,
     }
   }
@@ -1704,9 +1754,9 @@ function projectQueryToTile(
     if (lx < 0 || ly < 0 || lx > tileSize || ly > tileSize)
       return null
     const extent = 4096
-    const scale = extent / tileSize
-    const px = lx * scale
-    const py = ly * scale
+    const scale = extent / (tileSize * sub.f)
+    const px = lx * scale + (sub.sx * extent) / sub.f
+    const py = ly * scale + (sub.sy * extent) / sub.f
     // Pad the point bbox by a small tolerance so line/circle features whose
     // exact geometry just misses the pixel still get candidate-ed.
     const tol = 8 * scale

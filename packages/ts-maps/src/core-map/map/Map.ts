@@ -2315,7 +2315,12 @@ export class TsMap extends Evented {
         url,
         tileSize,
         minNativeZoom: source.minzoom !== undefined ? source.minzoom + gridShift : undefined,
-        maxNativeZoom: source.maxzoom !== undefined ? source.maxzoom + gridShift : undefined,
+        // `sourceMaxZoom`, not `maxNativeZoom`: the grid keeps subdividing past
+        // the source's top zoom and each tile renders its own quadrant of the
+        // ancestor at full resolution. Clamping the grid instead would scale a
+        // finished bitmap, which is what made overzoomed labels and roads soft.
+        sourceMaxZoom: source.maxzoom !== undefined ? source.maxzoom + gridShift : undefined,
+        maxZoom: STYLE_LAYER_MAX_ZOOM,
         attribution: source.attribution,
         layers: styleLayers,
       })
@@ -2369,8 +2374,9 @@ export class TsMap extends Evented {
       const layer = new VectorTileMapLayer({
         localSource: local,
         tileSize: 512,
-        // Indexing depth, overzoomed above — not a visibility ceiling.
-        maxNativeZoom: source.maxzoom !== undefined ? source.maxzoom + 1 : undefined,
+        // Indexing depth, subdivided above — not a visibility ceiling.
+        sourceMaxZoom: source.maxzoom !== undefined ? source.maxzoom + 1 : undefined,
+        maxZoom: STYLE_LAYER_MAX_ZOOM,
         attribution: source.attribution,
         layers: styleLayers,
       })

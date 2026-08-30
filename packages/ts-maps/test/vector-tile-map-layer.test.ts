@@ -277,27 +277,49 @@ describe('VectorTileMapLayer: url composition', () => {
 })
 
 describe('VectorTileMapLayer: overzoom', () => {
-  test('a tile is never styled for a zoom above its own', () => {
-    // Past a source's top zoom the grid clamps and the level is scaled up.
-    // Evaluating paint at the map's zoom then compounds with that scale, so a
-    // label sized for zoom 18 got drawn into a zoom-15 tile and magnified on
-    // top of that.
-    const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', maxNativeZoom: 15 })
-
-    // Below the clamp the map's own zoom is used, fractional and all.
-    expect(Math.min(14.6, 15)).toBe(14.6)
-    // Above it, the tile's level wins.
-    expect(Math.min(18, 15)).toBe(15)
-
-    expect(layer._clampZoom(18)).toBe(15)
-    expect(layer._clampZoom(12)).toBe(12)
+  const layer = (): any => new VectorTileMapLayer({
+    url: 'https://tiles/{z}/{x}/{y}.pbf',
+    sourceMaxZoom: 15,
   })
 
-  test('the clamp leaves the visibility ceiling alone', () => {
-    const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', maxNativeZoom: 15 })
-    // maxZoom hides a layer; maxNativeZoom decides where overzooming starts.
-    // Conflating them is what blanked the basemap past the source's top zoom.
-    expect(layer.options!.maxZoom).toBeGreaterThan(15)
+  test('below the cap a tile is simply itself', () => {
+    expect(layer()._subTile({ x: 3, y: 5, z: 14 }))
+      .toMatchObject({ x: 3, y: 5, z: 14, f: 1, sx: 0, sy: 0 })
+  })
+
+  test('above it, a tile is a quadrant of its published ancestor', () => {
+    const one = layer()._subTile({ x: 7, y: 11, z: 16 })
+    expect(one).toMatchObject({ x: 3, y: 5, z: 15, f: 2, sx: 1, sy: 1 })
+
+    const two = layer()._subTile({ x: 6, y: 10, z: 16 })
+    expect(two).toMatchObject({ x: 3, y: 5, z: 15, f: 2, sx: 0, sy: 0 })
+  })
+
+  test('all four children of a tile share its url', () => {
+    const l = layer()
+    const urls = new Set([
+      l.getTileUrl({ x: 6, y: 10, z: 16 }),
+      l.getTileUrl({ x: 7, y: 10, z: 16 }),
+      l.getTileUrl({ x: 6, y: 11, z: 16 }),
+      l.getTileUrl({ x: 7, y: 11, z: 16 }),
+    ])
+
+    // One fetch, three cache hits — the reason subdividing costs no more
+    // bandwidth than magnifying would have.
+    expect(urls.size).toBe(1)
+    // Grid 15 with 512px tiles is server 14.
+    expect([...urls][0]).toBe('https://tiles/14/3/5.pbf')
+  })
+
+  test('the visibility ceiling is left well clear of the cap', () => {
+    // maxZoom hides a layer; conflating it with the source's top zoom is what
+    // blanked the basemap past 14.
+    expect(layer().options.maxZoom).toBeGreaterThan(15)
+  })
+
+  test('a layer with no cap never subdivides', () => {
+    const plain: any = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf' })
+    expect(plain._subTile({ x: 9, y: 9, z: 20 })).toMatchObject({ z: 20, f: 1, sx: 0, sy: 0 })
   })
 })
 

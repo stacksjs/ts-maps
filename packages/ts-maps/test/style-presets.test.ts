@@ -267,37 +267,56 @@ describe('overzooming past a source\'s top zoom', () => {
     return { map, host: (map as any)._style.sourceLayers.get('basemap') }
   }
 
-  test('a vector source maps its zoom range onto native zoom, not visibility', () => {
+  test('a vector source subdivides past its top zoom rather than hiding', () => {
     // The bug this guards: `maxzoom` in a style means "tiles stop here,
     // overzoom above it", while Leaflet's `maxZoom` means "hide the layer
     // above here". Passing one as the other blanked the basemap the moment
     // you zoomed past 14 — which is where a typical vector source tops out.
     const { host } = hostFor(styles.dark({ tiles: TILES }))
 
-    expect(host.options.maxZoom).not.toBe(14)
     // 512px tiles sit one grid zoom above the server's, so a server maxzoom
     // of 14 is grid 15.
-    expect(host.options.maxNativeZoom).toBe(15)
-  })
-
-  test('zooming past the source maximum clamps rather than switching off', () => {
-    const { host } = hostFor(styles.dark({ tiles: TILES }))
-
-    // Below the top, the grid follows the map.
-    expect(host._clampZoom(12)).toBe(12)
-    // Above it, tiles come from the top level that exists and are scaled up.
-    expect(host._clampZoom(18)).toBe(15)
-    // And the visibility ceiling stays far above the source's own top, which
-    // is what blanked the map before.
+    expect(host.options.sourceMaxZoom).toBe(15)
+    // Not clamped: the grid keeps going and each tile renders its own share
+    // of the ancestor, which is what keeps it sharp.
+    expect(host.options.maxNativeZoom).toBeUndefined()
     expect(host.options.maxZoom).toBeGreaterThan(15)
   })
 
-  test('overzoomed tiles still ask the server for its own top zoom', () => {
+  test('the grid keeps subdividing past the source maximum', () => {
     const { host } = hostFor(styles.dark({ tiles: TILES }))
-    const coords = { x: 5, y: 3, z: 15 } as any
 
-    // Grid 15 → server 14, the highest OpenMapTiles-style sources publish.
-    expect(host.getTileUrl(coords)).toContain('/14/')
+    // Below the cap, nothing changes.
+    expect(host._clampZoom(12)).toBe(12)
+    expect(host._subTile({ x: 3, y: 5, z: 12 })).toMatchObject({ z: 12, x: 3, y: 5, f: 1, sx: 0, sy: 0 })
+
+    // Above it the grid still advances — no clamp, no blank.
+    expect(host._clampZoom(18)).toBe(18)
+  })
+
+  test('an overzoomed tile draws its own quadrant of the published ancestor', () => {
+    const { host } = hostFor(styles.dark({ tiles: TILES }))
+
+    // Grid 18 is three levels past the cap of 15, so one published tile now
+    // covers 8x8 of them.
+    const sub = host._subTile({ x: 27, y: 43, z: 18 })
+    expect(sub).toMatchObject({ z: 15, f: 8 })
+    expect(sub.x).toBe(3)
+    expect(sub.y).toBe(5)
+    // 27 - 3*8 = 3, 43 - 5*8 = 3.
+    expect(sub.sx).toBe(3)
+    expect(sub.sy).toBe(3)
+  })
+
+  test('every sibling asks the server for the same ancestor tile', () => {
+    // Which is what lets the HTTP cache serve 63 of the 64 for free.
+    const { host } = hostFor(styles.dark({ tiles: TILES }))
+    const a = host.getTileUrl({ x: 24, y: 40, z: 18 } as any)
+    const b = host.getTileUrl({ x: 27, y: 43, z: 18 } as any)
+
+    expect(a).toBe(b)
+    // Grid 15 → server 14, the top zoom such a source publishes.
+    expect(a).toContain('/14/')
   })
 
   test('a raster source overzooms too', () => {
