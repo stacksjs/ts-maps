@@ -1,3 +1,21 @@
+export {
+  AttributionControl,
+  type AttributionControlProps,
+  type ControlPosition,
+  type ControlProps,
+  FullscreenControl,
+  type FullscreenControlProps,
+  GeocoderControl,
+  type GeocoderControlProps,
+  LocateControl,
+  type LocateControlProps,
+  NavigationControl,
+  type NavigationControlProps,
+  ScaleControl,
+  type ScaleControlProps,
+  ZoomControl,
+  type ZoomControlProps,
+} from './controls'
 export { Layer, type LayerProps } from './Layer'
 export { Map, type MapProps } from './Map'
 export { MapContext, type MapContextValue } from './MapContext'
