@@ -35,3 +35,12 @@ export {
   ringPerimeter,
 } from './area'
 export { contains, difference, intersects, intersection, union, xor } from './polygonClip'
+export {
+  InvalidGeometryError,
+  prepareClaim,
+  resolveSelfIntersections,
+  selfIntersects,
+  splitSelfIntersecting,
+  unwrapRing,
+  validateRing,
+} from './validate'

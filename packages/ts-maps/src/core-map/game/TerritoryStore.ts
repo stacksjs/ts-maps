@@ -17,6 +17,7 @@ import type { MultiPolygon, Position, Ring } from '../geo/polygonClip'
 import { Evented } from '../core/Events'
 import { multiPolygonArea, ringArea } from '../geo/area'
 import { contains, difference, intersection, union } from '../geo/polygonClip'
+import { prepareClaim } from '../geo/validate'
 
 export interface TerritoryStoreOptions {
   /**
@@ -96,8 +97,13 @@ export class TerritoryStore extends Evented {
    * is entitled to their own definition of a lap.
    */
   capture(owner: string, ring: Ring): CaptureResult {
-    const claim: MultiPolygon = [[closeRing(ring)]]
-    const areaClaimed = Math.abs(ringArea(ring))
+    // Validated and repaired before anything is measured or merged. A claim
+    // built from a GPS trace can carry a lost-lock NaN, cross itself, or cross
+    // the antimeridian, and each of those quietly produces a capture worth
+    // nothing unless it is dealt with here. Unusable geometry throws
+    // `InvalidGeometryError` rather than silently claiming empty ground.
+    const claim = prepareClaim(ring)
+    const areaClaimed = multiPolygonArea(claim)
 
     const before = this._byOwner.get(owner) ?? []
     const gained = difference(claim, before)
@@ -191,7 +197,7 @@ export class TerritoryStore extends Evented {
    * For showing a runner what a lap is worth while they are still running it.
    */
   preview(owner: string, ring: Ring): { areaGained: number, stolen: StolenFrom[] } {
-    const claim: MultiPolygon = [[closeRing(ring)]]
+    const claim = prepareClaim(ring)
     const before = this._byOwner.get(owner) ?? []
     const areaGained = multiPolygonArea(difference(claim, before))
 

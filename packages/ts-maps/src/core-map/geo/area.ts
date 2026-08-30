@@ -40,7 +40,18 @@ export function ringArea(ring: Ring): number {
   for (let i = 0, len = ring.length; i < len; i++) {
     const p1 = ring[i]
     const p2 = ring[(i + 1) % len]
-    total += (p2[0] - p1[0]) * RAD * (2 + Math.sin(p1[1] * RAD) + Math.sin(p2[1] * RAD))
+    // The longitude difference is taken the short way round. A ring crossing
+    // the antimeridian is recorded as a jump from 179.99 to -179.99, and read
+    // literally that edge spans the planet — a strip a few metres wide off
+    // Fiji would measure as forty billion square metres. No legitimate edge
+    // spans more than half the world, so the shorter way is always the one
+    // that was run.
+    let dLng = p2[0] - p1[0]
+    if (dLng > 180)
+      dLng -= 360
+    else if (dLng < -180)
+      dLng += 360
+    total += dLng * RAD * (2 + Math.sin(p1[1] * RAD) + Math.sin(p2[1] * RAD))
   }
 
   return (total * EARTH_RADIUS * EARTH_RADIUS) / 2
