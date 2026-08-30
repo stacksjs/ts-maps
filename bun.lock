@@ -19,6 +19,7 @@
       "devDependencies": {
         "@nuxt/kit": "^3.12.0",
         "typescript": "^7.0.2",
+        "very-happy-dom": "^0.1.10",
       },
       "peerDependencies": {
         "@nuxt/kit": "^3.12.0",
@@ -70,7 +71,6 @@
       "devDependencies": {
         "@babel/core": "^7",
         "@babel/preset-typescript": "^7",
-        "@babel/types": "^7",
         "babel-preset-solid": "^1.9.15",
         "solid-js": "^1.8.0",
         "typescript": "^7.0.2",
@@ -1002,6 +1002,8 @@
 
     "@stacksjs/ts-i18n/bunfig": ["bunfig@0.15.14", "", { "dependencies": { "@stacksjs/clapp": "^0.2.0", "@stacksjs/clarity": "^0.3.24" }, "bin": { "bunfig": "./bin/cli.js" } }, "sha512-9yzw5/MkTBF3X8Dc96DJUPpZDl/jIAYVlY6XxGrP8+o5fEf8sGgoIc53GkSFucyMoqC5jF1qM++3bD1LL7/N1Q=="],
 
+    "@ts-maps/vue/very-happy-dom": ["very-happy-dom@0.1.10", "", {}, "sha512-MOo3hmxPPMVXW9yrqGtu43FOfMMQ7e6IgNSa10KkCShL0jmoIQi1ISFiyIIVJoCVE9UdVskO++hwJAKWWFoy5w=="],
+
     "@vue/compiler-core/entities": ["entities@7.0.1", "", {}, "sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA=="],
 
     "babel-plugin-jsx-dom-expressions/@babel/helper-module-imports": ["@babel/helper-module-imports@7.18.6", "", { "dependencies": { "@babel/types": "^7.18.6" } }, "sha512-0NFvs3VkuSYbFi1x2Vd6tKrywq+z/cLeYC/RJNFrIX/30Bf5aiGYbtvGXolEktzJH8o5E5KJ3tT+nkxuuZFVlA=="],
@@ -1055,6 +1057,10 @@
     "source-map-support/source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 
     "terser/commander": ["commander@2.20.3", "", {}, "sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ=="],
+
+    "ts-maps/very-happy-dom": ["very-happy-dom@0.1.10", "", {}, "sha512-MOo3hmxPPMVXW9yrqGtu43FOfMMQ7e6IgNSa10KkCShL0jmoIQi1ISFiyIIVJoCVE9UdVskO++hwJAKWWFoy5w=="],
+
+    "ts-maps-nuxt/very-happy-dom": ["very-happy-dom@0.1.10", "", {}, "sha512-MOo3hmxPPMVXW9yrqGtu43FOfMMQ7e6IgNSa10KkCShL0jmoIQi1ISFiyIIVJoCVE9UdVskO++hwJAKWWFoy5w=="],
 
     "ts-pantry/@stacksjs/ts-cloud": ["@stacksjs/ts-cloud@0.2.27", "", { "dependencies": { "@stacksjs/ts-xml": "^0.1.0", "@ts-cloud/aws-types": "0.2.27", "@ts-cloud/core": "0.2.27" }, "bin": { "cloud": "./dist/bin/cli.js" } }, "sha512-81+ORovneY4muI4CoM4bTrq3LORqvzbwVVEo5ifRzNglhc5SQSZWA3/S/nDnMZt7VNhFy0mn8VkqrSyZ9Emwcg=="],
 

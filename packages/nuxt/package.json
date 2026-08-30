@@ -2,7 +2,7 @@
   "name": "ts-maps-nuxt",
   "type": "module",
   "version": "0.3.2",
-  "description": "Nuxt 3 module for ts-maps — auto-imports the Vue bindings.",
+  "description": "Nuxt 3 module for ts-maps \u2014 auto-imports the Vue bindings.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/nuxt#readme",
@@ -46,7 +46,8 @@
     "prepublishOnly": "bun --bun run build",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",
-    "typecheck": "bun --bun tsc --noEmit"
+    "typecheck": "bun --bun tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@ts-maps/vue": "workspace:*",
@@ -57,6 +58,7 @@
   },
   "devDependencies": {
     "@nuxt/kit": "^3.12.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "very-happy-dom": "^0.1.10"
   }
 }
