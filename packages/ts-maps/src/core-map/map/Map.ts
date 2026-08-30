@@ -1406,6 +1406,9 @@ export class TsMap extends Evented {
     DomUtil.setPosition(this._mapPane, new Point(0, 0))
 
     this.createPane('tilePane')
+    // Labels sit above the tiles and below everything a user interacts with:
+    // a marker or popup should never be hidden behind a street name.
+    this.createPane('symbolPane')
     this.createPane('overlayPane')
     this.createPane('shadowPane')
     this.createPane('markerPane')
@@ -1691,7 +1694,9 @@ export class TsMap extends Evented {
     // Counter-transform the upright panes so icons / popups / tooltips do
     // not visually spin or tilt with the map. The pivot is the same viewport
     // center so the counter-transform cancels precisely.
-    const upright = ['markerPane', 'popupPane', 'tooltipPane']
+    // symbolPane joins them: labels are drawn in screen space, so the pane
+    // must not turn under them or the text rotates with the map.
+    const upright = ['symbolPane', 'markerPane', 'popupPane', 'tooltipPane']
     const active = !!this._bearing || !!this._pitch
     for (const name of upright) {
       const pane = this._panes?.[name]

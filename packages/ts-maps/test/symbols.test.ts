@@ -3,6 +3,7 @@ import { Point } from '../src/core-map/geometry/Point'
 import { TsMap } from '../src/core-map/map/Map'
 import { Pbf } from '../src/core-map/proto/Pbf'
 import { VectorTileMapLayer } from '../src/core-map'
+import { CollisionIndex } from '../src/core-map/symbols/CollisionIndex'
 
 // ---------------------------------------------------------------------------
 // Fixture helpers — fabricate a single-point MVT tile via Pbf writer. Mirrors
@@ -124,6 +125,23 @@ function spyOnCanvas(canvas: HTMLCanvasElement): DrawCounts {
   return counts
 }
 
+/**
+ * Run one overlay pass and report what it drew.
+ *
+ * The overlay owns a viewport canvas of its own, so this drives `_drawSymbols`
+ * directly rather than reaching through the DOM for it.
+ */
+function drawSymbolsOnto(layer: any): DrawCounts {
+  const surface = document.createElement('canvas')
+  surface.width = 512
+  surface.height = 512
+  const counts = spyOnCanvas(surface)
+  const ctx = surface.getContext('2d')
+  if (ctx)
+    layer._drawSymbols(ctx, new CollisionIndex())
+  return counts
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -160,14 +178,13 @@ describe('VectorTileMapLayer: symbol layers', () => {
     const ready = new Promise<{ err: any }>((r) => { resolveDone = r })
     const canvas = layer.createTile(coords, (err) => resolveDone({ err })) as HTMLCanvasElement
     layer._tiles!['0:0:4'] = { el: canvas, coords, current: true } as any
-    const counts = spyOnCanvas(canvas)
 
     const { err } = await ready
     expect(err).toBeNull()
 
-    // Text goes through the canvas's own text engine rather than a blit of the
-    // glyph atlas: an atlas resample is what made labels blurry beside the
-    // crisp vector lines next to them.
+    // Labels are drawn on the overlay canvas, not into the tile, so that a
+    // WebGL tile still gets text and rotation can re-place them.
+    const counts = drawSymbolsOnto(layer)
     expect(counts.fillText).toBeGreaterThanOrEqual(1)
   })
 
@@ -203,7 +220,7 @@ describe('VectorTileMapLayer: symbol layers', () => {
 
     const { err } = await ready
     expect(err).toBeNull()
-    expect(counts.fillText).toBeGreaterThanOrEqual(1)
+    expect(drawSymbolsOnto(layer).fillText).toBeGreaterThanOrEqual(1)
   })
 
   test('getGlyphAtlas is lazy and stable across calls', () => {

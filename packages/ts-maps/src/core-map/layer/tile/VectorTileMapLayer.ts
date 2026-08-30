@@ -22,6 +22,7 @@ import { VectorTileFeature } from '../../mvt/VectorTileFeature'
 import { RTree } from '../../geometry/RTree'
 import type { TextAnchor } from '../../symbols/placement'
 import { CollisionIndex } from '../../symbols/CollisionIndex'
+import { SymbolOverlay } from '../../symbols/SymbolOverlay'
 import { GlyphAtlas } from '../../symbols/GlyphAtlas'
 import { IconAtlas } from '../../symbols/IconAtlas'
 import { anchorOffset, lineLength, offsetPixels, placeGlyphsAlongLine, repeatDistances, rotatedBounds } from '../../symbols/placement'
@@ -180,6 +181,10 @@ export interface VectorTileLayoutProperties {
   'symbol-sort-key'?: unknown
   /** Predates `symbol-sort-key` here; still honoured. */
   'symbol-priority'?: number
+  'text-allow-overlap'?: unknown
+  'icon-allow-overlap'?: unknown
+  'text-ignore-placement'?: unknown
+  'icon-ignore-placement'?: unknown
   'text-anchor'?: unknown
   'text-offset'?: unknown
   'text-rotate'?: unknown
@@ -256,8 +261,8 @@ export class VectorTileMapLayer extends GridLayer {
   declare _sourceCache: Map<string, { tile: VectorTile, index: RTree<RTreeItem>, refs: number }>
   /** Ancestors currently being fetched, so siblings await one request. */
   declare _sourcePending: Map<string, { promise: Promise<{ tile: VectorTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
-  declare _collision?: CollisionIndex
-  declare _collisionZoom?: number
+  declare _symbolOverlay?: SymbolOverlay
+  declare _symbolHandlers?: Record<string, () => void>
   declare _featureStateLookup?: (src: string, srcLayer: string, id: number | string) => Record<string, unknown>
   declare _sourceId?: string
   declare _glyphAtlas?: GlyphAtlas
@@ -346,6 +351,7 @@ export class VectorTileMapLayer extends GridLayer {
   setStyleLayers(layers: VectorTileStyleLayer[]): this {
     this._styleLayers = layers
     this.redraw()
+    this._refreshSymbols()
     return this
   }
 
@@ -359,6 +365,7 @@ export class VectorTileMapLayer extends GridLayer {
   updateStyleLayers(layers: VectorTileStyleLayer[]): this {
     this._styleLayers = layers
     this._repaintDecodedTiles()
+    this._refreshSymbols()
     return this
   }
 
@@ -592,7 +599,13 @@ export class VectorTileMapLayer extends GridLayer {
     return canvas
   }
 
+  onAdd(map: any): void {
+    super.onAdd(map)
+    this._initSymbolOverlay()
+  }
+
   onRemove(map: any): void {
+    this._destroySymbolOverlay()
     for (const entry of this._decodedTiles.values()) {
       entry.abort.abort()
       this._releaseSource(entry)
@@ -618,6 +631,7 @@ export class VectorTileMapLayer extends GridLayer {
       }
     }
     super._removeTile(key)
+    this._refreshSymbols()
   }
 
   // -------------------------------------------------------------------------
@@ -677,18 +691,141 @@ export class VectorTileMapLayer extends GridLayer {
   }
 
   /**
-   * The collision index shared by every tile at `zoom`.
+   * Create the overlay labels are drawn on, and keep it in step with the map.
    *
-   * Rebuilt when the zoom changes: world-pixel coordinates are zoom-specific,
-   * and keeping boxes from another zoom would reject placements against
-   * geometry that is no longer on screen.
+   * Redraws happen at settled moments; in between the canvas is transformed to
+   * track the map, so a drag stays smooth without re-placing every label per
+   * frame. Rotation redraws directly — placement depends on the bearing, and
+   * transforming the canvas would turn the glyphs with it.
    */
-  _collisionFor(zoom: number): CollisionIndex {
-    if (!this._collision || this._collisionZoom !== zoom) {
-      this._collision = new CollisionIndex()
-      this._collisionZoom = zoom
+  _initSymbolOverlay(): void {
+    if (this._symbolOverlay || !this._map)
+      return
+
+    this._symbolOverlay = new SymbolOverlay(this._map, {
+      drawSymbols: (ctx, collision) => this._drawSymbols(ctx, collision),
+      createCollisionIndex: () => new CollisionIndex(),
+    })
+
+    // Only settled moments. The pane travels with the map in between, so
+    // labels stay on the ground during a drag without a redraw per frame.
+    const settle = (): void => this._symbolOverlay?.schedule()
+
+    this._symbolHandlers = {
+      moveend: settle,
+      zoomend: settle,
+      rotate: settle,
+      rotateend: settle,
+      pitchend: settle,
+      resize: settle,
+      load: settle,
+      viewreset: settle,
     }
-    return this._collision
+    for (const [event, fn] of Object.entries(this._symbolHandlers))
+      this._map.on(event, fn)
+  }
+
+  _destroySymbolOverlay(): void {
+    if (this._symbolHandlers && this._map) {
+      for (const [event, fn] of Object.entries(this._symbolHandlers))
+        this._map.off(event, fn)
+    }
+    this._symbolHandlers = undefined
+    this._symbolOverlay?.remove()
+    this._symbolOverlay = undefined
+  }
+
+  /** Ask for a label repaint — after tiles decode, or a style change. */
+  _refreshSymbols(): void {
+    this._symbolOverlay?.schedule()
+  }
+
+  /**
+   * Project a point inside a tile to where it currently sits on screen.
+   *
+   * Goes through the map's own projection rather than a per-tile affine, so
+   * bearing and pitch are handled by the code that already owns them.
+   */
+  _projectTilePoint(coords: { x: number, y: number, z: number }, localX: number, localY: number): { x: number, y: number } | null {
+    const map = this._map
+    if (!map)
+      return null
+    const size = this.getTileSize().x
+    const latlng = map.unproject([coords.x * size + localX, coords.y * size + localY], coords.z)
+    const point = map.latLngToContainerPoint(latlng)
+    return { x: point.x, y: point.y }
+  }
+
+  /**
+   * Draw every symbol on screen, in one pass over every tile currently held.
+   *
+   * One pass means one collision index covering the whole viewport, so a label
+   * competes with its neighbours regardless of which tile either came from.
+   */
+  _drawSymbols(ctx: CanvasRenderingContext2D, collision: CollisionIndex): void {
+    const map = this._map
+    if (!map)
+      return
+
+    const mapZoom = map.getZoom?.() ?? 0
+    const sourceId = this._sourceId ?? ''
+    const lookup = this._featureStateLookup
+    const size = this.getTileSize().x
+
+    for (const styleLayer of this._styleLayers) {
+      if (styleLayer.type !== 'symbol')
+        continue
+      if (styleLayer.layout?.visibility === 'none')
+        continue
+      if (styleLayer.minzoom !== undefined && mapZoom < styleLayer.minzoom)
+        continue
+      if (styleLayer.maxzoom !== undefined && mapZoom > styleLayer.maxzoom)
+        continue
+
+      for (const entry of this._decodedTiles.values()) {
+        const tile = entry.tile
+        if (!tile)
+          continue
+
+        const mvtLayer = tile.layers[styleLayer.sourceLayer]
+        if (!mvtLayer)
+          continue
+
+        const coords = entry.coords
+        const sub = this._subTile(coords)
+        // Extent coordinates cover `f` tiles' worth of pixels once overzoomed,
+        // and this tile shows one of them.
+        const scale = (size * sub.f) / (mvtLayer.extent || 4096)
+        const offsetX = -sub.sx * size
+        const offsetY = -sub.sy * size
+
+        const project = (ex: number, ey: number): { x: number, y: number } | null =>
+          this._projectTilePoint(coords, ex * scale + offsetX, ey * scale + offsetY)
+
+        for (let i = 0; i < mvtLayer.length; i++) {
+          const feature = mvtLayer.feature(i)
+          if (!filterPasses(styleLayer, feature, mapZoom, coords))
+            continue
+
+          let featureState: Record<string, unknown> | undefined
+          if (lookup && feature.id !== undefined)
+            featureState = lookup(sourceId, styleLayer.sourceLayer, feature.id as number | string)
+
+          drawSymbol(
+            ctx,
+            feature.loadGeometry(),
+            styleLayer,
+            feature,
+            mapZoom,
+            featureState,
+            this.getGlyphAtlas(),
+            this._iconAtlas,
+            collision,
+            project,
+          )
+        }
+      }
+    }
   }
 
   _drawLocalTile(
@@ -849,6 +986,8 @@ export class VectorTileMapLayer extends GridLayer {
       return
     }
 
+    // New features on screen, so the labels covering them are stale.
+    this._refreshSymbols()
     done(null, canvas)
   }
 
@@ -933,25 +1072,6 @@ export class VectorTileMapLayer extends GridLayer {
       ctx.setTransform(ratio, 0, 0, ratio, -sub.sx * size * ratio, -sub.sy * size * ratio)
     }
 
-    // One collision index for the whole layer at this zoom, in world-pixel
-    // space — not one per tile. A per-tile index cannot see across a seam, so
-    // two tiles would each happily place a label that overlaps the other's on
-    // screen. See CollisionIndex.
-    const collision = this._collisionFor(mapZoom)
-    // This tile is about to redraw, so its previous placements are stale.
-    // Without this, a tile that pans out and back collides with its own ghosts
-    // and silently loses every label.
-    const owner = `${coords.z}/${coords.x}/${coords.y}`
-    collision.removeOwner(owner)
-    const placement = {
-      // World pixels for the shared collision index. The sub-tile shift is
-      // subtracted back out because drawing coordinates carry it in the
-      // canvas transform, not in the numbers.
-      originX: coords.x * size - sub.sx * size,
-      originY: coords.y * size - sub.sy * size,
-      owner,
-    }
-
     for (const styleLayer of this._styleLayers) {
       if (styleLayer.layout?.visibility === 'none')
         continue
@@ -1025,27 +1145,10 @@ export class VectorTileMapLayer extends GridLayer {
           else if (ctx)
             drawCircle(ctx, rings, scale, paint, mapZoom, feature, featureState)
         }
-        else if (styleLayer.type === 'symbol') {
-          // Symbol layers require Canvas2D. When the tile canvas is bound to
-          // a WebGL context we can't also acquire a 2D context, so symbols
-          // are skipped for this pass. A future change will composite
-          // symbols onto an overlay canvas.
-          if (!ctx)
-            continue
-          drawSymbol(
-            ctx,
-            rings,
-            scale,
-            styleLayer,
-            feature,
-            mapZoom,
-            featureState,
-            this.getGlyphAtlas(),
-            this._iconAtlas,
-            collision,
-            placement,
-          )
-        }
+        // Symbol layers are not drawn here. They go on the overlay canvas
+        // instead, in screen space, so they survive a WebGL tile, stay upright
+        // when the map rotates, and are not cut off at tile edges. See
+        // `_drawSymbols`.
       }
     }
 
@@ -1339,18 +1442,12 @@ function coerceString(v: unknown): string {
   return ''
 }
 
-interface SymbolPlacementContext {
-  /** Added to tile-local pixels to reach the shared world-pixel space. */
-  originX: number
-  originY: number
-  /** Tile key, so a redrawn tile can evict its own previous placements. */
-  owner: string
-}
+/** Extent coordinates to where they currently are on screen. */
+type ProjectPoint = (x: number, y: number) => { x: number, y: number } | null
 
 function drawSymbol(
   ctx: CanvasRenderingContext2D,
   rings: Point[][],
-  scale: number,
   styleLayer: VectorTileStyleLayer,
   feature: VectorTileFeature,
   zoom: number,
@@ -1358,7 +1455,7 @@ function drawSymbol(
   glyphAtlas: GlyphAtlas,
   iconAtlas: IconAtlas | undefined,
   collision: CollisionIndex,
-  placement: SymbolPlacementContext,
+  project: ProjectPoint,
 ): void {
   if (rings.length === 0 || rings[0].length === 0)
     return
@@ -1392,13 +1489,35 @@ function drawSymbol(
   const priority = (resolveLayoutExpression(layout?.['symbol-sort-key'], zoom, feature, featureState) as number | undefined)
     ?? layout?.['symbol-priority']
 
+  // The escape hatches from collision. `allow-overlap` draws regardless of
+  // what is already there — the way you pin a selected feature's label down.
+  // `ignore-placement` draws normally but reserves nothing, so it does not
+  // push anything else off the map. Both were in the schema and honoured
+  // nowhere, which left no way to force a label through at all.
+  const allowOverlap = !!(resolveLayoutExpression(layout?.['text-allow-overlap'], zoom, feature, featureState)
+    ?? resolveLayoutExpression(layout?.['icon-allow-overlap'], zoom, feature, featureState))
+  const ignorePlacement = !!(resolveLayoutExpression(layout?.['text-ignore-placement'], zoom, feature, featureState)
+    ?? resolveLayoutExpression(layout?.['icon-ignore-placement'], zoom, feature, featureState))
+
+  /** Claim space unless told not to; report whether the symbol may draw. */
+  const place = (box: { minX: number, minY: number, maxX: number, maxY: number }): boolean => {
+    if (allowOverlap) {
+      if (!ignorePlacement)
+        collision.insert({ ...box, priority })
+      return true
+    }
+    if (ignorePlacement)
+      return !collision.hits({ ...box, priority })
+    return collision.tryInsert({ ...box, priority })
+  }
+
   const textStyle = { italic, bold, family: font.family }
   const drawOptions = { color: textColor, haloColor, haloWidth, size: textSize, italic, bold, family: font.family }
 
   const placeAlongLine = layout?.['symbol-placement'] === 'line' || layout?.['symbol-placement'] === 'line-center'
 
   if (placeAlongLine && text && feature.type !== 1) {
-    drawLineLabel(ctx, rings, scale, {
+    drawLineLabel(ctx, rings, project, {
       text,
       textSize,
       textStyle,
@@ -1406,8 +1525,8 @@ function drawSymbol(
       maxAngle: (resolveLayoutExpression(layout?.['text-max-angle'], zoom, feature, featureState) as number | undefined) ?? 45,
       spacing: (resolveLayoutExpression(layout?.['symbol-spacing'], zoom, feature, featureState) as number | undefined) ?? 250,
       centreOnly: layout?.['symbol-placement'] === 'line-center',
-      priority,
-    }, glyphAtlas, collision, placement)
+      place,
+    }, glyphAtlas)
     return
   }
 
@@ -1428,11 +1547,16 @@ function drawSymbol(
 
   for (const ring of rings) {
     for (const pt of ring) {
-      const anchorX = pt.x * scale + placement.originX
-      const anchorY = pt.y * scale + placement.originY
-
       if (!text && !iconEntry)
         continue
+
+      // Screen space throughout: the canvas is the viewport, so placement and
+      // drawing share one coordinate system and the bearing is already in it.
+      const at = project(pt.x, pt.y)
+      if (!at)
+        continue
+      const anchorX = at.x
+      const anchorY = at.y
 
       let minX = anchorX
       let minY = anchorY
@@ -1468,22 +1592,20 @@ function drawSymbol(
         maxY = Math.max(maxY, iy + target)
       }
 
-      if (!collision.tryInsert({ minX, minY, maxX, maxY, priority, owner: placement.owner }))
+      if (!place({ minX, minY, maxX, maxY }))
         continue
 
       // Icon first, then text on top.
       if (iconEntry && iconAtlas) {
-        iconAtlas.drawIcon(ctx, iconId, anchorX - placement.originX, anchorY - placement.originY, {
+        iconAtlas.drawIcon(ctx, iconId, anchorX, anchorY, {
           size: iconSize ?? iconEntry.width,
           rotation: iconRotate,
         })
       }
 
       if (text && metrics) {
-        // Canvas coordinates are tile-local; the world-space values above are
-        // only ever handed to the collision index.
-        const localX = textX - placement.originX
-        const localY = textY - placement.originY
+        const localX = textX
+        const localY = textY
         // drawText takes a baseline, not a box top: sit it an ascent below.
         const baselineY = localY + (metrics?.ascent ?? textHeight)
 
@@ -1492,9 +1614,9 @@ function drawSymbol(
         }
         else {
           ctx.save()
-          ctx.translate(anchorX - placement.originX, anchorY - placement.originY)
+          ctx.translate(anchorX, anchorY)
           ctx.rotate(rotate)
-          ctx.translate(-(anchorX - placement.originX), -(anchorY - placement.originY))
+          ctx.translate(-anchorX, -anchorY)
           glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
           ctx.restore()
         }
@@ -1506,7 +1628,7 @@ function drawSymbol(
 interface LineLabelOptions {
   text: string
   textSize: number
-  textStyle: { italic: boolean, bold: boolean }
+  textStyle: { italic: boolean, bold: boolean, family?: string }
   drawOptions: {
     color: string
     haloColor?: string
@@ -1514,11 +1636,13 @@ interface LineLabelOptions {
     size: number
     italic?: boolean
     bold?: boolean
+    family?: string
   }
   maxAngle: number
   spacing: number
   centreOnly: boolean
-  priority?: number
+  /** Claim space and report whether this label may draw. */
+  place: (box: { minX: number, minY: number, maxX: number, maxY: number }) => boolean
 }
 
 /**
@@ -1531,11 +1655,9 @@ interface LineLabelOptions {
 function drawLineLabel(
   ctx: CanvasRenderingContext2D,
   rings: Point[][],
-  scale: number,
+  project: ProjectPoint,
   options: LineLabelOptions,
   glyphAtlas: GlyphAtlas,
-  collision: CollisionIndex,
-  placement: SymbolPlacementContext,
 ): void {
   const advances = glyphAtlas.advances(options.text, options.textSize, options.textStyle)
   if (!advances.length)
@@ -1553,12 +1675,17 @@ function drawLineLabel(
     if (ring.length < 2)
       continue
 
-    // World space, so a label spanning a tile seam competes with its
-    // neighbours in the shared collision index.
-    const line = ring.map(pt => ({
-      x: pt.x * scale + placement.originX,
-      y: pt.y * scale + placement.originY,
-    }))
+    // Projected to the screen first, so the label follows the road as it
+    // appears now — including when the map is rotated — rather than as the
+    // tile happened to store it.
+    const line: Array<{ x: number, y: number }> = []
+    for (const pt of ring) {
+      const at = project(pt.x, pt.y)
+      if (at)
+        line.push(at)
+    }
+    if (line.length < 2)
+      continue
 
     const length = lineLength(line)
     const starts = options.centreOnly
@@ -1588,12 +1715,12 @@ function drawLineLabel(
         if (bounds.maxY > maxY) maxY = bounds.maxY
       }
 
-      if (!collision.tryInsert({ minX, minY, maxX, maxY, priority: options.priority, owner: placement.owner }))
+      if (!options.place({ minX, minY, maxX, maxY }))
         continue
 
       for (const glyph of glyphs) {
         ctx.save()
-        ctx.translate(glyph.x - placement.originX, glyph.y - placement.originY)
+        ctx.translate(glyph.x, glyph.y)
         ctx.rotate(glyph.angle)
         // Baseline sits a little below the line so the text rides on it
         // rather than being bisected by it.

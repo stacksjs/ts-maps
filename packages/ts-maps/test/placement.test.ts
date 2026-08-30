@@ -235,3 +235,27 @@ describe('CollisionIndex', () => {
     expect(index.tryInsert({ minX: 0, minY: 0, maxX: 10, maxY: 10 })).toBe(true)
   })
 })
+
+describe('CollisionIndex.hits', () => {
+  test('reports a clash without claiming the space', () => {
+    // What `ignore-placement` needs: draw only if the spot is free, but leave
+    // it free for whatever comes next.
+    const index = new CollisionIndex()
+    index.tryInsert({ minX: 0, minY: 0, maxX: 10, maxY: 10 })
+
+    expect(index.hits({ minX: 5, minY: 5, maxX: 15, maxY: 15 })).toBe(true)
+    expect(index.hits({ minX: 50, minY: 50, maxX: 60, maxY: 60 })).toBe(false)
+
+    // Nothing was reserved by asking.
+    expect(index.size).toBe(1)
+    expect(index.tryInsert({ minX: 50, minY: 50, maxX: 60, maxY: 60 })).toBe(true)
+  })
+
+  test('honours priority the same way tryInsert does', () => {
+    const index = new CollisionIndex()
+    index.tryInsert({ minX: 0, minY: 0, maxX: 10, maxY: 10, priority: 1 })
+
+    expect(index.hits({ minX: 5, minY: 5, maxX: 15, maxY: 15, priority: 0 })).toBe(true)
+    expect(index.hits({ minX: 5, minY: 5, maxX: 15, maxY: 15, priority: 2 })).toBe(false)
+  })
+})

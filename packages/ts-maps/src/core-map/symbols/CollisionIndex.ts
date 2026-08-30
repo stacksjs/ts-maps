@@ -44,6 +44,32 @@ export class CollisionIndex {
     this._ownerCells = new Map()
   }
 
+  /**
+   * Would this box be rejected, without claiming any space for it?
+   *
+   * What `icon-ignore-placement` needs: draw only if the spot is free, but
+   * leave it free for whatever comes next.
+   */
+  hits(box: CollisionBox): boolean {
+    const range = this._cellRange(box)
+    for (let cy = range.y0; cy <= range.y1; cy++) {
+      for (let cx = range.x0; cx <= range.x1; cx++) {
+        const bucket = this._cells.get(cellKey(cx, cy))
+        if (!bucket)
+          continue
+        for (const other of bucket) {
+          if (!overlaps(box, other))
+            continue
+          if (other.priority === undefined || box.priority === undefined)
+            return true
+          if (other.priority >= box.priority)
+            return true
+        }
+      }
+    }
+    return false
+  }
+
   tryInsert(box: CollisionBox): boolean {
     const range = this._cellRange(box)
     for (let cy = range.y0; cy <= range.y1; cy++) {
