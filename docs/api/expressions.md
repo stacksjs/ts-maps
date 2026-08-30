@@ -70,7 +70,7 @@ evaluate(['*', 2, 3], {})  // → 6
 | `index-of` | `["index-of", needle, haystack, start?]` — position in a string or array, or `-1`. |
 | `slice` | `["slice", input, start, end?]` — a sub-range of a string or array. |
 | `number-format` | `["number-format", n, { locale, currency, min-fraction-digits, max-fraction-digits }]`. |
-| `format` | Sectioned text. Sections are concatenated; per-section styling is not rendered yet. |
+| `format` | Sectioned text: `["format", "M", { "font-scale": 1.4 }, "5", { "font-scale": 0.8 }]`. Each section may carry `font-scale`, `text-font` and `text-color`, and those may themselves be expressions. The label places as one box on one baseline; sections falling back to the layer's own text properties for anything they don't set. Reads as the concatenation anywhere a plain string is expected. |
 | `resolved-locale` | Returns a BCP-47 tag for a collator. |
 
 ## Bindings

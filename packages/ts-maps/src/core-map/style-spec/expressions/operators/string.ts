@@ -3,6 +3,7 @@
 
 import type { CompiledExpression } from '../types'
 import { ExpressionError } from '../errors'
+import { Formatted } from '../formatted'
 import { registerOperator } from '../registry'
 
 function mergeDeps(children: CompiledExpression[]): {
@@ -149,33 +150,79 @@ export function registerStringOps(): void {
     }
   })
 
-  // format — the sectioned-text operator. The renderer does not yet vary font,
-  // size or colour per section (that arrives with line-placed labels), so the
-  // sections are concatenated. That is the same text Mapbox would draw, minus
-  // the per-section styling, rather than a different string.
+  // format — the sectioned-text operator.
+  //
+  // Sections are kept as structure rather than concatenated, because their
+  // whole purpose is that they are drawn differently: a shield's number larger
+  // than its prefix, a subtitle smaller than the name it sits under. The
+  // result stringifies to the concatenation, so every path that only wants to
+  // know whether there is text still works unchanged.
   registerOperator('format', (args, compile, path) => {
     if (args.length === 0)
       throw new ExpressionError('"format" expects at least 1 argument', ['format'], path)
 
-    const sections: CompiledExpression[] = []
+    interface CompiledSection {
+      value: CompiledExpression
+      scale?: CompiledExpression | number
+      fontStack?: string[]
+      color?: CompiledExpression | string
+    }
+
+    const sections: CompiledSection[] = []
     for (let i = 0; i < args.length; i++) {
       const arg = args[i]
-      // Odd positions may carry a per-section options object; it is not an
-      // expression and is skipped rather than compiled.
+      // An options object belongs to the section before it, and is not itself
+      // an expression.
       const isOptions = arg !== null && typeof arg === 'object' && !Array.isArray(arg)
-      if (isOptions) continue
-      sections.push(compile(arg, 'value', path.concat(i + 1)))
+      if (isOptions)
+        continue
+
+      const section: CompiledSection = { value: compile(arg, 'value', path.concat(i + 1)) }
+      const options = args[i + 1]
+      if (options !== null && typeof options === 'object' && !Array.isArray(options)) {
+        const opts = options as Record<string, unknown>
+
+        const scale = opts['font-scale']
+        if (typeof scale === 'number')
+          section.scale = scale
+        else if (Array.isArray(scale))
+          section.scale = compile(scale, 'number', path.concat(i + 2, 'font-scale'))
+
+        const font = opts['text-font']
+        // `text-font` in a section is a literal font stack, which the spec
+        // writes as `["literal", [...]]`.
+        if (Array.isArray(font) && font[0] === 'literal' && Array.isArray(font[1]))
+          section.fontStack = (font[1] as unknown[]).map(String)
+        else if (Array.isArray(font) && font.every(f => typeof f === 'string'))
+          section.fontStack = font as string[]
+
+        const color = opts['text-color']
+        if (typeof color === 'string')
+          section.color = color
+        else if (Array.isArray(color))
+          section.color = compile(color, 'value', path.concat(i + 2, 'text-color'))
+      }
+
+      sections.push(section)
     }
+
+    const deps = sections.flatMap(s => [
+      s.value,
+      typeof s.scale === 'object' ? s.scale : undefined,
+      typeof s.color === 'object' ? s.color : undefined,
+    ].filter(Boolean) as CompiledExpression[])
 
     return {
       evaluate: (ctx) => {
-        let out = ''
-        for (let i = 0; i < sections.length; i++)
-          out += toStr(sections[i]!.evaluate(ctx))
-        return out
+        return new Formatted(sections.map(section => ({
+          text: toStr(section.value.evaluate(ctx)),
+          scale: typeof section.scale === 'object' ? Number(section.scale.evaluate(ctx)) : section.scale,
+          fontStack: section.fontStack,
+          color: typeof section.color === 'object' ? toStr(section.color.evaluate(ctx)) : section.color,
+        })))
       },
       returnType: 'formatted',
-      ...mergeDeps(sections),
+      ...mergeDeps(deps),
     }
   })
 

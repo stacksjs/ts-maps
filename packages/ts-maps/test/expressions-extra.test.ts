@@ -1,6 +1,7 @@
 import type { EvaluationContext } from '../src/core-map/style-spec/expressions'
 import { describe, expect, test } from 'bun:test'
 import { compile, evaluate, ExpressionError } from '../src/core-map/style-spec/expressions'
+import { Formatted } from '../src/core-map/style-spec/expressions/formatted'
 
 const ctx: EvaluationContext = {
   zoom: 10,
@@ -110,14 +111,44 @@ describe('number-format', () => {
 })
 
 describe('format', () => {
-  test('concatenates its sections', () => {
-    expect(run(['format', ['get', 'name'], '\n', 'Santa Monica'])).toBe('Ocean Park\nSanta Monica')
+  test('reads as the concatenation of its sections', () => {
+    // Sections are kept as structure for the renderer, but every path that
+    // only wants the text — a query result, an emptiness check — sees a
+    // string.
+    expect(String(run(['format', ['get', 'name'], '\n', 'Santa Monica']))).toBe('Ocean Park\nSanta Monica')
   })
 
-  test('skips the per-section options objects', () => {
-    // Styling per section is not rendered yet; the text must still come out
-    // whole rather than including "[object Object]".
-    expect(run(['format', ['get', 'name'], { 'font-scale': 1.2 }, ' CA', {}])).toBe('Ocean Park CA')
+  test('an options object belongs to the section before it', () => {
+    const out = run(['format', ['get', 'name'], { 'font-scale': 1.2 }, ' CA', {}]) as Formatted
+    expect(String(out)).toBe('Ocean Park CA')
+    expect(out.sections.map(s => s.text)).toEqual(['Ocean Park', ' CA'])
+    expect(out.sections[0].scale).toBe(1.2)
+    expect(out.sections[1].scale).toBeUndefined()
+  })
+
+  test('carries per-section font, scale and colour', () => {
+    const out = run(['format',
+      'M',
+      { 'font-scale': 1.4, 'text-color': '#ff0000', 'text-font': ['literal', ['Noto Sans Bold']] },
+      '5',
+      { 'font-scale': 0.8 },
+    ]) as Formatted
+
+    expect(out.sections[0]).toMatchObject({ text: 'M', scale: 1.4, color: '#ff0000', fontStack: ['Noto Sans Bold'] })
+    expect(out.sections[1]).toMatchObject({ text: '5', scale: 0.8 })
+    expect(out.uniform).toBe(false)
+  })
+
+  test('section options may themselves be expressions', () => {
+    const out = run(['format',
+      ['get', 'name'],
+      { 'text-color': ['case', ['==', ['get', 'name'], 'Ocean Park'], '#00ff00', '#000000'] },
+    ]) as Formatted
+    expect(out.sections[0].color).toBe('#00ff00')
+  })
+
+  test('plain sections report themselves as uniform', () => {
+    expect((run(['format', 'a', 'b']) as Formatted).uniform).toBe(true)
   })
 
   test('reports itself as formatted text', () => {

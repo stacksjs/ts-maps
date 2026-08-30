@@ -24,6 +24,8 @@ import { WorkerPool } from '../../workers/WorkerPool'
 import { RTree } from '../../geometry/RTree'
 import type { TextAnchor } from '../../symbols/placement'
 import { CollisionIndex } from '../../symbols/CollisionIndex'
+import { isFormatted, isUniform } from '../../style-spec/expressions/formatted'
+import { drawSections, measureSections } from '../../symbols/sections'
 import { SymbolOverlay } from '../../symbols/SymbolOverlay'
 import { GlyphAtlas } from '../../symbols/GlyphAtlas'
 import { IconAtlas } from '../../symbols/IconAtlas'
@@ -1581,7 +1583,12 @@ function drawSymbol(
   // Everything below is resolved once per feature: text-field and friends are
   // data-driven, but not position-driven, so re-evaluating them per anchor
   // would only repeat work.
-  const text = coerceString(resolveLayoutExpression(layout?.['text-field'], zoom, feature, featureState))
+  const rawText = resolveLayoutExpression(layout?.['text-field'], zoom, feature, featureState)
+  // A `format` expression with per-section styling has to stay structured all
+  // the way here; one whose sections are all plain is just a string and takes
+  // the cheaper path.
+  const formatted = isFormatted(rawText) && !isUniform(rawText.sections) ? rawText : null
+  const text = formatted ? formatted.toString() : coerceString(isFormatted(rawText) ? rawText.toString() : rawText)
   const textSize = (resolveLayoutExpression(layout?.['text-size'], zoom, feature, featureState) as number | undefined) ?? 16
   // `text-font` was declared and then ignored, so a style asking for its own
   // typeface silently got the system stack. The name carries weight and slant
@@ -1669,7 +1676,11 @@ function drawSymbol(
 
   // Measured at the size it will be drawn at, by the same engine that draws
   // it — so the collision box matches the ink rather than approximating it.
-  const metrics = text ? glyphAtlas.measureText(text, textSize, textStyle) : null
+  const metrics = text
+    ? (formatted
+        ? measureSections(glyphAtlas, formatted.sections, { ...drawOptions, color: textColor })
+        : glyphAtlas.measureText(text, textSize, textStyle))
+    : null
   const textWidth = metrics ? metrics.width : 0
   const textHeight = metrics ? metrics.height : 0
 
@@ -1741,15 +1752,22 @@ function drawSymbol(
         // drawText takes a baseline, not a box top: sit it an ascent below.
         const baselineY = localY + (metrics?.ascent ?? textHeight)
 
+        const paintText = (): void => {
+          if (formatted)
+            drawSections(ctx, glyphAtlas, formatted.sections, localX, baselineY, drawOptions)
+          else
+            glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
+        }
+
         if (rotate === 0) {
-          glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
+          paintText()
         }
         else {
           ctx.save()
           ctx.translate(anchorX, anchorY)
           ctx.rotate(rotate)
           ctx.translate(-anchorX, -anchorY)
-          glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
+          paintText()
           ctx.restore()
         }
       }
