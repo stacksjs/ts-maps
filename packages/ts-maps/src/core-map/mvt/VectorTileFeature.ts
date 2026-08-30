@@ -255,100 +255,119 @@ export class VectorTileFeature {
   }
 
   toGeoJSON(x: number, y: number, z: number): GeoJSONFeature {
-    const size = this.extent * Math.pow(2, z)
-    const x0 = this.extent * x
-    const y0 = this.extent * y
-    const rings = this.loadGeometry()
+    return geometryToGeoJSON(this.type, this.loadGeometry(), this.extent, x, y, z, this.properties, this.id)
+  }
+}
 
-    // Convert tile-local coordinates to WGS84 lat/lng.
-    const project = (pts: Point[]): [number, number][] => {
-      const out: [number, number][] = []
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i]
-        const px = p.x + x0
-        const py = p.y + y0
-        const lng = (px * 360) / size - 180
-        const y2 = 180 - (py * 360) / size
-        const lat = (360 / Math.PI) * Math.atan(Math.exp((y2 * Math.PI) / 180)) - 90
-        out.push([lng, lat])
-      }
-      return out
-    }
+/**
+ * Project tile-local rings to WGS84 and wrap them as a GeoJSON feature.
+ *
+ * Shared rather than duplicated: tiles decoded in a worker arrive as flat
+ * typed arrays and are wrapped by `FlatTile`, which has the same job to do
+ * here and must produce byte-identical output.
+ */
+export function geometryToGeoJSON(
+  type: number,
+  rings: Point[][],
+  extent: number,
+  x: number,
+  y: number,
+  z: number,
+  properties: VectorTileProperties,
+  id?: number,
+): GeoJSONFeature {
+  const size = extent * Math.pow(2, z)
+  const x0 = extent * x
+  const y0 = extent * y
 
-    let geometry: GeoJSONGeometry
+  // Convert tile-local coordinates to WGS84 lat/lng.
+  const project = (pts: Point[]): [number, number][] => {
+    const out: [number, number][] = []
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i]
+      const px = p.x + x0
+      const py = p.y + y0
+      const lng = (px * 360) / size - 180
+      const y2 = 180 - (py * 360) / size
+      const lat = (360 / Math.PI) * Math.atan(Math.exp((y2 * Math.PI) / 180)) - 90
+      out.push([lng, lat])
+    }
+    return out
+  }
 
-    if (this.type === MVT_GEOM_POINT) {
-      const coords: [number, number][] = []
-      for (let i = 0; i < rings.length; i++) {
-        const ring = rings[i]
-        for (let j = 0; j < ring.length; j++) {
-          const projected = project([ring[j]])
-          coords.push(projected[0])
-        }
-      }
-      if (coords.length === 1) {
-        geometry = { type: 'Point', coordinates: coords[0] }
-      }
-      else {
-        geometry = { type: 'MultiPoint', coordinates: coords }
+  let geometry: GeoJSONGeometry
+
+  if (type === MVT_GEOM_POINT) {
+    const coords: [number, number][] = []
+    for (let i = 0; i < rings.length; i++) {
+      const ring = rings[i]
+      for (let j = 0; j < ring.length; j++) {
+        const projected = project([ring[j]])
+        coords.push(projected[0])
       }
     }
-    else if (this.type === MVT_GEOM_LINESTRING) {
-      const lines: [number, number][][] = []
-      for (let i = 0; i < rings.length; i++)
-        lines.push(project(rings[i]))
-      if (lines.length === 1) {
-        geometry = { type: 'LineString', coordinates: lines[0] }
-      }
-      else {
-        geometry = { type: 'MultiLineString', coordinates: lines }
-      }
-    }
-    else if (this.type === MVT_GEOM_POLYGON) {
-      // Classify rings into polygons by orientation. MVT uses a y-down tile
-      // space where outer rings are clockwise; under our shoelace variant
-      // (sum += (p2.x - p1.x) * (p1.y + p2.y)) clockwise-in-y-down yields a
-      // *positive* area.
-      const polygons: [number, number][][][] = []
-      let current: [number, number][][] | null = null
-      for (let i = 0; i < rings.length; i++) {
-        const area = signedArea(rings[i])
-        if (area === 0)
-          continue
-        const projected = project(rings[i])
-        if (area > 0) {
-          // Outer ring — start a new polygon.
-          current = [projected]
-          polygons.push(current)
-        }
-        else {
-          // Inner ring — attach to the most recent outer. If none yet, drop
-          // it (malformed tile).
-          if (current !== null)
-            current.push(projected)
-        }
-      }
-      if (polygons.length === 1) {
-        geometry = { type: 'Polygon', coordinates: polygons[0] }
-      }
-      else {
-        geometry = { type: 'MultiPolygon', coordinates: polygons }
-      }
+    if (coords.length === 1) {
+      geometry = { type: 'Point', coordinates: coords[0] }
     }
     else {
-      // Unknown geometry — emit an empty Point as a conservative default.
-      geometry = { type: 'Point', coordinates: [0, 0] }
+      geometry = { type: 'MultiPoint', coordinates: coords }
     }
-
-    const feature: GeoJSONFeature = {
-      type: 'Feature',
-      geometry,
-      properties: this.properties,
-    }
-    if (this.id !== undefined)
-      feature.id = this.id
-    return feature
   }
+  else if (type === MVT_GEOM_LINESTRING) {
+    const lines: [number, number][][] = []
+    for (let i = 0; i < rings.length; i++)
+      lines.push(project(rings[i]))
+    if (lines.length === 1) {
+      geometry = { type: 'LineString', coordinates: lines[0] }
+    }
+    else {
+      geometry = { type: 'MultiLineString', coordinates: lines }
+    }
+  }
+  else if (type === MVT_GEOM_POLYGON) {
+    // Classify rings into polygons by orientation. MVT uses a y-down tile
+    // space where outer rings are clockwise; under our shoelace variant
+    // (sum += (p2.x - p1.x) * (p1.y + p2.y)) clockwise-in-y-down yields a
+    // *positive* area.
+    const polygons: [number, number][][][] = []
+    let current: [number, number][][] | null = null
+    for (let i = 0; i < rings.length; i++) {
+      const area = signedArea(rings[i])
+      if (area === 0)
+        continue
+      const projected = project(rings[i])
+      if (area > 0) {
+        // Outer ring — start a new polygon.
+        current = [projected]
+        polygons.push(current)
+      }
+      else {
+        // Inner ring — attach to the most recent outer. If none yet, drop
+        // it (malformed tile).
+        if (current !== null)
+          current.push(projected)
+      }
+    }
+    if (polygons.length === 1) {
+      geometry = { type: 'Polygon', coordinates: polygons[0] }
+    }
+    else {
+      geometry = { type: 'MultiPolygon', coordinates: polygons }
+    }
+  }
+  else {
+    // Unknown geometry — emit an empty Point as a conservative default.
+    geometry = { type: 'Point', coordinates: [0, 0] }
+  }
+
+  const feature: GeoJSONFeature = {
+    type: 'Feature',
+    geometry,
+    properties,
+  }
+  if (id !== undefined)
+    feature.id = id
+  return feature
 }
 
 // Signed area of a ring using the shoelace formula. Negative means
