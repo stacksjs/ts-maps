@@ -1,3 +1,13 @@
+export {
+  AttributionControl,
+  type ControlPosition,
+  FullscreenControl,
+  GeocoderControl,
+  LocateControl,
+  NavigationControl,
+  ScaleControl,
+  ZoomControl,
+} from './controls'
 export { Layer } from './Layer'
 export { Map } from './Map'
 export { Marker } from './Marker'
