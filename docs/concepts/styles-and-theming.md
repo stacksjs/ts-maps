@@ -254,15 +254,28 @@ canvas than resampling a distance field and needs no network — so this is not
 how text normally reaches the screen. The glyph server answers the case local
 fonts cannot: a style whose typeface the viewer does not have installed.
 
+That check now happens automatically. When a `text-font` names a stack the
+viewer does not have and the style published a `glyphs` URL, the renderer
+draws from the server's distance fields instead of letting the font silently
+fall back to something else. The ranges a label needs are requested on first
+sight; the label is skipped until they arrive and then drawn, because a label
+appearing a frame late is better than one in the wrong typeface.
+
+Ranges are fetched on demand and cached, and a range already in flight is
+shared rather than fetched twice — a font stack is 65,536 code points and a map
+shows a handful of blocks. Availability is checked once per stack rather than
+per label, and coloured glyph bitmaps are cached across frames.
+
+The source is reachable directly too, for preloading:
+
 ```ts
 const glyphs = map.getGlyphSource()
 map.isFontAvailable(['Noto Sans Regular']) // false → the server is the answer
 await glyphs?.loadForText('Noto Sans Regular', 'Santa Monica')
 ```
 
-Ranges are fetched on demand and cached, and a range already in flight is
-shared rather than fetched twice — a font stack is 65,536 code points and a map
-shows a handful of blocks.
+One limitation: a `format` label with per-section styling always uses local
+fonts, since its sections may each name a different one.
 
 ### `text-font`
 

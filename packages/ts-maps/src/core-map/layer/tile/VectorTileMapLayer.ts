@@ -26,6 +26,8 @@ import type { TextAnchor } from '../../symbols/placement'
 import { CollisionIndex } from '../../symbols/CollisionIndex'
 import { isFormatted, isUniform } from '../../style-spec/expressions/formatted'
 import { drawSections, measureSections } from '../../symbols/sections'
+import type { GlyphProvider } from '../../symbols/GlyphProvider'
+import { drawGlyphs, measureGlyphs } from '../../symbols/GlyphRenderer'
 import { SymbolOverlay } from '../../symbols/SymbolOverlay'
 import { GlyphAtlas } from '../../symbols/GlyphAtlas'
 import { IconAtlas } from '../../symbols/IconAtlas'
@@ -308,6 +310,7 @@ export class VectorTileMapLayer extends GridLayer {
    * `f = 1` every tile has its own ancestor, so this behaves as it did before.
    */
   declare _workersUsable: boolean
+  declare _glyphs?: { source: unknown, provider: GlyphProvider }
   declare _sourceCache: Map<string, { tile: DecodedTile, index: RTree<RTreeItem>, refs: number }>
   /** Ancestors currently being fetched, so siblings await one request. */
   declare _sourcePending: Map<string, { promise: Promise<{ tile: DecodedTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
@@ -872,6 +875,7 @@ export class VectorTileMapLayer extends GridLayer {
             this._iconAtlas,
             collision,
             project,
+            this._glyphProvider(),
           )
         }
       }
@@ -913,6 +917,35 @@ export class VectorTileMapLayer extends GridLayer {
     }
 
     done(null, canvas)
+  }
+
+  /**
+   * The glyph server this layer should draw unavailable fonts from.
+   *
+   * Built on demand and only where a style actually published `glyphs`: the
+   * common case is a style whose fonts the viewer has, where none of this
+   * costs anything.
+   */
+  _glyphProvider(): GlyphProvider | undefined {
+    const map = this._map as any
+    const source = map?.getGlyphSource?.()
+    if (!source)
+      return undefined
+
+    const existing = this._glyphs
+    if (existing !== undefined && existing.source === source)
+      return existing.provider
+
+    const { GlyphProvider } = require('../../symbols/GlyphProvider')
+    const provider: GlyphProvider = new GlyphProvider({
+      source,
+      isFontAvailable: (stack: string | string[] | undefined) => map.isFontAvailable?.(stack) ?? true,
+      // A range arriving is the moment the labels waiting on it can be drawn,
+      // and nothing else will prompt a redraw.
+      onLoad: () => this._refreshSymbols(),
+    })
+    this._glyphs = { source, provider }
+    return provider
   }
 
   /**
@@ -1573,6 +1606,7 @@ function drawSymbol(
   iconAtlas: IconAtlas | undefined,
   collision: CollisionIndex,
   project: ProjectPoint,
+  glyphProvider?: GlyphProvider,
 ): void {
   if (rings.length === 0 || rings[0].length === 0)
     return
@@ -1676,10 +1710,25 @@ function drawSymbol(
 
   // Measured at the size it will be drawn at, by the same engine that draws
   // it — so the collision box matches the ink rather than approximating it.
-  const metrics = text
-    ? (formatted
-        ? measureSections(glyphAtlas, formatted.sections, { ...drawOptions, color: textColor })
-        : glyphAtlas.measureText(text, textSize, textStyle))
+  // A style may name a typeface the viewer does not have, which is the one
+  // thing system fonts cannot answer. Where that happens and the style
+  // published a glyph server, the label is drawn from its distance fields
+  // instead — or skipped this pass while they load, since a label a frame
+  // late beats one in the wrong face.
+  const serverGlyphs = text && !formatted && glyphProvider?.needsServer(layout?.['text-font'])
+    ? glyphProvider.glyphs(layout?.['text-font'], text)
+    : null
+  const awaitingGlyphs = text
+    && !formatted
+    && !!glyphProvider?.needsServer(layout?.['text-font'])
+    && serverGlyphs === null
+
+  const metrics = text && !awaitingGlyphs
+    ? (serverGlyphs
+        ? measureGlyphs(serverGlyphs, textSize)
+        : formatted
+          ? measureSections(glyphAtlas, formatted.sections, { ...drawOptions, color: textColor })
+          : glyphAtlas.measureText(text, textSize, textStyle))
     : null
   const textWidth = metrics ? metrics.width : 0
   const textHeight = metrics ? metrics.height : 0
@@ -1753,7 +1802,9 @@ function drawSymbol(
         const baselineY = localY + (metrics?.ascent ?? textHeight)
 
         const paintText = (): void => {
-          if (formatted)
+          if (serverGlyphs)
+            drawGlyphs(ctx, serverGlyphs, localX, baselineY, drawOptions, glyphProvider?.cache)
+          else if (formatted)
             drawSections(ctx, glyphAtlas, formatted.sections, localX, baselineY, drawOptions)
           else
             glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
