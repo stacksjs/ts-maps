@@ -44,7 +44,8 @@
     "prepublishOnly": "bun --bun run build",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",
-    "typecheck": "bun --bun tsc --noEmit"
+    "typecheck": "bun --bun tsc --noEmit",
+    "test": "bun test --conditions=browser"
   },
   "dependencies": {
     "ts-maps": "workspace:*"
@@ -53,6 +54,9 @@
     "solid-js": ">=1.8"
   },
   "devDependencies": {
+    "@babel/core": "^7",
+    "@babel/preset-typescript": "^7",
+    "babel-preset-solid": "^1.9.15",
     "solid-js": "^1.8.0",
     "typescript": "^7.0.2"
   }

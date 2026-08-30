@@ -17,6 +17,22 @@ export function Map(props: ParentProps<MapProps>): JSX.Element {
   const [map, setMap] = createSignal<TsMapInstance | null>(null)
   let container: HTMLDivElement | undefined
 
+  // Children go in a wrapper of their own rather than straight into the map
+  // container. Solid's `insert` treats a parent whose content it manages as
+  // its to clear, and the map fills that container with panes the moment it is
+  // created — so putting the children slot directly inside meant every pane
+  // was wiped the instant `map()` flipped from null. `display: contents`
+  // keeps the wrapper out of the layout entirely.
+  //
+  // A callback ref rather than `ref={container}`. The bare-variable form
+  // depends on Solid's compiler recognising the variable and rewriting the
+  // assignment, which it does not do under every configuration — and when it
+  // does not, the ref is silently never set and the map never mounts. Written
+  // this way it works the same however the JSX was compiled.
+  const setContainer = (el: HTMLDivElement): void => {
+    container = el
+  }
+
   onMount(() => {
     if (!container)
       return
@@ -42,8 +58,10 @@ export function Map(props: ParentProps<MapProps>): JSX.Element {
 
   return (
     <MapContext.Provider value={map}>
-      <div ref={container} class={props.class} style={props.style}>
-        {map() ? props.children : null}
+      <div ref={setContainer} class={props.class} style={props.style}>
+        <div style={{ display: 'contents' }}>
+          {map() ? props.children : null}
+        </div>
       </div>
     </MapContext.Provider>
   )
