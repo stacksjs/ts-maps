@@ -42,7 +42,8 @@
     "prepublishOnly": "bun --bun run build",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",
-    "typecheck": "bun --bun tsc --noEmit"
+    "typecheck": "bun --bun tsc --noEmit",
+    "test": "bun test --conditions=browser"
   },
   "dependencies": {
     "ts-maps": "workspace:*"

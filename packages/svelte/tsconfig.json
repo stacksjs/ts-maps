@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.json",
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "test/**/*",
+    "happydom.ts"
   ],
   "exclude": [
     "dist",
