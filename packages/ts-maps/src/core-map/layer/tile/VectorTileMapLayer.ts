@@ -20,9 +20,11 @@ import { Pbf } from '../../proto/Pbf'
 import { VectorTile } from '../../mvt/VectorTile'
 import { VectorTileFeature } from '../../mvt/VectorTileFeature'
 import { RTree } from '../../geometry/RTree'
+import type { TextAnchor } from '../../symbols/placement'
 import { CollisionIndex } from '../../symbols/CollisionIndex'
 import { GlyphAtlas } from '../../symbols/GlyphAtlas'
 import { IconAtlas } from '../../symbols/IconAtlas'
+import { anchorOffset, lineLength, offsetPixels, placeGlyphsAlongLine, repeatDistances, rotatedBounds } from '../../symbols/placement'
 import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { earcut, flatten } from '../../geometry/earcut'
 import { ortho } from '../../renderer/webgl/mat4'
@@ -36,8 +38,23 @@ import { composeTileUrl, getSubdomain } from './urlTemplate'
 // ---------------------------------------------------------------------------
 
 export interface VectorTileMapLayerOptions {
-  /** Tile URL template with `{z}`/`{x}`/`{y}` (and optionally `{s}`). */
-  url: string
+  /**
+   * Tile URL template with `{z}`/`{x}`/`{y}` (and optionally `{s}`).
+   * Optional when `localSource` supplies tiles instead.
+   */
+  url?: string
+  /**
+   * Tiles built in-process rather than fetched — a `GeoJSONTileSource` or a
+   * `GeoJSONClusterSource`. When present, `url` is ignored and every tile is
+   * produced synchronously, so a geojson style source renders through the same
+   * paint, filter and query path as a remote vector source.
+   */
+  localSource?: { getTile: (z: number, x: number, y: number) => any | null }
+  /**
+   * Added to the zoom used in the tile URL, on top of the offset implied by
+   * `tileSize`. Only needed for services that publish on a shifted grid.
+   */
+  zoomOffset?: number
   subdomains?: string | string[]
   minZoom?: number
   maxZoom?: number
@@ -147,8 +164,16 @@ export interface VectorTileLayoutProperties {
   'icon-image'?: string | unknown
   'icon-size'?: number
   'icon-rotate'?: number
-  'symbol-placement'?: 'point'
+  'symbol-placement'?: 'point' | 'line' | 'line-center'
+  'symbol-spacing'?: number
+  /** Style-spec name for placement priority. */
+  'symbol-sort-key'?: unknown
+  /** Predates `symbol-sort-key` here; still honoured. */
   'symbol-priority'?: number
+  'text-anchor'?: unknown
+  'text-offset'?: unknown
+  'text-rotate'?: unknown
+  'text-max-angle'?: unknown
 }
 
 export interface QueryRenderedFeature {
@@ -203,6 +228,8 @@ interface DecodedTileEntry {
 export class VectorTileMapLayer extends GridLayer {
   declare _styleLayers: VectorTileStyleLayer[]
   declare _decodedTiles: Map<HTMLCanvasElement, DecodedTileEntry>
+  declare _collision?: CollisionIndex
+  declare _collisionZoom?: number
   declare _featureStateLookup?: (src: string, srcLayer: string, id: number | string) => Record<string, unknown>
   declare _sourceId?: string
   declare _glyphAtlas?: GlyphAtlas
@@ -268,6 +295,9 @@ export class VectorTileMapLayer extends GridLayer {
         const ctx = entry.canvas.getContext('2d')
         if (!ctx)
           continue
+        // Untransformed: the backing store is measured in device pixels, and
+        // the draw pass sets its own CSS-pixel transform.
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
         ctx.clearRect(0, 0, entry.canvas.width, entry.canvas.height)
       }
       try {
@@ -286,6 +316,19 @@ export class VectorTileMapLayer extends GridLayer {
   setStyleLayers(layers: VectorTileStyleLayer[]): this {
     this._styleLayers = layers
     this.redraw()
+    return this
+  }
+
+  /**
+   * Swap the style layers and re-rasterise what is already decoded.
+   *
+   * Unlike `setStyleLayers`, this does not refetch: a colour or filter change
+   * cannot alter the tile bytes, and throwing away good tiles to re-download
+   * identical ones makes a theme switch flash and cost a round trip per tile.
+   */
+  updateStyleLayers(layers: VectorTileStyleLayer[]): this {
+    this._styleLayers = layers
+    this._repaintDecodedTiles()
     return this
   }
 
@@ -350,7 +393,7 @@ export class VectorTileMapLayer extends GridLayer {
             continue
           for (let i = 0; i < mvtLayer.length; i++) {
             const feature = mvtLayer.feature(i)
-            if (!filterPasses(styleLayer, feature, queryZoom))
+            if (!filterPasses(styleLayer, feature, queryZoom, entry.coords))
               continue
             out.push({ feature, layer: styleLayer, tile: entry.coords })
           }
@@ -392,7 +435,7 @@ export class VectorTileMapLayer extends GridLayer {
           seen.add(cand.featureIndex)
 
           const feature = mvtLayer.feature(cand.featureIndex)
-          if (!filterPasses(styleLayer, feature, queryZoom))
+          if (!filterPasses(styleLayer, feature, queryZoom, entry.coords))
             continue
 
           if (featurePreciseHit(feature, localQuery, styleLayer, tileSize))
@@ -456,11 +499,34 @@ export class VectorTileMapLayer extends GridLayer {
   // GridLayer overrides
   // -------------------------------------------------------------------------
 
+  /**
+   * Backing-store pixels per CSS pixel.
+   *
+   * A tile canvas sized in CSS pixels is stretched across twice as many device
+   * pixels on a retina screen, which is why roads and labels looked soft: every
+   * tile was being upscaled 2x by the browser. Rendering at the device
+   * resolution and letting CSS scale it back down is the whole fix.
+   */
+  _pixelRatio(): number {
+    const ratio = typeof window !== 'undefined' ? window.devicePixelRatio : 1
+    // Clamped: 3x costs 9x the fill rate for a difference nobody can see, and
+    // a bogus value from a headless environment should not allocate wildly.
+    return Math.min(2, Math.max(1, ratio || 1))
+  }
+
   createTile(coords: Point & { z: number }, done: (err: any, tile: HTMLElement) => void): HTMLElement {
     const size = this.getTileSize()
+    const ratio = this._pixelRatio()
     const canvas = document.createElement('canvas')
-    canvas.width = size.x
-    canvas.height = size.y
+    canvas.width = Math.round(size.x * ratio)
+    canvas.height = Math.round(size.y * ratio)
+    // GridLayer sizes the element in CSS pixels; the backing store above is
+    // what actually gets drawn into. Guarded because the test DOM's canvas has
+    // no style object.
+    if (canvas.style) {
+      canvas.style.width = `${size.x}px`
+      canvas.style.height = `${size.y}px`
+    }
     canvas.setAttribute('role', 'presentation')
 
     const abort = new AbortController()
@@ -473,6 +539,15 @@ export class VectorTileMapLayer extends GridLayer {
       gl: null,
     }
     this._decodedTiles.set(canvas, entry)
+
+    const localSource = this.options!.localSource
+    if (localSource) {
+      // Local tiles are built in memory, so this stays synchronous — but
+      // `done` is still called the same way, keeping GridLayer's bookkeeping
+      // identical for both kinds of source.
+      this._drawLocalTile(localSource, canvas, entry, coords, done)
+      return canvas
+    }
 
     const url = this.getTileUrl(coords)
 
@@ -520,11 +595,75 @@ export class VectorTileMapLayer extends GridLayer {
     data.y = coords.y
     data.z = this._getZoomForUrl(coords.z)
     data.r = ''
-    return composeTileUrl(this.options!.url, data)
+    return composeTileUrl(this.options!.url ?? '', data)
   }
 
+  /**
+   * The zoom to ask the service for.
+   *
+   * Tile *indices* come from GridLayer, which lays the grid out over the CRS's
+   * 256px-per-tile pixel world — so with 512px tiles there are half as many
+   * across, and the indices are those of zoom `z - 1`. Requesting zoom `z` with
+   * them names a real tile in the wrong part of the world: point a 512px
+   * OpenMapTiles source at Santa Monica and it returns open ocean.
+   */
   _getZoomForUrl(z: number): number {
-    return z
+    const tileSize = this.getTileSize().x
+    const crsTileSize = 256
+    const implied = tileSize > 0 ? Math.round(Math.log2(crsTileSize / tileSize)) : 0
+    return z + implied + (this.options!.zoomOffset ?? 0)
+  }
+
+  /**
+   * The collision index shared by every tile at `zoom`.
+   *
+   * Rebuilt when the zoom changes: world-pixel coordinates are zoom-specific,
+   * and keeping boxes from another zoom would reject placements against
+   * geometry that is no longer on screen.
+   */
+  _collisionFor(zoom: number): CollisionIndex {
+    if (!this._collision || this._collisionZoom !== zoom) {
+      this._collision = new CollisionIndex()
+      this._collisionZoom = zoom
+    }
+    return this._collision
+  }
+
+  _drawLocalTile(
+    source: { getTile: (z: number, x: number, y: number) => any | null },
+    canvas: HTMLCanvasElement,
+    entry: DecodedTileEntry,
+    coords: Point & { z: number },
+    done: (err: any, tile: HTMLElement) => void,
+  ): void {
+    let tile: VectorTile | null
+    try {
+      tile = source.getTile(coords.z, coords.x, coords.y) as VectorTile | null
+    }
+    catch (err) {
+      done(err, canvas)
+      return
+    }
+
+    // An empty tile is normal for sparse data, not a failure: leave the canvas
+    // blank and report success so the tile is not retried.
+    if (!tile) {
+      done(null, canvas)
+      return
+    }
+
+    entry.tile = tile
+    entry.index = buildTileIndex(tile)
+
+    try {
+      this._drawTile(canvas, tile, coords)
+    }
+    catch (err) {
+      done(err, canvas)
+      return
+    }
+
+    done(null, canvas)
   }
 
   async _fetchAndDraw(
@@ -639,10 +778,28 @@ export class VectorTileMapLayer extends GridLayer {
     if (glRenderer) {
       glRenderer.clear()
     }
+    else if (ctx) {
+      // Everything below draws in CSS pixels. One transform here buys the
+      // extra resolution without a single call site having to know about it.
+      const ratio = this._pixelRatio()
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+    }
 
-    // Symbol layers share a per-tile collision index so labels/icons don't
-    // overlap. Created lazily and only when a symbol layer is actually drawn.
-    let collision: CollisionIndex | null = null
+    // One collision index for the whole layer at this zoom, in world-pixel
+    // space — not one per tile. A per-tile index cannot see across a seam, so
+    // two tiles would each happily place a label that overlaps the other's on
+    // screen. See CollisionIndex.
+    const collision = this._collisionFor(mapZoom)
+    // This tile is about to redraw, so its previous placements are stale.
+    // Without this, a tile that pans out and back collides with its own ghosts
+    // and silently loses every label.
+    const owner = `${coords.z}/${coords.x}/${coords.y}`
+    collision.removeOwner(owner)
+    const placement = {
+      originX: coords.x * size,
+      originY: coords.y * size,
+      owner,
+    }
 
     for (const styleLayer of this._styleLayers) {
       if (styleLayer.layout?.visibility === 'none')
@@ -677,7 +834,7 @@ export class VectorTileMapLayer extends GridLayer {
       for (let i = 0; i < mvtLayer.length; i++) {
         const feature = mvtLayer.feature(i)
 
-        if (!filterPasses(styleLayer, feature, mapZoom))
+        if (!filterPasses(styleLayer, feature, mapZoom, coords))
           continue
 
         const rings = feature.loadGeometry()
@@ -722,8 +879,6 @@ export class VectorTileMapLayer extends GridLayer {
           // symbols onto an overlay canvas.
           if (!ctx)
             continue
-          if (!collision)
-            collision = new CollisionIndex({ width: size, height: size })
           drawSymbol(
             ctx,
             rings,
@@ -735,6 +890,7 @@ export class VectorTileMapLayer extends GridLayer {
             this.getGlyphAtlas(),
             this._iconAtlas,
             collision,
+            placement,
           )
         }
       }
@@ -763,6 +919,8 @@ VectorTileMapLayer.setDefaultOptions({
   crossOrigin: false,
   layers: [],
   sources: undefined,
+  localSource: undefined,
+  zoomOffset: 0,
 })
 
 // ---------------------------------------------------------------------------
@@ -778,6 +936,7 @@ function resolvePaintExpression(
   zoom: number,
   feature: VectorTileFeature | undefined,
   featureState: Record<string, unknown> | undefined,
+  coords?: { x: number, y: number, z: number },
 ): unknown {
   if (!isExpression(value))
     return value
@@ -790,6 +949,10 @@ function resolvePaintExpression(
             type: feature.type as 1 | 2 | 3,
             id: feature.id as number | string | undefined,
             properties: feature.properties as Record<string, unknown>,
+            // Lazy, and memoised for the life of this call: `within` and
+            // `distance` need lng/lat, which means projecting the feature back
+            // out of tile space — work no other operator asks for.
+            geometry: coords ? memoGeometry(feature, coords) : undefined,
           }
         : undefined,
       featureState,
@@ -798,6 +961,27 @@ function resolvePaintExpression(
   }
   catch {
     return undefined
+  }
+}
+
+/** A `geometry()` accessor that projects once, however many operators ask. */
+function memoGeometry(
+  feature: VectorTileFeature,
+  coords: { x: number, y: number, z: number },
+): () => unknown {
+  let cached: unknown
+  let done = false
+  return () => {
+    if (!done) {
+      done = true
+      try {
+        cached = feature.toGeoJSON(coords.x, coords.y, coords.z)
+      }
+      catch {
+        cached = undefined
+      }
+    }
+    return cached
   }
 }
 
@@ -1002,6 +1186,14 @@ function coerceString(v: unknown): string {
   return ''
 }
 
+interface SymbolPlacementContext {
+  /** Added to tile-local pixels to reach the shared world-pixel space. */
+  originX: number
+  originY: number
+  /** Tile key, so a redrawn tile can evict its own previous placements. */
+  owner: string
+}
+
 function drawSymbol(
   ctx: CanvasRenderingContext2D,
   rings: Point[][],
@@ -1013,115 +1205,247 @@ function drawSymbol(
   glyphAtlas: GlyphAtlas,
   iconAtlas: IconAtlas | undefined,
   collision: CollisionIndex,
+  placement: SymbolPlacementContext,
 ): void {
-  // Symbols only place at MVT Point geometries today.
-  if (feature.type !== 1)
-    return
   if (rings.length === 0 || rings[0].length === 0)
     return
 
   const layout = styleLayer.layout
   const paint = styleLayer.paint
 
-  // Anchor at the first vertex of the feature. Multi-point features place one
-  // symbol per vertex.
+  // Everything below is resolved once per feature: text-field and friends are
+  // data-driven, but not position-driven, so re-evaluating them per anchor
+  // would only repeat work.
+  const text = coerceString(resolveLayoutExpression(layout?.['text-field'], zoom, feature, featureState))
+  const textSize = (resolveLayoutExpression(layout?.['text-size'], zoom, feature, featureState) as number | undefined) ?? 16
+  // `text-font` was declared and then ignored, so a style asking for its own
+  // typeface silently got the system stack. The name carries weight and slant
+  // ("Noto Sans Bold Italic"), which a browser wants applied separately.
+  const font = glyphAtlas.resolveFont(layout?.['text-font'])
+  const italic = font.italic || !!resolveLayoutExpression(layout?.['text-italic'], zoom, feature, featureState)
+  const bold = font.bold || !!resolveLayoutExpression(layout?.['text-bold'], zoom, feature, featureState)
+
+  const textColor = (resolveLayoutExpression(paint?.['text-color'], zoom, feature, featureState) as string | undefined) ?? '#000'
+  const haloColor = resolveLayoutExpression(paint?.['text-halo-color'], zoom, feature, featureState) as string | undefined
+  const haloWidth = resolveLayoutExpression(paint?.['text-halo-width'], zoom, feature, featureState) as number | undefined
+
+  const iconId = coerceString(resolveLayoutExpression(layout?.['icon-image'], zoom, feature, featureState))
+  const iconSize = resolveLayoutExpression(layout?.['icon-size'], zoom, feature, featureState) as number | undefined
+  const iconRotate = resolveLayoutExpression(layout?.['icon-rotate'], zoom, feature, featureState) as number | undefined
+  const iconEntry = iconId && iconAtlas ? iconAtlas.get(iconId) : undefined
+
+  // `symbol-sort-key` is the style-spec name; `symbol-priority` predates it
+  // here and is kept working.
+  const priority = (resolveLayoutExpression(layout?.['symbol-sort-key'], zoom, feature, featureState) as number | undefined)
+    ?? layout?.['symbol-priority']
+
+  const textStyle = { italic, bold, family: font.family }
+  const drawOptions = { color: textColor, haloColor, haloWidth, size: textSize, italic, bold, family: font.family }
+
+  const placeAlongLine = layout?.['symbol-placement'] === 'line' || layout?.['symbol-placement'] === 'line-center'
+
+  if (placeAlongLine && text && feature.type !== 1) {
+    drawLineLabel(ctx, rings, scale, {
+      text,
+      textSize,
+      textStyle,
+      drawOptions,
+      maxAngle: (resolveLayoutExpression(layout?.['text-max-angle'], zoom, feature, featureState) as number | undefined) ?? 45,
+      spacing: (resolveLayoutExpression(layout?.['symbol-spacing'], zoom, feature, featureState) as number | undefined) ?? 250,
+      centreOnly: layout?.['symbol-placement'] === 'line-center',
+      priority,
+    }, glyphAtlas, collision, placement)
+    return
+  }
+
+  // Point placement. Multi-point features place one symbol per vertex.
+  if (feature.type !== 1)
+    return
+
+  const anchor = ((resolveLayoutExpression(layout?.['text-anchor'], zoom, feature, featureState) as TextAnchor | undefined) ?? 'center')
+  const offset = offsetPixels(resolveLayoutExpression(layout?.['text-offset'], zoom, feature, featureState), textSize)
+  const rotateDeg = (resolveLayoutExpression(layout?.['text-rotate'], zoom, feature, featureState) as number | undefined) ?? 0
+  const rotate = (rotateDeg * Math.PI) / 180
+
+  // Measured at the size it will be drawn at, by the same engine that draws
+  // it — so the collision box matches the ink rather than approximating it.
+  const metrics = text ? glyphAtlas.measureText(text, textSize, textStyle) : null
+  const textWidth = metrics ? metrics.width : 0
+  const textHeight = metrics ? metrics.height : 0
+
   for (const ring of rings) {
     for (const pt of ring) {
-      const anchorX = pt.x * scale
-      const anchorY = pt.y * scale
+      const anchorX = pt.x * scale + placement.originX
+      const anchorY = pt.y * scale + placement.originY
 
-      // Resolve text + icon once per placement. Expressions can reference
-      // feature properties/state.
-      const rawField = resolveLayoutExpression(layout?.['text-field'], zoom, feature, featureState)
-      const text = coerceString(rawField)
-      const textSize = (resolveLayoutExpression(layout?.['text-size'], zoom, feature, featureState) as number | undefined) ?? 16
-      const italic = !!resolveLayoutExpression(layout?.['text-italic'], zoom, feature, featureState)
-      const bold = !!resolveLayoutExpression(layout?.['text-bold'], zoom, feature, featureState)
+      if (!text && !iconEntry)
+        continue
 
-      const textColor = (resolveLayoutExpression(paint?.['text-color'], zoom, feature, featureState) as string | undefined) ?? '#000'
-      const haloColor = resolveLayoutExpression(paint?.['text-halo-color'], zoom, feature, featureState) as string | undefined
-      const haloWidth = resolveLayoutExpression(paint?.['text-halo-width'], zoom, feature, featureState) as number | undefined
-
-      const iconId = coerceString(resolveLayoutExpression(layout?.['icon-image'], zoom, feature, featureState))
-      const iconSize = resolveLayoutExpression(layout?.['icon-size'], zoom, feature, featureState) as number | undefined
-      const iconRotate = resolveLayoutExpression(layout?.['icon-rotate'], zoom, feature, featureState) as number | undefined
-      const iconEntry = iconId && iconAtlas ? iconAtlas.get(iconId) : undefined
-
-      const priority = layout?.['symbol-priority']
-
-      // Measure text + icon to build a collision box that conservatively
-      // covers the union of the two primitives at this anchor.
       let minX = anchorX
       let minY = anchorY
       let maxX = anchorX
       let maxY = anchorY
 
-      let textMetrics: { width: number, height: number } | null = null
-      if (text) {
-        textMetrics = glyphAtlas.measure(text, { italic, bold })
-        // Approximate placement: text centred horizontally, sitting on the
-        // anchor's baseline. Scale factor mirrors drawText's size/24.
-        const scaleFactor = textSize / 24
-        const w = textMetrics.width * scaleFactor
-        const h = textMetrics.height * scaleFactor
-        const tx = anchorX - w / 2
-        const ty = anchorY - h
-        if (tx < minX)
-          minX = tx
-        if (ty < minY)
-          minY = ty
-        if (tx + w > maxX)
-          maxX = tx + w
-        if (ty + h > maxY)
-          maxY = ty + h
+      // Top-left of the text box, after anchoring and offsetting.
+      let textX = 0
+      let textY = 0
+
+      if (metrics) {
+        const shift = anchorOffset(anchor, textWidth, textHeight)
+        textX = anchorX + shift.x + offset.x
+        textY = anchorY + shift.y + offset.y
+
+        const bounds = rotate === 0
+          ? { minX: textX, minY: textY, maxX: textX + textWidth, maxY: textY + textHeight }
+          : rotatedBounds(textX, textY, textWidth, textHeight, rotate, anchorX, anchorY)
+
+        minX = Math.min(minX, bounds.minX)
+        minY = Math.min(minY, bounds.minY)
+        maxX = Math.max(maxX, bounds.maxX)
+        maxY = Math.max(maxY, bounds.maxY)
       }
 
       if (iconEntry) {
         const target = iconSize ?? iconEntry.width
         const ix = anchorX - target / 2
         const iy = anchorY - target / 2
-        if (ix < minX)
-          minX = ix
-        if (iy < minY)
-          minY = iy
-        if (ix + target > maxX)
-          maxX = ix + target
-        if (iy + target > maxY)
-          maxY = iy + target
+        minX = Math.min(minX, ix)
+        minY = Math.min(minY, iy)
+        maxX = Math.max(maxX, ix + target)
+        maxY = Math.max(maxY, iy + target)
       }
 
-      // Nothing to place — skip to the next anchor.
-      if (!text && !iconEntry)
-        continue
-
-      if (!collision.tryInsert({ minX, minY, maxX, maxY, priority }))
+      if (!collision.tryInsert({ minX, minY, maxX, maxY, priority, owner: placement.owner }))
         continue
 
       // Icon first, then text on top.
       if (iconEntry && iconAtlas) {
-        iconAtlas.drawIcon(ctx, iconId, anchorX, anchorY, {
+        iconAtlas.drawIcon(ctx, iconId, anchorX - placement.originX, anchorY - placement.originY, {
           size: iconSize ?? iconEntry.width,
           rotation: iconRotate,
         })
       }
 
-      if (text && textMetrics) {
-        const scaleFactor = textSize / 24
-        const w = textMetrics.width * scaleFactor
-        glyphAtlas.drawText(
-          ctx,
-          text,
-          anchorX - w / 2,
-          anchorY,
-          {
-            color: textColor,
-            haloColor,
-            haloWidth,
-            size: textSize,
-            italic,
-            bold,
-          },
-        )
+      if (text && metrics) {
+        // Canvas coordinates are tile-local; the world-space values above are
+        // only ever handed to the collision index.
+        const localX = textX - placement.originX
+        const localY = textY - placement.originY
+        // drawText takes a baseline, not a box top: sit it an ascent below.
+        const baselineY = localY + (metrics?.ascent ?? textHeight)
+
+        if (rotate === 0) {
+          glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
+        }
+        else {
+          ctx.save()
+          ctx.translate(anchorX - placement.originX, anchorY - placement.originY)
+          ctx.rotate(rotate)
+          ctx.translate(-(anchorX - placement.originX), -(anchorY - placement.originY))
+          glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
+          ctx.restore()
+        }
+      }
+    }
+  }
+}
+
+interface LineLabelOptions {
+  text: string
+  textSize: number
+  textStyle: { italic: boolean, bold: boolean }
+  drawOptions: {
+    color: string
+    haloColor?: string
+    haloWidth?: number
+    size: number
+    italic?: boolean
+    bold?: boolean
+  }
+  maxAngle: number
+  spacing: number
+  centreOnly: boolean
+  priority?: number
+}
+
+/**
+ * Draw a label that follows its line — the angled street names every road map
+ * has, which point placement cannot produce.
+ *
+ * Each glyph is drawn separately, rotated to the tangent at its own position,
+ * because a single rotated run would only be correct on a straight segment.
+ */
+function drawLineLabel(
+  ctx: CanvasRenderingContext2D,
+  rings: Point[][],
+  scale: number,
+  options: LineLabelOptions,
+  glyphAtlas: GlyphAtlas,
+  collision: CollisionIndex,
+  placement: SymbolPlacementContext,
+): void {
+  const advances = glyphAtlas.advances(options.text, options.textSize, options.textStyle)
+  if (!advances.length)
+    return
+
+  const widths = advances.map(a => a.advance)
+  const labelWidth = widths.reduce((sum, w) => sum + w, 0)
+  if (labelWidth <= 0)
+    return
+
+  // The label's own height, for the collision box it reserves.
+  const height = glyphAtlas.measureText(options.text, options.textSize, options.textStyle).height
+
+  for (const ring of rings) {
+    if (ring.length < 2)
+      continue
+
+    // World space, so a label spanning a tile seam competes with its
+    // neighbours in the shared collision index.
+    const line = ring.map(pt => ({
+      x: pt.x * scale + placement.originX,
+      y: pt.y * scale + placement.originY,
+    }))
+
+    const length = lineLength(line)
+    const starts = options.centreOnly
+      ? (length >= labelWidth ? [(length - labelWidth) / 2] : [])
+      : repeatDistances(length, labelWidth, options.spacing)
+
+    for (const start of starts) {
+      const glyphs = placeGlyphsAlongLine(line, {
+        advances: widths,
+        start,
+        maxAngle: options.maxAngle,
+      })
+      if (!glyphs)
+        continue
+
+      // One box for the whole label: reserving per glyph would let another
+      // label thread through the gaps between characters.
+      let minX = Infinity
+      let minY = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
+      for (const glyph of glyphs) {
+        const bounds = rotatedBounds(glyph.x, glyph.y - height / 2, widths[glyph.index]!, height, glyph.angle, glyph.x, glyph.y)
+        if (bounds.minX < minX) minX = bounds.minX
+        if (bounds.minY < minY) minY = bounds.minY
+        if (bounds.maxX > maxX) maxX = bounds.maxX
+        if (bounds.maxY > maxY) maxY = bounds.maxY
+      }
+
+      if (!collision.tryInsert({ minX, minY, maxX, maxY, priority: options.priority, owner: placement.owner }))
+        continue
+
+      for (const glyph of glyphs) {
+        ctx.save()
+        ctx.translate(glyph.x - placement.originX, glyph.y - placement.originY)
+        ctx.rotate(glyph.angle)
+        // Baseline sits a little below the line so the text rides on it
+        // rather than being bisected by it.
+        glyphAtlas.drawText(ctx, advances[glyph.index]!.char, 0, height * 0.35, options.drawOptions)
+        ctx.restore()
       }
     }
   }
@@ -1160,7 +1484,12 @@ const LEGACY_FILTER_OPS = new Set<string>([
 //
 // The compiled expression is cached on the style layer so a filter with,
 // say, 50,000 features only compiles once per tile pass.
-function filterPasses(styleLayer: VectorTileStyleLayer, feature: VectorTileFeature, mapZoom: number): boolean {
+function filterPasses(
+  styleLayer: VectorTileStyleLayer,
+  feature: VectorTileFeature,
+  mapZoom: number,
+  coords?: { x: number, y: number, z: number },
+): boolean {
   const filter = styleLayer.filter
   if (!filter)
     return true
@@ -1190,7 +1519,15 @@ function filterPasses(styleLayer: VectorTileStyleLayer, feature: VectorTileFeatu
   try {
     const result = compiled.evaluate({
       zoom: mapZoom,
-      feature: { type: feature.type, id: feature.id, properties: feature.properties },
+      feature: {
+        type: feature.type,
+        id: feature.id,
+        properties: feature.properties,
+        // `within` and `distance` live here — a filter is where geography
+        // decides whether a feature is drawn at all. Lazy, so a filter that
+        // never asks pays nothing.
+        geometry: coords ? memoGeometry(feature, coords) : undefined,
+      },
     })
     return Boolean(result)
   }

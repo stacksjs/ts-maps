@@ -244,16 +244,30 @@ describe('VectorTileMapLayer: construction & options', () => {
 })
 
 describe('VectorTileMapLayer: url composition', () => {
-  test('substitutes {z}/{x}/{y}', () => {
+  test('substitutes {z}/{x}/{y}, offsetting the zoom for 512px tiles', () => {
+    // Tile indices are laid out over the CRS's 256px pixel world, so at 512px
+    // there are half as many across and the indices are zoom z-1's. Asking the
+    // service for z would name a real tile somewhere else entirely.
     const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf' })
-    const url = layer.getTileUrl(tileCoords(5, 3, 4))
-    expect(url).toBe('https://tiles/4/5/3.pbf')
+    expect(layer.options!.tileSize).toBe(512)
+    expect(layer.getTileUrl(tileCoords(5, 3, 4))).toBe('https://tiles/3/5/3.pbf')
+  })
+
+  test('256px tiles share the CRS grid, so the zoom passes through', () => {
+    const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 256 })
+    expect(layer.getTileUrl(tileCoords(5, 3, 4))).toBe('https://tiles/4/5/3.pbf')
+  })
+
+  test('zoomOffset shifts the requested zoom on top of that', () => {
+    const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 256, zoomOffset: -1 })
+    expect(layer.getTileUrl(tileCoords(5, 3, 4))).toBe('https://tiles/3/5/3.pbf')
   })
 
   test('substitutes {s} with the expected subdomain', () => {
     const layer = new VectorTileMapLayer({
       url: 'https://{s}.tiles/{z}/{x}/{y}.pbf',
       subdomains: ['a', 'b', 'c'],
+      tileSize: 256,
     })
     // `|x + y| % subdomains.length`. (5, 3) → 8 % 3 = 2 → 'c'.
     expect(layer.getTileUrl(tileCoords(5, 3, 4))).toBe('https://c.tiles/4/5/3.pbf')
