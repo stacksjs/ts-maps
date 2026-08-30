@@ -165,8 +165,10 @@ describe('VectorTileMapLayer: symbol layers', () => {
     const { err } = await ready
     expect(err).toBeNull()
 
-    // The glyph atlas composites via ctx.drawImage — one call per glyph.
-    expect(counts.drawImage).toBeGreaterThanOrEqual(1)
+    // Text goes through the canvas's own text engine rather than a blit of the
+    // glyph atlas: an atlas resample is what made labels blurry beside the
+    // crisp vector lines next to them.
+    expect(counts.fillText).toBeGreaterThanOrEqual(1)
   })
 
   test("symbol layer with `['get', 'name']` resolves against feature properties", async () => {
@@ -201,7 +203,7 @@ describe('VectorTileMapLayer: symbol layers', () => {
 
     const { err } = await ready
     expect(err).toBeNull()
-    expect(counts.drawImage).toBeGreaterThanOrEqual(1)
+    expect(counts.fillText).toBeGreaterThanOrEqual(1)
   })
 
   test('getGlyphAtlas is lazy and stable across calls', () => {

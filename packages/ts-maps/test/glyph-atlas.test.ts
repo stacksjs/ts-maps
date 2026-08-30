@@ -61,9 +61,15 @@ describe('GlyphAtlas', () => {
     const out = atlas._buildSDF(src)
     expect(out.width).toBe(8)
     expect(out.height).toBe(8)
-    // Central pixel should be darker (closer to inside) than a far corner.
+    // The ink pixel is the most opaque point of the field, and opacity falls
+    // off with distance from it. This assertion used to run the other way
+    // round, which is exactly the inverted field that rendered every label as
+    // a solid block with the letters punched out of it.
     const centre = out.data[idx + 3]
     const corner = out.data[3]
-    expect(centre).toBeLessThan(corner)
+    expect(centre).toBeGreaterThan(corner)
+    // Inside the glyph means past the 128 edge value.
+    expect(centre).toBeGreaterThan(128)
+    expect(corner).toBeLessThan(128)
   })
 })

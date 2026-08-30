@@ -54,6 +54,7 @@ function cacheKey(k: GlyphKey): string {
   return `${k.codePoint}:${styleKey(k)}`
 }
 
+
 export class GlyphAtlas {
   canvas: HTMLCanvasElement
 
@@ -70,7 +71,9 @@ export class GlyphAtlas {
   constructor(opts?: GlyphAtlasOptions) {
     this._fontFamily = opts?.fontFamily ?? 'system-ui, -apple-system, Segoe UI, Roboto'
     this._fontSize = opts?.fontSize ?? 24
-    this._padding = opts?.padding ?? 4
+    // 8px of field at a 24px font gives halos room to grow; 4 clipped every
+    // halo wider than about a pixel on screen.
+    this._padding = opts?.padding ?? 8
     const bucketSize = opts?.bucketSize ?? 512
 
     this.canvas = document.createElement('canvas')
@@ -96,7 +99,7 @@ export class GlyphAtlas {
     return this._rasterize(key)
   }
 
-  measure(text: string, style?: { italic?: boolean, bold?: boolean }): { width: number, height: number } {
+  measure(text: string, style?: { italic?: boolean, bold?: boolean, family?: string }): { width: number, height: number } {
     let width = 0
     let height = 0
     // Walk Unicode code points so surrogate pairs contribute as a single glyph.
@@ -110,6 +113,151 @@ export class GlyphAtlas {
     return { width, height }
   }
 
+  /**
+   * Per-glyph advances at a given text size, walking code points so a
+   * surrogate pair counts once.
+   *
+   * Line placement needs each glyph's own width to step along the geometry;
+   * `measure` only reports the total.
+   */
+  advances(text: string, size: number, style?: { italic?: boolean, bold?: boolean, family?: string }): Array<{ char: string, advance: number }> {
+    const ctx = this._ctx
+    const out: Array<{ char: string, advance: number }> = []
+
+    if (ctx) {
+      // Measured at the size it will be drawn at, with the same font — so the
+      // glyphs a line label steps along land exactly where the text engine
+      // will put them. Scaling a 24px advance drifts, and a label a dozen
+      // glyphs long drifts visibly.
+      ctx.save()
+      ctx.font = this.fontString(size, style)
+      for (const ch of text)
+        out.push({ char: ch, advance: ctx.measureText(ch).width })
+      ctx.restore()
+      return out
+    }
+
+    // No 2D context (a stubbed canvas): fall back to the atlas metrics.
+    const scale = size / this._fontSize
+    for (const ch of text) {
+      const cp = ch.codePointAt(0) ?? 0
+      const g = this.getOrAddGlyph(cp, style)
+      out.push({ char: ch, advance: g.advance * scale })
+    }
+    return out
+  }
+
+  /**
+   * Measure a run at the size it will be drawn at.
+   *
+   * `measure()` reports atlas units, which the caller then has to scale —
+   * an approximation that leaves collision boxes slightly out of step with the
+   * ink. This asks the same text engine that will do the drawing.
+   */
+  measureText(
+    text: string,
+    size: number,
+    style?: { italic?: boolean, bold?: boolean, family?: string },
+  ): { width: number, height: number, ascent: number, descent: number } {
+    const ctx = this._ctx
+    if (!ctx) {
+      const atlas = this.measure(text, style)
+      const scale = size / this._fontSize
+      const height = atlas.height * scale
+      return { width: atlas.width * scale, height, ascent: height * 0.8, descent: height * 0.2 }
+    }
+
+    ctx.save()
+    ctx.font = this.fontString(size, style)
+    const m = ctx.measureText(text)
+    ctx.restore()
+
+    // Font bounding boxes rather than the ink's: a label's box should not
+    // change height because its text happens to have no descender.
+    const ascent = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent || size * 0.8
+    const descent = m.fontBoundingBoxDescent || m.actualBoundingBoxDescent || size * 0.2
+    return { width: m.width, height: ascent + descent, ascent, descent }
+  }
+
+  /**
+   * The CSS font string for a style, at a given size.
+   *
+   * Exposed because line placement draws glyph by glyph and needs to set the
+   * same font the measurements were taken with.
+   */
+  fontString(size: number, style?: { italic?: boolean, bold?: boolean, family?: string }): string {
+    const parts: string[] = []
+    if (style?.italic)
+      parts.push('italic')
+    if (style?.bold)
+      parts.push('700')
+    parts.push(`${size}px`, style?.family || this._fontFamily)
+    return parts.join(' ')
+  }
+
+  /**
+   * Turn a style's `text-font` into a CSS family stack.
+   *
+   * Style-spec font names carry their weight and slant in the name —
+   * "Noto Sans Bold Italic" — because the SDK they were written for looks them
+   * up in a glyph server, not in the system's font table. A browser wants a
+   * family with the weight applied separately, so the modifiers are stripped
+   * and reported back for the caller to apply.
+   *
+   * The atlas's own stack is appended as a fallback, so a style naming a font
+   * the viewer does not have still renders in something sensible.
+   */
+  resolveFont(textFont: string | string[] | undefined): { family: string, bold: boolean, italic: boolean } {
+    const names = Array.isArray(textFont) ? textFont : textFont ? [textFont] : []
+    if (!names.length)
+      return { family: this._fontFamily, bold: false, italic: false }
+
+    let bold = false
+    let italic = false
+    const families: string[] = []
+
+    for (const raw of names) {
+      if (typeof raw !== 'string' || !raw)
+        continue
+      let name = raw
+      // Longest first: "Semibold" must not be consumed by "Bold".
+      for (const [token, apply] of [
+        ['Semibold', () => { bold = true }],
+        ['Bold', () => { bold = true }],
+        ['Italic', () => { italic = true }],
+        ['Oblique', () => { italic = true }],
+        ['Regular', () => {}],
+        ['Medium', () => {}],
+        ['Light', () => {}],
+      ] as Array<[string, () => void]>) {
+        if (name.includes(token)) {
+          apply()
+          name = name.replace(token, '')
+        }
+      }
+      const cleaned = name.replace(/\s+/g, ' ').trim()
+      if (cleaned)
+        families.push(cleaned.includes(' ') ? `"${cleaned}"` : cleaned)
+    }
+
+    families.push(this._fontFamily)
+    return { family: families.join(', '), bold, italic }
+  }
+
+  /**
+   * Draw a run of text, with an optional halo.
+   *
+   * This paints through the canvas's own text engine rather than blitting the
+   * atlas. The atlas is a signed distance field rasterised at a single size,
+   * so every label was a resample of it — upscaled, thresholded and softened,
+   * which is what made labels look blurry next to the crisp vector lines
+   * beside them. `fillText` renders at the device resolution with real
+   * hinting, and `strokeText` gives a halo that follows the glyph outline
+   * instead of approximating it.
+   *
+   * The atlas remains the measurement authority and the WebGL path's texture;
+   * this is the Canvas2D path only.
+   */
   drawText(
     ctx: CanvasRenderingContext2D,
     text: string,
@@ -122,27 +270,32 @@ export class GlyphAtlas {
       size: number
       italic?: boolean
       bold?: boolean
+      family?: string
     },
   ): void {
-    const style = { italic: !!options.italic, bold: !!options.bold }
-    const scale = options.size / this._fontSize
-
-    if (options.haloColor && options.haloWidth && options.haloWidth > 0) {
-      // Emulate a halo by stroking each glyph's silhouette underneath the fill.
-      // With Canvas2D the cheapest approximation is to draw the atlas bitmap
-      // with `destination-over` so the halo never hides the fill.
-      ctx.save()
-      ctx.globalCompositeOperation = 'destination-over'
-      ctx.fillStyle = options.haloColor
-      this._drawRun(ctx, text, x, y, scale, style, options.haloWidth)
-      ctx.restore()
-    }
+    const style = { italic: !!options.italic, bold: !!options.bold, family: options.family }
 
     ctx.save()
+    ctx.font = this.fontString(options.size, style)
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
+
+    if (options.haloColor && options.haloWidth && options.haloWidth > 0) {
+      ctx.strokeStyle = options.haloColor
+      // Doubled because a stroke straddles the outline: half of it lands
+      // inside the glyph, where the fill covers it again.
+      ctx.lineWidth = options.haloWidth * 2
+      ctx.lineJoin = 'round'
+      ctx.miterLimit = 2
+      ctx.strokeText(text, x, y)
+    }
+
     ctx.fillStyle = options.color
-    this._drawRun(ctx, text, x, y, scale, style, 0)
+    ctx.fillText(text, x, y)
     ctx.restore()
   }
+
+
 
   // _buildSDF — input is an 8-bit alpha bitmap (`imageData.data[i*4+3]`).
   // Returns a fresh ImageData whose alpha channel encodes a clamped distance
@@ -152,31 +305,38 @@ export class GlyphAtlas {
     const h = imageData.height
     const radius = this._padding
     const INF = 1 << 20
-    const inside = new Int32Array(w * h)
-    const outside = new Int32Array(w * h)
+    // A chamfer transform spreads outward from its zero-valued seeds, so each
+    // array measures the distance to the thing it was seeded ON, not the
+    // region it is named for: seeding the non-ink pixels with zero yields, at
+    // every pixel, the distance to the nearest non-ink pixel — i.e. how deep
+    // inside the glyph that pixel is.
+    const depthInside = new Int32Array(w * h)
+    const distanceToInk = new Int32Array(w * h)
 
-    // Seed: pixels with alpha >= 128 are "ink", outside = 0 there and inside
-    // starts at INF (and vice-versa for ink).
     for (let i = 0; i < w * h; i++) {
       const a = imageData.data[i * 4 + 3]
       if (a >= 128) {
-        outside[i] = INF
-        inside[i] = 0
+        depthInside[i] = INF
+        distanceToInk[i] = 0
       }
       else {
-        outside[i] = 0
-        inside[i] = INF
+        depthInside[i] = 0
+        distanceToInk[i] = INF
       }
     }
 
-    chamfer34(outside, w, h)
-    chamfer34(inside, w, h)
+    chamfer34(depthInside, w, h)
+    chamfer34(distanceToInk, w, h)
 
     const out = createImageData(w, h)
     for (let i = 0; i < w * h; i++) {
       // Signed distance: positive outside, negative inside. Scale by radius*3
       // (chamfer unit = 3 per pixel) and map to 0..255 with the edge at 128.
-      const d = (outside[i] - inside[i]) / 3
+      //
+      // Subtracting these the other way round inverts the field, which renders
+      // as an opaque block with the letters punched out of it — the glyph's
+      // background, drawn instead of the glyph.
+      const d = (distanceToInk[i] - depthInside[i]) / 3
       let v = 128 - (d / radius) * 128
       if (v < 0)
         v = 0
@@ -194,39 +354,6 @@ export class GlyphAtlas {
   // Internals
   // -------------------------------------------------------------------------
 
-  private _drawRun(
-    ctx: CanvasRenderingContext2D,
-    text: string,
-    x: number,
-    y: number,
-    scale: number,
-    style: StyleKey,
-    haloInflate: number,
-  ): void {
-    let pen = x
-    for (const ch of text) {
-      const cp = ch.codePointAt(0) ?? 0
-      const g = this.getOrAddGlyph(cp, style)
-      if (g.width > 0 && g.height > 0) {
-        const dx = pen + g.bearingX * scale - haloInflate
-        const dy = y - g.bearingY * scale - haloInflate
-        const dw = g.width * scale + haloInflate * 2
-        const dh = g.height * scale + haloInflate * 2
-        ctx.drawImage(
-          this.canvas,
-          g.x,
-          g.y,
-          g.width,
-          g.height,
-          dx,
-          dy,
-          dw,
-          dh,
-        )
-      }
-      pen += g.advance * scale
-    }
-  }
 
   private _rasterize(key: GlyphKey): GlyphMetrics {
     const ctx = this._ctx
