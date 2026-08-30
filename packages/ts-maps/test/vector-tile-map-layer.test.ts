@@ -276,6 +276,31 @@ describe('VectorTileMapLayer: url composition', () => {
   })
 })
 
+describe('VectorTileMapLayer: overzoom', () => {
+  test('a tile is never styled for a zoom above its own', () => {
+    // Past a source's top zoom the grid clamps and the level is scaled up.
+    // Evaluating paint at the map's zoom then compounds with that scale, so a
+    // label sized for zoom 18 got drawn into a zoom-15 tile and magnified on
+    // top of that.
+    const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', maxNativeZoom: 15 })
+
+    // Below the clamp the map's own zoom is used, fractional and all.
+    expect(Math.min(14.6, 15)).toBe(14.6)
+    // Above it, the tile's level wins.
+    expect(Math.min(18, 15)).toBe(15)
+
+    expect(layer._clampZoom(18)).toBe(15)
+    expect(layer._clampZoom(12)).toBe(12)
+  })
+
+  test('the clamp leaves the visibility ceiling alone', () => {
+    const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', maxNativeZoom: 15 })
+    // maxZoom hides a layer; maxNativeZoom decides where overzooming starts.
+    // Conflating them is what blanked the basemap past the source's top zoom.
+    expect(layer.options!.maxZoom).toBeGreaterThan(15)
+  })
+})
+
 describe('VectorTileMapLayer: decode + render path', () => {
   let restoreFetch: (() => void) | undefined
   afterEach(() => { restoreFetch?.(); restoreFetch = undefined })

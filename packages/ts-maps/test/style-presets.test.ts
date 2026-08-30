@@ -256,3 +256,57 @@ describe('backdrop colour', () => {
     expect(map.getContainer().style.backgroundColor).toBe('#222222')
   })
 })
+
+describe('overzooming past a source\'s top zoom', () => {
+  function hostFor(style: any, options: Record<string, unknown> = {}): any {
+    const container = document.createElement('div')
+    container.style.width = '400px'
+    container.style.height = '400px'
+    document.body.appendChild(container)
+    const map = new TsMap(container, { zoomAnimation: false, maxZoom: 20, ...options, style })
+    return { map, host: (map as any)._style.sourceLayers.get('basemap') }
+  }
+
+  test('a vector source maps its zoom range onto native zoom, not visibility', () => {
+    // The bug this guards: `maxzoom` in a style means "tiles stop here,
+    // overzoom above it", while Leaflet's `maxZoom` means "hide the layer
+    // above here". Passing one as the other blanked the basemap the moment
+    // you zoomed past 14 — which is where a typical vector source tops out.
+    const { host } = hostFor(styles.dark({ tiles: TILES }))
+
+    expect(host.options.maxZoom).not.toBe(14)
+    // 512px tiles sit one grid zoom above the server's, so a server maxzoom
+    // of 14 is grid 15.
+    expect(host.options.maxNativeZoom).toBe(15)
+  })
+
+  test('zooming past the source maximum clamps rather than switching off', () => {
+    const { host } = hostFor(styles.dark({ tiles: TILES }))
+
+    // Below the top, the grid follows the map.
+    expect(host._clampZoom(12)).toBe(12)
+    // Above it, tiles come from the top level that exists and are scaled up.
+    expect(host._clampZoom(18)).toBe(15)
+    // And the visibility ceiling stays far above the source's own top, which
+    // is what blanked the map before.
+    expect(host.options.maxZoom).toBeGreaterThan(15)
+  })
+
+  test('overzoomed tiles still ask the server for its own top zoom', () => {
+    const { host } = hostFor(styles.dark({ tiles: TILES }))
+    const coords = { x: 5, y: 3, z: 15 } as any
+
+    // Grid 15 → server 14, the highest OpenMapTiles-style sources publish.
+    expect(host.getTileUrl(coords)).toContain('/14/')
+  })
+
+  test('a raster source overzooms too', () => {
+    const { host } = hostFor(styles.dark({
+      tiles: 'https://example.test/{z}/{x}/{y}.png',
+      mode: 'raster',
+    }))
+
+    expect(host.options.maxNativeZoom).toBe(19)
+    expect(host.options.maxZoom === undefined || host.options.maxZoom > 19).toBe(true)
+  })
+})

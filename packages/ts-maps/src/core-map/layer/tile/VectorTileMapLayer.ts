@@ -59,6 +59,7 @@ export interface VectorTileMapLayerOptions {
   minZoom?: number
   maxZoom?: number
   maxNativeZoom?: number
+  minNativeZoom?: number
   tileSize?: number
   attribution?: string
   pane?: string
@@ -737,7 +738,16 @@ export class VectorTileMapLayer extends GridLayer {
 
   _drawTile(canvas: HTMLCanvasElement, tile: VectorTile, coords: Point & { z: number }): void {
     const size = this.getTileSize().x
-    const mapZoom = this._map?.getZoom?.() ?? coords.z
+    // Never style a tile for a zoom above its own.
+    //
+    // Past a source's top zoom the grid clamps and the level is scaled up
+    // instead. Evaluating text-size and line-width at the map's zoom then
+    // compounds with that scale, so a label sized for zoom 18 was drawn into a
+    // zoom-15 tile and then magnified eight times over. Styling the tile as
+    // its own level intends leaves the CSS scale as the only enlargement,
+    // which is what overzooming is supposed to look like.
+    const rawZoom = this._map?.getZoom?.() ?? coords.z
+    const mapZoom = Math.min(rawZoom, coords.z)
     const sourceId = this._sourceId ?? ''
     const lookup = this._featureStateLookup
 

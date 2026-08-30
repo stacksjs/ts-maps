@@ -21,6 +21,14 @@ import { buildTerrainMesh } from '../geo/terrainMesh'
 import { TerrainSource } from '../geo/TerrainSource'
 import { WebGLTileRenderer } from '../renderer/webgl/WebGLTileRenderer'
 
+/**
+ * Visibility ceiling for a layer built from a style source.
+ *
+ * Above any zoom a map is usable at, so the source's own `maxNativeZoom`
+ * decides where overzooming starts and nothing hides the layer prematurely.
+ */
+const STYLE_LAYER_MAX_ZOOM = 24
+
 export interface MapOptions {
   crs?: any
   center?: any
@@ -2270,8 +2278,14 @@ export class TsMap extends Evented {
       if (!url) throw new Error(`source "${sourceId}" has no tiles URL`)
       const tile = new TileLayer(url, {
         tileSize: source.tileSize ?? 256,
-        minZoom: source.minzoom,
-        maxZoom: source.maxzoom,
+        // Native, not display: above the source's top zoom the tiles are
+        // scaled up rather than the layer being hidden.
+        minNativeZoom: source.minzoom,
+        maxNativeZoom: source.maxzoom,
+        // TileLayer caps visibility at 18 by default, which would hide a
+        // source that publishes to 19 or 20. How far a user may zoom is the
+        // map's business; a style expresses per-layer limits on its layers.
+        maxZoom: STYLE_LAYER_MAX_ZOOM,
         attribution: source.attribution,
       })
       this._style!.sourceLayers.set(sourceId, tile)
@@ -2285,11 +2299,23 @@ export class TsMap extends Evented {
       const styleLayers = this._style!.spec.layers
         .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === sourceId)
         .map(l => this._style!.toVectorStyleLayer(l))
+      // A source's zoom range is expressed in the server's tile zooms, and
+      // means "tiles exist between these" — above the top the renderer
+      // overzooms the last level it has. Leaflet's `maxZoom` means something
+      // else entirely: hide the layer above this. Passing one as the other
+      // switched the basemap off the moment you zoomed past the source's
+      // maxzoom, which on a typical vector source is 14.
+      //
+      // `maxNativeZoom` is the option that means what the spec means. The
+      // range is also shifted into the grid's own zooms, which for 512px
+      // tiles are one above the server's — see `_getZoomForUrl`.
+      const tileSize = (source as any).tileSize ?? 512
+      const gridShift = Math.round(Math.log2(tileSize / 256))
       const vector = new VectorTileMapLayer({
         url,
-        tileSize: (source as any).tileSize ?? 512,
-        minZoom: source.minzoom,
-        maxZoom: source.maxzoom,
+        tileSize,
+        minNativeZoom: source.minzoom !== undefined ? source.minzoom + gridShift : undefined,
+        maxNativeZoom: source.maxzoom !== undefined ? source.maxzoom + gridShift : undefined,
         attribution: source.attribution,
         layers: styleLayers,
       })
@@ -2303,8 +2329,9 @@ export class TsMap extends Evented {
       if (!url) throw new Error(`source "${sourceId}" (raster-dem) has no tiles URL`)
       const tile = new TileLayer(url, {
         tileSize: source.tileSize ?? 512,
-        minZoom: source.minzoom,
-        maxZoom: source.maxzoom,
+        minNativeZoom: source.minzoom,
+        maxNativeZoom: source.maxzoom,
+        maxZoom: STYLE_LAYER_MAX_ZOOM,
         attribution: source.attribution,
       })
       this._style!.sourceLayers.set(sourceId, tile)
@@ -2342,7 +2369,8 @@ export class TsMap extends Evented {
       const layer = new VectorTileMapLayer({
         localSource: local,
         tileSize: 512,
-        maxZoom: source.maxzoom,
+        // Indexing depth, overzoomed above — not a visibility ceiling.
+        maxNativeZoom: source.maxzoom !== undefined ? source.maxzoom + 1 : undefined,
         attribution: source.attribution,
         layers: styleLayers,
       })
