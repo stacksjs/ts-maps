@@ -1,4 +1,4 @@
-import type { MapRuntime } from './types'
+import type { ControlSpec, MapRuntime, MarkerSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -8,6 +8,8 @@ export interface BuildHtmlOptions {
     bearing?: number
     pitch?: number
     styleSpec?: unknown
+    controls?: ControlSpec[]
+    markers?: MarkerSpec[]
   }
 }
 
@@ -82,6 +84,17 @@ const RUNTIME_SCRIPT = [
   '  let map;',
   '  try { map = new Ctor(document.getElementById("map"), opts); }',
   '  catch (e) { fail((e && e.message) || e); return; }',
+  '  const controlNs = (window.tsMaps && window.tsMaps.control) || window.control;',
+  '  if (controlNs && Array.isArray(initial.controls)) {',
+  '    initial.controls.forEach(function (spec) {',
+  '      const make = spec && controlNs[spec.type];',
+  '      if (typeof make !== "function") { fail("unknown control: " + (spec && spec.type)); return; }',
+  '      const o = Object.assign({}, spec.options);',
+  '      if (spec.position) o.position = spec.position;',
+  '      try { make(o).addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); }',
+  '    });',
+  '  }',
   '  function camera() {',
   '    return {',
   '      center: (map.getCenter && map.getCenter()) || [0, 0],',
@@ -100,6 +113,45 @@ const RUNTIME_SCRIPT = [
   '    });',
   '    map.on("error", function (e) { fail((e && e.message) || "map error"); });',
   '  }',
+  '  let markerLayers = [];',
+  '  function applyMarkers(list) {',
+  '    markerLayers.forEach(function (m) { if (m && m.remove) m.remove(); });',
+  '    markerLayers = [];',
+  '    if (!Array.isArray(list)) return;',
+  '    const ns = window.tsMaps || window;',
+  '    list.forEach(function (spec, index) {',
+  '      if (!spec || !Array.isArray(spec.coordinate)) return;',
+  '      const opts = {};',
+  '      if (spec.title != null) opts.title = spec.title;',
+  '      if (spec.draggable != null) opts.draggable = spec.draggable;',
+  '      if (spec.opacity != null) opts.opacity = spec.opacity;',
+  '      if (spec.zIndexOffset != null) opts.zIndexOffset = spec.zIndexOffset;',
+  '      if (spec.html != null && ns.divIcon) {',
+  '        const icon = { html: spec.html };',
+  '        if (spec.iconSize) icon.iconSize = spec.iconSize;',
+  '        if (spec.iconAnchor) icon.iconAnchor = spec.iconAnchor;',
+  '        if (spec.iconClass) icon.className = spec.iconClass;',
+  '        opts.icon = ns.divIcon(icon);',
+  '      }',
+  '      let m;',
+  '      try { m = ns.marker(spec.coordinate, opts).addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '      if (spec.popupHtml != null && ns.popup) {',
+  '        const p = ns.popup(spec.popupOptions || {}).setContent(spec.popupHtml);',
+  '        m.bindPopup(p);',
+  '        if (spec.popupOpen) m.openPopup();',
+  '      }',
+  '      m.on("click", function () {',
+  '        send({',
+  '          type: "markerPress",',
+  '          id: `mp${Date.now()}`,',
+  '          payload: { id: spec.id, index: index, coordinate: spec.coordinate },',
+  '        });',
+  '      });',
+  '      markerLayers.push(m);',
+  '    });',
+  '  }',
+  '  applyMarkers(initial.markers);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
@@ -128,6 +180,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setStyle") {',
   '      if (typeof map.setStyle === "function") map.setStyle(env.payload && env.payload.styleSpec);',
+  '    }',
+  '    else if (env.type === "setMarkers") {',
+  '      applyMarkers(env.payload && env.payload.markers);',
   '    }',
   '  }',
   '  function onMessage(data) {',

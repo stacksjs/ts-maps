@@ -33,11 +33,14 @@ export function MapView(props: MapViewProps): ReactElement {
     pitch,
     runtime,
     styleSpec,
+    controls,
+    markers,
     onLoad,
     onMove,
     onClick,
     onError,
     onReady,
+    onMarkerPress,
   } = props
 
   const webviewRef = useRef<WebViewHandle | null>(null)
@@ -45,7 +48,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +105,15 @@ export function MapView(props: MapViewProps): ReactElement {
     post({ type: 'setStyle', id: nextId(), payload: { styleSpec } })
   }, [styleSpec, post])
 
+  // Markers, unlike controls, are live: the initial set is baked into the
+  // document, and every change after that goes over the bridge. Reloading the
+  // WebView for a moved pin would blank the map and lose the camera.
+  useEffect(() => {
+    if (!readyRef.current || markers === undefined)
+      return
+    post({ type: 'setMarkers', id: nextId(), payload: { markers } })
+  }, [markers, post])
+
   const handleMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {
       const env = decode(event.nativeEvent?.data)
@@ -122,6 +134,9 @@ export function MapView(props: MapViewProps): ReactElement {
           break
         case 'error':
           onError?.(env.payload)
+          break
+        case 'markerPress':
+          onMarkerPress?.(env.payload)
           break
         case 'call:result': {
           const p = pendingRef.current.get(env.id)
