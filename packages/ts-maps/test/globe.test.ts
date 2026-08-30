@@ -104,3 +104,52 @@ describe('Globe atmosphere halo overlay', () => {
     expect(map._isGlobeProjection()).toBe(true)
   })
 })
+
+describe('runtime projection switching', () => {
+  function makeMap(options: Record<string, unknown> = {}): TsMap {
+    const container = document.createElement('div')
+    container.style.width = '400px'
+    container.style.height = '400px'
+    document.body.appendChild(container)
+    const map = new TsMap(container, { zoomAnimation: false, ...options })
+    map.setView([0, 0], 3)
+    return map
+  }
+
+  test('a map defaults to mercator', () => {
+    expect(makeMap().getProjection()).toBe('mercator')
+  })
+
+  test('a map constructed as a globe reports it', () => {
+    expect(makeMap({ projection: 'globe' }).getProjection()).toBe('globe')
+  })
+
+  test('switching at runtime keeps the camera and fires an event', () => {
+    const map = makeMap()
+    map.setView([34.02, -118.47], 5)
+
+    const seen: string[] = []
+    map.on('projectionchange', (event: any) => seen.push(event.projection))
+
+    map.setProjection('globe')
+
+    expect(map.getProjection()).toBe('globe')
+    expect(seen).toEqual(['globe'])
+    // A view toggle, not a rebuild — where you were looking is preserved.
+    expect(map.getCenter().lat).toBeCloseTo(34.02, 4)
+    expect(map.getZoom()).toBe(5)
+
+    map.setProjection('mercator')
+    expect(map.getProjection()).toBe('mercator')
+    expect(seen).toEqual(['globe', 'mercator'])
+  })
+
+  test('setting the projection it already has does nothing', () => {
+    const map = makeMap()
+    let fired = 0
+    map.on('projectionchange', () => { fired += 1 })
+
+    map.setProjection('mercator')
+    expect(fired).toBe(0)
+  })
+})

@@ -293,15 +293,69 @@ svg.tsmap-image-layer.tsmap-interactive path {
 
 /* visual tweaks */
 
+/*
+ * Theme tokens.
+ *
+ * Every colour the chrome draws with resolves through one of these, so a dark
+ * map is a single class flip rather than a parallel stylesheet. They live on
+ * the container and not on :root deliberately: two maps on one page can then
+ * carry different themes, and a host page's own custom properties can't
+ * collide with them.
+ *
+ * The switch is `.tsmap-dark`, set by the map's `theme` option (see
+ * Map.setTheme). It is a class and not a bare `prefers-color-scheme` query
+ * because the map's theme should follow the basemap being displayed, which is
+ * an application decision — a dark style on a machine set to light mode still
+ * needs dark chrome. `theme: 'auto'` is what re-attaches it to the OS setting.
+ */
 .tsmap-container {
+  --tsmap-accent: #1a73e8;
+  --tsmap-surface: #fff;
+  --tsmap-surface-hover: #f1f3f4;
+  --tsmap-fg: #3c4043;
+  --tsmap-fg-muted: #5f6368;
+  --tsmap-fg-disabled: #bdc1c6;
+  --tsmap-divider: rgb(0 0 0 / 12%);
+  --tsmap-scrim: rgb(255 255 255 / 80%);
+  --tsmap-hairline: #ddd;
+  --tsmap-scale-line: #777;
+  --tsmap-shadow:
+    0 1px 2px rgb(60 64 67 / 30%),
+    0 2px 6px 2px rgb(60 64 67 / 15%);
+  --tsmap-shadow-lg:
+    0 2px 6px rgb(60 64 67 / 28%),
+    0 6px 18px 4px rgb(60 64 67 / 15%);
+
   /* Matched to the land colour of a light basemap, so tiles fade in against
-     their own background instead of flashing a dark band on every pan. */
-  background: #e8eaed;
+    their own background instead of flashing a dark band on every pan. */
+  --tsmap-tile-bg: #e8eaed;
+
+  background: var(--tsmap-tile-bg);
   outline-offset: 1px;
 
   a {
-    color: #1a73e8;
+    color: var(--tsmap-accent);
   }
+}
+
+.tsmap-container.tsmap-dark {
+  --tsmap-accent: #8ab4f8;
+  --tsmap-surface: #292a2d;
+  --tsmap-surface-hover: #35363a;
+  --tsmap-fg: #e8eaed;
+  --tsmap-fg-muted: #9aa0a6;
+  --tsmap-fg-disabled: #5f6368;
+  --tsmap-divider: rgb(255 255 255 / 14%);
+  --tsmap-scrim: rgb(32 33 36 / 80%);
+  --tsmap-hairline: #3c4043;
+  --tsmap-scale-line: #9aa0a6;
+  --tsmap-shadow:
+    0 1px 2px rgb(0 0 0 / 50%),
+    0 2px 6px 2px rgb(0 0 0 / 30%);
+  --tsmap-shadow-lg:
+    0 2px 6px rgb(0 0 0 / 45%),
+    0 6px 18px 4px rgb(0 0 0 / 30%);
+  --tsmap-tile-bg: #16171a;
 }
 
 /* prevent showing outline-box on Chromium when clicking on a vector with a tooltip */
@@ -310,8 +364,8 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 }
 
 .tsmap-zoom-box {
-  border: 2px dotted #38f;
-  background: rgba(255, 255, 255, 0.5);
+  border: 2px dotted var(--tsmap-accent);
+  background: var(--tsmap-scrim);
 }
 
 /* general typography */
@@ -346,38 +400,35 @@ path.tsmap-interactive:focus:not(:focus-visible) {
  * focus ring, which the old chrome suppressed entirely.
  */
 .tsmap-bar {
-  box-shadow:
-    0 1px 2px rgba(60, 64, 67, 0.3),
-    0 2px 6px 2px rgba(60, 64, 67, 0.15);
+  box-shadow: var(--tsmap-shadow);
   border-radius: 8px;
   overflow: hidden;
 
   a {
     position: relative;
-    background-color: #fff;
+    background-color: var(--tsmap-surface);
     width: 40px;
     height: 40px;
     line-height: 40px;
     display: block;
     text-align: center;
     text-decoration: none;
-    color: black;
     background-position: 50% 50%;
     background-repeat: no-repeat;
     display: block;
-    color: #3c4043;
+    color: var(--tsmap-fg);
     transition: background-color 120ms ease;
 
     &:hover {
-      background-color: #f1f3f4;
+      background-color: var(--tsmap-surface-hover);
     }
 
     /* Visible only for keyboard users: a ring on every mouse click is noise,
-       and no ring at all makes the control unusable without a pointer. */
+      and no ring at all makes the control unusable without a pointer. */
     &:focus-visible {
-      outline: 2px solid #1a73e8;
+      outline: 2px solid var(--tsmap-accent);
       outline-offset: -2px;
-      background-color: #f1f3f4;
+      background-color: var(--tsmap-surface-hover);
     }
 
     /*
@@ -396,7 +447,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
       bottom: 0;
       left: 8px;
       height: 1px;
-      background: rgba(0, 0, 0, 0.12);
+      background: var(--tsmap-divider);
     }
 
     &:first-child {
@@ -411,30 +462,8 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 
     &.tsmap-disabled {
       cursor: default;
-      background-color: #fff;
-      color: #bdc1c6;
-    }
-  }
-}
-
-/* Dark basemaps get dark chrome; white cards on a dark map glare. */
-@media (prefers-color-scheme: dark) {
-  .tsmap-dark .tsmap-bar a:not(:last-child)::after {
-    background: rgba(255, 255, 255, 0.14);
-  }
-
-  .tsmap-dark .tsmap-bar a {
-    background-color: #292a2d;
-    color: #e8eaed;
-
-    &:hover,
-    &:focus-visible {
-      background-color: #35363a;
-    }
-
-    &.tsmap-disabled {
-      background-color: #292a2d;
-      color: #5f6368;
+      background-color: var(--tsmap-surface);
+      color: var(--tsmap-fg-disabled);
     }
   }
 }
@@ -460,11 +489,11 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 /* zoom control */
 
 /* Scoped under .tsmap-bar so it outranks the `.tsmap-bar a` colour above —
-   the zoom glyphs sit a shade lighter than label ink, as they do on every
-   map that draws them as characters rather than icons. */
+  the zoom glyphs sit a shade lighter than label ink, as they do on every
+  map that draws them as characters rather than icons. */
 .tsmap-bar a.tsmap-control-zoom-in,
 .tsmap-bar a.tsmap-control-zoom-out {
-  color: #5f6368;
+  color: var(--tsmap-fg-muted);
 
   font:
     400 21px / 40px -apple-system,
@@ -478,10 +507,8 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 /* layers control */
 
 .tsmap-control-layers {
-  box-shadow:
-    0 1px 2px rgba(60, 64, 67, 0.3),
-    0 2px 6px 2px rgba(60, 64, 67, 0.15);
-  background: #fff;
+  box-shadow: var(--tsmap-shadow);
+  background: var(--tsmap-surface);
   border-radius: 8px;
 
   .tsmap-control-layers-list {
@@ -499,6 +526,12 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   .tsmap-touch & {
     width: 44px;
     height: 44px;
+  }
+
+  /* The stacked-sheets glyph is drawn with light fills, which disappear into a
+    dark card. Same shape, inverted ink. */
+  .tsmap-dark & {
+    background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2736%27 height=%2736%27 viewBox=%270 0 36 36%27%3E%3Crect x=%274%27 y=%274%27 width=%2714%27 height=%2714%27 fill=%27%23202124%27 stroke=%27%23bdc1c6%27 stroke-width=%271.5%27/%3E%3Crect x=%2710%27 y=%2710%27 width=%2714%27 height=%2714%27 fill=%27%232f3134%27 stroke=%27%23bdc1c6%27 stroke-width=%271.5%27/%3E%3Crect x=%2716%27 y=%2716%27 width=%2714%27 height=%2714%27 fill=%27%233f4144%27 stroke=%27%23bdc1c6%27 stroke-width=%271.5%27/%3E%3C/svg%3E');
   }
 }
 
@@ -521,8 +554,8 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 
 .tsmap-control-layers-expanded {
   padding: 6px 10px 6px 6px;
-  color: #333;
-  background: #fff;
+  color: var(--tsmap-fg);
+  background: var(--tsmap-surface);
 }
 
 .tsmap-control-layers-scrollbar {
@@ -545,7 +578,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 
 .tsmap-control-layers-separator {
   height: 0;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--tsmap-hairline);
   margin: 5px -10px 5px -6px;
 }
 
@@ -557,15 +590,14 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 /* attribution and scale controls */
 
 .tsmap-container .tsmap-control-attribution {
-  background: #fff;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--tsmap-scrim);
   margin: 0;
 }
 
 .tsmap-control-attribution,
 .tsmap-control-scale-line {
   padding: 0 5px;
-  color: #333;
+  color: var(--tsmap-fg);
   line-height: 1.4;
 }
 
@@ -595,22 +627,21 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 }
 
 .tsmap-control-scale-line {
-  border: 2px solid #777;
+  border: 2px solid var(--tsmap-scale-line);
   border-top: none;
   line-height: 1.1;
   padding: 2px 5px 1px;
   white-space: nowrap;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.8);
-  text-shadow: 1px 1px #fff;
+  background: var(--tsmap-scrim);
 
   &:not(:first-child) {
-    border-top: 2px solid #777;
+    border-top: 2px solid var(--tsmap-scale-line);
     border-bottom: none;
     margin-top: -2px;
 
     &:not(:last-child) {
-      border-bottom: 2px solid #777;
+      border-bottom: 2px solid var(--tsmap-scale-line);
     }
   }
 }
@@ -683,11 +714,9 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 
 .tsmap-popup-content-wrapper,
 .tsmap-popup-tip {
-  background: white;
-  color: #333;
-  box-shadow:
-    0 2px 6px rgba(60, 64, 67, 0.28),
-    0 6px 18px 4px rgba(60, 64, 67, 0.15);
+  background: var(--tsmap-surface);
+  color: var(--tsmap-fg);
+  box-shadow: var(--tsmap-shadow-lg);
 }
 
 .tsmap-container a.tsmap-popup-close-button {
@@ -699,13 +728,13 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   width: 24px;
   height: 24px;
   font: 16px/24px Tahoma, Verdana, sans-serif;
-  color: #757575;
+  color: var(--tsmap-fg-muted);
   text-decoration: none;
   background: transparent;
 
   &:hover,
   &:focus {
-    color: #585858;
+    color: var(--tsmap-fg);
   }
 }
 
@@ -716,8 +745,8 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 /* div icon */
 
 .tsmap-div-icon {
-  background: #fff;
-  border: 1px solid #666;
+  background: var(--tsmap-surface);
+  border: 1px solid var(--tsmap-fg-muted);
 }
 
 /* Tooltip */
@@ -725,14 +754,14 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 .tsmap-tooltip {
   position: absolute;
   padding: 6px;
-  background-color: #fff;
-  border: 1px solid #fff;
+  background-color: var(--tsmap-surface);
+  border: 1px solid var(--tsmap-surface);
   border-radius: 3px;
-  color: #222;
+  color: var(--tsmap-fg);
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
 
   &.tsmap-interactive {
     cursor: pointer;
@@ -762,7 +791,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
     top: 0;
     margin-top: -12px;
     margin-left: -6px;
-    border-bottom-color: #fff;
+    border-bottom-color: var(--tsmap-surface);
   }
 }
 
@@ -774,7 +803,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
     margin-left: -6px;
     bottom: 0;
     margin-bottom: -12px;
-    border-top-color: #fff;
+    border-top-color: var(--tsmap-surface);
   }
 }
 
@@ -786,7 +815,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
     margin-top: -6px;
     right: 0;
     margin-right: -12px;
-    border-left-color: #fff;
+    border-left-color: var(--tsmap-surface);
   }
 }
 
@@ -798,7 +827,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
     margin-top: -6px;
     left: 0;
     margin-left: -12px;
-    border-right-color: #fff;
+    border-right-color: var(--tsmap-surface);
   }
 }
 
@@ -813,11 +842,11 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 }
 
 /* locate control
-   ==========================================================================
-   The crosshair button. Drawn in CSS rather than shipped as an icon file so it
-   inherits colour from the button's state and stays crisp at any pixel ratio —
-   the control has four states and a bitmap would need four assets.
-   ========================================================================== */
+  ==========================================================================
+  The crosshair button. Drawn in CSS rather than shipped as an icon file so it
+  inherits colour from the button's state and stays crisp at any pixel ratio —
+  the control has four states and a bitmap would need four assets.
+  ========================================================================== */
 
 .tsmap-control-locate a {
   display: flex;
@@ -830,7 +859,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   position: relative;
   width: 18px;
   height: 18px;
-  color: #5f6368;
+  color: var(--tsmap-fg-muted);
 
   /* The ring. */
   &::before {
@@ -856,15 +885,15 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 }
 
 /* Following the device: the crosshair fills in, the way a "you are here"
-   control does everywhere else. */
+  control does everywhere else. */
 a.tsmap-control-locate-active .tsmap-locate-icon {
-  color: #1a73e8;
+  color: var(--tsmap-accent);
 }
 
 /* Acquiring a first fix. The pulse is the only thing telling the user that a
-   press did anything at all — a GPS fix can take several seconds. */
+  press did anything at all — a GPS fix can take several seconds. */
 a.tsmap-control-locate-locating .tsmap-locate-icon {
-  color: #1a73e8;
+  color: var(--tsmap-accent);
   animation: tsmap-locate-pulse 1s ease-in-out infinite;
 }
 
@@ -875,8 +904,8 @@ a.tsmap-control-locate-locating .tsmap-locate-icon {
 }
 
 /* Denied or unavailable. Struck through rather than merely greyed: grey reads
-   as "disabled, try later" when the real state is "this will not work until
-   you change a browser setting". */
+  as "disabled, try later" when the real state is "this will not work until
+  you change a browser setting". */
 /*
  * The state class lands on the <a> itself (see LocateControl._setState), so
  * these select the anchor rather than a parent. Written as `.tsmap-control-
@@ -884,7 +913,7 @@ a.tsmap-control-locate-locating .tsmap-locate-icon {
  * nothing and left a denied control looking merely idle.
  */
 a.tsmap-control-locate-denied .tsmap-locate-icon {
-  color: #bdc1c6;
+  color: var(--tsmap-fg-disabled);
 }
 
 a.tsmap-control-locate-denied::after {
@@ -896,34 +925,294 @@ a.tsmap-control-locate-denied::after {
   height: 2px;
   border-radius: 1px;
   /* Cut out from the strike so it reads as a line crossing the glyph rather
-     than a line drawn on top of it. */
-  background: #80868b;
-  box-shadow: 0 -2px 0 #fff;
+    than a line drawn on top of it. */
+  background: var(--tsmap-fg-muted);
+  box-shadow: 0 -2px 0 var(--tsmap-surface);
   transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 /* The accuracy halo around the reported position. */
 .tsmap-locate-accuracy {
-  fill: #1a73e8;
+  fill: var(--tsmap-accent);
   fill-opacity: 0.12;
-  stroke: #1a73e8;
+  stroke: var(--tsmap-accent);
   stroke-opacity: 0.35;
   stroke-width: 1;
+}
+
+/* The "you are here" dot. A fixed screen size at every zoom — the accuracy
+  halo is the thing that carries scale — with a white ring so it stays legible
+  over both a near-black basemap and a pale one. */
+.tsmap-locate-dot {
+  background: var(--tsmap-accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+  box-sizing: border-box;
+}
+
+/* The halo breathing outwards. Drawn on a child rather than ::after because
+  the icon element itself is positioned by the marker layer, and a transform
+  on it would fight the marker's own translate. */
+.tsmap-locate-dot-pulse {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: var(--tsmap-accent);
+  opacity: 0.4;
+  animation: tsmap-locate-dot-pulse 2s ease-out infinite;
+}
+
+@keyframes tsmap-locate-dot-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   a.tsmap-control-locate-locating .tsmap-locate-icon {
     animation: none;
   }
+
+  .tsmap-locate-dot-pulse {
+    animation: none;
+  }
 }
 
-@media (prefers-color-scheme: dark) {
-  .tsmap-dark .tsmap-locate-icon {
-    color: #9aa0a6;
+
+/* geocoder control
+  ==========================================================================
+  The search box. Sized to sit comfortably on a phone, where it is usually the
+  widest piece of chrome on the map.
+  ========================================================================== */
+
+.tsmap-control-geocoder {
+  overflow: visible;
+  min-width: 44px;
+}
+
+.tsmap-control-geocoder-form {
+  display: none;
+}
+
+.tsmap-control-geocoder-expanded .tsmap-control-geocoder-form {
+  display: block;
+}
+
+.tsmap-control-geocoder-input {
+  width: 240px;
+  max-width: 60vw;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tsmap-surface);
+  color: var(--tsmap-fg);
+  font: inherit;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: var(--tsmap-fg-muted);
   }
 
-  .tsmap-dark a.tsmap-control-locate-active .tsmap-locate-icon,
-  .tsmap-dark a.tsmap-control-locate-locating .tsmap-locate-icon {
-    color: #8ab4f8;
+  &:focus-visible {
+    outline: 2px solid var(--tsmap-accent);
+    outline-offset: -2px;
   }
+}
+
+/* The magnifier, shown only in collapsed mode. */
+.tsmap-geocoder-icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentcolor;
+  border-radius: 50%;
+  position: relative;
+  vertical-align: middle;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    width: 2px;
+    height: 7px;
+    border-radius: 1px;
+    background: currentcolor;
+    transform: rotate(-45deg);
+  }
+}
+
+.tsmap-control-geocoder-expanded .tsmap-control-geocoder-toggle {
+  display: none;
+}
+
+/* A spinner would be more literal, but the input is already the thing the eye
+  is on — dimming its text says "working" without adding a moving part. */
+.tsmap-control-geocoder-busy .tsmap-control-geocoder-input {
+  color: var(--tsmap-fg-muted);
+}
+
+.tsmap-control-geocoder-list {
+  display: none;
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px 0;
+  border-radius: 8px;
+  background: var(--tsmap-surface);
+  box-shadow: var(--tsmap-shadow);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.tsmap-control-geocoder-open .tsmap-control-geocoder-list {
+  display: block;
+}
+
+.tsmap-control-geocoder-item {
+  padding: 8px 12px;
+  color: var(--tsmap-fg);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover,
+  &.tsmap-control-geocoder-item-active {
+    background: var(--tsmap-surface-hover);
+  }
+}
+
+.tsmap-control-geocoder-marker {
+  background: var(--tsmap-accent);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+  box-sizing: border-box;
+}
+
+/* navigation control
+  ==========================================================================
+  Zoom pair plus a compass. The needle is drawn in CSS for the same reason the
+  locate crosshair is: it has to recolour with the theme and stay sharp while
+  being rotated by a transform.
+  ========================================================================== */
+
+.tsmap-control-navigation a.tsmap-control-navigation-zoom-in,
+.tsmap-control-navigation a.tsmap-control-navigation-zoom-out {
+  color: var(--tsmap-fg-muted);
+  font:
+    400 21px / 40px -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+.tsmap-control-navigation a.tsmap-control-navigation-compass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tsmap-compass-needle {
+  width: 4px;
+  height: 22px;
+  position: relative;
+  transition: transform 120ms ease-out;
+
+  /* North half carries the colour; the south half is muted, which is how a
+    compass reads as a compass rather than a pin. */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-left: 2px solid transparent;
+    border-right: 2px solid transparent;
+  }
+
+  &::before {
+    top: 0;
+    border-bottom: 11px solid #ea4335;
+  }
+
+  &::after {
+    bottom: 0;
+    border-top: 11px solid var(--tsmap-fg-disabled);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tsmap-compass-needle {
+    transition: none;
+  }
+}
+
+/* fullscreen control
+  ========================================================================== */
+
+.tsmap-fullscreen-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  position: relative;
+
+  /* Four corner brackets, drawn as two boxes clipped by their own borders. */
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border: 2px solid currentcolor;
+  }
+
+  &::before {
+    top: 0;
+    left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  &::after {
+    right: 0;
+    bottom: 0;
+    border-top: 0;
+    border-left: 0;
+  }
+}
+
+.tsmap-control-fullscreen-active .tsmap-fullscreen-icon {
+  &::before {
+    border-right: 0;
+    border-bottom: 0;
+    transform: rotate(180deg);
+  }
+
+  &::after {
+    transform: rotate(180deg);
+  }
+}
+
+/*
+ * Fallback for browsers and embeds where the Fullscreen API is unavailable —
+ * an iframe without `allowfullscreen`, or iPhone Safari, which has never
+ * implemented it. Browser chrome stays visible, but the map fills the viewport.
+ */
+.tsmap-pseudo-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 99999;
 }

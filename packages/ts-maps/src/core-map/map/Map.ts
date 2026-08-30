@@ -65,6 +65,23 @@ export interface MapOptions {
   */
   zoomSnap?: number
   /**
+  * Colour scheme for the map's own chrome — controls, popups, tooltips,
+  * attribution and the pan background behind the tiles.
+  *
+  * `'light'` (default) and `'dark'` are explicit, because the right chrome
+  * follows the *basemap being displayed* rather than the operating system: a
+  * dark style on a machine set to light mode still needs dark controls, and
+  * white cards over a near-black map glare. `'auto'` opts back in to the OS
+  * setting via `prefers-color-scheme` and tracks changes to it.
+  */
+  theme?: 'light' | 'dark' | 'auto'
+  /**
+  * A style to apply at construction — a `StyleSpec` object, a URL to one, or
+  * one of the built-in presets from `styles`. Equivalent to calling
+  * `setStyle()` immediately after the map is created.
+  */
+  style?: any
+  /**
   * Controls how much the map's zoom level will change after a `zoomIn()`,
   * `zoomOut()`, pressing `+` or `-` on the keyboard, or using the zoom
   * controls. Values smaller than `1` (e.g. `0.5`) allow for greater granularity.
@@ -144,6 +161,16 @@ export class TsMap extends Evented {
   declare _pitch: number
   declare _container: HTMLElement & { _tsmap_id?: number }
   declare _containerId?: number
+  // A plain record, not a Map: this module exports `Map` as an alias of TsMap
+  // (see the bottom of the file), so `new Map()` here builds a map of the
+  // cartographic kind.
+  declare _geoJSONSources?: Record<string, { index: any, layer: any, clustered: boolean }>
+  declare _styleLoadToken?: number
+  declare _spriteToken?: number
+  declare _glyphSource?: any
+  declare _theme?: 'light' | 'dark' | 'auto'
+  declare _themeQuery?: MediaQueryList
+  declare _themeQueryListener?: (event: MediaQueryListEvent) => void
   declare _loaded?: boolean
   declare _zoom: number
   declare _lastCenter?: LatLng | null
@@ -278,6 +305,11 @@ export class TsMap extends Evented {
     this._createAnimProxy()
 
     this._addLayers?.(this.options.layers)
+
+    // Last, so the style's sources are added over a map that already has its
+    // panes, view and layers in place.
+    if (options.style !== undefined)
+      this.setStyle(options.style)
   }
 
   setView(center: any, zoom?: number, options?: any): this {
@@ -728,6 +760,9 @@ export class TsMap extends Evented {
 
     if (this._locationWatchId !== undefined)
     this.stopLocate()
+
+    this._detachThemeQuery()
+    this._container.classList.remove('tsmap-dark')
 
     this._stop()
 
@@ -1339,6 +1374,8 @@ export class TsMap extends Evented {
 
     container.classList.add(...classes)
 
+    this.setTheme(this.options.theme ?? 'light')
+
     const { position } = getComputedStyle(container)
     if (position !== 'absolute' && position !== 'relative' && position !== 'fixed' && position !== 'sticky')
     container.style.position = 'relative'
@@ -1936,7 +1973,31 @@ export class TsMap extends Evented {
   // Replace the whole style. Emits `styledata` once the new style is live.
   // When both previous and next styles are set and `opts.diff` is true
   // (default), only the minimum diff commands are applied.
-  setStyle(style: StyleSpec, opts?: { diff?: boolean, validate?: boolean }): this {
+  setStyle(style: StyleSpec | string, opts?: { diff?: boolean, validate?: boolean }): this {
+    // A URL is fetched and re-entered as an object. The map is left as it is
+    // until the document arrives — blanking it first would flash the old style
+    // away for a load that might fail.
+    if (typeof style === 'string') {
+      const token = (this._styleLoadToken = (this._styleLoadToken ?? 0) + 1)
+      fetch(style)
+        .then((response) => {
+          if (!response.ok)
+            throw new Error(`HTTP ${response.status} fetching style ${style}`)
+          return response.json()
+        })
+        .then((spec) => {
+          // A slower earlier request must not overwrite a later style.
+          if (token !== this._styleLoadToken)
+            return
+          this.setStyle(spec as StyleSpec, opts)
+        })
+        .catch(error => this.fire('error', { error, style }))
+      return this
+    }
+
+    // Any in-flight style URL is now stale.
+    this._styleLoadToken = (this._styleLoadToken ?? 0) + 1
+
     const useDiff = opts?.diff !== false
     const validate = opts?.validate !== false
 
@@ -1944,8 +2005,26 @@ export class TsMap extends Evented {
       const diff = diffStyles(this._style.spec, style)
       const resetCmd = diff.commands.find(c => c.command === 'setStyle')
       if (!resetCmd) {
-        // Apply command-by-command.
-        for (const cmd of diff.commands) this._applyStyleCommand(cmd)
+        // Apply command-by-command, then push the result at the renderer once.
+        // Syncing per command would repaint every tile fifteen times over for
+        // a single theme swap.
+        const touched = new Set<string>()
+        for (const cmd of diff.commands) {
+          // The command handlers mutate the style document only; the renderer
+          // is updated once below.
+          this._applyStyleCommand(cmd)
+          const layerId = cmd.args?.[0]
+          if (typeof layerId === 'string')
+            touched.add(layerId)
+        }
+        for (const layerId of touched)
+          this._syncStyleLayer(layerId)
+
+        // Root metadata has no commands of its own — nothing renders from it —
+        // but `getStyle()` is expected to report the style that was set, and
+        // without this a diffed swap keeps answering with the old style's name.
+        this._style.spec.name = style.name
+        this._style.spec.metadata = style.metadata
         this.fire('styledata')
         return this
       }
@@ -1965,8 +2044,113 @@ export class TsMap extends Evented {
       this._installFeatureStateLookup(sourceId, host);
       (this as any).addLayer(host as any)
     }
+    this._loadSprite()
+    this._initGlyphSource()
     this.fire('styledata')
     return this
+  }
+
+  /**
+   * Wire up the style's glyph server.
+   *
+   * Labels are drawn with the system's own text engine, which is sharper on a
+   * canvas than resampling a distance field and needs no network — so this is
+   * not how text normally reaches the screen. It is the answer for the case
+   * local fonts cannot serve: a style whose typeface the viewer does not have
+   * installed. Ranges are fetched on demand, since a font stack is 65,536 code
+   * points and a map shows a handful of blocks.
+   *
+   * Reachable as `map.getGlyphSource()`.
+   */
+  _initGlyphSource(): void {
+    const glyphs = this._style?.spec.glyphs
+    if (typeof glyphs !== 'string' || !glyphs) {
+      this._glyphSource = undefined
+      return
+    }
+
+    const { GlyphSource } = require('../symbols/loadGlyphs')
+    this._glyphSource = new GlyphSource(glyphs)
+  }
+
+  /**
+   * The style's glyph server, if it declared one.
+   *
+   * Returns undefined for a style with no `glyphs` URL — which is most of
+   * them, and not a problem: system fonts cover it.
+   */
+  getGlyphSource(): any {
+    return this._glyphSource
+  }
+
+  /**
+   * Is a font stack available to the browser's own text engine?
+   *
+   * The question worth asking before reaching for a glyph server: if the
+   * viewer already has the font, drawing it natively is both sharper and free.
+   */
+  isFontAvailable(textFont: string | string[] | undefined): boolean {
+    const fonts = (globalThis as any).document?.fonts
+    if (!fonts || typeof fonts.check !== 'function')
+      return true
+
+    const names = Array.isArray(textFont) ? textFont : textFont ? [textFont] : []
+    if (!names.length)
+      return true
+
+    try {
+      // A family the browser cannot resolve falls back silently, so `check`
+      // is the only way to know before drawing.
+      const { GlyphAtlas } = require('../symbols/GlyphAtlas')
+      const probe = new GlyphAtlas()
+      const { family } = probe.resolveFont(names)
+      return fonts.check(`16px ${family}`)
+    }
+    catch {
+      return true
+    }
+  }
+
+  /**
+   * Fetch the style's sprite sheet and hand its icons to the layers.
+   *
+   * `sprite` was validated and then ignored, so `icon-image` silently drew
+   * nothing for any real-world style. Loading is asynchronous and deliberately
+   * not awaited by `setStyle`: the basemap should draw as soon as its tiles
+   * arrive rather than waiting on a sheet only the symbol layers need. Tiles
+   * are repainted when it lands.
+   */
+  _loadSprite(): void {
+    const sprite = this._style?.spec.sprite
+    // Only the single-URL form: a style may also declare an array of named
+    // sheets, which needs prefixed ids and is not supported yet.
+    if (typeof sprite !== 'string' || !sprite)
+      return
+
+    const token = (this._spriteToken = (this._spriteToken ?? 0) + 1)
+    const { loadSprite, addSpriteToAtlas } = require('../symbols/loadSprite')
+
+    loadSprite(sprite, { pixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1 })
+      .then((loaded: any) => {
+        // A style swapped while this was in flight owns the atlas now.
+        if (token !== this._spriteToken || !this._style)
+          return
+
+        let added = 0
+        for (const host of this._style.sourceLayers.values()) {
+          const anyHost = host as any
+          if (typeof anyHost.getIconAtlas !== 'function')
+            continue
+          added += addSpriteToAtlas(anyHost.getIconAtlas(), loaded)
+          anyHost._repaintDecodedTiles?.()
+        }
+
+        this.fire('spriteload', { sprite, icons: Object.keys(loaded.index).length, added })
+      })
+      .catch((error: unknown) => {
+        // A missing sheet costs icons, not the map.
+        this.fire('error', { error, sprite })
+      })
   }
 
   getStyle(): StyleSpec | undefined {
@@ -2002,6 +2186,8 @@ export class TsMap extends Evented {
       (this as any).removeLayer(host as any)
       this._style.sourceLayers.delete(sourceId)
     }
+    if (this._geoJSONSources)
+      delete this._geoJSONSources[sourceId]
     delete this._style.spec.sources[sourceId]
     this.fire('styledata')
     return this
@@ -2058,7 +2244,99 @@ export class TsMap extends Evented {
       this._style!.sourceLayers.set(sourceId, tile)
       return tile
     }
-    throw new Error(`source type "${source.type}" is not supported in setStyle yet`)
+    if (source.type === 'geojson') {
+      const { VectorTileMapLayer } = require('../layer/tile/VectorTileMapLayer')
+      const { GeoJSONTileSource, clusterTileSource } = require('../layer/GeoJSONTileSource')
+      const { GeoJSONClusterSource } = require('../layer/GeoJSONClusterSource')
+
+      const styleLayers = this._style!.spec.layers
+        .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === sourceId)
+        .map(l => this._style!.toVectorStyleLayer(l))
+
+      // Style layers reference the source id as their `source-layer`, matching
+      // how Mapbox publishes a geojson source under a single named layer.
+      const layerName = sourceId
+      const geojson = source as any
+      let local: any
+      let index: any
+
+      if (geojson.cluster) {
+        index = new GeoJSONClusterSource({
+          radius: geojson.clusterRadius ?? 50,
+          maxZoom: geojson.clusterMaxZoom ?? 16,
+          minPoints: geojson.clusterMinPoints ?? 2,
+        })
+        local = clusterTileSource(index, layerName)
+      }
+      else {
+        index = new GeoJSONTileSource(undefined, { layerName, buffer: geojson.buffer })
+        local = index
+      }
+
+      const layer = new VectorTileMapLayer({
+        localSource: local,
+        tileSize: 512,
+        maxZoom: source.maxzoom,
+        attribution: source.attribution,
+        layers: styleLayers,
+      })
+
+      // Kept so `setSourceData` can reindex without rebuilding the layer.
+      this._geoJSONSources ??= {}
+      this._geoJSONSources[sourceId] = { index, layer, clustered: !!geojson.cluster }
+
+      if (geojson.data !== undefined)
+        this.setSourceData(sourceId, geojson.data)
+
+      this._style!.sourceLayers.set(sourceId, layer)
+      return layer
+    }
+    // Every SourceSpecification variant is handled above, so `source` has
+    // narrowed to never — this is only reachable from a hand-written style
+    // carrying a type the spec does not describe.
+    throw new Error(`source type "${(source as { type: string }).type}" is not supported in setStyle yet`)
+  }
+
+  /**
+   * Replace the data behind a `geojson` style source.
+   *
+   * The point of a geojson source over a static one is that it changes — a
+   * live incident feed, a moving fleet, a filtered subset. This reindexes in
+   * place and redraws, without tearing down and rebuilding the style layer
+   * (which would flash the map and lose tile state).
+   *
+   * Accepts a GeoJSON object or a URL to fetch; `sourcedata` fires when the
+   * new data is in.
+   */
+  setSourceData(sourceId: string, data: unknown): this {
+    const entry = this._geoJSONSources?.[sourceId]
+    if (!entry)
+      throw new Error(`source "${sourceId}" is not a geojson source on this map`)
+
+    const apply = (value: unknown): void => {
+      const features = (value as any)?.type === 'FeatureCollection'
+        ? ((value as any).features ?? [])
+        : Array.isArray(value) ? value : value ? [value] : []
+
+      if (entry.clustered)
+        entry.index.load(features)
+      else
+        entry.index.setData(value)
+
+      entry.layer.redraw?.()
+      this.fire('sourcedata', { sourceId, isSourceLoaded: true })
+    }
+
+    if (typeof data === 'string') {
+      fetch(data)
+        .then(response => response.json())
+        .then(apply)
+        .catch(error => this.fire('error', { error, sourceId }))
+      return this
+    }
+
+    apply(data)
+    return this
   }
 
   // Style-spec layer API. Note: `map.addLayer(Layer)` still works for the
@@ -2120,20 +2398,51 @@ export class TsMap extends Evented {
 
   setPaintProperty(layerId: string, name: string, value: unknown): this {
     this._style?.setPaintProperty(layerId, name, value)
+    this._syncStyleLayer(layerId)
     this.fire('styledata')
     return this
   }
 
   setLayoutProperty(layerId: string, name: string, value: unknown): this {
     this._style?.setLayoutProperty(layerId, name, value)
+    this._syncStyleLayer(layerId)
     this.fire('styledata')
     return this
   }
 
   setFilter(layerId: string, filter: unknown): this {
     this._style?.setFilter(layerId, filter)
+    this._syncStyleLayer(layerId)
     this.fire('styledata')
     return this
+  }
+
+  /**
+   * Push a changed layer spec into the layer that actually draws it, and
+   * repaint.
+   *
+   * The style document and the renderer hold separate objects: the host layer
+   * was handed converted style layers when it was built, so mutating the spec
+   * alone changed what `getStyle()` reports and nothing on screen. Swapping a
+   * dark basemap for a light one looked like it worked — every paint property
+   * updated — while the map stayed dark.
+   */
+  _syncStyleLayer(layerId: string): void {
+    const style = this._style
+    const spec = style?.layerSpecs.get(layerId) as any
+    if (!style || !spec)
+      return
+
+    const sourceId = spec.source
+    const host: any = sourceId ? style.sourceLayers.get(sourceId) : undefined
+    if (!host || typeof host.updateStyleLayers !== 'function')
+      return
+
+    const layers = style.spec.layers
+      .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === sourceId)
+      .map(l => style.toVectorStyleLayer(l))
+
+    host.updateStyleLayers(layers)
   }
 
   /**
@@ -2711,6 +3020,101 @@ export class TsMap extends Evented {
     }
     this.fire('rendererchange', { renderer: name })
     return this
+  }
+
+  /**
+   * Switch the map chrome between light and dark.
+   *
+   * Everything the chrome draws resolves through CSS custom properties on the
+   * container, so this is a single class toggle rather than a restyle — no
+   * relayout, and a host page can override the same properties to theme the
+   * controls to its own palette.
+   *
+   * `'auto'` follows `prefers-color-scheme` and keeps following it: the
+   * listener stays attached until the theme changes again or the map is
+   * removed.
+   */
+  setTheme(theme: 'light' | 'dark' | 'auto'): this {
+    this._detachThemeQuery()
+    this._theme = theme
+    this.options.theme = theme
+
+    if (theme === 'auto' && typeof matchMedia === 'function') {
+      const query = matchMedia('(prefers-color-scheme: dark)')
+      const listener = (event: MediaQueryListEvent): void => this._applyTheme(event.matches)
+      // addEventListener over the deprecated addListener, but Safari < 14
+      // only has the latter and is still a real share of mobile map traffic.
+      if (typeof query.addEventListener === 'function')
+        query.addEventListener('change', listener)
+      else
+        (query as any).addListener?.(listener)
+
+      this._themeQuery = query
+      this._themeQueryListener = listener
+      this._applyTheme(query.matches)
+      return this
+    }
+
+    this._applyTheme(theme === 'dark')
+    return this
+  }
+
+  /** The configured theme — `'auto'` stays `'auto'`, not the mode it resolved to. */
+  getTheme(): 'light' | 'dark' | 'auto' {
+    return this._theme ?? 'light'
+  }
+
+  _applyTheme(dark: boolean): void {
+    // add/remove rather than toggle(class, force): the two-argument form is
+    // the obvious spelling but is unimplemented in some DOM shims, where it
+    // silently toggles instead and inverts the theme on every call.
+    if (dark)
+      this._container?.classList.add('tsmap-dark')
+    else
+      this._container?.classList.remove('tsmap-dark')
+    this.fire('themechange', { theme: this.getTheme(), dark })
+  }
+
+  _detachThemeQuery(): void {
+    const query = this._themeQuery
+    const listener = this._themeQueryListener
+    if (query && listener) {
+      if (typeof query.removeEventListener === 'function')
+        query.removeEventListener('change', listener)
+      else
+        (query as any).removeListener?.(listener)
+    }
+    this._themeQuery = undefined
+    this._themeQueryListener = undefined
+  }
+
+  /**
+   * Switch between the flat Mercator map and the globe at runtime.
+   *
+   * `projection` was construction-time only, which is the wrong shape for the
+   * thing it controls: "show me the globe" is a view toggle a user presses,
+   * not a property of how the map was built. Nothing about the CRS changes —
+   * the projection is consulted while rendering — so this is a repaint, not a
+   * rebuild, and the camera survives it.
+   */
+  setProjection(projection: 'mercator' | 'globe'): this {
+    if (this.getProjection() === projection)
+      return this
+
+    const options = this.options as any
+    options.projection = projection
+
+    // The atmosphere halo is drawn only for the globe, and cross-fades with
+    // the Mercator transition, so it has to be re-evaluated either way.
+    this._updateAtmosphereOverlay()
+    this._resetView(this.getCenter(), this.getZoom(), true)
+    this.fire('projectionchange', { projection })
+    return this
+  }
+
+  /** `'globe'` when the globe projection is active, otherwise `'mercator'`. */
+  getProjection(): 'mercator' | 'globe' {
+    return this._isGlobeProjection() ? 'globe' : 'mercator'
   }
 
   /**

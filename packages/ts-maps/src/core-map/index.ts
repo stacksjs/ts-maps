@@ -22,7 +22,7 @@ export { WebGLTileRenderer, WebGLUnsupportedError } from './renderer/webgl/index
 export type { CircleOptions as WebGLCircleOptions, GLContextOptions, LineOptions as WebGLLineOptions, Mat4 } from './renderer/webgl/index'
 
 // Shorthand factory helpers (similar to upstream's function-style API).
-import { AttributionControl, Control, LayersControl, LocateControl, ScaleControl, ZoomControl } from './control/index'
+import { AttributionControl, Control, FullscreenControl, GeocoderControl, LayersControl, LocateControl, NavigationControl, ScaleControl, ZoomControl } from './control/index'
 import { Browser, Class, Evented, Handler, Util } from './core/index'
 import { Animation, Draggable, PosAnimation } from './dom/index'
 import { CRS, EPSG3395, EPSG3857, EPSG4326, LatLng, LatLngBounds, Projection, SimpleCRS, toLatLng, toLatLngBounds } from './geo/index'
@@ -55,8 +55,9 @@ import {
 } from './layer/index'
 import { createMap, TsMap } from './map/index'
 import * as services from './services/index'
+import * as styles from './styles/index'
 
-export { services }
+export { services, styles }
 
 // Factory helper: turns a constructor into a callable function.
 type Factory<A extends any[], T> = (..._args: A) => T
@@ -96,12 +97,18 @@ export const control: Factory < ConstructorParameters < typeof Control>, Control
   attribution: Factory < ConstructorParameters < typeof AttributionControl>, AttributionControl>
   scale: Factory < ConstructorParameters < typeof ScaleControl>, ScaleControl>
   locate: Factory < ConstructorParameters < typeof LocateControl>, LocateControl>
+  geocoder: Factory < ConstructorParameters < typeof GeocoderControl>, GeocoderControl>
+  navigation: Factory < ConstructorParameters < typeof NavigationControl>, NavigationControl>
+  fullscreen: Factory < ConstructorParameters < typeof FullscreenControl>, FullscreenControl>
 } = Object.assign(factory(Control), {
   zoom: factory(ZoomControl),
   layers: factory(LayersControl),
   attribution: factory(AttributionControl),
   scale: factory(ScaleControl),
   locate: factory(LocateControl),
+  geocoder: factory(GeocoderControl),
+  navigation: factory(NavigationControl),
+  fullscreen: factory(FullscreenControl),
 })
 
 // Default namespace object grouping all public exports.
@@ -169,6 +176,10 @@ const tsMap: Record<string, unknown> = {
   AttributionControl,
   ScaleControl,
   LayersControl,
+  LocateControl,
+  GeocoderControl,
+  NavigationControl,
+  FullscreenControl,
   // factories
   map: createMap,
   marker,
@@ -194,6 +205,8 @@ const tsMap: Record<string, unknown> = {
   control,
   // services
   services,
+  // styles
+  styles,
 }
 
 // In browser environments, expose as `window.tsMap` for convenient global access.
