@@ -187,3 +187,72 @@ describe('setStyle with a URL', () => {
     expect(map.getStyle()?.name).toBe('ts-maps light')
   })
 })
+
+describe('backdrop colour', () => {
+  function makeMap(options: Record<string, unknown> = {}): TsMap {
+    const container = document.createElement('div')
+    container.style.width = '400px'
+    container.style.height = '400px'
+    document.body.appendChild(container)
+    return new TsMap(container, { zoomAnimation: false, ...options })
+  }
+
+  test('the container takes the style\'s background colour', () => {
+    // A tile grid is briefly incomplete during a zoom, and whatever is behind
+    // it shows through. When that differs from the style\'s own background,
+    // every gap flashes a different shade — which reads as flicker.
+    const map = makeMap({ style: styles.dark({ tiles: TILES }) })
+    const background = map.getStyle()!.layers.find(l => l.id === 'background') as any
+
+    expect(map.getContainer().style.backgroundColor).toBe(background.paint['background-color'])
+  })
+
+  test('swapping the style repaints the backdrop with it', () => {
+    const map = makeMap({ style: styles.dark({ tiles: TILES }) })
+    const dark = map.getContainer().style.backgroundColor
+
+    map.setStyle(styles.light({ tiles: TILES }))
+    const light = map.getContainer().style.backgroundColor
+
+    expect(light).not.toBe(dark)
+    const background = map.getStyle()!.layers.find(l => l.id === 'background') as any
+    expect(light).toBe(background.paint['background-color'])
+  })
+
+  test('setPaintProperty on the background layer follows', () => {
+    const map = makeMap({ style: styles.dark({ tiles: TILES }) })
+    map.setPaintProperty('background', 'background-color', '#001122')
+
+    expect(map.getContainer().style.backgroundColor).toBe('#001122')
+  })
+
+  test('a style with no background layer leaves the chrome default alone', () => {
+    const map = makeMap({
+      style: { version: 8, sources: {}, layers: [] } as any,
+    })
+    // Nothing inline, so the theme token behind it still governs. The test
+    // DOM reports an unset inline style as undefined rather than ''.
+    expect(map.getContainer().style.backgroundColor || '').toBe('')
+  })
+
+  test('a zoom-driven background resolves at the current zoom', () => {
+    const map = makeMap({
+      style: {
+        version: 8,
+        sources: {},
+        layers: [{
+          id: 'background',
+          type: 'background',
+          paint: { 'background-color': ['step', ['zoom'], '#111111', 10, '#222222'] },
+        }],
+      } as any,
+    })
+    map.setView([0, 0], 4)
+    map.fire('zoomend')
+    expect(map.getContainer().style.backgroundColor).toBe('#111111')
+
+    map.setView([0, 0], 12)
+    map.fire('zoomend')
+    expect(map.getContainer().style.backgroundColor).toBe('#222222')
+  })
+})

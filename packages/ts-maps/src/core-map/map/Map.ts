@@ -1376,6 +1376,11 @@ export class TsMap extends Evented {
 
     this.setTheme(this.options.theme ?? 'light')
 
+    // Only matters for a background colour that varies with zoom, which is
+    // rare — the check is a string comparison, so leaving it always on costs
+    // nothing worth measuring.
+    this.on('zoomend', this._syncStyleBackground, this)
+
     const { position } = getComputedStyle(container)
     if (position !== 'absolute' && position !== 'relative' && position !== 'fixed' && position !== 'sticky')
     container.style.position = 'relative'
@@ -2025,6 +2030,7 @@ export class TsMap extends Evented {
         // without this a diffed swap keeps answering with the old style's name.
         this._style.spec.name = style.name
         this._style.spec.metadata = style.metadata
+        this._syncStyleBackground()
         this.fire('styledata')
         return this
       }
@@ -2046,8 +2052,68 @@ export class TsMap extends Evented {
     }
     this._loadSprite()
     this._initGlyphSource()
+    this._syncStyleBackground()
     this.fire('styledata')
     return this
+  }
+
+  /**
+   * Paint the map's backdrop the same colour the style paints its tiles.
+   *
+   * A tile grid is momentarily incomplete during a zoom — most visibly zooming
+   * out, where the old tiles scale down and leave the edges bare — and
+   * whatever is behind them shows through. When that colour differs from the
+   * style's own `background` layer, every one of those gaps flashes a
+   * different shade, which reads as the map flickering.
+   *
+   * The chrome's `--tsmap-tile-bg` is a sensible default for a map with no
+   * style; once a style says what the ground looks like, it wins. Set inline
+   * so it also survives a theme switch, and removed again when the style has
+   * no background layer to speak for it.
+   */
+  _syncStyleBackground(): void {
+    const container = this._container
+    if (!container)
+      return
+
+    const colour = this._styleBackgroundColor()
+    if (colour)
+      container.style.backgroundColor = colour
+    else
+      container.style.removeProperty('background-color')
+  }
+
+  /** The style's background colour, resolved at the current zoom. */
+  _styleBackgroundColor(): string | undefined {
+    const layers = this._style?.spec.layers
+    if (!layers)
+      return undefined
+
+    // The last background layer wins, matching paint order.
+    let spec: any
+    for (const layer of layers) {
+      if (layer.type === 'background')
+        spec = layer
+    }
+    if (!spec || spec.layout?.visibility === 'none')
+      return undefined
+
+    const value = spec.paint?.['background-color']
+    if (value === undefined)
+      return undefined
+    if (typeof value === 'string')
+      return value
+
+    // Data-driven backgrounds are rare but legal, and zoom is the only input
+    // a background layer has.
+    try {
+      const { evaluate } = require('../style-spec/expressions')
+      const resolved = evaluate(value, { zoom: this.getZoom() }, 'color')
+      return typeof resolved === 'string' ? resolved : undefined
+    }
+    catch {
+      return undefined
+    }
   }
 
   /**
@@ -2432,6 +2498,12 @@ export class TsMap extends Evented {
     const spec = style?.layerSpecs.get(layerId) as any
     if (!style || !spec)
       return
+
+    // A background layer has no source and no host; it paints the backdrop.
+    if (spec.type === 'background') {
+      this._syncStyleBackground()
+      return
+    }
 
     const sourceId = spec.source
     const host: any = sourceId ? style.sourceLayers.get(sourceId) : undefined
