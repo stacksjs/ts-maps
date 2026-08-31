@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.3...v0.3.4)
+
+## 🐛 Bug Fixes
+
+- **expressions**: implement the modern form of `in` ([5296f65](https://github.com/stacksjs/ts-maps/commit/5296f65)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.4 ([71156f9](https://github.com/stacksjs/ts-maps/commit/71156f9)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.2...v0.3.3)
 
 ## 🚀 Features
