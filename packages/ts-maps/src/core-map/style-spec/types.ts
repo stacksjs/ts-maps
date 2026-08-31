@@ -61,6 +61,14 @@ export interface VectorSourceSpecification {
   attribution?: string
   promoteId?: PromoteIdSpecification
   volatile?: boolean
+  /**
+   * ts-maps extension, not part of the Mapbox style spec. Serve this source's
+   * tiles through the shared `TileCache`, so a region pre-fetched with
+   * `saveOfflineRegion` is read back instead of re-requested. Without it a
+   * style's sources never touch the cache, and an app that pre-downloads a
+   * region for offline use downloads tiles its own basemap will never ask for.
+   */
+  offlineCache?: boolean
 }
 
 export interface RasterSourceSpecification {
@@ -74,6 +82,14 @@ export interface RasterSourceSpecification {
   scheme?: 'xyz' | 'tms'
   attribution?: string
   volatile?: boolean
+  /**
+   * ts-maps extension, not part of the Mapbox style spec. Serve this source's
+   * tiles through the shared `TileCache`, so a region pre-fetched with
+   * `saveOfflineRegion` is read back instead of re-requested. Without it a
+   * style's sources never touch the cache, and an app that pre-downloads a
+   * region for offline use downloads tiles its own basemap will never ask for.
+   */
+  offlineCache?: boolean
 }
 
 export interface RasterDEMSourceSpecification {

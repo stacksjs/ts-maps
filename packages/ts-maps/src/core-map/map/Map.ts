@@ -2328,6 +2328,7 @@ export class TsMap extends Evented {
         // map's business; a style expresses per-layer limits on its layers.
         maxZoom: STYLE_LAYER_MAX_ZOOM,
         attribution: source.attribution,
+        offlineCache: source.offlineCache,
       })
       this._style!.sourceLayers.set(sourceId, tile)
       return tile
@@ -2363,6 +2364,7 @@ export class TsMap extends Evented {
         sourceMaxZoom: source.maxzoom !== undefined ? source.maxzoom + gridShift : undefined,
         maxZoom: STYLE_LAYER_MAX_ZOOM,
         attribution: source.attribution,
+        offlineCache: source.offlineCache,
         layers: styleLayers,
       })
       this._style!.sourceLayers.set(sourceId, vector)
