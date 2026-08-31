@@ -1,7 +1,7 @@
 {
   "name": "@ts-maps/playground-core-map",
   "type": "module",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "Browser playground for the ts-maps core-map API",
   "scripts": {

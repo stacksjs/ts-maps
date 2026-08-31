@@ -1,5 +1,80 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.2...v0.3.3)
+
+## 🚀 Features
+
+- **style**: let a style's sources use the offline tile cache ([fce5130](https://github.com/stacksjs/ts-maps/commit/fce5130)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **bindings**: territory components in every binding ([a005bb4](https://github.com/stacksjs/ts-maps/commit/a005bb4)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **game**: converge on one map across clients ([e285bb4](https://github.com/stacksjs/ts-maps/commit/e285bb4)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **layer**: draw territories and the live run trail ([01a2a93](https://github.com/stacksjs/ts-maps/commit/01a2a93)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **game**: loop detection and territory ownership ([0e2b355](https://github.com/stacksjs/ts-maps/commit/0e2b355)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **geo**: geodesic area and polygon boolean operations ([900bbcd](https://github.com/stacksjs/ts-maps/commit/900bbcd)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: draw from the glyph server when a font is missing ([2c1668e](https://github.com/stacksjs/ts-maps/commit/2c1668e)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **style**: reach heatmap and hillshade from a style document ([6ec9e68](https://github.com/stacksjs/ts-maps/commit/6ec9e68)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: draw the sections of a format expression ([5303f95](https://github.com/stacksjs/ts-maps/commit/5303f95)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **sprite**: render SDF icons, and load styles that ship several sheets ([9e10ea9](https://github.com/stacksjs/ts-maps/commit/9e10ea9)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: draw labels on an overlay, in screen space ([722d013](https://github.com/stacksjs/ts-maps/commit/722d013)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **playground**: add label rendering and incident map demos ([9aac7f5](https://github.com/stacksjs/ts-maps/commit/9aac7f5)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **stx**: add the stx binding ([b4c90e0](https://github.com/stacksjs/ts-maps/commit/b4c90e0)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **react-native**: declare controls and markers as props ([72ca2b9](https://github.com/stacksjs/ts-maps/commit/72ca2b9)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **nuxt**: auto-register the control components ([eb09f7b](https://github.com/stacksjs/ts-maps/commit/eb09f7b)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **solid**: add control components and useMapEvent ([fcf94a1](https://github.com/stacksjs/ts-maps/commit/fcf94a1)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **svelte**: add control components and useMapEvent ([375b0f1](https://github.com/stacksjs/ts-maps/commit/375b0f1)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **vue**: add control components ([9d87241](https://github.com/stacksjs/ts-maps/commit/9d87241)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **react**: add control components ([daf0210](https://github.com/stacksjs/ts-maps/commit/daf0210)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **map**: theme the chrome, load styles by URL, switch projection ([fe84975](https://github.com/stacksjs/ts-maps/commit/fe84975)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: load style sprites and glyph ranges ([a88a187](https://github.com/stacksjs/ts-maps/commit/a88a187)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: place labels along lines, with viewport-global collision ([b78ab05](https://github.com/stacksjs/ts-maps/commit/b78ab05)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **layer**: render geojson sources through the vector tile pipeline ([71e5445](https://github.com/stacksjs/ts-maps/commit/71e5445)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **expressions**: add within and distance ([3ab5793](https://github.com/stacksjs/ts-maps/commit/3ab5793)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **expressions**: add trigonometry, let/var and string operators ([5bf6ee0](https://github.com/stacksjs/ts-maps/commit/5bf6ee0)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **styles**: add dark and light basemap presets ([d49870e](https://github.com/stacksjs/ts-maps/commit/d49870e)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **control**: add geocoder, navigation and fullscreen controls ([aba4762](https://github.com/stacksjs/ts-maps/commit/aba4762)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🐛 Bug Fixes
+
+- **layers**: make a hillshade actually shade ([ad72b61](https://github.com/stacksjs/ts-maps/commit/ad72b61)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **game**: keep the log's store identity stable across replays ([60cfa6a](https://github.com/stacksjs/ts-maps/commit/60cfa6a)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **geo**: handle the geometry a real GPS receiver produces ([027395e](https://github.com/stacksjs/ts-maps/commit/027395e)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **scripts**: run each package's own test command ([0885f3b](https://github.com/stacksjs/ts-maps/commit/0885f3b)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **layer**: cancel tile requests the map has zoomed past ([642b9fa](https://github.com/stacksjs/ts-maps/commit/642b9fa)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **map**: overzoom past a source's top zoom instead of blanking the map ([1d7602b](https://github.com/stacksjs/ts-maps/commit/1d7602b)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **map**: paint the backdrop the colour the style paints its tiles ([9b0c0a0](https://github.com/stacksjs/ts-maps/commit/9b0c0a0)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: render labels with the canvas text engine ([08b7b80](https://github.com/stacksjs/ts-maps/commit/08b7b80)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **control**: draw the locate control's position dot and accuracy halo ([74a1397](https://github.com/stacksjs/ts-maps/commit/74a1397)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## ⚡ Performance Improvements
+
+- **workers**: decode tiles off the main thread ([90d157e](https://github.com/stacksjs/ts-maps/commit/90d157e)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **layer**: decode a shared ancestor once, not once per child ([f7c3303](https://github.com/stacksjs/ts-maps/commit/f7c3303)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **layer**: render overzoomed tiles at native resolution ([c5c3071](https://github.com/stacksjs/ts-maps/commit/c5c3071)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **layer**: rasterise vector tiles at the device pixel ratio ([6f3d4a8](https://github.com/stacksjs/ts-maps/commit/6f3d4a8)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## ♻️ Code Refactoring
+
+- **mvt**: describe a decoded tile by interface, not by decoder ([12602cd](https://github.com/stacksjs/ts-maps/commit/12602cd)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 📚 Documentation
+
+- **territory**: document and demo the capture loop ([06a1102](https://github.com/stacksjs/ts-maps/commit/06a1102)) _(by Chris <chrisbreuer93@gmail.com>)_
+- cover controls, theming, bindings and the new operators ([bafbe58](https://github.com/stacksjs/ts-maps/commit/bafbe58)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧪 Tests
+
+- **layers**: cover the hillshade and offline-cache fixes ([839ea10](https://github.com/stacksjs/ts-maps/commit/839ea10)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **nuxt**: exercise the module's registrations ([2630745](https://github.com/stacksjs/ts-maps/commit/2630745)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **svelte**: compile and run the components ([196e38a](https://github.com/stacksjs/ts-maps/commit/196e38a)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **solid**: run the components, and fix the bug that surfaced ([8b9d811](https://github.com/stacksjs/ts-maps/commit/8b9d811)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.3 ([5c7b859](https://github.com/stacksjs/ts-maps/commit/5c7b859)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.1...v0.3.2)
 
 ## 🚀 Features

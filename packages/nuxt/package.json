@@ -1,8 +1,8 @@
 {
   "name": "ts-maps-nuxt",
   "type": "module",
-  "version": "0.3.2",
-  "description": "Nuxt 3 module for ts-maps \u2014 auto-imports the Vue bindings.",
+  "version": "0.3.3",
+  "description": "Nuxt 3 module for ts-maps — auto-imports the Vue bindings.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
   "homepage": "https://github.com/stacksjs/ts-maps/tree/main/packages/nuxt#readme",
