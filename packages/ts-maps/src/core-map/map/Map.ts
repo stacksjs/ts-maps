@@ -2393,7 +2393,12 @@ export class TsMap extends Evented {
       const dem = new RasterDEMLayer(url, {
         encoding: (source as any).encoding === 'terrarium' ? 'terrarium' : 'mapbox',
         tileSize: source.tileSize ?? 512,
-        minZoom: source.minzoom,
+        // Native, not display — the same distinction the raster branch draws
+        // above. A DEM published to z15 has to keep shading past z15 by
+        // scaling its top tiles up; requesting z16 from it returns 404s and
+        // the relief drops out exactly where the map is most zoomed in.
+        minNativeZoom: source.minzoom,
+        maxNativeZoom: source.maxzoom,
         maxZoom: STYLE_LAYER_MAX_ZOOM,
         exaggeration: paint['hillshade-exaggeration'],
         // The spec's illumination direction is the compass bearing the light

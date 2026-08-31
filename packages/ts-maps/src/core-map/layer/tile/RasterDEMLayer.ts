@@ -16,6 +16,19 @@ export interface RasterDEMLayerOptions {
   tileSize?: number
   minZoom?: number
   maxZoom?: number
+  /**
+   * Zoom range the DEM is actually published at, as opposed to the range it
+   * stays visible over. Above `maxNativeZoom` the top tiles are scaled up
+   * rather than requested — which is what a caller wants from a DEM: relief is
+   * low-frequency, and asking a source for a level it does not publish returns
+   * errors exactly where the map is most zoomed in.
+   */
+  minNativeZoom?: number
+  maxNativeZoom?: number
+  /** Class set on the layer's tile container, for CSS — a blend mode, say. */
+  className?: string
+  /** Stacking order against the other layers in the tile pane. */
+  zIndex?: number
   exaggeration?: number
   azimuth?: number
   altitude?: number
@@ -60,7 +73,14 @@ export class RasterDEMLayer extends TileLayer {
   declare _encoding: DEMEncoding
 
   initialize(url: string, options?: RasterDEMLayerOptions): void {
-    super.initialize(url, { tileSize: 512, ...options } as any)
+    // `crossOrigin` is on by default here, unlike on a plain `TileLayer`.
+    // A DEM tile is read back pixel by pixel to be shaded, and reading back an
+    // image fetched without CORS taints the canvas: `getImageData` throws, the
+    // shade is never written, and the layer renders as fully transparent —
+    // a hillshade that silently does nothing, over a source that was serving
+    // the right bytes all along. Anything that needs the pixels has to ask for
+    // them cross-origin.
+    super.initialize(url, { tileSize: 512, crossOrigin: true, ...options } as any)
     this._encoding = options?.encoding ?? 'mapbox'
   }
 
