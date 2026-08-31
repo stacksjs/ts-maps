@@ -247,11 +247,50 @@ export function registerLogicalOps(): void {
     }
   })
 
-  // Legacy `in` / `!in` — membership test against a literal list. Modern
-  // expressions express this via `match` but some old styles still use it.
+  /*
+   * `in` comes in two shapes, and both have to work.
+   *
+   * The modern spec form is `["in", needle, haystack]`, where the haystack is
+   * an expression evaluating to an array or a string — usually
+   * `["literal", [...]]`. The legacy filter form is `["in", key, v0, v1, …]`,
+   * comparing a property against a list of raw values.
+   *
+   * Only the legacy shape used to be implemented, so the modern one compared
+   * the needle against the single argument `["literal", [...]]` itself and was
+   * therefore always false. That is not a corner case: it is the form the
+   * built-in basemap style is written in, so `road-major` drew nothing and
+   * `road-minor` — a negated `in` — drew every road class instead of the ones
+   * left over.
+   *
+   * The two are told apart by the haystack: the modern form's is always an
+   * expression, so an array, while a legacy value list is scalars. That
+   * separates them even when the modern needle is itself a plain string —
+   * `["in", "oto", ["literal", "motorway"]]` — which a rule based on the first
+   * argument alone would misread as legacy.
+   */
   registerOperator('in', (args, compile, path) => {
     if (args.length < 1)
       throw new ExpressionError('"in" expects at least 1 argument', ['in', ...args], path)
+
+    if (args.length === 2 && Array.isArray(args[1])) {
+      const needle = compile(args[0], 'value', path.concat(1))
+      const haystack = compile(args[1], 'value', path.concat(2))
+      return {
+        evaluate: (ctx) => {
+          const x = needle.evaluate(ctx)
+          const hay = haystack.evaluate(ctx)
+          if (Array.isArray(hay))
+            return hay.some(value => strictEq(x, value))
+          // A string haystack is a substring test, as the spec defines it.
+          if (typeof hay === 'string')
+            return typeof x === 'string' && hay.includes(x)
+          return false
+        },
+        returnType: 'boolean',
+        ...mergeDeps([needle, haystack]),
+      }
+    }
+
     const input = compile(args[0], 'value', path.concat(1))
     const haystack = args.slice(1)
     return {

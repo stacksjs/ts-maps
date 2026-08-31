@@ -99,6 +99,39 @@ describe('lerpColor', () => {
 
 // ---------- literal + context operators ----------
 
+describe('in', () => {
+  const road = (cls: string) => ctx({ feature: { type: 2, properties: { class: cls } } })
+
+  test('modern form: membership in a literal array', () => {
+    const f = ['in', ['get', 'class'], ['literal', ['path', 'track', 'bridleway']]]
+    expect(evaluate(f, road('path'))).toBe(true)
+    expect(evaluate(f, road('track'))).toBe(true)
+    expect(evaluate(f, road('motorway'))).toBe(false)
+  })
+
+  test('modern form, negated — how the built-in basemap filters minor roads', () => {
+    // This is the shape that made every road class draw as a minor road: the
+    // inner `in` was always false, so its negation was always true.
+    const f = ['!', ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary']]]]
+    expect(evaluate(f, road('motorway'))).toBe(false)
+    expect(evaluate(f, road('residential'))).toBe(true)
+  })
+
+  test('modern form: a string haystack is a substring test', () => {
+    expect(evaluate(['in', 'oto', ['literal', 'motorway']], ctx())).toBe(true)
+    expect(evaluate(['in', 'rail', ['literal', 'motorway']], ctx())).toBe(false)
+  })
+
+  test('legacy form still compares against each remaining argument', () => {
+    expect(evaluate(['in', ['get', 'class'], 'path', 'track'], road('track'))).toBe(true)
+    expect(evaluate(['in', ['get', 'class'], 'path', 'track'], road('motorway'))).toBe(false)
+  })
+
+  test('a haystack that is neither array nor string is not a match', () => {
+    expect(evaluate(['in', ['get', 'class'], ['literal', 7]], road('path'))).toBe(false)
+  })
+})
+
 describe('literal / get / has / properties / id / geometry-type', () => {
   test('literal passes through arrays/objects unchanged', () => {
     expect(evaluate(['literal', [1, 2, 3]], ctx())).toEqual([1, 2, 3])
