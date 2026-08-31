@@ -33,6 +33,22 @@ describe('RasterDEMLayer', () => {
     expect((layer as any)._encoding).toBe('mapbox')
   })
 
+  test('requests tiles cross-origin by default', () => {
+    // Shading reads the tile back pixel by pixel, and reading back an image
+    // fetched without CORS taints the canvas: `getImageData` throws, the shade
+    // is never written, and the layer draws fully transparent over a source
+    // that was serving the right bytes all along.
+    const layer = new RasterDEMLayer('https://example.com/{z}/{x}/{y}.png')
+    expect((layer as any).options.crossOrigin).toBe(true)
+  })
+
+  test('an explicit crossOrigin still wins', () => {
+    const layer = new RasterDEMLayer('https://example.com/{z}/{x}/{y}.png', {
+      crossOrigin: 'use-credentials',
+    })
+    expect((layer as any).options.crossOrigin).toBe('use-credentials')
+  })
+
   test('honors explicit encoding option', () => {
     const layer = new RasterDEMLayer('https://example.com/{z}/{x}/{y}.png', {
       encoding: 'terrarium',

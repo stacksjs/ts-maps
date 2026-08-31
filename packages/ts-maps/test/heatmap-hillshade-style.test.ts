@@ -265,6 +265,28 @@ describe('hillshade through the style spec', () => {
     expect(map.getSource('terrain')).toBeDefined()
   })
 
+  test('the source zoom range becomes native zooms, not visibility limits', () => {
+    // `minzoom`/`maxzoom` on a source mean "tiles exist between these"; the
+    // layer's `minZoom`/`maxZoom` mean "be visible between these". Passing one
+    // as the other made the relief drop out above the source's top zoom, which
+    // is exactly where a map is most zoomed in.
+    const map = makeMap({
+      version: 8,
+      sources: { terrain: { ...dem, minzoom: 4, maxzoom: 13 } },
+      layers: [{ id: 'shade', type: 'hillshade', source: 'terrain' }],
+    })
+
+    let shade: any
+    map.eachLayer((l: any) => {
+      if (l instanceof RasterDEMLayer)
+        shade = l
+    })
+
+    expect(shade.options.minNativeZoom).toBe(4)
+    expect(shade.options.maxNativeZoom).toBe(13)
+    expect(shade.options.minZoom).not.toBe(4)
+  })
+
   test('a hidden hillshade layer draws nothing either', () => {
     const map = makeMap({
       version: 8,
