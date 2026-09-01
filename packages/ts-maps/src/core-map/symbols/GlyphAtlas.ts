@@ -6,6 +6,51 @@
 // Zero runtime deps. Designed to live alongside Canvas2D rendering today and
 // graduate to WebGL sampling later without changing the public API.
 
+/**
+ * Letter spacing, in pixels, applied through the canvas where it is supported.
+ *
+ * `ctx.letterSpacing` is the only way to get tracking that `measureText` also
+ * accounts for, which matters more than the drawing: a label measured without
+ * its tracking gets a collision box narrower than its ink, and the placer then
+ * lets neighbours overlap exactly where the tracking is widest.
+ *
+ * Returns whether the context took it. Where it did not, callers add
+ * `trackingWidth` to the measurement themselves and the text draws untracked -
+ * wrong, but wrong in the direction that keeps labels apart rather than piling
+ * them on top of each other.
+ */
+function applyTracking(ctx: CanvasRenderingContext2D, spacing?: number): boolean {
+  if (!spacing)
+    return true
+
+  if (!('letterSpacing' in ctx))
+    return false
+
+  const tracked = ctx as CanvasRenderingContext2D & { letterSpacing: string }
+  tracked.letterSpacing = `${spacing}px`
+
+  return true
+}
+
+/**
+ * The width tracking adds to a run.
+ *
+ * Canvas puts the spacing after every glyph including the last, which is what
+ * the browsers implementing `letterSpacing` do, so the count is the number of
+ * code points rather than the gaps between them.
+ */
+function trackingWidth(text: string, spacing?: number): number {
+  if (!spacing)
+    return 0
+
+  let count = 0
+
+  for (const _ of text)
+    count++
+
+  return count * spacing
+}
+
 export interface GlyphMetrics {
   codePoint: number
   /** Atlas-space x of the glyph's top-left. */
@@ -120,7 +165,7 @@ export class GlyphAtlas {
    * Line placement needs each glyph's own width to step along the geometry;
    * `measure` only reports the total.
    */
-  advances(text: string, size: number, style?: { italic?: boolean, bold?: boolean, family?: string }): Array<{ char: string, advance: number }> {
+  advances(text: string, size: number, style?: { italic?: boolean, bold?: boolean, family?: string, letterSpacing?: number }): Array<{ char: string, advance: number }> {
     const ctx = this._ctx
     const out: Array<{ char: string, advance: number }> = []
 
@@ -131,8 +176,13 @@ export class GlyphAtlas {
       // glyphs long drifts visibly.
       ctx.save()
       ctx.font = this.fontString(size, style)
+      const tracking = style?.letterSpacing ?? 0
+
+      // Added per glyph rather than set on the context: these are measured one
+      // character at a time, and a context that spaces after every glyph would
+      // report the tracking on each of them anyway.
       for (const ch of text)
-        out.push({ char: ch, advance: ctx.measureText(ch).width })
+        out.push({ char: ch, advance: ctx.measureText(ch).width + tracking })
       ctx.restore()
       return out
     }
@@ -157,26 +207,32 @@ export class GlyphAtlas {
   measureText(
     text: string,
     size: number,
-    style?: { italic?: boolean, bold?: boolean, family?: string },
+    style?: { italic?: boolean, bold?: boolean, family?: string, letterSpacing?: number },
   ): { width: number, height: number, ascent: number, descent: number } {
     const ctx = this._ctx
     if (!ctx) {
       const atlas = this.measure(text, style)
       const scale = size / this._fontSize
       const height = atlas.height * scale
-      return { width: atlas.width * scale, height, ascent: height * 0.8, descent: height * 0.2 }
+      const tracking = trackingWidth(text, style?.letterSpacing)
+      return { width: atlas.width * scale + tracking, height, ascent: height * 0.8, descent: height * 0.2 }
     }
 
     ctx.save()
     ctx.font = this.fontString(size, style)
+    const spaced = applyTracking(ctx, style?.letterSpacing)
     const m = ctx.measureText(text)
+    // A context that ignores the property still has to report the width the
+    // drawing will actually take, or the collision box is too small and
+    // labels overlap exactly where tracking is widest.
+    const width = spaced ? m.width : m.width + trackingWidth(text, style?.letterSpacing)
     ctx.restore()
 
     // Font bounding boxes rather than the ink's: a label's box should not
     // change height because its text happens to have no descender.
     const ascent = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent || size * 0.8
     const descent = m.fontBoundingBoxDescent || m.actualBoundingBoxDescent || size * 0.2
-    return { width: m.width, height: ascent + descent, ascent, descent }
+    return { width, height: ascent + descent, ascent, descent }
   }
 
   /**
@@ -271,12 +327,14 @@ export class GlyphAtlas {
       italic?: boolean
       bold?: boolean
       family?: string
+      letterSpacing?: number
     },
   ): void {
     const style = { italic: !!options.italic, bold: !!options.bold, family: options.family }
 
     ctx.save()
     ctx.font = this.fontString(options.size, style)
+    applyTracking(ctx, options.letterSpacing)
     ctx.textAlign = 'left'
     ctx.textBaseline = 'alphabetic'
 

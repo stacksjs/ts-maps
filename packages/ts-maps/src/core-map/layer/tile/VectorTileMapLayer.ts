@@ -198,6 +198,8 @@ export interface VectorTileLayoutProperties {
   'text-font'?: string | string[]
   'text-italic'?: boolean
   'text-bold'?: boolean
+  /** Tracking, in ems, as the style spec measures it. */
+  'text-letter-spacing'?: number | unknown
   'icon-image'?: string | unknown
   'icon-size'?: number
   'icon-rotate'?: number
@@ -1680,8 +1682,17 @@ function drawSymbol(
     return collision.tryInsert({ ...box, priority })
   }
 
-  const textStyle = { italic, bold, family: font.family }
-  const drawOptions = { color: textColor, haloColor, haloWidth, size: textSize, italic, bold, family: font.family }
+  /*
+   * Tracking, in ems per the style spec, converted to the pixels the canvas
+   * wants. It rides on `textStyle` as well as the draw options because the
+   * measurement decides the collision box: measured without it, a tracked
+   * label claims less room than it takes and the placer lets a neighbour sit
+   * on top of it.
+   */
+  const letterSpacing = ((resolveLayoutExpression(layout?.['text-letter-spacing'], zoom, feature, featureState) as number | undefined) ?? 0) * textSize
+
+  const textStyle = { italic, bold, family: font.family, letterSpacing }
+  const drawOptions = { color: textColor, haloColor, haloWidth, size: textSize, italic, bold, family: font.family, letterSpacing }
 
   const placeAlongLine = layout?.['symbol-placement'] === 'line' || layout?.['symbol-placement'] === 'line-center'
 
@@ -1829,7 +1840,7 @@ function drawSymbol(
 interface LineLabelOptions {
   text: string
   textSize: number
-  textStyle: { italic: boolean, bold: boolean, family?: string }
+  textStyle: { italic: boolean, bold: boolean, family?: string, letterSpacing?: number }
   drawOptions: {
     color: string
     haloColor?: string
