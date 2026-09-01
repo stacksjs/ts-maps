@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.4...v0.3.5)
+
+## 🚀 Features
+
+- **symbols**: honour text-letter-spacing ([4f038b9](https://github.com/stacksjs/ts-maps/commit/4f038b9)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.5 ([3dfade0](https://github.com/stacksjs/ts-maps/commit/3dfade0)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.3...v0.3.4)
 
 ## 🐛 Bug Fixes

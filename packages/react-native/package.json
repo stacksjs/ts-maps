@@ -1,7 +1,7 @@
 {
   "name": "@ts-maps/react-native",
   "type": "module",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "React Native bindings for ts-maps — interactive SVG-based vector maps rendered inside a WebView.",
   "author": "Chris Breuer <chris@stacksjs.org>",
   "license": "MIT",
