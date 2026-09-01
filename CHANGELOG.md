@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.5...v0.3.6)
+
+## 🐛 Bug Fixes
+
+- **style**: legacy filters compared the key, not the property ([eb05276](https://github.com/stacksjs/ts-maps/commit/eb05276)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.6 ([e1e08d8](https://github.com/stacksjs/ts-maps/commit/e1e08d8)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.4...v0.3.5)
 
 ## 🚀 Features
