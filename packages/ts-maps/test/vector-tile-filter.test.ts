@@ -183,3 +183,69 @@ describe('Vector-tile filter — modern expression engine', () => {
     expect(kept).toHaveLength(1)
   })
 })
+
+/**
+ * The bare-key legacy form, which is what real styles are written in.
+ *
+ * `["==", "class", "motorway"]` names a property on the left and compares it
+ * to a literal. Every test above writes its "legacy" filters in the expression
+ * form (`["==", ["get", "class"], …]`), which takes a different branch — so
+ * the form that OpenMapTiles-derived styles actually use went unexercised, and
+ * matched nothing at all: the key was compared as a string literal, so the
+ * left-hand side was `"class"` rather than the feature's class.
+ *
+ * A filter that matches nothing does not look like a broken filter. It looks
+ * like a layer whose paint is wrong, or a source that is missing, which is
+ * where the time goes.
+ */
+describe('Vector-tile filter — legacy bare-key form', () => {
+  test('== compares the named property, not the key as a literal', () => {
+    const features = [fakeFeature({ class: 'motorway' }), fakeFeature({ class: 'service' })]
+    const kept = runFilter(['==', 'class', 'motorway'], features)
+    expect(kept).toHaveLength(1)
+    expect(kept[0]!.properties.class).toBe('motorway')
+  })
+
+  test('in keeps every listed value and nothing else', () => {
+    const features = [
+      fakeFeature({ class: 'motorway' }),
+      fakeFeature({ class: 'trunk' }),
+      fakeFeature({ class: 'service' }),
+    ]
+    const kept = runFilter(['in', 'class', 'motorway', 'trunk'], features)
+    expect(kept.map(f => f.properties.class).sort()).toEqual(['motorway', 'trunk'])
+  })
+
+  test('!in drops the listed values', () => {
+    const features = [fakeFeature({ class: 'motorway' }), fakeFeature({ class: 'service' })]
+    const kept = runFilter(['!in', 'class', 'motorway'], features)
+    expect(kept.map(f => f.properties.class)).toEqual(['service'])
+  })
+
+  test('numeric comparison reads the property', () => {
+    const features = [fakeFeature({ admin_level: 2 }), fakeFeature({ admin_level: 8 })]
+    const kept = runFilter(['<=', 'admin_level', 6], features)
+    expect(kept.map(f => f.properties.admin_level)).toEqual([2])
+  })
+
+  test('all composes bare-key children', () => {
+    const features = [
+      fakeFeature({ class: 'motorway', brunnel: 'bridge' }),
+      fakeFeature({ class: 'motorway' }),
+      fakeFeature({ class: 'service', brunnel: 'bridge' }),
+    ]
+    const kept = runFilter(['all', ['==', 'class', 'motorway'], ['has', 'brunnel']], features)
+    expect(kept).toHaveLength(1)
+  })
+
+  test('a missing property matches nothing rather than everything', () => {
+    const features = [fakeFeature({ other: 'x' })]
+    expect(runFilter(['==', 'class', 'motorway'], features)).toHaveLength(0)
+  })
+
+  test('the expression form still works', () => {
+    // The shape every other test here uses; it must not regress.
+    const features = [fakeFeature({ kind: 'road' }), fakeFeature({ kind: 'water' })]
+    expect(runFilter(['==', ['get', 'kind'], 'road'], features)).toHaveLength(1)
+  })
+})

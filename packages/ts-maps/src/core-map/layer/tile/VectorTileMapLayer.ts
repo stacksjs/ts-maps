@@ -2069,7 +2069,7 @@ function evaluateFilterLegacy(filter: unknown[], feature: DecodedFeature): boole
     return typeof key === 'string' && !(key in feature.properties)
   }
 
-  const left = resolveOperand(rest[0], feature)
+  const left = resolveLegacyKey(rest[0], feature)
 
   if (op === '==' || op === '!=') {
     const right = resolveOperand(rest[1], feature)
@@ -2096,6 +2096,43 @@ function evaluateFilterLegacy(filter: unknown[], feature: DecodedFeature): boole
 // Back-compat shim for any external caller that imported the old name.
 function evaluateFilter(filter: unknown, feature: DecodedFeature): boolean {
   return filterPasses({ id: '_shim', type: 'fill', sourceLayer: '', filter } as VectorTileStyleLayer, feature, 0)
+}
+
+/**
+ * The left-hand side of a legacy MVT filter is a property name.
+ *
+ * `["==", "class", "motorway"]` asks whether the feature's `class` property is
+ * "motorway" - the first operand names a key, the rest are literals. Running it
+ * through `resolveOperand`, which returns any non-array node unchanged, made
+ * the comparison `"class" === "motorway"`: false for every feature that ever
+ * existed. Legacy filters therefore matched nothing at all, silently, which
+ * looks exactly like a style whose colours are wrong rather than one whose
+ * features were all filtered out.
+ *
+ * It survived because the tests for the "legacy fast path" all wrote their
+ * filters in the expression form - `["==", ["get", "class"], "motorway"]` -
+ * which routes through the array branch and works. The bare-key form is the
+ * one every OpenMapTiles-derived style in the wild uses.
+ *
+ * `$type` and `$id` are the two keys that are not properties, and are the
+ * reason this cannot simply be a property lookup.
+ */
+function resolveLegacyKey(node: unknown, feature: DecodedFeature): unknown {
+  if (Array.isArray(node))
+    return resolveOperand(node, feature)
+
+  if (node === '$type') {
+    const t = feature.type
+    return t === 1 ? 'Point' : t === 2 ? 'LineString' : t === 3 ? 'Polygon' : 'Unknown'
+  }
+
+  if (node === '$id')
+    return feature.id ?? null
+
+  if (typeof node === 'string')
+    return feature.properties[node] ?? null
+
+  return node
 }
 
 function resolveOperand(node: unknown, feature: DecodedFeature): unknown {
