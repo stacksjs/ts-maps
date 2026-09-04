@@ -51,13 +51,13 @@
     "ts-maps": "workspace:*"
   },
   "peerDependencies": {
-    "solid-js": ">=1.8"
+    "solid-js": ">=1.9.15"
   },
   "devDependencies": {
-    "@babel/core": "^7",
-    "@babel/preset-typescript": "^7",
+    "@babel/core": "^7.29.7",
+    "@babel/preset-typescript": "^7.29.7",
     "babel-preset-solid": "^1.9.15",
-    "solid-js": "^1.8.0",
+    "solid-js": "^1.9.15",
     "typescript": "^7.0.2"
   }
 }
