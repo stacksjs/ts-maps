@@ -56,7 +56,7 @@
     "ts-maps": "workspace:*"
   },
   "peerDependencies": {
-    "@stacksjs/stx": ">=0.0.10"
+    "@stacksjs/stx": ">=0.2.274"
   },
   "devDependencies": {
     "typescript": "^7.0.2"
