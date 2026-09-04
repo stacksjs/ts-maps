@@ -52,7 +52,7 @@
     "svelte": ">=4"
   },
   "devDependencies": {
-    "svelte": "^5.0.0",
+    "svelte": "^5.57.0",
     "typescript": "^7.0.2"
   }
 }
