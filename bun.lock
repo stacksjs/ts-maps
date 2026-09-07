@@ -11,7 +11,7 @@
     },
     "packages/nuxt": {
       "name": "ts-maps-nuxt",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "@ts-maps/vue": "workspace:*",
         "ts-maps": "workspace:*",
@@ -27,7 +27,7 @@
     },
     "packages/react": {
       "name": "@ts-maps/react",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -46,7 +46,7 @@
     },
     "packages/react-native": {
       "name": "@ts-maps/react-native",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -64,7 +64,7 @@
     },
     "packages/solid": {
       "name": "@ts-maps/solid",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -81,7 +81,7 @@
     },
     "packages/stx": {
       "name": "@ts-maps/stx",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -94,7 +94,7 @@
     },
     "packages/svelte": {
       "name": "@ts-maps/svelte",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -103,12 +103,12 @@
         "typescript": "^7.0.2",
       },
       "peerDependencies": {
-        "svelte": ">=4",
+        "svelte": ">=5.57.0",
       },
     },
     "packages/ts-maps": {
       "name": "ts-maps",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "devDependencies": {
         "bun-plugin-dtsx": "^0.11.5",
         "bunfig": "^0.15.6",
@@ -118,7 +118,7 @@
     },
     "packages/vue": {
       "name": "@ts-maps/vue",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -133,7 +133,7 @@
     },
     "playground/core-map": {
       "name": "@ts-maps/playground-core-map",
-      "version": "0.3.2",
+      "version": "0.3.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
