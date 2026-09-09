@@ -95,6 +95,30 @@ export interface MapOptions {
   * controls. Values smaller than `1` (e.g. `0.5`) allow for greater granularity.
   */
   zoomDelta?: number
+  /**
+  * Pixels of wheel travel per zoom level. Lower zooms faster.
+  *
+  * A notched mouse wheel reports roughly 53px per notch in Chrome; the default
+  * of `60` therefore puts one notch a little under a full level, which is what
+  * every other slippy map does.
+  */
+  wheelPxPerZoomLevel?: number
+  /**
+  * Seconds for the camera to catch up with the wheel.
+  *
+  * The wheel sets a target zoom and the camera converges on it exponentially,
+  * so this is a time constant rather than an animation duration: a gesture
+  * that keeps going never waits for a previous step to finish. `0.13` is the
+  * default; smaller is snappier, larger is floatier. See
+  * `ScrollWheelZoomHandler`.
+  */
+  wheelSmoothing?: number
+  /**
+  * Deprecated. The scroll handler no longer waits for the wheel to stop before
+  * it moves, so this has no effect; it is accepted so an existing config still
+  * loads.
+  */
+  wheelDebounceTime?: number
   trackResize?: boolean
   [key: string]: any
 }
