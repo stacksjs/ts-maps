@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.6...v0.3.7)
+
+## 🐛 Bug Fixes
+
+- **zoom**: make scroll-wheel zoom continuous instead of debounced steps ([653bcac](https://github.com/stacksjs/ts-maps/commit/653bcac)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.7 ([4adacf0](https://github.com/stacksjs/ts-maps/commit/4adacf0)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.5...v0.3.6)
 
 ## 🐛 Bug Fixes
