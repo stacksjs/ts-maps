@@ -20,7 +20,9 @@
  *
  * or import `@ts-maps/stx/styles.css` from wherever your app collects CSS.
  */
+// `as const` because the build runs with `isolatedDeclarations`, which cannot
+// infer a declaration for a mutable `string[]` in an exported value (TS9017).
 export default {
   name: '@ts-maps/stx',
-  components: ['./src'],
+  components: ['./src'] as const,
 }
