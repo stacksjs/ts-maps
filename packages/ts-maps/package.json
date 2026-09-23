@@ -76,7 +76,7 @@
   "files": [
     "README.md",
     "LICENSE.md",
-    "src/core-map/ts-maps.css",
+    "src",
     "dist"
   ],
   "scripts": {

@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 interface ConditionalExport {
+  bun?: string
   import?: string
   types?: string
 }
@@ -28,6 +29,21 @@ function requireTarget(label: string, target: string | undefined): void {
     missing.push(`${label}: ${target}`)
 }
 
+/**
+ * Bun resolves the `bun` condition before `import`, so a `bun` target that is
+ * not in `files` exists here and nowhere else: every Bun consumer got
+ * "Cannot find module 'ts-maps/services'" while this repo's own tests passed.
+ */
+function requirePublished(label: string, target: string | undefined): void {
+  if (!target)
+    return
+  requireTarget(label, target)
+  const path = target.replace(/^\.\//, '')
+  const published = manifest.files.some(entry => path === entry || path.startsWith(`${entry.replace(/\/$/, '')}/`))
+  if (!published)
+    missing.push(`${label}: ${target} is not in files, so it is missing from the published package`)
+}
+
 requireTarget('main', manifest.main)
 requireTarget('module', manifest.module)
 requireTarget('types', manifest.types)
@@ -39,6 +55,7 @@ for (const [specifier, target] of Object.entries(manifest.exports)) {
   }
   requireTarget(`${specifier} import`, target.import)
   requireTarget(`${specifier} types`, target.types)
+  requirePublished(`${specifier} bun`, target.bun)
 }
 
 if (!manifest.files.includes('dist'))
