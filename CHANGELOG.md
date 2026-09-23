@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.10...v0.3.11)
+
+## 🐛 Bug Fixes
+
+- **route-builder**: judge a loop by the drawn line, not the waypoints ([487f4df](https://github.com/stacksjs/ts-maps/commit/487f4df)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.11 ([5377986](https://github.com/stacksjs/ts-maps/commit/5377986)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.9...v0.3.10)
 
 ## 🚀 Features
