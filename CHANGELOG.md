@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.8...v0.3.9)
+
+## 🐛 Bug Fixes
+
+- **package**: publish the source the bun export condition points at ([db5172b](https://github.com/stacksjs/ts-maps/commit/db5172b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.9 ([d1e7d90](https://github.com/stacksjs/ts-maps/commit/d1e7d90)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.7...v0.3.8)
 
 ## 🚀 Features
