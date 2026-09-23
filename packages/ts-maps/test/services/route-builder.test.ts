@@ -122,6 +122,18 @@ describe('RouteBuilder', () => {
     expect(builder.waypoints).toEqual([a, b])
   })
 
+  test('a closed line loaded from a saved route is a loop; a short scribble is not', async () => {
+    const builder = new RouteBuilder()
+    await builder.load([a, b, c, a])
+    expect(builder.waypoints).toEqual([a, a])
+    expect(builder.isLoop).toBe(true)
+    await builder.closeLoop()
+    expect(builder.path).toHaveLength(4)
+    const tiny = new RouteBuilder()
+    await tiny.load([a, { lat: a.lat + 0.00005, lng: a.lng }, a])
+    expect(tiny.isLoop).toBe(false)
+  })
+
   test('starts from an existing line and extends it', async () => {
     const builder = new RouteBuilder()
     await builder.load([a, b, c])

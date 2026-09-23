@@ -97,10 +97,16 @@ export class RouteBuilder {
     return this.state.segments.reduce((sum, s) => sum + pathLengthMeters(s), 0)
   }
 
-  /** Ends within the loop tolerance, and long enough to be a route at all. */
+  /**
+   * The line ends where it starts, and is long enough to be a route at all.
+   * Judged on the drawn path, not the waypoints: a closed route loaded with
+   * load() has only its two (equal) ends as waypoints, and was never a loop.
+   */
   get isLoop(): boolean {
-    const w = this.state.waypoints
-    return w.length > 2 && distanceMeters(w[0], w[w.length - 1]) <= this.loopTolerance
+    const path = this.path
+    return path.length > 2
+      && this.distanceMeters > this.loopTolerance * 2
+      && distanceMeters(path[0], path[path.length - 1]) <= this.loopTolerance
   }
 
   /** Segments being routed right now. */
