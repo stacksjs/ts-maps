@@ -6,7 +6,7 @@ ts-maps includes a small adapter layer for external geo services. The adapters t
 
 | Capability | Default | Alternatives |
 | ---------- | ------- | ------------ |
-| Geocoding | `NominatimGeocoder` | `PhotonGeocoder`, `MapboxGeocoder`, `MaptilerGeocoder`, `GoogleGeocoder` |
+| Geocoding | `NominatimGeocoder` | `GazetteerGeocoder` (self-hosted), `PhotonGeocoder`, `MapboxGeocoder`, `MaptilerGeocoder`, `GoogleGeocoder` |
 | Directions | `OSRMDirections` | `ValhallaDirections`, `MapboxDirections`, `GoogleDirections` |
 | Isochrones | `ValhallaIsochrone` | `MapboxIsochrone` |
 | Matrix | `ValhallaMatrix` | `MapboxMatrix` |
@@ -23,6 +23,45 @@ const results = await geocoder.search('Tower Bridge, London')
 
 const reverse = await geocoder.reverse({ lat: 51.5055, lng: -0.0754 })
 ```
+
+### Self-hosted place search
+
+The public geocoders are shared services with usage policies — Nominatim's forbids search-as-you-type outright. `ts-maps/gazetteer` runs place search on your own server instead: GeoNames populated places in SQLite with a full-text index, ranked by name match, population and nearness. `cities1000` (every place of 1,000+ people, ~170k) builds in a few seconds into a ~60 MB file and answers in about a millisecond.
+
+```ts
+// server (Bun)
+import { buildGazetteerFile, createGazetteerHandler, downloadGeoNames, Gazetteer } from 'ts-maps/gazetteer'
+
+buildGazetteerFile('places.sqlite', await downloadGeoNames({ dataset: 'cities1000' }))
+const handle = createGazetteerHandler(new Gazetteer('places.sqlite'), { basePath: '/geo' })
+Bun.serve({ fetch: async req => (await handle(req)) ?? new Response('Not found', { status: 404 }) })
+```
+
+```ts
+// browser
+import { GazetteerGeocoder } from 'ts-maps/services'
+
+const geocoder = new GazetteerGeocoder({ baseUrl: '/geo' })
+await geocoder.search('Portland, ME') // Portland, Maine, United States
+await geocoder.search('st george')    // Saint George, Utah — abbreviations match
+await geocoder.search('Munich')       // München, Bavaria, Germany — any alternate name
+```
+
+Text after a comma qualifies the place (`San Diego, TX`, `Paris, France`); `proximity`, `countries` and `bbox` narrow it further. `Gazetteer` itself implements `GeocoderProvider`, so server code can call `search` / `reverse` directly. The GeoNames licence (CC BY 4.0) asks for credit — `GEONAMES_ATTRIBUTION` holds the line to show.
+
+## Handing off to a navigation app
+
+Turn-by-turn belongs in the app the person already drives with. `directionsLinks` builds https links that open Apple Maps, and the Google Maps app when it is installed:
+
+```ts
+import { directionsLinks } from 'ts-maps/services'
+
+const { apple, google } = directionsLinks({ lat: 32.8894, lng: -117.2519 }, { mode: 'driving' })
+// apple:  https://maps.apple.com/?daddr=32.8894%2C-117.2519&dirflg=d
+// google: https://www.google.com/maps/dir/?api=1&destination=32.8894%2C-117.2519&travelmode=driving
+```
+
+Modes are `driving` (default), `walking`, `cycling` and `transit`; pass `origin` to start somewhere other than the device's location. `appleMapsDirectionsUrl` and `googleMapsDirectionsUrl` build one link each.
 
 ## Directions
 

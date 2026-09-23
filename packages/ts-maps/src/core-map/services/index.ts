@@ -5,6 +5,16 @@
 
 export * from './types'
 
+export {
+  appleMapsDirectionsUrl,
+  directionsLinks,
+  formatCoordinate,
+  googleMapsDirectionsUrl,
+} from './links'
+export type { NavigationLinkOptions, NavigationLinks, NavigationMode } from './links'
+
+export { GazetteerGeocoder } from './providers/Gazetteer'
+export type { GazetteerGeocoderOptions } from './providers/Gazetteer'
 export { GoogleDirections, GoogleGeocoder } from './providers/Google'
 export { MapboxDirections, MapboxGeocoder, MapboxIsochrone, MapboxMatrix } from './providers/Mapbox'
 export { MaptilerGeocoder } from './providers/Maptiler'

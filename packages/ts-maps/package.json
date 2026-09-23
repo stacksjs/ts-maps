@@ -36,6 +36,11 @@
       "bun": "./src/core-map/services/index.ts",
       "import": "./dist/core-map/services/index.js"
     },
+    "./gazetteer": {
+      "types": "./dist/gazetteer/index.d.ts",
+      "bun": "./src/gazetteer/index.ts",
+      "import": "./dist/gazetteer/index.js"
+    },
     "./style-spec": {
       "types": "./dist/core-map/style-spec/index.d.ts",
       "bun": "./src/core-map/style-spec/index.ts",

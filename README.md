@@ -36,7 +36,8 @@
 
   Google), directions (OSRM, Valhalla, Mapbox, Google), isochrones,
   and distance matrix adapters behind a common interface. Defaults are
-  keyless.
+  keyless. Self-hosted place search from GeoNames (`ts-maps/gazetteer`),
+  and Apple Maps / Google Maps hand-off links for turn-by-turn.
 
 - 📴 **Offline** — IndexedDB-backed `TileCache`, `saveOfflineRegion` for
 
