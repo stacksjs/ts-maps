@@ -1,5 +1,24 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.7...v0.3.8)
+
+## 🚀 Features
+
+- **gazetteer**: self-hosted place search from GeoNames ([258d304](https://github.com/stacksjs/ts-maps/commit/258d304)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **services**: hand directions off to Apple Maps and Google Maps ([c85a43e](https://github.com/stacksjs/ts-maps/commit/c85a43e)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🐛 Bug Fixes
+
+- **stx**: annotate the plugin's components array for isolatedDeclarations ([a39a552](https://github.com/stacksjs/ts-maps/commit/a39a552)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.8 ([ff81722](https://github.com/stacksjs/ts-maps/commit/ff81722)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.6...v0.3.7)
 
 ## 🐛 Bug Fixes
