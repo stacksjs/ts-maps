@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.9...v0.3.10)
+
+## 🚀 Features
+
+- **services**: draw routes by tapping, with elevation and climb ([3a87b94](https://github.com/stacksjs/ts-maps/commit/3a87b94)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.10 ([7fa8b5b](https://github.com/stacksjs/ts-maps/commit/7fa8b5b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.8...v0.3.9)
 
 ## 🐛 Bug Fixes
