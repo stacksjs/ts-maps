@@ -98,3 +98,13 @@ export interface MatrixProvider {
   name: string
   getMatrix: (origins: LatLngLike[], destinations: LatLngLike[], opts?: MatrixOptions) => Promise<MatrixResult>
 }
+
+export interface ElevationOptions {
+  signal?: AbortSignal
+}
+
+/** Ground height, in metres above sea level, at each point given. */
+export interface ElevationProvider {
+  name: string
+  getElevations: (points: LatLngLike[], opts?: ElevationOptions) => Promise<Array<number | null>>
+}

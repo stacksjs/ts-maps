@@ -19,6 +19,8 @@
 import type {
   DirectionsOptions,
   DirectionsProvider,
+  ElevationOptions,
+  ElevationProvider,
   IsochroneOptions,
   IsochronePolygon,
   IsochroneProvider,
@@ -192,6 +194,41 @@ export class ValhallaDirections implements DirectionsProvider {
       }
     }
     return routes
+  }
+}
+
+interface ValhallaHeightResponse {
+  height?: Array<number | null>
+}
+
+/**
+ * Ground heights from Valhalla's `/height` endpoint (its DEM tiles), in metres.
+ * Points with no data come back null rather than as a false sea level.
+ */
+export class ValhallaElevation implements ElevationProvider {
+  name: string = 'valhalla'
+  private baseUrl: string
+  private apiKey?: string
+
+  constructor(opts: ValhallaOptions = {}) {
+    this.baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL
+    this.apiKey = opts.apiKey
+  }
+
+  async getElevations(points: LatLngLike[], opts?: ElevationOptions): Promise<Array<number | null>> {
+    if (!points.length)
+      return []
+    const url = buildUrl(this.baseUrl, '/height', this.apiKey)
+    const raw = (await postJson(url, {
+      shape: points.map(p => ({ lat: p.lat, lon: p.lng })),
+      range: false,
+    }, opts?.signal)) as ValhallaHeightResponse
+    const heights = Array.isArray(raw.height) ? raw.height : []
+    // Valhalla marks a point outside its DEM with -32768.
+    return points.map((_, i) => {
+      const h = heights[i]
+      return typeof h === 'number' && Number.isFinite(h) && h > -1000 ? h : null
+    })
   }
 }
 

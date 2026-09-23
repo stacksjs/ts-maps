@@ -13,6 +13,11 @@ export {
 } from './links'
 export type { NavigationLinkOptions, NavigationLinks, NavigationMode } from './links'
 
+export { climb, distanceMeters, pathLengthMeters, resamplePath } from './paths'
+export type { Climb } from './paths'
+export { directionsRouter, RouteBuilder, straightRouter } from './route-builder'
+export type { RouteBuilderOptions, RouteBuilderState, SegmentRouter } from './route-builder'
+
 export { GazetteerGeocoder } from './providers/Gazetteer'
 export type { GazetteerGeocoderOptions } from './providers/Gazetteer'
 export { GoogleDirections, GoogleGeocoder } from './providers/Google'
@@ -21,7 +26,7 @@ export { MaptilerGeocoder } from './providers/Maptiler'
 export { NominatimGeocoder } from './providers/Nominatim'
 export { OSRMDirections, OSRMMatrix } from './providers/OSRM'
 export { PhotonGeocoder } from './providers/Photon'
-export { ValhallaDirections, ValhallaIsochrone, ValhallaMatrix } from './providers/Valhalla'
+export { ValhallaDirections, ValhallaElevation, ValhallaIsochrone, ValhallaMatrix } from './providers/Valhalla'
 
 import type {
   DirectionsProvider,

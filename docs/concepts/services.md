@@ -9,6 +9,7 @@ ts-maps includes a small adapter layer for external geo services. The adapters t
 | Geocoding | `NominatimGeocoder` | `GazetteerGeocoder` (self-hosted), `PhotonGeocoder`, `MapboxGeocoder`, `MaptilerGeocoder`, `GoogleGeocoder` |
 | Directions | `OSRMDirections` | `ValhallaDirections`, `MapboxDirections`, `GoogleDirections` |
 | Isochrones | `ValhallaIsochrone` | `MapboxIsochrone` |
+| Elevation | — | `ValhallaElevation` |
 | Matrix | `ValhallaMatrix` | `MapboxMatrix` |
 
 ## Geocoding
@@ -62,6 +63,28 @@ const { apple, google } = directionsLinks({ lat: 32.8894, lng: -117.2519 }, { mo
 ```
 
 Modes are `driving` (default), `walking`, `cycling` and `transit`; pass `origin` to start somewhere other than the device's location. `appleMapsDirectionsUrl` and `googleMapsDirectionsUrl` build one link each.
+
+## Drawing a route
+
+`RouteBuilder` is the logic behind "tap the map to draw a route", with no UI attached: waypoints, the line between each pair (along real paths through a router, or straight), undo, closing the loop and out-and-back.
+
+```ts
+import { climb, directionsRouter, RouteBuilder, resamplePath, ValhallaDirections, ValhallaElevation } from 'ts-maps/services'
+
+const builder = new RouteBuilder({ router: directionsRouter(new ValhallaDirections(), 'walking') })
+builder.onChange(() => line.setLatLngs(builder.path.map(p => [p.lat, p.lng])))
+map.on('click', e => builder.add(e.latlng))
+
+await builder.closeLoop()      // or builder.outAndBack()
+await builder.undo()
+builder.distanceMeters         // along the drawn line
+builder.isLoop                 // ends within 50 m
+
+const heights = await new ValhallaElevation().getElevations(resamplePath(builder.path, 200))
+climb(heights)                 // { gain, loss } in metres, DEM noise filtered out
+```
+
+Taps made while a segment is still routing are queued, so fast tapping draws in order. A segment the router cannot do (no path, offline, rate-limited) is drawn straight and `lastError` says why — pass `fallbackToStraight: false` to refuse it instead. `straightRouter` draws every segment straight; `setRouter` switches between the two mid-route. `load(path)` starts from an existing line, such as a catalog trail.
 
 ## Directions
 
