@@ -45,9 +45,32 @@ export function setTransform(el: HTMLElement, offset?: Point | null, scale?: num
 const positions = new WeakMap < Element, Point > ()
 const rotations = new WeakMap < Element, number > ()
 const pitches = new WeakMap < Element, number > ()
+const cameras = new WeakMap < Element, string > ()
+
+/**
+ * Pin a camera transform to an element, applied after its position by every
+ * later `setPosition` — including the ones a drag or a pan animation makes,
+ * which know nothing about the camera.
+ *
+ * The map pane uses this for bearing and pitch together: a perspective tilt
+ * needs `perspective()` and a depth offset alongside the rotations, more than
+ * the bearing/pitch pair below can say. Pass `null` to go back to that pair.
+ */
+export function setCamera(el: HTMLElement, transform: string | null): void {
+  if (transform === null)
+    cameras.delete(el)
+  else
+    cameras.set(el, transform)
+  setPosition(el, positions.get(el) ?? new Point(0, 0))
+}
 
 export function setPosition(el: HTMLElement, point: Point, rotation?: number, pitch?: number): void {
   positions.set(el, point)
+  const camera = cameras.get(el)
+  if (camera !== undefined) {
+    el.style.transform = `translate3d(${point.x}px,${point.y}px,0)${camera ? ` ${camera}` : ''}`
+    return
+  }
   if (rotation !== undefined)
   rotations.set(el, rotation)
   if (pitch !== undefined)

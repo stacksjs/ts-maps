@@ -42,8 +42,10 @@ export class Marker extends Layer {
     this._removeShadow()
   }
 
+  // Rotation and tilt move an icon on screen without moving it on the ground,
+  // so the icon, which stands upright, has to be put back each time.
   getEvents(): Record<string, any> {
-    return { zoom: this.update, viewreset: this.update }
+    return { zoom: this.update, viewreset: this.update, rotate: this.update, pitch: this.update, resize: this.update }
   }
 
   getLatLng(): LatLng {
@@ -83,8 +85,10 @@ export class Marker extends Layer {
 
   update(): this {
     if (this._icon && this._map) {
-      const pos = this._map.latLngToLayerPoint(this._latlng).round()
-      this._setPos(pos)
+      // The icon stands upright at its projected point; the shadow lies on
+      // the ground. On a flat north-up map these are the same point.
+      const pos = this._map._latLngToUprightPoint(this._latlng).round()
+      this._setPos(pos, this._map.latLngToLayerPoint(this._latlng).round())
     }
     return this
   }
@@ -170,11 +174,11 @@ export class Marker extends Layer {
     this._shadow = null
   }
 
-  _setPos(pos: Point): void {
+  _setPos(pos: Point, groundPos: Point = pos): void {
     if (this._icon)
     DomUtil.setPosition(this._icon as HTMLElement, pos)
     if (this._shadow)
-    DomUtil.setPosition(this._shadow as HTMLElement, pos)
+    DomUtil.setPosition(this._shadow as HTMLElement, groundPos)
     this._zIndex = pos.y + this.options!.zIndexOffset
     this._resetZIndex()
   }

@@ -118,12 +118,18 @@ export class GridLayer extends Layer {
       viewreset: this._resetView,
       zoom: this._resetView,
       moveend: this._onMoveEnd,
+      // Turning or tilting the camera changes which ground is in view (see
+      // `_getTiledPixelBounds`) without moving the centre.
+      rotateend: this._onMoveEnd,
+      pitchend: this._onMoveEnd,
     }
 
     if (!this.options!.updateWhenIdle) {
       if (!this._onMove)
       this._onMove = Util.throttle(this._onMoveEnd, this.options!.updateInterval, this)
       events.move = this._onMove
+      events.rotate = this._onMove
+      events.pitch = this._onMove
     }
 
     if (this._zoomAnimated)
@@ -348,7 +354,7 @@ export class GridLayer extends Layer {
   }
 
   _resetView(e?: any): void {
-    const animating = e && (e.pinch || e.flyTo)
+    const animating = e && (e.pinch || e.flyTo || e.relayout)
     this._setView(this._map.getCenter(), this._map.getZoom(), animating, animating)
   }
 
@@ -441,7 +447,28 @@ export class GridLayer extends Layer {
     const mapZoom = map._animatingZoom ? Math.max(map._animateToZoom, map.getZoom()) : map.getZoom()
     const scale = map.getZoomScale(mapZoom, this._tileZoom as number)
     const pixelCenter = map.project(center, this._tileZoom as number).floor()
-    const halfSize = map.getSize().divideBy(scale * 2)
+    const size = map.getSize()
+
+    // Rotated or tilted, the view covers more ground than its own rectangle —
+    // the corners of a rotated view reach past it, and the top of a tilted one
+    // reaches far into the distance. Cover the ground the corners actually
+    // see, capped so a view near the horizon does not ask for a city's worth
+    // of tiles.
+    if ((map._bearing || map._pitch) && map._groundOffset) {
+      const cap = Math.max(size.x, size.y) * 2
+      let min = new Point(Infinity, Infinity)
+      let max = new Point(-Infinity, -Infinity)
+      for (const corner of [new Point(0, 0), new Point(size.x, 0), new Point(0, size.y), new Point(size.x, size.y)]) {
+        const g: Point = map._groundOffset(corner)
+        const x = Math.max(-cap, Math.min(cap, g.x)) / scale
+        const y = Math.max(-cap, Math.min(cap, g.y)) / scale
+        min = new Point(Math.min(min.x, x), Math.min(min.y, y))
+        max = new Point(Math.max(max.x, x), Math.max(max.y, y))
+      }
+      return new Bounds(pixelCenter.add(min), pixelCenter.add(max))
+    }
+
+    const halfSize = size.divideBy(scale * 2)
     return new Bounds(pixelCenter.subtract(halfSize), pixelCenter.add(halfSize))
   }
 

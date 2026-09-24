@@ -34,7 +34,11 @@ export class ScaleControl extends Control {
     clearTimeout(this._hideTimer)
   }
 
-  _reveal(): void {
+  _reveal(e?: any): void {
+    // A pitched pan re-lays layers through `zoom` without changing the zoom,
+    // and never ends in a `zoomend` to hide the scale again.
+    if (e?.relayout)
+    return
     clearTimeout(this._hideTimer)
     this._container?.classList.add('tsmap-visible')
   }

@@ -155,8 +155,8 @@ export class ScrollWheelZoomHandler extends Handler {
       return
     }
 
-    const viewHalf = map.getSize().divideBy(2)
-    const offset = anchor.subtract(viewHalf)
+    // Measured on the ground, so the anchor holds on a rotated or tilted map.
+    const offset = map._groundOffset(anchor)
     const center = map.unproject(map.project(anchorLatLng, zoom).subtract(offset), zoom)
 
     map._move(center, zoom, { round: false })

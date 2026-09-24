@@ -231,6 +231,9 @@ export class TsMap extends Evented {
   declare _animatingZoom?: boolean
   /** Where a script-driven zoom animation is heading, while one runs. */
   declare _zoomAnimTarget?: number
+  /** The pitch and bearing the pane transforms currently show. */
+  declare _appliedPitch?: number
+  declare _appliedBearing?: number
   declare _animateToCenter?: LatLng
   declare _animateToZoom?: number
   declare _tempFireZoomEvent?: boolean
@@ -413,6 +416,15 @@ export class TsMap extends Evented {
     const scale = this.getZoomScale(zoom)
     const viewHalf = this.getSize().divideBy(2)
     const containerPoint = latlng instanceof Point ? latlng : this.latLngToContainerPoint(latlng)
+    // Measured on the ground, so the point stays put on a rotated or tilted
+    // map too, not only a flat north-up one.
+    if (this._bearing || this._pitch) {
+      // From layer points, like the flat path below: the view is laid out
+      // from the whole-pixel origin, which `getCenter()` does not see.
+      const offset = this._groundOffset(containerPoint).multiplyBy(1 - 1 / scale)
+      const newCenter = this.layerPointToLatLng(this._getCenterLayerPoint().add(offset))
+      return this.setView(newCenter, zoom, { zoom: options })
+    }
     const centerOffset = containerPoint.subtract(viewHalf).multiplyBy(1 - 1 / scale)
     const newCenter = this.containerPointToLatLng(viewHalf.add(centerOffset))
     return this.setView(newCenter, zoom, { zoom: options })
@@ -458,6 +470,9 @@ export class TsMap extends Evented {
     offset = new Point(offset).round()
     options ??= {}
 
+    if (this._pitch && this._loaded)
+    return this._panGround(offset, options)
+
     if (!offset.x && !offset.y)
     return this.fire('moveend')
 
@@ -486,6 +501,58 @@ export class TsMap extends Evented {
       this._rawPanBy(offset)
       this.fire('move').fire('moveend')
     }
+    return this
+  }
+
+  /**
+   * `panBy` for a pitched camera: move the ground under a fixed camera.
+   *
+   * A flat map pans by sliding the pane, which is exact because every point
+   * moves by the same screen distance. Tilted, it is not — slide the pane and
+   * the horizon and vanishing point slide with it, which reads as the whole
+   * picture lifting off the screen. So the centre moves instead, by however
+   * far on the ground the offset reaches from `options.around` (the view
+   * centre, or where a drag let go), and the pane stays put.
+   */
+  _panGround(offset: Point, options: any): this {
+    const size = this.getSize()
+    const around: Point = options.around ? new Point(options.around) : size.divideBy(2)
+    // Kept on screen: past the top edge a tilted view runs out towards the
+    // horizon, where a few pixels cover kilometres.
+    const target = new Point(
+      Math.min(size.x, Math.max(0, around.x + offset.x)),
+      Math.min(size.y, Math.max(0, around.y + offset.y)),
+    )
+    const zoom = this._zoom
+    const shift = this.project(this.containerPointToLatLng(target), zoom)
+      .subtract(this.project(this.containerPointToLatLng(around), zoom))
+    if (!shift.x && !shift.y)
+    return this.fire('moveend')
+
+    this._stop()
+    const from = this.project(this.getCenter(), zoom)
+    const to = from.add(shift)
+
+    if (!options.noMoveStart)
+    this.fire('movestart')
+
+    if (options.animate === false) {
+      this._move(this.unproject(to, zoom), zoom, { relayout: true })
+      return this.fire('moveend')
+    }
+
+    // The same deceleration curve `PosAnimation` gives a flat pan.
+    const power = 1 / Math.max(options.easeLinearity ?? 0.25, 0.2)
+    this._getCamAnim().run({
+      duration: (options.duration || 0.25) * 1000,
+      easing: t => 1 - (1 - t) ** power,
+      onFrame: ({ t }) => {
+        this._move(this.unproject(from.add(to.subtract(from).multiplyBy(t)), zoom), zoom, { relayout: true })
+      },
+      onEnd: () => {
+        this.fire('moveend')
+      },
+    })
     return this
   }
 
@@ -1501,8 +1568,11 @@ export class TsMap extends Evented {
     this._lastCenter = center
     this._pixelOrigin = this._getNewPixelOrigin(center)
 
+    // `relayout` is a pan made by moving the centre rather than the pane — the
+    // only kind a pitched camera makes. Layers position themselves on `zoom`,
+    // so it has to fire even though the zoom has not changed.
     if (!suppressEvent) {
-      if (zoomChanged || data?.pinch)
+      if (zoomChanged || data?.pinch || data?.relayout)
       this.fire('zoom', data)
       this.fire('move', data)
     }
@@ -1716,44 +1786,85 @@ export class TsMap extends Evented {
 
   /**
   * Pushes the current `_bearing` and `_pitch` onto the CSS transforms of
-  * `_mapPane` and the upright panes (marker / popup / tooltip). Both camera
-  * transforms pivot around the viewport center via `transform-origin`.
-  * Called after every `setBearing()` / `setPitch()`. Replaces the earlier
-  * `_applyBearingToPanes()` so bearing and pitch are kept consistent.
+  * `_mapPane` and the upright panes (symbol / marker / popup / tooltip). Both
+  * camera transforms pivot around the viewport center via `transform-origin`.
+  *
+  * ## Pitch
+  *
+  * The ground is tilted with the same camera `_pitchPoint` projects through:
+  * `perspective(h) rotateX(pitch)` about the view centre is, point for point,
+  * `h·(x, y·cos) / (h − y·sin)`. Without the `perspective()` the tilt was an
+  * orthographic squash that the projection maths — and so every label, marker
+  * and hit-test — disagreed with.
+  *
+  * The upright panes have to come out of that tilt entirely, which a 2D
+  * counter-rotation cannot do: an element inside a transformed parent is
+  * flattened into the parent's plane, so text came out squashed however it
+  * was counter-rotated. The pane is made a 3D context (`preserve-3d`) and each
+  * upright pane applies the exact inverse, which leaves it in the screen plane
+  * with nothing but the pane offset.
+  *
+  * In a 3D context the browser orders panes by depth rather than z-index, and
+  * a tilted ground plane passes through the screen plane — the near half of
+  * the map would be drawn over the labels on it. So the ground is pushed back
+  * by `D` and scaled up by `S = (h + D) / h`, which leaves its projection
+  * exactly as before but puts every visible part of it behind the upright
+  * panes. `D` is the depth of the lowest visible ground row.
   */
   _applyCameraTransform(): void {
     if (!this._mapPane)
     return
-    const center = this.getSize()._divideBy(2)
+
+    // A pitched camera pans by moving the centre, never the pane (see
+    // `_panGround`), because the perspective's vanishing point travels with
+    // the pane. A pane already offset by earlier flat drags is folded into
+    // the centre the moment a tilt begins, while the view is still the one
+    // that offset was made under.
+    const pos = this._getMapPanePos()
+    if (this._pitch && (pos.x || pos.y) && this._loaded) {
+      const pitch = this._pitch
+      const bearing = this._bearing
+      this._pitch = this._appliedPitch ?? 0
+      this._bearing = this._appliedBearing ?? bearing
+      const center = this.getCenter()
+      this._pitch = pitch
+      this._bearing = bearing
+      this._resetView(center, this._zoom, true)
+    }
+
+    const size = this.getSize()
+    const center = size.divideBy(2)
     const originCss = `${center.x}px ${center.y}px`
     this._mapPane.style.transformOrigin = originCss
 
-    // Re-apply the current pane position together with the new rotation and
-    // pitch. This composes
-    //   translate3d(panePos) rotateX(pitch) rotate(bearing)
-    // on `_mapPane` (see `DomUtil.setTransform` for order rationale).
-    const pos = this._getMapPanePos()
-    DomUtil.setPosition(this._mapPane, pos, this._bearing, this._pitch)
+    const geometry = this._pitch ? this._cameraGeometry() : null
+    let ground = ''
+    let inverse = ''
+    if (geometry) {
+      const { h, depth, scale } = geometry
+      ground = `perspective(${h}px) translateZ(${-depth}px) rotateX(${this._pitch}deg) rotate(${this._bearing}deg) scale(${scale})`
+      inverse = `scale(${1 / scale}) rotate(${-this._bearing}deg) rotateX(${-this._pitch}deg) translateZ(${depth}px)`
+    }
+    else if (this._bearing) {
+      ground = `rotate(${this._bearing}deg)`
+      inverse = `rotate(${-this._bearing}deg)`
+    }
+    this._mapPane.style.transformStyle = geometry ? 'preserve-3d' : ''
+    DomUtil.setCamera(this._mapPane, ground)
 
-    // Counter-transform the upright panes so icons / popups / tooltips do
-    // not visually spin or tilt with the map. The pivot is the same viewport
-    // center so the counter-transform cancels precisely.
-    // symbolPane joins them: labels are drawn in screen space, so the pane
-    // must not turn under them or the text rotates with the map.
+    // Counter-transform the upright panes so labels, icons, popups and
+    // tooltips neither spin nor tilt with the map. What is left is a plain
+    // screen-space layer offset by the pane position, which is where
+    // `_latLngToUprightPoint` puts things.
     const upright = ['symbolPane', 'markerPane', 'popupPane', 'tooltipPane']
-    const active = !!this._bearing || !!this._pitch
     for (const name of upright) {
       const pane = this._panes?.[name]
       if (!pane)
       continue
-      if (active) {
+      if (inverse) {
         pane.classList.add('tsmap-upright')
         pane.style.transformOrigin = originCss
-        // CSS applies right-to-left, so `rotateX(-pitch) rotate(-bearing)`
-        // first undoes bearing around the element's Z axis, then undoes
-        // pitch around the SCREEN X axis — which exactly inverts the
-        // composition applied to `_mapPane` above.
-        pane.style.transform = `rotateX(${-this._pitch}deg) rotate(${-this._bearing}deg) translateZ(0)`
+        pane.style.transform = inverse
       }
       else {
         pane.classList.remove('tsmap-upright')
@@ -1761,6 +1872,70 @@ export class TsMap extends Evented {
         pane.style.transformOrigin = ''
       }
     }
+
+    this._appliedPitch = this._pitch
+    this._appliedBearing = this._bearing
+  }
+
+  /**
+  * The perspective camera for the current pitch: its height `h` above the
+  * ground in pixels, and the depth offset and matching scale that keep the
+  * visible ground behind the screen plane (see `_applyCameraTransform`).
+  */
+  _cameraGeometry(): { h: number, depth: number, scale: number } {
+    const H = this.getSize().y
+    const h = (H / 2) / Math.tan((36.87 * Math.PI / 180) / 2)
+    const theta = (this._pitch * Math.PI) / 180
+    const sin = Math.sin(theta)
+    // The ground row at the bottom edge of the view is the nearest thing on
+    // screen; a little past it for antialiasing. Never at or past the camera.
+    const bottom = this._unpitchPoint(new Point(0, H / 2)).y + 2
+    const near = Math.min(bottom * sin, h * 0.95)
+    const depth = Math.max(0, (h * near) / (h - near))
+    return { h, depth, scale: (h + depth) / h }
+  }
+
+  /**
+  * How far, in layer pixels on the ground, the point under `containerPoint`
+  * is from the point under the centre of the view.
+  *
+  * On a flat, north-up map that is just the screen offset. Rotated or tilted,
+  * it is not: the thing under a point near the top of a pitched view is much
+  * further away than the same distance below the centre. Everything that
+  * anchors a camera move to a point on screen — zooming around the cursor,
+  * pinching, the tile footprint — goes through this so it holds under any
+  * camera. It depends only on bearing, pitch and view size, not on centre or
+  * zoom.
+  */
+  _groundOffset(containerPoint: Point): Point {
+    const half = this.getSize().divideBy(2)
+    return this.containerPointToLayerPoint(containerPoint).subtract(this.containerPointToLayerPoint(half))
+  }
+
+  /**
+  * Where `latlng` goes inside an upright pane (markers, popups, tooltips,
+  * labels). Those panes are screen space offset by the pane position, so this
+  * is the projected screen point, not the ground point. On a flat, north-up
+  * map the two are the same thing.
+  */
+  _latLngToUprightPoint(latlng: any): Point {
+    if (!this._bearing && !this._pitch)
+    return this.latLngToLayerPoint(latlng)
+    return this.latLngToContainerPoint(latlng).subtract(this._getMapPanePos())
+  }
+
+  /** Inverse of `_latLngToUprightPoint`. */
+  _uprightPointToLatLng(point: Point): LatLng {
+    if (!this._bearing && !this._pitch)
+    return this.layerPointToLatLng(point)
+    return this.containerPointToLatLng(point.add(this._getMapPanePos()))
+  }
+
+  /** A point in an upright pane, in container pixels. */
+  _uprightPointToContainerPoint(point: Point): Point {
+    if (!this._bearing && !this._pitch)
+    return this.layerPointToContainerPoint(point)
+    return point.add(this._getMapPanePos())
   }
 
   /**

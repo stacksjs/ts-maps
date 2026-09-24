@@ -83,11 +83,14 @@ export class PinchZoomHandler extends Handler {
       return
     }
     else {
-      const delta = p1._add(p2)._divideBy(2)._subtract(this._centerPoint as Point)
+      const midpoint = p1._add(p2)._divideBy(2)
+      const delta = midpoint.subtract(this._centerPoint as Point)
       if (scale === 1 && delta.x === 0 && delta.y === 0)
       return
+      // The pinched point stays between the fingers, measured on the ground
+      // so it holds on a rotated or tilted map too.
       this._center = map.unproject(
-      map.project(this._pinchStartLatLng as LatLng, this._zoom).subtract(delta),
+      map.project(this._pinchStartLatLng as LatLng, this._zoom).subtract(map._groundOffset(midpoint)),
       this._zoom,
       )
     }

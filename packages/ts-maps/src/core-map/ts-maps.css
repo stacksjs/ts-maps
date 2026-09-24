@@ -234,10 +234,9 @@
   transition: none;
 }
 
-/* Upright panes — counter-rotate the pane so marker icons, popups and
- * tooltips stay visually upright when the map is rotated (bearing != 0).
- * The transform and transform-origin are driven from JS (see
- * `TsMap._applyBearingToPanes`). */
+/* Upright panes — labels, marker icons, popups and tooltips stay flat to the
+ * screen however the map is rotated or tilted. The inverse camera transform
+ * and its origin are driven from JS (see `TsMap._applyCameraTransform`). */
 .tsmap-upright {
   will-change: transform;
 }

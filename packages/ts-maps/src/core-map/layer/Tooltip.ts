@@ -51,7 +51,7 @@ export class Tooltip extends DivOverlay {
     const map = this._map
     const container = this._container as HTMLElement
     const centerPoint = map.latLngToContainerPoint(map.getCenter())
-    const tooltipPoint = map.layerPointToContainerPoint(pos)
+    const tooltipPoint = map._uprightPointToContainerPoint(pos)
     const tooltipWidth = container.offsetWidth
     const tooltipHeight = container.offsetHeight
     const offset = new Point(this.options!.offset)
@@ -96,7 +96,7 @@ export class Tooltip extends DivOverlay {
   }
 
   _updatePosition(): void {
-    const pos = this._map.latLngToLayerPoint(this._latlng!)
+    const pos = this._map._latLngToUprightPoint(this._latlng!)
     this._setPosition(pos)
   }
 

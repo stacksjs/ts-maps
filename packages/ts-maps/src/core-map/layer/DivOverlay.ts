@@ -142,6 +142,10 @@ export class DivOverlay extends Layer {
     const events: Record<string, any> = {
       zoom: this._updatePosition,
       viewreset: this._updatePosition,
+      // Upright on screen, so rotation and tilt move it.
+      rotate: this._updatePosition,
+      pitch: this._updatePosition,
+      resize: this._updatePosition,
     }
     if (this._zoomAnimated)
     events.zoomanim = this._animateZoom
@@ -219,7 +223,7 @@ export class DivOverlay extends Layer {
     if (!this._map)
     return
 
-    const pos = this._map.latLngToLayerPoint(this._latlng!)
+    const pos = this._map._latLngToUprightPoint(this._latlng!)
     const anchor = this._getAnchor()
     let offset = new Point(this.options!.offset)
 

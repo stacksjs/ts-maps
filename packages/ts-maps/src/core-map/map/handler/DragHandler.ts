@@ -1,8 +1,9 @@
-import type { Point } from '../../geometry/Point'
+import type { LatLng } from '../../geo/LatLng'
 import { Handler } from '../../core/Handler'
 import { Draggable } from '../../dom/Draggable'
 import { LatLngBounds } from '../../geo/LatLngBounds'
 import { Bounds } from '../../geometry/Bounds'
+import { Point } from '../../geometry/Point'
 import { TsMap } from '../Map'
 
 TsMap.mergeOptions( {
@@ -25,6 +26,11 @@ export class DragHandler extends Handler {
   _viscosity = 0
   _initialWorldOffset = 0
   _worldWidth = 0
+  /** Under pitch: the ground point that was grabbed, and where the pointer went down. */
+  declare _groundAnchor?: LatLng
+  declare _groundStart?: Point
+  /** Under pitch: where the pointer is now, in container pixels. */
+  declare _groundCursor?: Point
 
   addHooks(): void {
     if (!this._draggable) {
@@ -36,6 +42,8 @@ export class DragHandler extends Handler {
         dragend: this._onDragEnd,
       }, this)
 
+      // First, so the limit and wrap handlers see a pane that is not moving.
+      this._draggable!.on('predrag', this._onPreDragPitch, this)
       this._draggable!.on('predrag', this._onPreDragLimit, this)
       if (map.options.worldCopyJump) {
         this._draggable!.on('predrag', this._onPreDragWrap, this)
@@ -77,6 +85,18 @@ export class DragHandler extends Handler {
       this._offsetLimit = null
     }
 
+    // A pitched map is dragged by the ground, not the pane: remember what was
+    // grabbed so it can be kept under the pointer.
+    this._groundAnchor = undefined
+    this._groundStart = undefined
+    this._groundCursor = undefined
+    const d = this._draggable as any
+    if (map._pitch && d?._startPoint) {
+      const rect = map._container.getBoundingClientRect()
+      this._groundStart = new Point(d._startPoint.x - rect.left - map._container.clientLeft, d._startPoint.y - rect.top - map._container.clientTop)
+      this._groundAnchor = map.containerPointToLatLng(this._groundStart)
+    }
+
     map.fire('movestart').fire('dragstart')
     if (map.options.inertia) {
       this._positions = []
@@ -87,7 +107,9 @@ export class DragHandler extends Handler {
   _onDrag(e: any): void {
     if (this._map.options.inertia) {
       const time = this._lastTime = Date.now()
-      const pos = this._lastPos = (this._draggable as any)._absPos || (this._draggable as any)._newPos
+      const d = this._draggable as any
+      // Under pitch the pane never moves, so the pointer's path is the record.
+      const pos = this._lastPos = this._groundCursor?.clone() ?? d._absPos ?? d._newPos
       this._positions.push(pos)
       this._times.push(time)
       this._prunePositions(time)
@@ -113,7 +135,38 @@ export class DragHandler extends Handler {
     return value - (value - threshold) * this._viscosity
   }
 
+  /**
+   * Under pitch, turn the pane move the drag asked for into a camera move.
+   *
+   * The grabbed ground point is put back under the pointer by shifting the
+   * centre, which is exact: at a fixed zoom, moving the centre by some world
+   * distance moves the ground under every screen point by that same distance.
+   * The pane is left where it was, so the perspective's vanishing point stays
+   * in the middle of the screen as it does in Apple Maps.
+   */
+  _onPreDragPitch(): void {
+    const map = this._map
+    const d = this._draggable as any
+    if (!map._pitch || !this._groundAnchor || !this._groundStart)
+    return
+
+    const offset = d._newPos.subtract(d._startPos)
+    const cursor = this._groundCursor = this._groundStart.add(offset)
+    d._newPos = d._startPos.clone()
+    d._absPos = undefined
+
+    const zoom = map.getZoom()
+    const want = map.project(this._groundAnchor, zoom)
+    const have = map.project(map.containerPointToLatLng(cursor), zoom)
+    const center = map.unproject(map.project(map.getCenter(), zoom).add(want.subtract(have)), zoom)
+    // `move` itself is fired by `_onDrag`; layers re-lay on `zoom`.
+    map._move(center, zoom, undefined, true)
+    map.fire('zoom', { relayout: true })
+  }
+
   _onPreDragLimit(): void {
+    if (this._map._pitch)
+    return
     if (!this._viscosity || !this._offsetLimit)
     return
     const d = this._draggable as any
@@ -131,6 +184,8 @@ export class DragHandler extends Handler {
   }
 
   _onPreDragWrap(): void {
+    if (this._map._pitch)
+    return
     const d = this._draggable as any
     const worldWidth = this._worldWidth
     const halfWidth = Math.round(worldWidth / 2)
@@ -169,6 +224,10 @@ export class DragHandler extends Handler {
         map.fire('moveend')
       }
       else {
+        // Pitched, the glide continues from where the pointer let go, so it
+        // carries on at the speed the ground under it was moving.
+        const around = map._pitch ? this._groundCursor : undefined
+        if (!around)
         offset = map._limitOffset(offset, map.options.maxBounds)
         requestAnimationFrame(() => {
           map.panBy(offset, {
@@ -176,6 +235,7 @@ export class DragHandler extends Handler {
             easeLinearity: ease,
             noMoveStart: true,
             animate: true,
+            around,
           })
         })
       }

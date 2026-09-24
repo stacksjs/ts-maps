@@ -50,13 +50,14 @@ export class MarkerDrag extends Handler {
     const map = marker._map
     const speed = marker.options.autoPanSpeed
     const padding = marker.options.autoPanPadding
-    const iconPos = DomUtil.getPosition(marker._icon)
-    const bounds = map.getPixelBounds()
-    const origin = map.getPixelOrigin()
+    // In container pixels: the icon stands in an upright pane, which is
+    // screen space however the map is turned or tilted.
+    const iconPos = map._uprightPointToContainerPoint(DomUtil.getPosition(marker._icon))
+    const bounds = new Bounds([0, 0], map.getSize())
 
     const panBounds = new Bounds(
-    bounds.min._subtract(origin).add(padding),
-    bounds.max._subtract(origin).subtract(padding),
+    bounds.min.add(padding),
+    bounds.max.subtract(padding),
     )
 
     if (!panBounds.contains(iconPos)) {
@@ -99,10 +100,10 @@ export class MarkerDrag extends Handler {
     const marker = this._marker
     const shadow = marker._shadow
     const iconPos = DomUtil.getPosition(marker._icon)
-    const latlng = marker._map.layerPointToLatLng(iconPos)
+    const latlng = marker._map._uprightPointToLatLng(iconPos)
 
     if (shadow)
-    DomUtil.setPosition(shadow, iconPos)
+    DomUtil.setPosition(shadow, marker._map.latLngToLayerPoint(latlng))
 
     marker._latlng = latlng
     e.latlng = latlng
