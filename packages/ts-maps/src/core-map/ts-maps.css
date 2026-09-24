@@ -1227,3 +1227,287 @@ a.tsmap-control-locate-denied::after {
   height: 100% !important;
   z-index: 99999;
 }
+
+/* Turn-by-turn navigation, after Apple Maps (see navigation/TurnByTurn). The
+ * banner is dark in both themes, as Apple's is; the card follows the theme. */
+.tsmap-container {
+  --tsmap-nav-banner-bg: #1c1c1e;
+  --tsmap-nav-card-bg: rgb(255 255 255 / 96%);
+  --tsmap-nav-card-fg: #1d1d1f;
+  --tsmap-nav-card-muted: #6e6e73;
+  --tsmap-nav-option-bg: #f2f2f7;
+}
+
+.tsmap-container.tsmap-dark {
+  --tsmap-nav-banner-bg: #2c2c2e;
+  --tsmap-nav-card-bg: rgb(28 28 30 / 96%);
+  --tsmap-nav-card-fg: #f5f5f7;
+  --tsmap-nav-card-muted: #98989d;
+  --tsmap-nav-option-bg: #3a3a3c;
+}
+
+.tsmap-nav-banner,
+.tsmap-nav-card,
+.tsmap-nav-recenter {
+  position: absolute;
+  z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.tsmap-nav-banner {
+  top: 12px;
+  left: 12px;
+  right: 60px;
+  max-width: 440px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: var(--tsmap-nav-banner-bg);
+  color: #fff;
+}
+
+.tsmap-nav-icon {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  color: #fff;
+}
+
+.tsmap-nav-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tsmap-nav-distance {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.tsmap-nav-road {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(255 255 255 / 92%);
+}
+
+.tsmap-nav-then {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px -18px -14px;
+  padding: 6px 18px 8px;
+  border-top: 1px solid rgb(255 255 255 / 14%);
+  font-size: 15px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 80%);
+}
+
+.tsmap-nav-then-icon {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.tsmap-nav-card {
+  left: 12px;
+  right: 12px;
+  bottom: 28px;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--tsmap-nav-card-bg);
+  color: var(--tsmap-nav-card-fg);
+}
+
+.tsmap-nav-card button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+}
+
+.tsmap-nav-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tsmap-nav-card-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.tsmap-nav-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tsmap-nav-option-bg);
+  color: var(--tsmap-nav-card-muted);
+  font-size: 13px;
+}
+
+.tsmap-nav-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tsmap-nav-option {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tsmap-nav-option-bg);
+  color: inherit;
+  text-align: left;
+  outline: 2px solid transparent;
+
+  &.tsmap-selected {
+    outline-color: #0a84ff;
+  }
+}
+
+.tsmap-nav-option-time {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tsmap-nav-option-detail {
+  font-size: 14px;
+  color: var(--tsmap-nav-card-muted);
+}
+
+.tsmap-nav-go,
+.tsmap-nav-end {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.tsmap-nav-go {
+  background: #34c759;
+}
+
+.tsmap-nav-trip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tsmap-nav-trip-stats {
+  flex: 1;
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.tsmap-nav-stat {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tsmap-nav-arrival {
+  color: #34c759;
+}
+
+.tsmap-nav-stat-label {
+  font-size: 13px;
+  color: var(--tsmap-nav-card-muted);
+}
+
+.tsmap-nav-end {
+  width: auto;
+  margin: 0;
+  padding: 10px 18px;
+  background: #ff3b30;
+}
+
+.tsmap-nav-mute {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--tsmap-nav-option-bg);
+  font-size: 18px;
+}
+
+.tsmap-nav-recenter {
+  left: 50%;
+  bottom: 120px;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: var(--tsmap-nav-card-bg);
+  color: #0a84ff;
+  font: 600 16px -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+/* The traveller: a blue disc with a white rim and a heading arrow. */
+.tsmap-nav-puck {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tsmap-nav-puck-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0a84ff;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: translate(-50%, -62%);
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 13px solid #fff;
+  }
+}
+
+/* The destination: a red pin. */
+.tsmap-nav-pin {
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  background: #ff3b30;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+  transform: rotate(-45deg);
+  box-sizing: border-box;
+}

@@ -1571,16 +1571,20 @@ export class TsMap extends Evented {
     zoom = this._zoom
     const zoomChanged = this._zoom !== zoom
 
+    const previousOrigin = this._pixelOrigin
     this._zoom = zoom
     this._lastCenter = center
     this._pixelOrigin = this._getNewPixelOrigin(center)
 
-    // `relayout` is a pan made by moving the centre rather than the pane — the
-    // only kind a pitched camera makes. Layers position themselves on `zoom`,
-    // so it has to fire even though the zoom has not changed.
+    // A pan made by moving the centre rather than the pane — `jumpTo`,
+    // `easeTo`, the navigation camera, every pan on a pitched map — moves the
+    // pixel origin without changing the zoom. Layers position themselves on
+    // `zoom`, so it fires anyway, marked `relayout`; without it the tiles
+    // stayed where they were while the labels and markers moved on.
+    const panned = !zoomChanged && !!previousOrigin && !previousOrigin.equals(this._pixelOrigin)
     if (!suppressEvent) {
-      if (zoomChanged || data?.pinch || data?.relayout)
-      this.fire('zoom', data)
+      if (zoomChanged || data?.pinch || data?.relayout || panned)
+      this.fire('zoom', panned && !data?.relayout ? { ...data, relayout: true } : data)
       this.fire('move', data)
     }
     else if (data?.pinch) {

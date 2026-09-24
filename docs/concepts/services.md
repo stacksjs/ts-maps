@@ -101,6 +101,61 @@ const routes = await d.getDirections([
 // routes[0] = { distance, duration, geometry: LatLng[], legs, steps }
 ```
 
+## Turn-by-turn navigation
+
+`turnByTurn(map)` is navigation after Apple Maps: route options, then guidance
+with a banner, a voice, and a camera that follows from behind.
+
+```ts
+import { turnByTurn } from 'ts-maps'
+
+const nav = turnByTurn(map, { destinationName: 'Ferry Building' })
+await nav.preview(from, to)   // routes drawn, card with each option and Go
+nav.start()                   // or the user taps Go
+```
+
+**Preview** draws every route the provider offers — the chosen one in blue,
+alternatives in grey, all tappable — frames them, and shows a card with the time
+and distance of each.
+
+**Guidance** shows:
+
+- a banner with the next maneuver's arrow, the distance to it and the road it
+  leads onto ("400 ft · Market St"), and a *Then* row when a second maneuver
+  follows closely;
+- a card with arrival time, minutes and distance left, mute, and End;
+- the route ahead in blue and the road already driven in grey;
+- a camera that follows heading-up from behind and above, closer in at low
+  speed and pulled back at speed, gliding between GPS fixes rather than
+  jumping once a second — pan it and a *Resume* button brings it back.
+
+Spoken prompts come early, to get ready, and at the turn ("In a quarter mile,
+turn right onto Market Street"), each once. A few seconds off the route
+fetches a new one from where you are; arriving says so.
+
+Positions come from the Geolocation API. To try it at a desk, `simulate: true`
+drives the route instead, slowing for turns — or pass `{ speed, timeScale }`.
+Feed positions from anywhere else with `nav.update(fix)`.
+
+| Option | Default | |
+| --- | --- | --- |
+| `directions` | OSRM | Any `DirectionsProvider` |
+| `profile` | `'driving'` | `'walking'` and `'cycling'` change the camera and prompt distances |
+| `units` | from the locale | `'metric'` or `'imperial'` |
+| `voice` | `true` | Speech synthesis, where the browser has it |
+| `simulate` | — | Drive the route instead of following the device |
+| `alternatives` | `true` | Offer alternative routes in preview |
+
+Events: `preview`, `routeselect`, `start`, `progress`, `instruction`, `reroute`,
+`arrive`, `end`, `error`.
+
+The guidance itself has no map or DOM in it. `services.Navigator` takes a route
+and positions and produces progress, instructions, off-route and arrival
+events; `services.formatInstruction`, `formatDistance` and `maneuverIcon` word
+and draw a maneuver from any provider, whose maneuver codes are folded into one
+vocabulary by `parseManeuver`. Steps now carry the road's `name` and a
+roundabout's `exit` where the provider gives them.
+
 ## Isochrones
 
 ```ts

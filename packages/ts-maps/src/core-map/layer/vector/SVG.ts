@@ -21,8 +21,7 @@ export class SVG extends Renderer {
 
   _resizeContainer(): any {
     // Equivalent to super._resizeContainer but needs access to _bounds after.
-    const p = this.options!.padding
-    const size = this._map.getSize().multiplyBy(1 + p * 2).round()
+    const size = this._blanketSize()
     this._container!.style.width = `${size.x}px`
     this._container!.style.height = `${size.y}px`
 

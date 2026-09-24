@@ -83,6 +83,8 @@ interface ValhallaManeuver {
   length?: number // km
   time?: number // seconds
   instruction?: string
+  street_names?: string[]
+  roundabout_exit_count?: number
   type?: number
   begin_shape_index?: number
   end_shape_index?: number
@@ -107,17 +109,44 @@ interface ValhallaDirectionsResponse {
   alternates?: { trip: ValhallaTrip }[]
 }
 
+/**
+ * Valhalla's numbered maneuver types, in the `type-modifier` vocabulary the
+ * other providers use, so one set of instructions and arrows serves all of
+ * them.
+ */
+const VALHALLA_MANEUVERS: Record<number, string> = {
+  1: 'depart', 2: 'depart-right', 3: 'depart-left',
+  4: 'arrive', 5: 'arrive-right', 6: 'arrive-left',
+  7: 'new-name-straight', 8: 'continue-straight',
+  9: 'turn-slight-right', 10: 'turn-right', 11: 'turn-sharp-right',
+  12: 'turn-uturn', 13: 'turn-uturn',
+  14: 'turn-sharp-left', 15: 'turn-left', 16: 'turn-slight-left',
+  17: 'on-ramp-straight', 18: 'on-ramp-right', 19: 'on-ramp-left',
+  20: 'off-ramp-right', 21: 'off-ramp-left',
+  22: 'fork-straight', 23: 'fork-right', 24: 'fork-left',
+  25: 'merge', 26: 'roundabout', 27: 'exit-roundabout',
+  37: 'merge-right', 38: 'merge-left',
+}
+
 function legToRoute(leg: ValhallaLeg): Route {
   const shape = leg.shape ? decodePolyline(leg.shape) : []
   const steps: RouteStep[] = (leg.maneuvers ?? []).map((m) => {
     const start = m.begin_shape_index ?? 0
     const end = m.end_shape_index ?? start
-    return {
+    const step: RouteStep = {
       distance: (m.length ?? 0) * 1000, // km → m
       duration: m.time ?? 0,
       instruction: m.instruction ?? '',
       geometry: shape.slice(start, end + 1),
     }
+    const maneuver = m.type !== undefined ? VALHALLA_MANEUVERS[m.type] : undefined
+    if (maneuver)
+      step.maneuver = maneuver
+    if (m.street_names?.[0])
+      step.name = m.street_names[0]
+    if (typeof m.roundabout_exit_count === 'number')
+      step.exit = m.roundabout_exit_count
+    return step
   })
   return {
     distance: (leg.summary?.length ?? 0) * 1000,

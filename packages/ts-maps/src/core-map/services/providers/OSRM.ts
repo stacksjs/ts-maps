@@ -34,6 +34,7 @@ interface OSRMStep {
     type?: string
     modifier?: string
     instruction?: string
+    exit?: number
   }
 }
 
@@ -98,6 +99,10 @@ function parseStep(step: OSRMStep): RouteStep {
   const m = stepManeuver(step)
   if (m)
     out.maneuver = m
+  if (step.name)
+    out.name = step.name
+  if (typeof step.maneuver?.exit === 'number')
+    out.exit = step.maneuver.exit
   return out
 }
 

@@ -40,6 +40,10 @@ export interface RouteStep {
   instruction: string // turn-by-turn text
   geometry: LatLngLike[] // polyline for this step
   maneuver?: string // e.g., 'turn-left', 'arrive'
+  /** The road this step travels on, where the provider names it. */
+  name?: string
+  /** Which exit to take, at a roundabout. */
+  exit?: number
 }
 
 export interface Route {

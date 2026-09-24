@@ -151,7 +151,7 @@ interface MapboxDirectionsStep {
   distance: number
   duration: number
   geometry: { type: 'LineString', coordinates: [number, number][] }
-  maneuver?: { type?: string, modifier?: string, instruction?: string }
+  maneuver?: { type?: string, modifier?: string, instruction?: string, exit?: number }
   name?: string
 }
 
@@ -190,6 +190,10 @@ function mbStepToStep(s: MapboxDirectionsStep): RouteStep {
       ? `${s.maneuver.type}-${s.maneuver.modifier}`.replace(/\s+/g, '-')
       : s.maneuver.type
   }
+  if (s.name)
+    out.name = s.name
+  if (typeof s.maneuver?.exit === 'number')
+    out.exit = s.maneuver.exit
   return out
 }
 
