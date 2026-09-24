@@ -34,6 +34,7 @@ import { IconAtlas } from '../../symbols/IconAtlas'
 import { anchorOffset, lineLength, offsetPixels, pointAtDistance, repeatDistances, rotatedBounds } from '../../symbols/placement'
 import type { LabelCandidate, LabelGroup } from '../../symbols/LabelPlacer'
 import { LabelPlacer } from '../../symbols/LabelPlacer'
+import { builtinIcon } from '../../symbols/poiIcons'
 import type { BuildingDraw, BuildingFootprint, BuildingMesh } from '../../renderer/webgl/BuildingOverlay'
 import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../renderer/webgl/BuildingOverlay'
 import type { Occluder, OcclusionSource } from '../../symbols/BuildingOcclusion'
@@ -1312,7 +1313,7 @@ export class VectorTileMapLayer extends GridLayer {
           coords.z,
           featureState,
           glyphAtlas,
-          this._iconAtlas,
+          this.getIconAtlas(),
           context,
           provider,
         )
@@ -2245,7 +2246,8 @@ function buildSymbolCandidates(
   const iconId = coerceString(resolve(layout?.['icon-image']))
   const iconSize = resolve(layout?.['icon-size']) as number | undefined
   const iconRotate = resolve(layout?.['icon-rotate']) as number | undefined
-  const iconEntry = iconId && iconAtlas ? iconAtlas.get(iconId) : undefined
+  // The style's own sprites first; built-in POI badges are drawn on demand.
+  const iconEntry = iconId && iconAtlas ? builtinIcon(iconAtlas, iconId) : undefined
   const iconOpacity = resolve(paint?.['icon-opacity']) as number | undefined
   // Only meaningful for SDF entries, and only resolved for them.
   const iconColor = iconEntry?.sdf ? (resolve(paint?.['icon-color']) as string | undefined) ?? '#000000' : undefined
@@ -2417,7 +2419,7 @@ function buildSymbolCandidates(
     box = { ...bounds }
   }
   if (iconEntry) {
-    const target = iconSize ?? iconEntry.width
+    const target = iconSize ?? iconEntry.width / (iconEntry.pixelRatio ?? 1)
     box.minX = Math.min(box.minX, -target / 2)
     box.minY = Math.min(box.minY, -target / 2)
     box.maxX = Math.max(box.maxX, target / 2)
@@ -2430,7 +2432,7 @@ function buildSymbolCandidates(
     // Icon first, then text on top.
     if (iconEntry && iconAtlas) {
       iconAtlas.drawIcon(ctx, iconId, 0, 0, {
-        size: iconSize ?? iconEntry.width,
+        size: iconSize ?? iconEntry.width / (iconEntry.pixelRatio ?? 1),
         rotation: iconRotate,
         color: iconColor,
         opacity: iconOpacity,

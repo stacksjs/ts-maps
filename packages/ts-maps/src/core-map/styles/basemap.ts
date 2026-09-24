@@ -1,6 +1,7 @@
 import type { Style as StyleSpec } from '../style-spec/types'
 import type { Palette } from './palette'
 import { DARK, LIGHT } from './palette'
+import { POI_ICON_PREFIX, poiCategoryExpression, poiColorExpression } from '../symbols/poiIcons'
 
 /**
  * Built-in basemap styles.
@@ -53,6 +54,7 @@ export type SourceLayerKey
     | 'boundary'
     | 'place'
     | 'waterName'
+    | 'poi'
 
 const OPENMAPTILES: Record<SourceLayerKey, string> = {
   water: 'water',
@@ -64,6 +66,7 @@ const OPENMAPTILES: Record<SourceLayerKey, string> = {
   boundary: 'boundary',
   place: 'place',
   waterName: 'water_name',
+  poi: 'poi',
 }
 
 const SOURCE_ID = 'basemap'
@@ -257,6 +260,48 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
         },
       },
       {
+        // Points of interest, as Apple Maps shows them: a round badge in the
+        // category's colour, and the name beside it in the same colour. More
+        // appear as the map zooms in, most important first.
+        id: 'poi',
+        type: 'symbol',
+        source: SOURCE_ID,
+        'source-layer': layer.poi,
+        minzoom: 15,
+        filter: [
+          'all',
+          ['has', 'name'],
+          ['<=', ['coalesce', ['get', 'rank'], 99], ['step', ['zoom'], 6, 16, 12, 17, 25, 18, 99]],
+          // Bus and tram stops are everywhere downtown and would bury
+          // everything else; like Apple Maps, they wait until street level.
+          // Stations stay.
+          [
+            'any',
+            ['>=', ['zoom'], 18],
+            [
+              'all',
+              ['!=', ['get', 'class'], 'bus'],
+              ['!', ['in', ['coalesce', ['get', 'subclass'], ''], ['literal', ['bus_stop', 'tram_stop', 'halt', 'platform', 'stop_position']]]],
+            ],
+          ],
+        ],
+        layout: {
+          'icon-image': ['concat', POI_ICON_PREFIX, poiCategoryExpression()],
+          'text-field': ['get', 'name'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 15, 11, 18, 13],
+          'text-anchor': 'left',
+          'text-offset': [1.15, 0],
+          'text-max-width': 8,
+          'text-padding': 4,
+          'symbol-sort-key': ['coalesce', ['get', 'rank'], 99],
+        },
+        paint: {
+          'text-color': poiColorExpression(c => isDark(palette) ? c.textDark : c.textLight),
+          'text-halo-color': palette.labelHalo,
+          'text-halo-width': 1.5,
+        },
+      },
+      {
         id: 'water-label',
         type: 'symbol',
         source: SOURCE_ID,
@@ -332,6 +377,15 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
       },
     ] as StyleSpec['layers'],
   }
+}
+
+/** Whether a palette is for a dark map, judged by its ground. */
+function isDark(palette: Palette): boolean {
+  const hex = palette.background.replace('#', '')
+  if (hex.length < 6)
+    return false
+  const [r, g, b] = [0, 2, 4].map(i => Number.parseInt(hex.slice(i, i + 2), 16) / 255)
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! < 0.4
 }
 
 function build(base: Palette, options: BasemapStyleOptions, name: string): StyleSpec {

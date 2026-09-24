@@ -76,6 +76,33 @@ Override individual entries without rebuilding the style:
 styles.dark({ tiles, palette: { water: '#0b1f38', roadMajor: '#4a5160' } })
 ```
 
+### Points of interest
+
+The built-in styles show points of interest the way Apple Maps does: a round
+badge in the category's colour with a white glyph, and the name beside it in
+the same colour — a deeper shade on the light map, a lighter one on the dark.
+Food is orange, shopping gold, parks green, transit blue, health red, and so on
+across fifteen categories, mapped from the OpenMapTiles `poi` classes. More
+appear as you zoom in, most important first; bus and tram stops wait until
+street level (zoom 18) so they do not bury everything else downtown.
+
+The badges ship with the library — no sprite sheet needed — and are drawn at
+high density the first time they are used. Any style can use them by name:
+
+```ts
+{
+  id: 'my-cafes',
+  type: 'symbol',
+  source: 'places',
+  layout: { 'icon-image': 'tsmap-poi-cafe', 'text-field': ['get', 'name'], 'text-anchor': 'left', 'text-offset': [1.15, 0] },
+}
+```
+
+Names are `tsmap-poi-` plus one of `food`, `cafe`, `nightlife`, `shopping`,
+`grocery`, `park`, `transit`, `health`, `education`, `lodging`, `culture`,
+`sports`, `civic`, `worship`, `car` and `place`. A style's own sprite sheet
+always wins over a built-in of the same name.
+
 ## Loading a style from a URL
 
 `setStyle` accepts a URL as well as an object:
