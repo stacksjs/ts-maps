@@ -63,7 +63,9 @@ export class TwoFingerRotateHandler extends Handler {
 
     const currentAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x)
     const deltaDeg = (currentAngle - this._startAngle) * 180 / Math.PI
-    const nextBearing = this._startBearing + deltaDeg
+    // Fingers turning clockwise turn the map clockwise with them, which
+    // brings a direction further anticlockwise to the top: the bearing falls.
+    const nextBearing = this._startBearing - deltaDeg
 
     if (!this._moved) {
       this._moved = true

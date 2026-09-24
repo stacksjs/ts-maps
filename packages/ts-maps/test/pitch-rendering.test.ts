@@ -58,7 +58,8 @@ function apply(m: Mat, x: number, y: number): { x: number, y: number, z: number 
 /** The ground panes' CSS camera, as `_applyCameraTransform` composes it. */
 function groundMatrix(map: TsMap): Mat {
   const { h } = map._cameraGeometry()
-  return [perspective(h), rotateX(map._pitch), rotateZ(map._bearing)].reduce(mul)
+  // The map turns counter-clockwise by its bearing.
+  return [perspective(h), rotateX(map._pitch), rotateZ(-map._bearing)].reduce(mul)
 }
 
 describe('pitch rendering', () => {

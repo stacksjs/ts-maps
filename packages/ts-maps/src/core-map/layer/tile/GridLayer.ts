@@ -530,7 +530,8 @@ export class GridLayer extends Layer {
     // away. Undoes the bearing to get the point's distance along the tilt.
     const pitch = map._pitch as number
     const geometry = pitch ? map._cameraGeometry() : null
-    const bearing = ((map._bearing as number) * Math.PI) / 180
+    // The screen is the ground turned counter-clockwise by the bearing.
+    const bearing = (-(map._bearing as number) * Math.PI) / 180
     const sinB = Math.sin(bearing)
     const cosB = Math.cos(bearing)
     const sinT = Math.sin((pitch * Math.PI) / 180)

@@ -10,7 +10,7 @@ import { TsMap } from 'ts-maps'
 const map = new TsMap('map-id', {
   center: [51.5074, -0.1278],   // [lat, lng] or LatLng
   zoom: 10,                     // fractional zoom is supported
-  bearing: 0,                   // degrees clockwise from north
+  bearing: 0,                   // compass direction at the top of the screen: 90 = east up
   pitch: 0,                     // 0–85, degrees of camera tilt (maxPitch)
   minZoom: 2,
   maxZoom: 19,
@@ -20,7 +20,7 @@ const map = new TsMap('map-id', {
 
 ## Camera model
 
-The camera is specified by four independent knobs: `center`, `zoom`, `bearing` and `pitch`. Every camera change — whether a drag, a wheel zoom, a programmatic `setView`, or an animated `flyTo` — resolves to the same underlying state.
+The camera is specified by four independent knobs: `center`, `zoom`, `bearing` and `pitch`. `bearing` is the compass direction at the top of the screen, as in Mapbox GL JS — at `90` east is up, which means the map itself has turned 90° counter-clockwise. Every camera change — whether a drag, a wheel zoom, a programmatic `setView`, or an animated `flyTo` — resolves to the same underlying state.
 
 | Method | Returns |
 | ------ | ------- |

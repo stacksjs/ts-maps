@@ -107,17 +107,12 @@ describe('bearing (map rotation)', () => {
     // setView), a click at the right edge mid-height (800, 300) maps to
     // layerPoint (800, 300) — east of center by 400px on the x axis.
     //
-    // Rotating the map to bearing=90 means "north is now pointing right".
-    // Equivalently: the CSS rotation on `_mapPane` is +90° CW, so the
-    // underlying layer grid appears rotated 90° CW relative to the viewport.
-    // Inverting that, a click in the container is rotated by -90° to map
-    // back to the layer grid. A click at (800, 300) relative to the center
-    // (400, 300) is the vector (+400, 0). Rotating (+400, 0) by -90°
-    // (screen-space CW-positive) yields (0, -400). So the layerPoint ends up
-    // at center + (0, -400) = (400, -100) — directly NORTH of center in the
-    // unrotated layer grid. That matches the intuition: a right-edge click
-    // at bearing=90 (north points right) should correspond to the north
-    // side of the world.
+    // Bearing is the compass direction at the top of the screen, as in
+    // Mapbox GL JS: at 90, east is up, so the map has turned 90°
+    // counter-clockwise and south is on the right. Inverting that, a click
+    // is turned 90° clockwise to reach the layer grid: (+400, 0) from the
+    // centre becomes (0, +400), so the layer point is (400, 700) — directly
+    // SOUTH of centre, which is where the right edge looks at bearing 90.
     const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
@@ -128,18 +123,18 @@ describe('bearing (map rotation)', () => {
     map.setBearing(90)
     const lp90 = map.containerPointToLayerPoint([800, 300])
     // Floating-point tolerance. The expected values come from the math
-    // documented above: rotate((+400, 0), -90°) + (400, 300) = (400, -100).
+    // documented above: rotate((+400, 0), +90°) + (400, 300) = (400, 700).
     expect(lp90.x).toBeCloseTo(400, 6)
-    expect(lp90.y).toBeCloseTo(-100, 6)
+    expect(lp90.y).toBeCloseTo(700, 6)
     // The two layer points should be different.
     expect(lp0.x === lp90.x && lp0.y === lp90.y).toBe(false)
   })
 
-  test('containerPointToLatLng at bearing=90 places a right-edge click to the north', () => {
+  test('containerPointToLatLng at bearing=90 puts east at the top and south on the right', () => {
     // A similar assertion at the lat/lng level. At bearing=0, a click at the
     // right edge of the viewport maps to a lat/lng *east* of center. At
-    // bearing=90 (north points right), the same pixel click should map to a
-    // lat/lng *north* of center.
+    // bearing=90 (east is up), the same pixel click maps *south* of center,
+    // and a click at the top edge maps east.
     const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
@@ -149,10 +144,12 @@ describe('bearing (map rotation)', () => {
     expect(Math.abs(llEast.lat)).toBeLessThan(1)
 
     map.setBearing(90)
-    const llNorth = map.containerPointToLatLng([800, 300])
-    // North of (0,0) means lat > 0 and lng ~ 0.
-    expect(llNorth.lat).toBeGreaterThan(0)
-    expect(Math.abs(llNorth.lng)).toBeLessThan(1)
+    const llSouth = map.containerPointToLatLng([800, 300])
+    expect(llSouth.lat).toBeLessThan(0)
+    expect(Math.abs(llSouth.lng)).toBeLessThan(1)
+    const llTop = map.containerPointToLatLng([400, 0])
+    expect(llTop.lng).toBeGreaterThan(0)
+    expect(Math.abs(llTop.lat)).toBeLessThan(1)
   })
 
   test('layerPointToContainerPoint inverts containerPointToLayerPoint at non-zero bearing', () => {
@@ -174,5 +171,24 @@ describe('bearing (map rotation)', () => {
     const p1 = map.project([37.7, -122.4], 3)
     expect(p1.x).toBe(p0.x)
     expect(p1.y).toBe(p0.y)
+  })
+
+  test('the bearing is the compass direction at the top of the screen, as in Mapbox', () => {
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    stampSize(map, 800, 600)
+    for (const [bearing, lat, lng] of [[0, 1, 0], [90, 0, 1], [180, -1, 0], [270, 0, -1]]) {
+      map.setBearing(bearing)
+      const up = map.latLngToContainerPoint([lat, lng])
+      // Whatever the bearing names is straight above the centre.
+      expect(up.x).toBeCloseTo(400, 0)
+      expect(up.y).toBeLessThan(300)
+    }
+  })
+
+  test('the map turns counter-clockwise by its bearing', () => {
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    stampSize(map, 800, 600)
+    map.setBearing(30)
+    expect(map.getPane('tilePane').style.transform).toContain('rotate(-30deg)')
   })
 })

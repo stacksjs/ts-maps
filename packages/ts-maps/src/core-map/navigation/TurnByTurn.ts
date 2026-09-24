@@ -363,9 +363,8 @@ export class TurnByTurn extends Evented {
     const pitchTarget = walking ? 45 : 58
     const ease = (tau: number): number => (dt > 0 ? 1 - Math.exp(-dt / tau) : 1)
 
-    // Heading-up. The map's bearing turns it clockwise — 90 puts north on the
-    // right — so the direction of travel is up at a bearing of -heading.
-    const target = (360 - heading) % 360
+    // Heading-up: the bearing is the direction at the top of the screen.
+    const target = heading
     const delta = ((target - this._camera.bearing + 540) % 360) - 180
     this._camera.bearing = (this._camera.bearing + delta * ease(0.45) + 360) % 360
     this._camera.zoom += (zoomTarget - this._camera.zoom) * ease(1.2)
@@ -466,7 +465,7 @@ export class TurnByTurn extends Evented {
     const icon = (this._puck as any)?._icon as HTMLElement | undefined
     const arrow = icon?.querySelector?.('.tsmap-nav-puck-arrow') as HTMLElement | null
     if (arrow)
-      arrow.style.transform = `rotate(${heading + (this.map._bearing ?? 0)}deg)`
+      arrow.style.transform = `rotate(${heading - (this.map._bearing ?? 0)}deg)`
   }
 
   // ---------------------------------------------------------------------------

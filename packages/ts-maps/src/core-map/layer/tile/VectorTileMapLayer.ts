@@ -901,7 +901,7 @@ export class VectorTileMapLayer extends GridLayer {
       const cx = view.x / 2
       const cy = view.y / 2
       const pos = map._getMapPanePos()
-      const b = ((map._bearing ?? 0) * Math.PI) / 180
+      const b = (-(map._bearing ?? 0) * Math.PI) / 180
       const t = (map._pitch * Math.PI) / 180
       const cb = Math.cos(b)
       const sb = Math.sin(b)
@@ -1226,7 +1226,7 @@ export class VectorTileMapLayer extends GridLayer {
     if (occlusionSources.length) {
       const theta = ((map._pitch ?? 0) * Math.PI) / 180
       const center = map.containerPointToLayerPoint(size.divideBy(2))
-      const toward = map._rotatePoint(new Point(0, 1), -(map._bearing ?? 0), new Point(0, 0))
+      const toward = map._rotatePoint(new Point(0, 1), map._bearing ?? 0, new Point(0, 0))
       this._occlusion = {
         sources: occlusionSources,
         camera: { x: center.x + toward.x * h * Math.sin(theta), y: center.y + toward.y * h * Math.sin(theta) },

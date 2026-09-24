@@ -156,13 +156,11 @@ describe('pitch (camera tilt)', () => {
   })
 
   test('bearing=90 + pitch=45: top-of-viewport click composes bearing rotation with pitch stretch', () => {
-    // `setBearing(90)` rotates the layer pane +90° CW. Inverting for a
-    // container click: a top-edge click (0, -Δy) relative to center maps to
-    // layer vector (-Δy, 0) — i.e. WEST in the underlying layer grid.
-    // Adding pitch=45 stretches the perceived distance (points near the top
-    // appear farther away), so the same pixel click maps to a point
-    // FARTHER west in layer space → smaller (more negative) lng after
-    // unprojection. Lat stays near 0 since the layer y component is ~0.
+    // `setBearing(90)` puts east at the top of the screen, so a top-edge
+    // click maps EAST of centre. Adding pitch=45 stretches the perceived
+    // distance (points near the top appear farther away), so the same pixel
+    // click maps FARTHER east → larger lng after unprojection. Lat stays
+    // near 0 since the layer y component is ~0.
     const mapBearing = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(mapBearing, 800, 600)
     mapBearing.setBearing(90)
@@ -174,13 +172,13 @@ describe('pitch (camera tilt)', () => {
     mapBoth.setPitch(45)
     const topBoth = mapBoth.containerPointToLatLng([400, 50])
 
-    // West of center: lng < 0 in both cases.
-    expect(topOnly.lng).toBeLessThan(0)
-    expect(topBoth.lng).toBeLessThan(0)
-    // Pitch stretches the top click farther west (perspective → larger
-    // magnitude in the "away from camera" direction, which after bearing
-    // rotation is west).
-    expect(topBoth.lng).toBeLessThan(topOnly.lng)
+    // East of center: lng > 0 in both cases.
+    expect(topOnly.lng).toBeGreaterThan(0)
+    expect(topBoth.lng).toBeGreaterThan(0)
+    // Pitch stretches the top click farther east (perspective → larger
+    // magnitude in the "away from camera" direction, which at bearing 90 is
+    // east).
+    expect(topBoth.lng).toBeGreaterThan(topOnly.lng)
     // The lat component stays close to center's lat.
     expect(Math.abs(topBoth.lat)).toBeLessThan(1)
   })

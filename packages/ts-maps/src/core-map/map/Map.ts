@@ -1431,7 +1431,7 @@ export class TsMap extends Evented {
     if (this._pitch)
     shifted = this._unpitchPoint(shifted)
     if (this._bearing)
-    shifted = this._rotatePoint(shifted, -this._bearing, new Point(0, 0))
+    shifted = this._rotatePoint(shifted, this._bearing, new Point(0, 0))
     return shifted._add(center)
   }
 
@@ -1441,8 +1441,10 @@ export class TsMap extends Evented {
     return p.add(this._getMapPanePos())
     const center = this.getSize()._divideBy(2)
     let shifted = p.subtract(center)
+    // The map turns counter-clockwise by the bearing, so the direction it
+    // names comes to the top of the screen: at 90, east is up.
     if (this._bearing)
-    shifted = this._rotatePoint(shifted, this._bearing, new Point(0, 0))
+    shifted = this._rotatePoint(shifted, -this._bearing, new Point(0, 0))
     if (this._pitch)
     shifted = this._pitchPoint(shifted)
     return shifted._add(center)._add(this._getMapPanePos())
@@ -1848,9 +1850,9 @@ export class TsMap extends Evented {
 
     let ground = ''
     if (this._pitch)
-    ground = `perspective(${this._cameraGeometry().h}px) rotateX(${this._pitch}deg) rotate(${this._bearing}deg)`
+    ground = `perspective(${this._cameraGeometry().h}px) rotateX(${this._pitch}deg) rotate(${-this._bearing}deg)`
     else if (this._bearing)
-    ground = `rotate(${this._bearing}deg)`
+    ground = `rotate(${-this._bearing}deg)`
 
     // The map pane itself only ever moves.
     DomUtil.setCamera(this._mapPane, '')
@@ -1944,7 +1946,7 @@ export class TsMap extends Evented {
     if (!this._pitch)
     return 1
     const center = this.getSize().divideBy(2)
-    const rotated = this._rotatePoint(new Point(layerPoint.x, layerPoint.y).subtract(center), this._bearing, new Point(0, 0))
+    const rotated = this._rotatePoint(new Point(layerPoint.x, layerPoint.y).subtract(center), -this._bearing, new Point(0, 0))
     const { h } = this._cameraGeometry()
     const depth = h - rotated.y * Math.sin((this._pitch * Math.PI) / 180)
     return depth > 0 ? h / depth : -1

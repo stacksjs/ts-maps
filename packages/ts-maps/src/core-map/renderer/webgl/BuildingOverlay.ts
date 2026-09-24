@@ -242,7 +242,8 @@ export interface BuildingCamera {
  */
 export function buildingMatrix(camera: BuildingCamera, scale: number, origin: [number, number]): Float32Array {
   const { width: W, height: H, h } = camera
-  const b = (camera.bearing * Math.PI) / 180
+  // The map turns counter-clockwise by its bearing.
+  const b = (-camera.bearing * Math.PI) / 180
   const t = (camera.pitch * Math.PI) / 180
   const cb = Math.cos(b)
   const sb = Math.sin(b)
