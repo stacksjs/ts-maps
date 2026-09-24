@@ -88,3 +88,27 @@ labels look blurry next to the crisp vector lines beside them. `fillText`
 renders at the device resolution with real hinting, and `strokeText` gives a
 halo that follows the glyph outline instead of approximating it. The atlas
 remains the measurement authority and the WebGL path's texture.
+
+## Labels
+
+Symbol layers are placed every frame the camera moves, not only when it comes to
+rest, so a street name stays on its street through a zoom and a neighbourhood
+name stays over its neighbourhood — the way Apple Maps and Google Maps behave.
+
+- **Resolved once per tile.** Text, font, size, colours and the label's box are
+  evaluated when a tile arrives (layout at the tile's zoom, as the style spec
+  does). A frame is then projection, collision and a sprite blit per label,
+  typically well under 2 ms for a city view.
+- **Priority.** Layers later in the style are placed first, and within a layer
+  a lower `symbol-sort-key` wins, as in the style spec. The legacy
+  `symbol-priority` layout property keeps its higher-wins meaning.
+- **Stable.** A label that was showing last frame is tried before an equal one
+  that was not, so labels do not trade places as the camera moves.
+- **Faded.** Labels fade in and out over 200 ms when they gain or lose their
+  slot, instead of popping.
+- **Not repeated.** The same street name is kept a label-width and a half, or
+  most of `symbol-spacing`, from its last copy on screen, even across tiles.
+
+`text-max-width` wraps long point labels onto balanced lines, `text-transform`
+and `text-padding` are honoured, and `text-opacity` applies to the text.
+

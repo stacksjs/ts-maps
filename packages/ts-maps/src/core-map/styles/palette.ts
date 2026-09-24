@@ -26,6 +26,10 @@ export interface Palette {
   labelHalo: string
   /** Secondary labels — smaller places, road names. */
   labelMuted: string
+  /** Neighbourhood and district names, set small in capitals. */
+  labelMinor: string
+  /** Seas, lakes, rivers. */
+  waterLabel: string
 }
 
 /**
@@ -49,20 +53,28 @@ export const DARK: Palette = {
   label: '#c8ccd4',
   labelHalo: '#0d0f13',
   labelMuted: '#8c93a1',
+  labelMinor: '#7a8290',
+  waterLabel: '#5f7fa3',
 }
 
-/** Light palette: a clean neutral street style, same skeleton. */
+/**
+ * Light palette, after the look of Apple Maps: warm paper ground, parks that
+ * read as green and water that reads as blue, white roads lifted off the
+ * ground by a soft casing, and near-black ink kept for the names that matter.
+ */
 export const LIGHT: Palette = {
-  background: '#f3f2ee',
-  land: '#f7f6f2',
-  green: '#e3ece0',
-  water: '#c3d7e8',
+  background: '#f5f3ee',
+  land: '#f5f3ee',
+  green: '#d4ebc4',
+  water: '#a9d3f5',
   roadMajor: '#ffffff',
   roadMinor: '#ffffff',
-  roadCasing: '#e2e0da',
-  buildings: '#eae8e2',
-  boundary: '#d5d2cb',
-  label: '#3c4043',
+  roadCasing: '#dedad1',
+  buildings: '#e9e5dc',
+  boundary: '#c9c3b8',
+  label: '#1d1d1f',
   labelHalo: '#ffffff',
-  labelMuted: '#6b7076',
+  labelMuted: '#6e6e73',
+  labelMinor: '#86868b',
+  waterLabel: '#3f7fbf',
 }

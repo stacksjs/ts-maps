@@ -22,14 +22,17 @@ import type { CollisionIndex } from './CollisionIndex'
  * counter-rotates, so placement is done in screen space and glyphs stay
  * upright however the map is turned.
  *
- * Redrawing happens at settled moments: the end of a pan, a zoom, a rotation,
- * or when tiles arrive. In between the pane carries the canvas along with the
- * map, so labels stay stuck to the ground without re-placing hundreds of them
- * every frame.
+ * It is redrawn in the same frame as every camera change — `scheduleSync` —
+ * so labels are placed where the map is now rather than where it was when a
+ * gesture began, and on the next animation frame for anything else: tiles
+ * arriving, glyphs loading, a fade still running.
  */
 export interface SymbolOverlayHost {
-  /** Draw every symbol into `ctx`, in container pixels. */
-  drawSymbols: (ctx: CanvasRenderingContext2D, collision: CollisionIndex) => void
+  /**
+   * Draw every symbol into `ctx`, in container pixels. Returning true asks for
+   * another frame — a fade is still running.
+   */
+  drawSymbols: (ctx: CanvasRenderingContext2D, collision: CollisionIndex) => boolean | void
   /** A fresh collision index for one pass. */
   createCollisionIndex: () => CollisionIndex
 }
@@ -40,6 +43,7 @@ export class SymbolOverlay {
   declare _host: SymbolOverlayHost
   declare _ratio: number
   declare _frame: number | null
+  declare _syncQueued: boolean
 
   constructor(map: any, host: SymbolOverlayHost) {
     this._map = map
@@ -47,6 +51,7 @@ export class SymbolOverlay {
     this.canvas = null
     this._ratio = 1
     this._frame = null
+    this._syncQueued = false
     this._attach()
   }
 
@@ -126,6 +131,35 @@ export class SymbolOverlay {
     })
   }
 
+  /**
+   * Redraw before this frame is painted.
+   *
+   * Camera moves arrive from inside an animation frame or an input event, and
+   * everything else on the map — tiles, markers — is updated synchronously in
+   * the same turn. Waiting for the next `requestAnimationFrame` would put the
+   * labels a frame behind the streets they name, which shows as text swimming
+   * over the map during a fast zoom. A microtask runs after the current
+   * handler, before the browser paints, and collapses the several events one
+   * camera change fires (`zoom`, then `move`) into one pass.
+   */
+  scheduleSync(): void {
+    if (this._syncQueued)
+      return
+    if (typeof queueMicrotask !== 'function') {
+      this.schedule()
+      return
+    }
+    this._syncQueued = true
+    queueMicrotask(() => {
+      this._syncQueued = false
+      if (this._frame !== null && typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this._frame)
+        this._frame = null
+      }
+      this.redraw()
+    })
+  }
+
   redraw(): void {
     const canvas = this.canvas
     const map = this._map
@@ -148,7 +182,8 @@ export class SymbolOverlay {
 
     // One index per pass. Nothing survives a redraw, so no eviction is needed
     // and a label can never collide with a stale copy of itself.
-    this._host.drawSymbols(ctx, this._host.createCollisionIndex())
+    if (this._host.drawSymbols(ctx, this._host.createCollisionIndex()) === true)
+      this.schedule()
   }
 
   remove(): void {

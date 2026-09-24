@@ -622,6 +622,17 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   margin-right: 0.277em;
 }
 
+.tsmap-control-scale-transient {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+
+  &.tsmap-visible {
+    opacity: 1;
+    transition-duration: 0.15s;
+  }
+}
+
 .tsmap-left .tsmap-control-scale {
   margin-left: 5px;
 }

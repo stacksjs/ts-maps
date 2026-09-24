@@ -40,6 +40,13 @@ Three animation modes share a unified engine:
 - `flyTo(center, zoom, { duration })` — zoom-out/zoom-in arc for long hops.
 - Plus: `setView`, `panTo`, `panBy`, `fitBounds`, `setZoom`, `zoomIn`/`zoomOut`, `setBearing`/`rotateTo`, `setPitch`/`pitchTo`.
 
+Animated zooms — the zoom buttons, a double-click, the keyboard, `setZoom` — run
+frame by frame on the same engine rather than as a CSS transition, so every
+frame is a real camera that labels and overlays follow. The point being zoomed
+around stays exactly under the cursor, pressing `+` again mid-zoom adds a level
+to where the zoom is heading, and `zoomAnimationDuration` (default `320` ms,
+eased out) sets the pace.
+
 ## Events
 
 Every user interaction and programmatic camera change fires events on the map. Attach handlers with `map.on(type, handler)`; remove with `map.off(type, handler)`.

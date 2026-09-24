@@ -83,6 +83,12 @@ function stampSize(map: TsMap, width: number, height: number): void {
     map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)
 }
 
+/** Centre the view on tile 0/0/4, where the fixture's one point sits. */
+function centreOnTile(map: TsMap): void {
+  map.setView(map.unproject([256, 256], 4), 4, { reset: true })
+  stampSize(map, 512, 512)
+}
+
 function attachLayerForCreateTile(layer: VectorTileMapLayer, map: TsMap): void {
   layer._map = map
   layer._tiles = {}
@@ -156,6 +162,8 @@ describe('VectorTileMapLayer: symbol layers', () => {
 
     const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    // Labels off screen are culled, so look at the tile the fixture fills.
+    centreOnTile(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -183,9 +191,10 @@ describe('VectorTileMapLayer: symbol layers', () => {
     expect(err).toBeNull()
 
     // Labels are drawn on the overlay canvas, not into the tile, so that a
-    // WebGL tile still gets text and rotation can re-place them.
+    // WebGL tile still gets text and rotation can re-place them. The text is
+    // rasterised once into a sprite and blitted from there.
     const counts = drawSymbolsOnto(layer)
-    expect(counts.fillText).toBeGreaterThanOrEqual(1)
+    expect(counts.drawImage).toBeGreaterThanOrEqual(1)
   })
 
   test("symbol layer with `['get', 'name']` resolves against feature properties", async () => {
@@ -194,6 +203,8 @@ describe('VectorTileMapLayer: symbol layers', () => {
 
     const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    // Labels off screen are culled, so look at the tile the fixture fills.
+    centreOnTile(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -220,7 +231,7 @@ describe('VectorTileMapLayer: symbol layers', () => {
 
     const { err } = await ready
     expect(err).toBeNull()
-    expect(drawSymbolsOnto(layer).fillText).toBeGreaterThanOrEqual(1)
+    expect(drawSymbolsOnto(layer).drawImage).toBeGreaterThanOrEqual(1)
   })
 
   test('getGlyphAtlas is lazy and stable across calls', () => {

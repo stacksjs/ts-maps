@@ -149,7 +149,7 @@ describe('setStyle with a URL', () => {
     const style = map.getStyle()!
     expect(style.name).toBe('ts-maps light')
     const background = style.layers.find(l => l.id === 'background') as any
-    expect(background.paint['background-color']).toBe('#f3f2ee')
+    expect(background.paint['background-color']).toBe('#f5f3ee')
   })
 
   test('a swapped style reaches the layer that draws, not just the style doc', () => {
@@ -162,7 +162,7 @@ describe('setStyle with a URL', () => {
     // that whatever is hosting the source now paints the new colours.
     const host: any = (map as any)._style.sourceLayers.get('basemap')
     const water = host._styleLayers.find((l: any) => l.id === 'water')
-    expect(water.paint['fill-color']).toBe('#c3d7e8')
+    expect(water.paint['fill-color']).toBe('#a9d3f5')
   })
 
   test('setPaintProperty repaints without refetching tiles', () => {

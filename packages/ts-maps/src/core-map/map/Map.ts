@@ -6,6 +6,7 @@ import * as PointerEvents from '../dom/DomEvent.PointerEvents'
 import * as DomUtil from '../dom/DomUtil'
 import { Evented } from '../core/Events'
 import { Animation } from '../dom/Animation'
+import { easeOutCubic } from '../dom/easing'
 import { PosAnimation } from '../dom/PosAnimation'
 import { EPSG3857 } from '../geo/crs/EPSG3857'
 import { LatLng } from '../geo/LatLng'
@@ -40,6 +41,12 @@ export interface MapOptions {
   renderer?: any
   zoomAnimation?: boolean
   zoomAnimationThreshold?: number
+  /**
+  * Milliseconds for an animated zoom — the zoom buttons, a double-click, the
+  * keyboard, or `setZoom` with animation. Default 320, eased out: quick to
+  * respond, and settling rather than stopping.
+  */
+  zoomAnimationDuration?: number
   fadeAnimation?: boolean
   markerZoomAnimation?: boolean
   transform3DLimit?: number
@@ -222,6 +229,8 @@ export class TsMap extends Evented {
   declare _fadeAnimated?: boolean
   declare _zoomAnimated?: boolean
   declare _animatingZoom?: boolean
+  /** Where a script-driven zoom animation is heading, while one runs. */
+  declare _zoomAnimTarget?: number
   declare _animateToCenter?: LatLng
   declare _animateToZoom?: number
   declare _tempFireZoomEvent?: boolean
@@ -387,14 +396,17 @@ export class TsMap extends Evented {
     return this.setView(this.getCenter(), zoom, { zoom: options })
   }
 
+  // Counted from where a running zoom is heading rather than where it has got
+  // to, so pressing + three times quickly goes three levels, not two and a
+  // bit.
   zoomIn(delta?: number, options?: any): this {
     delta ??= this.options.zoomDelta
-    return this.setZoom(this._zoom + (delta as number), options)
+    return this.setZoom((this._zoomAnimTarget ?? this._zoom) + (delta as number), options)
   }
 
   zoomOut(delta?: number, options?: any): this {
     delta ??= this.options.zoomDelta
-    return this.setZoom(this._zoom - (delta as number), options)
+    return this.setZoom((this._zoomAnimTarget ?? this._zoom) - (delta as number), options)
   }
 
   setZoomAround(latlng: any, zoom: number, options?: any): this {
@@ -1959,7 +1971,6 @@ export class TsMap extends Evented {
     if (
     !this._zoomAnimated
     || options.animate === false
-    || this._nothingToAnimate()
     || Math.abs(zoom - this._zoom) > (this.options.zoomAnimationThreshold as number)
     ) {
       return false
@@ -1971,12 +1982,84 @@ export class TsMap extends Evented {
     if (options.animate !== true && !this.getSize().contains(offset))
     return false
 
-    requestAnimationFrame(() => {
-      this._moveStart(true, options.noMoveStart ?? false)
-      ._animateZoom(center, zoom, true)
+    this._animateZoomAround(new LatLng(center), zoom, {
+      duration: options.duration,
+      noMoveStart: options.noMoveStart,
     })
-
     return true
+  }
+
+  /**
+   * Zoom to `zoom` over a few frames, ending centred on `center`, with the one
+   * point that does not move on screen held exactly still throughout.
+   *
+   * This replaced a CSS transition on the tile levels. A transition is cheap,
+   * but everything the browser interpolates is invisible to script, so
+   * anything drawn by the map itself — labels above all — could only be put
+   * right when the transition ended. Labels sat frozen at their old positions
+   * while the streets under them grew, then jumped: the single most visible
+   * difference from Apple Maps or Google Maps.
+   *
+   * Driving the camera from here instead means every frame is a real camera
+   * position, the same as a wheel or pinch gesture produces, and every layer
+   * follows it through the ordinary `zoom` / `move` events.
+   *
+   * The fixed point is solved for rather than tracked: a zoom from centre C0
+   * to C1 by a scale `s` holds still the point `d` from the centre satisfying
+   * `(C0 + d)·s = C1 + d`. Interpolating the zoom and re-deriving the centre
+   * from that point each frame keeps it pinned — a straight lerp of the centre
+   * lets it swim, which is what makes a double-click zoom feel like it missed.
+   */
+  _animateZoomAround(center: LatLng, zoom: number, options?: { duration?: number, noMoveStart?: boolean, easing?: EasingFunction }): void {
+    this._stop()
+
+    const startZoom = this._zoom
+    const startCenter = this.getCenter()
+    const scale = this.getZoomScale(zoom, startZoom)
+    const from = this.project(startCenter, startZoom)
+    const to = this.project(center, zoom)
+
+    // Where the still point sits, as an offset from the view centre. A zoom
+    // with no scale change is a pan and has no still point at all.
+    let pivot: Point | null = null
+    let pivotLatLng: LatLng | null = null
+    if (Math.abs(scale - 1) > 1e-6) {
+      pivot = to.subtract(from.multiplyBy(scale)).divideBy(scale - 1)
+      // A still point far off screen means a zoom that is mostly a pan; the
+      // pinned-point maths is exact there too, but the path it implies swings
+      // wide. Fall back to a plain interpolation.
+      const size = this.getSize()
+      if (Math.abs(pivot.x) > size.x * 2 || Math.abs(pivot.y) > size.y * 2)
+        pivot = null
+      else
+        pivotLatLng = this.unproject(from.add(pivot), startZoom)
+    }
+    const fromCenterPx = from
+    const toCenterPx = this.project(center, startZoom)
+
+    const frameCenter = (z: number, t: number): LatLng => {
+      if (pivot && pivotLatLng)
+        return this.unproject(this.project(pivotLatLng, z).subtract(pivot), z)
+      return this.unproject(fromCenterPx.add(toCenterPx.subtract(fromCenterPx).multiplyBy(t)), startZoom)
+    }
+
+    this._zoomAnimTarget = zoom
+    this._moveStart(true, options?.noMoveStart ?? false)
+
+    this._getCamAnim().run({
+      duration: options?.duration ?? (this.options.zoomAnimationDuration as number | undefined) ?? 320,
+      easing: options?.easing ?? easeOutCubic,
+      onFrame: ({ t }) => {
+        const z = startZoom + (zoom - startZoom) * t
+        this._move(frameCenter(z, t), z, { round: false })
+      },
+      onEnd: (completed) => {
+        this._zoomAnimTarget = undefined
+        if (completed)
+          this._move(center, zoom)
+        this._moveEnd(true)
+      },
+    })
   }
 
   _animateZoom(center: LatLng, zoom: number, startAnim?: boolean, noUpdate?: boolean): void {

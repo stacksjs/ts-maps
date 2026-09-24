@@ -118,16 +118,25 @@ export class PinchZoomHandler extends Handler {
     DomEvent.off(this._map._container, 'pointermove', this._onPointerMove, this)
     DomEvent.off(this._map._container, 'pointerup pointercancel', this._onPointerEnd, this)
 
-    if (this._map.options.zoomAnimation) {
-      this._map._animateZoom(
-      this._center as LatLng,
-      this._map._limitZoom(this._zoom as number),
-      true,
-      this._map.options.zoomSnap,
-      )
+    const map = this._map
+    const zoom = this._zoom as number
+    const center = this._center as LatLng
+    const limited = map._limitZoom(zoom)
+
+    // The last pointermove's frame was cancelled above; apply it, so the map
+    // ends exactly where the fingers left it rather than one frame short.
+    map._move(center, zoom, { pinch: true, round: false })
+
+    if (Math.abs(limited - zoom) < 1e-6) {
+      map._moveEnd(true)
+    }
+    else if (map.options.zoomAnimation) {
+      // Pinched past a zoom limit: spring back to it, around the view centre.
+      map._moveEnd(true)
+      map._animateZoomAround(map.getCenter(), limited, { duration: 240 })
     }
     else {
-      this._map._resetView(this._center as LatLng, this._map._limitZoom(this._zoom as number))
+      map._resetView(center, limited)
     }
   }
 }

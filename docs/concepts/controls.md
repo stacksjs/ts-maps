@@ -111,7 +111,9 @@ map.
 
 ## Scale, layers, attribution
 
-`control.scale()` draws a metric and/or imperial scale bar.
+`control.scale()` draws a metric and/or imperial scale bar. Pass
+`{ transient: true }` to show it only while the zoom changes, fading out
+`transientDelay` ms (default 1200) after, as Apple Maps does.
 
 `control.layers(baseLayers, overlays)` is the collapsible base-layer and overlay
 switcher.

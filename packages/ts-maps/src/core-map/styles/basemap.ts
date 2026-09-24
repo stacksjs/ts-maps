@@ -52,6 +52,7 @@ export type SourceLayerKey
     | 'transportationName'
     | 'boundary'
     | 'place'
+    | 'waterName'
 
 const OPENMAPTILES: Record<SourceLayerKey, string> = {
   water: 'water',
@@ -62,6 +63,7 @@ const OPENMAPTILES: Record<SourceLayerKey, string> = {
   transportationName: 'transportation_name',
   boundary: 'boundary',
   place: 'place',
+  waterName: 'water_name',
 }
 
 const SOURCE_ID = 'basemap'
@@ -215,26 +217,83 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
           'line-dasharray': [3, 2],
         },
       },
-      // Labels last, and road names before place names: a street name losing
-      // its slot to a neighbourhood name is the right outcome when they
-      // collide.
+      // Labels last. Later layers are placed first when labels compete for
+      // space, so the order below is lowest priority first: a street name
+      // gives way to a water name, which gives way to a neighbourhood, which
+      // gives way to a city.
       {
         id: 'road-label',
         type: 'symbol',
         source: SOURCE_ID,
         'source-layer': layer.transportationName,
         minzoom: 12,
+        // Names arrive by road class as the map zooms in — arterials first,
+        // side streets only once there is room to read them — rather than
+        // every street at once.
+        filter: [
+          'any',
+          ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary']]],
+          ['all', ['==', ['get', 'class'], 'tertiary'], ['>=', ['zoom'], 13]],
+          ['>=', ['zoom'], 14],
+        ],
         layout: {
           'text-field': ['get', 'name'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 18, 13],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10, 16, 12, 19, 14],
           'symbol-placement': 'line',
-          'text-max-angle': 45,
-          'symbol-spacing': 250,
+          'text-max-angle': 30,
+          'symbol-spacing': 320,
+          'text-padding': 4,
+          // Bigger roads are named first, so an avenue keeps its label where
+          // it meets a lane.
+          'symbol-sort-key': ['match', ['get', 'class'], ['motorway', 'trunk'], 0, 'primary', 1, 'secondary', 2, 'tertiary', 3, 4],
         },
         paint: {
           'text-color': palette.labelMuted,
           'text-halo-color': palette.labelHalo,
-          'text-halo-width': 1.2,
+          'text-halo-width': 1.5,
+        },
+      },
+      {
+        id: 'water-label',
+        type: 'symbol',
+        source: SOURCE_ID,
+        'source-layer': layer.waterName,
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Italic'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 3, 11, 10, 13, 16, 15],
+          'text-max-width': 7,
+          'text-letter-spacing': 0.04,
+        },
+        paint: {
+          'text-color': palette.waterLabel,
+          'text-halo-color': palette.water,
+          'text-halo-width': 1,
+        },
+      },
+      {
+        // Suburbs and neighbourhoods: small capitals, tracked out and grey,
+        // so they label an area without competing with the streets inside it.
+        id: 'place-minor',
+        type: 'symbol',
+        source: SOURCE_ID,
+        'source-layer': layer.place,
+        minzoom: 10,
+        filter: ['in', ['get', 'class'], ['literal', ['suburb', 'quarter', 'neighbourhood', 'hamlet', 'isolated_dwelling', 'island']]],
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-font': ['Semibold'],
+          'text-transform': 'uppercase',
+          'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 16, 12],
+          'text-letter-spacing': 0.1,
+          'text-max-width': 8,
+          'text-padding': 6,
+          'symbol-sort-key': ['coalesce', ['get', 'rank'], 20],
+        },
+        paint: {
+          'text-color': palette.labelMinor,
+          'text-halo-color': palette.labelHalo,
+          'text-halo-width': 1.5,
         },
       },
       {
@@ -242,12 +301,25 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
         type: 'symbol',
         source: SOURCE_ID,
         'source-layer': layer.place,
+        filter: ['!', ['in', ['get', 'class'], ['literal', ['suburb', 'quarter', 'neighbourhood', 'hamlet', 'isolated_dwelling', 'island']]]],
         layout: {
           'text-field': ['get', 'name'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], 4, 11, 10, 14, 16, 18],
-          'text-anchor': 'center',
-          // Places outrank road names when the collision index has to choose.
-          'symbol-sort-key': 1,
+          'text-font': ['Semibold'],
+          'text-size': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            4,
+            ['match', ['get', 'class'], ['country', 'state'], 12, 'city', 12, 10],
+            10,
+            ['match', ['get', 'class'], ['country', 'state'], 15, 'city', 17, 'town', 14, 12],
+            16,
+            ['match', ['get', 'class'], 'city', 22, 'town', 18, 14],
+          ],
+          'text-max-width': 8,
+          'text-padding': 8,
+          // Lower OpenMapTiles rank is the more important place.
+          'symbol-sort-key': ['coalesce', ['get', 'rank'], 20],
         },
         paint: {
           'text-color': palette.label,

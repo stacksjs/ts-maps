@@ -31,7 +31,9 @@ import { drawGlyphs, measureGlyphs } from '../../symbols/GlyphRenderer'
 import { SymbolOverlay } from '../../symbols/SymbolOverlay'
 import { GlyphAtlas } from '../../symbols/GlyphAtlas'
 import { IconAtlas } from '../../symbols/IconAtlas'
-import { anchorOffset, lineLength, offsetPixels, placeGlyphsAlongLine, repeatDistances, rotatedBounds } from '../../symbols/placement'
+import { anchorOffset, lineLength, offsetPixels, pointAtDistance, repeatDistances, rotatedBounds } from '../../symbols/placement'
+import type { LabelCandidate, LabelGroup } from '../../symbols/LabelPlacer'
+import { LabelPlacer } from '../../symbols/LabelPlacer'
 import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { earcut, flatten } from '../../geometry/earcut'
 import { ortho } from '../../renderer/webgl/mat4'
@@ -176,6 +178,7 @@ export interface VectorTilePaintProperties {
   'text-color'?: string
   'text-halo-color'?: string
   'text-halo-width'?: number
+  'text-opacity'?: number
   'icon-opacity'?: number
   /**
    * Fill for SDF icons. A sprite entry marked `sdf` stores distance from the
@@ -217,6 +220,11 @@ export interface VectorTileLayoutProperties {
   'text-offset'?: unknown
   'text-rotate'?: unknown
   'text-max-angle'?: unknown
+  /** Wrap point labels at this many ems. Default 10. */
+  'text-max-width'?: unknown
+  /** Room kept clear around a label, in pixels. Default 2. */
+  'text-padding'?: unknown
+  'text-transform'?: unknown
 }
 
 export interface QueryRenderedFeature {
@@ -265,6 +273,12 @@ interface DecodedTileEntry {
   index: RTree<RTreeItem> | null
   /** Lazily-constructed WebGL renderer (only when `renderer: 'webgl'`). */
   gl: WebGLTileRenderer | null
+  /**
+   * The labels this tile could show, resolved once and placed every frame.
+   * Rebuilt when `version` falls behind the layer's — a style or feature-state
+   * change, or glyphs arriving.
+   */
+  labels?: { version: number, list: LabelCandidate[] }
 }
 
 // ---------------------------------------------------------------------------
@@ -318,6 +332,11 @@ export class VectorTileMapLayer extends GridLayer {
   declare _sourcePending: Map<string, { promise: Promise<{ tile: DecodedTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
   declare _symbolOverlay?: SymbolOverlay
   declare _symbolHandlers?: Record<string, () => void>
+  declare _labelPlacer?: LabelPlacer
+  /** Bumped whenever cached label candidates stop being valid. */
+  declare _labelVersion: number
+  /** Whether the camera is between a movestart and its moveend. */
+  declare _cameraMoving: boolean
   declare _featureStateLookup?: (src: string, srcLayer: string, id: number | string) => Record<string, unknown>
   declare _sourceId?: string
   declare _glyphAtlas?: GlyphAtlas
@@ -331,6 +350,8 @@ export class VectorTileMapLayer extends GridLayer {
     this._decodedTiles = new Map()
     this._sourceCache = new Map()
     this._sourcePending = new Map()
+    this._labelVersion = 0
+    this._cameraMoving = false
     this._glyphAtlas = this.options!.glyphAtlas
     this._iconAtlas = this.options!.iconAtlas
 
@@ -375,6 +396,7 @@ export class VectorTileMapLayer extends GridLayer {
   // Re-rasterize every already-decoded tile without refetching. Called from
   // TsMap when feature-state changes — pure paint-side update.
   _repaintDecodedTiles(): void {
+    this._invalidateLabels()
     for (const entry of this._decodedTiles.values()) {
       if (!entry.tile)
         continue
@@ -405,6 +427,8 @@ export class VectorTileMapLayer extends GridLayer {
 
   setStyleLayers(layers: VectorTileStyleLayer[]): this {
     this._styleLayers = layers
+    this._invalidateLabels()
+    this._labelPlacer?.reset()
     this.redraw()
     this._refreshSymbols()
     return this
@@ -748,33 +772,43 @@ export class VectorTileMapLayer extends GridLayer {
   /**
    * Create the overlay labels are drawn on, and keep it in step with the map.
    *
-   * Redraws happen at settled moments; in between the canvas is transformed to
-   * track the map, so a drag stays smooth without re-placing every label per
-   * frame. Rotation redraws directly — placement depends on the bearing, and
-   * transforming the canvas would turn the glyphs with it.
+   * Labels are placed every frame the camera moves, not only when it stops:
+   * the overlay is redrawn in the same frame as the move that prompted it, so
+   * a street name stays on its street through a zoom rather than hanging where
+   * it was until the gesture ends. See `LabelPlacer` for what keeps that cheap
+   * and steady.
    */
   _initSymbolOverlay(): void {
     if (this._symbolOverlay || !this._map)
       return
 
+    this._labelPlacer ??= new LabelPlacer()
     this._symbolOverlay = new SymbolOverlay(this._map, {
       drawSymbols: (ctx, collision) => this._drawSymbols(ctx, collision),
       createCollisionIndex: () => new CollisionIndex(),
     })
 
-    // Only settled moments. The pane travels with the map in between, so
-    // labels stay on the ground during a drag without a redraw per frame.
-    const settle = (): void => this._symbolOverlay?.schedule()
+    // Camera changes redraw within the frame; everything else can wait for
+    // the next one.
+    const follow = (): void => this._symbolOverlay?.scheduleSync()
+    const settle = (): void => {
+      this._cameraMoving = false
+      this._symbolOverlay?.schedule()
+    }
 
     this._symbolHandlers = {
+      movestart: () => { this._cameraMoving = true },
+      move: follow,
+      zoom: follow,
+      rotate: follow,
+      pitch: follow,
       moveend: settle,
       zoomend: settle,
-      rotate: settle,
       rotateend: settle,
       pitchend: settle,
-      resize: settle,
+      resize: follow,
       load: settle,
-      viewreset: settle,
+      viewreset: follow,
     }
     for (const [event, fn] of Object.entries(this._symbolHandlers))
       this._map.on(event, fn)
@@ -788,11 +822,18 @@ export class VectorTileMapLayer extends GridLayer {
     this._symbolHandlers = undefined
     this._symbolOverlay?.remove()
     this._symbolOverlay = undefined
+    this._labelPlacer?.reset()
   }
 
   /** Ask for a label repaint — after tiles decode, or a style change. */
   _refreshSymbols(): void {
     this._symbolOverlay?.schedule()
+  }
+
+  /** Throw away every tile's resolved labels and repaint. */
+  _invalidateLabels(): void {
+    this._labelVersion = (this._labelVersion ?? 0) + 1
+    this._refreshSymbols()
   }
 
   /**
@@ -812,76 +853,236 @@ export class VectorTileMapLayer extends GridLayer {
   }
 
   /**
-   * Draw every symbol on screen, in one pass over every tile currently held.
+   * Tile pixels to container pixels for the camera as it is this frame.
+   *
+   * Without pitch the whole mapping is affine — scale, rotation, translation —
+   * so it is solved from three corners and applied to every label in the tile
+   * for a multiply-add each, instead of an unproject and reproject per point.
+   * With pitch it is not, and each point takes the full projection.
+   */
+  _tileProjector(coords: { x: number, y: number, z: number }): ((x: number, y: number) => { x: number, y: number } | null) | null {
+    const size = this.getTileSize().x
+    if (this._map?._pitch)
+      return (x, y) => this._projectTilePoint(coords, x, y)
+
+    const o = this._projectTilePoint(coords, 0, 0)
+    const u = this._projectTilePoint(coords, size, 0)
+    const v = this._projectTilePoint(coords, 0, size)
+    if (!o || !u || !v)
+      return null
+    const ax = (u.x - o.x) / size
+    const ay = (u.y - o.y) / size
+    const bx = (v.x - o.x) / size
+    const by = (v.y - o.y) / size
+    return (x, y) => ({ x: o.x + ax * x + bx * y, y: o.y + ay * x + by * y })
+  }
+
+  /**
+   * Which decoded tiles supply labels this frame.
+   *
+   * The current zoom level's tiles, plus any tile from another level still
+   * standing in for current ones that have not arrived yet. Taking every
+   * decoded tile would label the same street twice — once from the level
+   * being zoomed away from, once from the one being zoomed to — and taking
+   * only current ones would blank the labels for the moment it takes the new
+   * level to load.
+   */
+  _labelEntries(): DecodedTileEntry[] {
+    const current: DecodedTileEntry[] = []
+    const others: DecodedTileEntry[] = []
+    const ready = new Set<DecodedTileEntry>()
+    const currentCoords: Array<{ coords: { x: number, y: number, z: number }, ready: boolean }> = []
+
+    for (const tile of Object.values(this._tiles ?? {}) as any[]) {
+      if (!tile?.current || !tile.coords)
+        continue
+      const entry = this._decodedTiles.get(tile.el as HTMLCanvasElement)
+      const isReady = !!entry?.tile && entry.labels?.version === this._labelVersion
+      currentCoords.push({ coords: tile.coords, ready: isReady })
+      if (entry?.tile) {
+        current.push(entry)
+        if (isReady)
+          ready.add(entry)
+      }
+    }
+
+    for (const entry of this._decodedTiles.values()) {
+      if (!entry.tile || current.includes(entry))
+        continue
+      // Kept only where it still covers something the current level cannot
+      // label yet.
+      let overlapsAny = false
+      let covered = true
+      for (const c of currentCoords) {
+        if (!tilesOverlap(c.coords, entry.coords))
+          continue
+        overlapsAny = true
+        if (!c.ready) {
+          covered = false
+          break
+        }
+      }
+      if (overlapsAny && !covered)
+        others.push(entry)
+    }
+
+    // The fallback level goes after the current one, so where both have the
+    // same label the current tile's copy is the one kept.
+    return current.concat(others)
+  }
+
+  /**
+   * Resolve a tile's labels, reusing them until something invalidates them.
+   *
+   * Evaluated at the tile's own zoom, as the style spec evaluates layout: a
+   * tile's labels are a property of the tile, not of the camera, which is
+   * what makes them cheap to carry through a zoom.
+   */
+  _labelsFor(entry: DecodedTileEntry, symbolLayers: VectorTileStyleLayer[]): LabelCandidate[] {
+    if (entry.labels && entry.labels.version === this._labelVersion)
+      return entry.labels.list
+
+    const list: LabelCandidate[] = []
+    const tile = entry.tile
+    if (!tile) {
+      return list
+    }
+
+    const coords = entry.coords
+    const size = this.getTileSize().x
+    const sub = this._subTile(coords)
+    const sourceId = this._sourceId ?? ''
+    const lookup = this._featureStateLookup
+    const glyphAtlas = this.getGlyphAtlas()
+    const provider = this._glyphProvider()
+    const crs = this._map?.options?.crs
+    const worldSize = crs?.scale ? crs.scale(coords.z) : 256 * 2 ** coords.z
+    let order = 0
+
+    symbolLayers.forEach((styleLayer, index) => {
+      const mvtLayer = tile.layers[styleLayer.sourceLayer]
+      if (!mvtLayer)
+        return
+
+      // Extent coordinates cover `f` tiles' worth of pixels once overzoomed,
+      // and this tile shows one of them.
+      const scale = (size * sub.f) / (mvtLayer.extent || 4096)
+      const offsetX = -sub.sx * size
+      const offsetY = -sub.sy * size
+
+      const context = {
+        // Later style layers are placed first, as in the style spec: the
+        // layer drawn on top wins the space.
+        rank: symbolLayers.length - 1 - index,
+        next: () => order++,
+        toTile: (ex: number, ey: number) => ({ x: ex * scale + offsetX, y: ey * scale + offsetY }),
+        // Quantised world position, so the same label from tiles of different
+        // zoom levels lands on the same key.
+        spot: (x: number, y: number, bits: number) => {
+          const cells = 2 ** bits
+          const u = Math.round(((coords.x * size + x) / worldSize) * cells)
+          const w = Math.round(((coords.y * size + y) / worldSize) * cells)
+          return `${u},${w}`
+        },
+      }
+
+      for (let i = 0; i < mvtLayer.length; i++) {
+        const feature = mvtLayer.feature(i)
+        if (!filterPasses(styleLayer, feature, coords.z, coords))
+          continue
+
+        let featureState: Record<string, unknown> | undefined
+        if (lookup && feature.id !== undefined)
+          featureState = lookup(sourceId, styleLayer.sourceLayer, feature.id as number | string)
+
+        buildSymbolCandidates(
+          list,
+          feature.loadGeometry(),
+          styleLayer,
+          feature,
+          coords.z,
+          featureState,
+          glyphAtlas,
+          this._iconAtlas,
+          context,
+          provider,
+        )
+      }
+    })
+
+    entry.labels = { version: this._labelVersion, list }
+    return list
+  }
+
+  /**
+   * Place and draw every label on screen for this frame, in one pass over
+   * every tile currently held.
    *
    * One pass means one collision index covering the whole viewport, so a label
    * competes with its neighbours regardless of which tile either came from.
+   * Returns true while labels are still fading, so the overlay keeps drawing
+   * after the camera stops.
    */
-  _drawSymbols(ctx: CanvasRenderingContext2D, collision: CollisionIndex): void {
+  // The collision index argument is kept for callers of the old signature;
+  // placement now owns its own, one per frame.
+  // eslint-disable-next-line unused-imports/no-unused-vars
+  _drawSymbols(ctx: CanvasRenderingContext2D, collision?: CollisionIndex): boolean {
     const map = this._map
     if (!map)
-      return
+      return false
 
     const mapZoom = map.getZoom?.() ?? 0
-    const sourceId = this._sourceId ?? ''
-    const lookup = this._featureStateLookup
-    const size = this.getTileSize().x
+    const symbolLayers = this._styleLayers.filter(styleLayer =>
+      styleLayer.type === 'symbol'
+      && styleLayer.layout?.visibility !== 'none',
+    )
+    if (!symbolLayers.length)
+      return false
 
-    for (const styleLayer of this._styleLayers) {
-      if (styleLayer.type !== 'symbol')
+    // A layer's zoom range is checked against the live zoom, so it fades in
+    // and out at the right moment of a zoom rather than at the next tile.
+    const active = new Set(symbolLayers.filter(l =>
+      !(l.minzoom !== undefined && mapZoom < l.minzoom)
+      && !(l.maxzoom !== undefined && mapZoom > l.maxzoom),
+    ).map(l => l.id))
+
+    // Resolving a freshly loaded tile's labels is the one expensive step
+    // left, and a zoom across a level boundary can land a dozen tiles at
+    // once. Spread them over frames rather than stall one; tiles not yet
+    // resolved keep their stand-ins (see `_labelEntries`).
+    const started = now()
+    let pending = false
+
+    const groups: LabelGroup[] = []
+    for (const entry of this._labelEntries()) {
+      const fresh = entry.labels?.version === this._labelVersion
+      if (!fresh && now() - started > 8) {
+        pending = true
         continue
-      if (styleLayer.layout?.visibility === 'none')
-        continue
-      if (styleLayer.minzoom !== undefined && mapZoom < styleLayer.minzoom)
-        continue
-      if (styleLayer.maxzoom !== undefined && mapZoom > styleLayer.maxzoom)
-        continue
-
-      for (const entry of this._decodedTiles.values()) {
-        const tile = entry.tile
-        if (!tile)
-          continue
-
-        const mvtLayer = tile.layers[styleLayer.sourceLayer]
-        if (!mvtLayer)
-          continue
-
-        const coords = entry.coords
-        const sub = this._subTile(coords)
-        // Extent coordinates cover `f` tiles' worth of pixels once overzoomed,
-        // and this tile shows one of them.
-        const scale = (size * sub.f) / (mvtLayer.extent || 4096)
-        const offsetX = -sub.sx * size
-        const offsetY = -sub.sy * size
-
-        const project = (ex: number, ey: number): { x: number, y: number } | null =>
-          this._projectTilePoint(coords, ex * scale + offsetX, ey * scale + offsetY)
-
-        for (let i = 0; i < mvtLayer.length; i++) {
-          const feature = mvtLayer.feature(i)
-          if (!filterPasses(styleLayer, feature, mapZoom, coords))
-            continue
-
-          let featureState: Record<string, unknown> | undefined
-          if (lookup && feature.id !== undefined)
-            featureState = lookup(sourceId, styleLayer.sourceLayer, feature.id as number | string)
-
-          drawSymbol(
-            ctx,
-            feature.loadGeometry(),
-            styleLayer,
-            feature,
-            mapZoom,
-            featureState,
-            this.getGlyphAtlas(),
-            this._iconAtlas,
-            collision,
-            project,
-            this._glyphProvider(),
-          )
-        }
       }
+      const labels = this._labelsFor(entry, symbolLayers)
+      if (!labels.length)
+        continue
+      const project = this._tileProjector(entry.coords)
+      if (!project)
+        continue
+      groups.push({
+        labels: active.size === symbolLayers.length ? labels : labels.filter(l => active.has(l.layer)),
+        project,
+      })
     }
+
+    const size = map.getSize?.()
+    const ratio = this._symbolOverlay?._ratio ?? 1
+    this._labelPlacer ??= new LabelPlacer()
+    const fading = this._labelPlacer.drawFrame(ctx, groups, {
+      width: size?.x ?? 0,
+      height: size?.y ?? 0,
+      ratio,
+      now: now(),
+      snap: !this._cameraMoving,
+    })
+    return fading || pending
   }
 
   _drawLocalTile(
@@ -944,7 +1145,7 @@ export class VectorTileMapLayer extends GridLayer {
       isFontAvailable: (stack: string | string[] | undefined) => map.isFontAvailable?.(stack) ?? true,
       // A range arriving is the moment the labels waiting on it can be drawn,
       // and nothing else will prompt a redraw.
-      onLoad: () => this._refreshSymbols(),
+      onLoad: () => this._invalidateLabels(),
     })
     this._glyphs = { source, provider }
     return provider
@@ -1594,11 +1795,97 @@ function coerceString(v: unknown): string {
   return ''
 }
 
-/** Extent coordinates to where they currently are on screen. */
-type ProjectPoint = (x: number, y: number) => { x: number, y: number } | null
+/** Milliseconds, from the best clock available. */
+function now(): number {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now()
+}
 
-function drawSymbol(
-  ctx: CanvasRenderingContext2D,
+/** Whether two tiles, possibly of different zoom levels, cover any of the same ground. */
+function tilesOverlap(a: { x: number, y: number, z: number }, b: { x: number, y: number, z: number }): boolean {
+  const z = Math.max(a.z, b.z)
+  const sa = 2 ** (z - a.z)
+  const sb = 2 ** (z - b.z)
+  return a.x * sa < (b.x + 1) * sb && b.x * sb < (a.x + 1) * sa
+    && a.y * sa < (b.y + 1) * sb && b.y * sb < (a.y + 1) * sa
+}
+
+/** Extent coordinates to the tile's own pixels. */
+type ToTile = (x: number, y: number) => { x: number, y: number }
+
+interface CandidateContext {
+  /** Placement order of this style layer; 0 is placed first. */
+  rank: number
+  /** Next tie-breaking index. */
+  next: () => number
+  /** A position key that is the same for the same spot whichever tile it came from. */
+  spot: (x: number, y: number, cell: number) => string
+  toTile: ToTile
+}
+
+/** `text-transform`, applied before anything is measured. */
+function transformText(text: string, transform: unknown): string {
+  if (transform === 'uppercase')
+    return text.toLocaleUpperCase()
+  if (transform === 'lowercase')
+    return text.toLocaleLowerCase()
+  return text
+}
+
+/**
+ * Break a label into lines no wider than `maxWidth`, as `text-max-width` asks.
+ *
+ * Greedy, then balanced: a greedy break of "Santa Monica Municipal Airport"
+ * leaves one word dangling on the last line, which is the look every good map
+ * avoids. Shrinking the width until the line count would change evens them
+ * out.
+ */
+function wrapText(text: string, maxWidth: number, measure: (s: string) => number): string[] {
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length < 2 || maxWidth <= 0 || measure(text) <= maxWidth)
+    return [text]
+
+  const greedy = (limit: number): string[] => {
+    const lines: string[] = []
+    let line = ''
+    for (const word of words) {
+      const next = line ? `${line} ${word}` : word
+      if (line && measure(next) > limit) {
+        lines.push(line)
+        line = word
+      }
+      else {
+        line = next
+      }
+    }
+    if (line)
+      lines.push(line)
+    return lines
+  }
+
+  let best = greedy(maxWidth)
+  const count = best.length
+  let limit = Math.max(...best.map(measure))
+  for (let i = 0; i < 8; i++) {
+    const tighter = greedy(limit * 0.92)
+    if (tighter.length !== count)
+      break
+    best = tighter
+    limit = Math.max(...tighter.map(measure))
+  }
+  return best
+}
+
+/**
+ * Resolve one feature into the labels it could show, independent of where the
+ * camera is.
+ *
+ * Everything expensive and camera-independent — expressions, text shaping,
+ * measurement, collision boxes — happens here, once per tile. What is left
+ * for each frame is projection, collision and a sprite blit, which is what
+ * lets labels be placed every frame instead of only when the map is at rest.
+ */
+function buildSymbolCandidates(
+  out: LabelCandidate[],
   rings: Point[][],
   styleLayer: VectorTileStyleLayer,
   feature: DecodedFeature,
@@ -1606,8 +1893,7 @@ function drawSymbol(
   featureState: Record<string, unknown> | undefined,
   glyphAtlas: GlyphAtlas,
   iconAtlas: IconAtlas | undefined,
-  collision: CollisionIndex,
-  project: ProjectPoint,
+  context: CandidateContext,
   glyphProvider?: GlyphProvider,
 ): void {
   if (rings.length === 0 || rings[0].length === 0)
@@ -1615,98 +1901,129 @@ function drawSymbol(
 
   const layout = styleLayer.layout
   const paint = styleLayer.paint
+  const resolve = (value: unknown): unknown => resolveLayoutExpression(value, zoom, feature, featureState)
 
-  // Everything below is resolved once per feature: text-field and friends are
-  // data-driven, but not position-driven, so re-evaluating them per anchor
-  // would only repeat work.
-  const rawText = resolveLayoutExpression(layout?.['text-field'], zoom, feature, featureState)
   // A `format` expression with per-section styling has to stay structured all
   // the way here; one whose sections are all plain is just a string and takes
   // the cheaper path.
+  const rawText = resolve(layout?.['text-field'])
   const formatted = isFormatted(rawText) && !isUniform(rawText.sections) ? rawText : null
-  const text = formatted ? formatted.toString() : coerceString(isFormatted(rawText) ? rawText.toString() : rawText)
-  const textSize = (resolveLayoutExpression(layout?.['text-size'], zoom, feature, featureState) as number | undefined) ?? 16
-  // `text-font` was declared and then ignored, so a style asking for its own
-  // typeface silently got the system stack. The name carries weight and slant
-  // ("Noto Sans Bold Italic"), which a browser wants applied separately.
+  const textTransform = resolve(layout?.['text-transform'])
+  const text = formatted
+    ? formatted.toString()
+    : transformText(coerceString(isFormatted(rawText) ? rawText.toString() : rawText), textTransform)
+  const textSize = (resolve(layout?.['text-size']) as number | undefined) ?? 16
+  // The name carries weight and slant ("Noto Sans Bold Italic"), which a
+  // browser wants applied separately.
   const font = glyphAtlas.resolveFont(layout?.['text-font'])
-  const italic = font.italic || !!resolveLayoutExpression(layout?.['text-italic'], zoom, feature, featureState)
-  const bold = font.bold || !!resolveLayoutExpression(layout?.['text-bold'], zoom, feature, featureState)
+  const italic = font.italic || !!resolve(layout?.['text-italic'])
+  const bold = font.bold || !!resolve(layout?.['text-bold'])
 
-  const textColor = (resolveLayoutExpression(paint?.['text-color'], zoom, feature, featureState) as string | undefined) ?? '#000'
-  const haloColor = resolveLayoutExpression(paint?.['text-halo-color'], zoom, feature, featureState) as string | undefined
-  const haloWidth = resolveLayoutExpression(paint?.['text-halo-width'], zoom, feature, featureState) as number | undefined
+  const textColor = (resolve(paint?.['text-color']) as string | undefined) ?? '#000'
+  const haloColor = resolve(paint?.['text-halo-color']) as string | undefined
+  const haloWidth = resolve(paint?.['text-halo-width']) as number | undefined
+  const textOpacity = resolve(paint?.['text-opacity']) as number | undefined
 
-  const iconId = coerceString(resolveLayoutExpression(layout?.['icon-image'], zoom, feature, featureState))
-  const iconSize = resolveLayoutExpression(layout?.['icon-size'], zoom, feature, featureState) as number | undefined
-  const iconRotate = resolveLayoutExpression(layout?.['icon-rotate'], zoom, feature, featureState) as number | undefined
+  const iconId = coerceString(resolve(layout?.['icon-image']))
+  const iconSize = resolve(layout?.['icon-size']) as number | undefined
+  const iconRotate = resolve(layout?.['icon-rotate']) as number | undefined
   const iconEntry = iconId && iconAtlas ? iconAtlas.get(iconId) : undefined
-  const iconOpacity = resolveLayoutExpression(paint?.['icon-opacity'], zoom, feature, featureState) as number | undefined
-  // Only meaningful for SDF entries, and only resolved for them: a data-driven
-  // `icon-color` over a picture sheet would be evaluated per feature for
-  // nothing.
-  const iconColor = iconEntry?.sdf
-    ? (resolveLayoutExpression(paint?.['icon-color'], zoom, feature, featureState) as string | undefined) ?? '#000000'
-    : undefined
-  const iconHaloColor = iconEntry?.sdf
-    ? resolveLayoutExpression(paint?.['icon-halo-color'], zoom, feature, featureState) as string | undefined
-    : undefined
-  const iconHaloWidth = iconEntry?.sdf
-    ? resolveLayoutExpression(paint?.['icon-halo-width'], zoom, feature, featureState) as number | undefined
-    : undefined
+  const iconOpacity = resolve(paint?.['icon-opacity']) as number | undefined
+  // Only meaningful for SDF entries, and only resolved for them.
+  const iconColor = iconEntry?.sdf ? (resolve(paint?.['icon-color']) as string | undefined) ?? '#000000' : undefined
+  const iconHaloColor = iconEntry?.sdf ? resolve(paint?.['icon-halo-color']) as string | undefined : undefined
+  const iconHaloWidth = iconEntry?.sdf ? resolve(paint?.['icon-halo-width']) as number | undefined : undefined
 
-  // `symbol-sort-key` is the style-spec name; `symbol-priority` predates it
-  // here and is kept working.
-  const priority = (resolveLayoutExpression(layout?.['symbol-sort-key'], zoom, feature, featureState) as number | undefined)
-    ?? layout?.['symbol-priority']
+  // `symbol-sort-key` is the style-spec name, lower placed first. The older
+  // `symbol-priority` ran the other way — higher wins — and is kept working by
+  // flipping it.
+  const sortKeyValue = resolve(layout?.['symbol-sort-key'])
+  const legacyPriority = layout?.['symbol-priority']
+  const sortKey = typeof sortKeyValue === 'number'
+    ? sortKeyValue
+    : typeof legacyPriority === 'number' ? -legacyPriority : 0
 
   // The escape hatches from collision. `allow-overlap` draws regardless of
-  // what is already there — the way you pin a selected feature's label down.
-  // `ignore-placement` draws normally but reserves nothing, so it does not
-  // push anything else off the map. Both were in the schema and honoured
-  // nowhere, which left no way to force a label through at all.
-  const allowOverlap = !!(resolveLayoutExpression(layout?.['text-allow-overlap'], zoom, feature, featureState)
-    ?? resolveLayoutExpression(layout?.['icon-allow-overlap'], zoom, feature, featureState))
-  const ignorePlacement = !!(resolveLayoutExpression(layout?.['text-ignore-placement'], zoom, feature, featureState)
-    ?? resolveLayoutExpression(layout?.['icon-ignore-placement'], zoom, feature, featureState))
+  // what is already there; `ignore-placement` draws normally but reserves
+  // nothing, so it pushes nothing else off the map.
+  const allowOverlap = !!(resolve(layout?.['text-allow-overlap']) ?? resolve(layout?.['icon-allow-overlap']))
+  const ignorePlacement = !!(resolve(layout?.['text-ignore-placement']) ?? resolve(layout?.['icon-ignore-placement']))
+  const padding = (resolve(layout?.['text-padding']) as number | undefined) ?? 2
 
-  /** Claim space unless told not to; report whether the symbol may draw. */
-  const place = (box: { minX: number, minY: number, maxX: number, maxY: number }): boolean => {
-    if (allowOverlap) {
-      if (!ignorePlacement)
-        collision.insert({ ...box, priority })
-      return true
-    }
-    if (ignorePlacement)
-      return !collision.hits({ ...box, priority })
-    return collision.tryInsert({ ...box, priority })
-  }
-
-  /*
-   * Tracking, in ems per the style spec, converted to the pixels the canvas
-   * wants. It rides on `textStyle` as well as the draw options because the
-   * measurement decides the collision box: measured without it, a tracked
-   * label claims less room than it takes and the placer lets a neighbour sit
-   * on top of it.
-   */
-  const letterSpacing = ((resolveLayoutExpression(layout?.['text-letter-spacing'], zoom, feature, featureState) as number | undefined) ?? 0) * textSize
+  // Tracking, in ems per the style spec, converted to pixels. It rides on
+  // `textStyle` as well as the draw options because the measurement decides
+  // the collision box.
+  const letterSpacing = ((resolve(layout?.['text-letter-spacing']) as number | undefined) ?? 0) * textSize
 
   const textStyle = { italic, bold, family: font.family, letterSpacing }
   const drawOptions = { color: textColor, haloColor, haloWidth, size: textSize, italic, bold, family: font.family, letterSpacing }
+  const bleed = Math.ceil((haloWidth ?? 0) + 2)
+  const alpha = typeof textOpacity === 'number' ? Math.max(0, Math.min(1, textOpacity)) : 1
+
+  const base = {
+    layer: styleLayer.id,
+    rank: context.rank,
+    sortKey,
+    allowOverlap,
+    ignorePlacement,
+    padding,
+    bleed,
+  }
 
   const placeAlongLine = layout?.['symbol-placement'] === 'line' || layout?.['symbol-placement'] === 'line-center'
 
   if (placeAlongLine && text && feature.type !== 1) {
-    drawLineLabel(ctx, rings, project, {
-      text,
-      textSize,
-      textStyle,
-      drawOptions,
-      maxAngle: (resolveLayoutExpression(layout?.['text-max-angle'], zoom, feature, featureState) as number | undefined) ?? 45,
-      spacing: (resolveLayoutExpression(layout?.['symbol-spacing'], zoom, feature, featureState) as number | undefined) ?? 250,
-      centreOnly: layout?.['symbol-placement'] === 'line-center',
-      place,
-    }, glyphAtlas)
+    const advances = glyphAtlas.advances(text, textSize, textStyle)
+    if (!advances.length)
+      return
+    const widths = advances.map(a => a.advance)
+    const labelWidth = widths.reduce((sum, w) => sum + w, 0)
+    if (labelWidth <= 0)
+      return
+    const height = glyphAtlas.measureText(text, textSize, textStyle).height
+    const spacing = (resolve(layout?.['symbol-spacing']) as number | undefined) ?? 250
+    const maxAngle = (resolve(layout?.['text-max-angle']) as number | undefined) ?? 45
+    const centreOnly = layout?.['symbol-placement'] === 'line-center'
+    const signature = `${styleLayer.id}\u0000${textSize}\u0000${font.family ?? ''}\u0000${italic}${bold}\u0000${textColor}\u0000${haloColor ?? ''}\u0000${haloWidth ?? 0}\u0000${letterSpacing}\u0000${alpha}`
+
+    for (const ring of rings) {
+      if (ring.length < 2)
+        continue
+      const line = ring.map(pt => context.toTile(pt.x, pt.y))
+      const length = lineLength(line)
+      const starts = centreOnly
+        ? (length >= labelWidth ? [(length - labelWidth) / 2] : [])
+        : repeatDistances(length, labelWidth, spacing)
+
+      for (const start of starts) {
+        const anchor = start + labelWidth / 2
+        const at = pointAtDistance(line, anchor)
+        if (!at)
+          continue
+        out.push({
+          ...base,
+          kind: 'line',
+          key: `${styleLayer.id}\u0000${text}\u0000${context.spot(at.x, at.y, 18)}`,
+          order: context.next(),
+          line,
+          anchor,
+          text,
+          repeatDistance: Math.max(labelWidth * 1.5, spacing * 0.75),
+          chars: advances.map(a => a.char),
+          advances: widths,
+          width: labelWidth,
+          height,
+          maxAngle,
+          signature,
+          // Baseline a little below the line so the text rides on it rather
+          // than being bisected by it.
+          paintGlyph: (ctx, char) => {
+            ctx.globalAlpha = alpha
+            glyphAtlas.drawText(ctx, char, 0, height * 0.35, drawOptions)
+          },
+        })
+      }
+    }
     return
   }
 
@@ -1714,231 +2031,132 @@ function drawSymbol(
   if (feature.type !== 1)
     return
 
-  const anchor = ((resolveLayoutExpression(layout?.['text-anchor'], zoom, feature, featureState) as TextAnchor | undefined) ?? 'center')
-  const offset = offsetPixels(resolveLayoutExpression(layout?.['text-offset'], zoom, feature, featureState), textSize)
-  const rotateDeg = (resolveLayoutExpression(layout?.['text-rotate'], zoom, feature, featureState) as number | undefined) ?? 0
+  const anchor = ((resolve(layout?.['text-anchor']) as TextAnchor | undefined) ?? 'center')
+  const offset = offsetPixels(resolve(layout?.['text-offset']), textSize)
+  const rotateDeg = (resolve(layout?.['text-rotate']) as number | undefined) ?? 0
   const rotate = (rotateDeg * Math.PI) / 180
 
-  // Measured at the size it will be drawn at, by the same engine that draws
-  // it — so the collision box matches the ink rather than approximating it.
-  // A style may name a typeface the viewer does not have, which is the one
-  // thing system fonts cannot answer. Where that happens and the style
-  // published a glyph server, the label is drawn from its distance fields
-  // instead — or skipped this pass while they load, since a label a frame
-  // late beats one in the wrong face.
-  const serverGlyphs = text && !formatted && glyphProvider?.needsServer(layout?.['text-font'])
-    ? glyphProvider.glyphs(layout?.['text-font'], text)
-    : null
-  const awaitingGlyphs = text
-    && !formatted
-    && !!glyphProvider?.needsServer(layout?.['text-font'])
-    && serverGlyphs === null
+  // A style may name a typeface the viewer does not have. Where that happens
+  // and the style published a glyph server, the label is drawn from its
+  // distance fields instead — or skipped while they load, since a label a
+  // moment late beats one in the wrong face. The provider rebuilds the
+  // candidates when the range arrives.
+  const needsServer = !!text && !formatted && !!glyphProvider?.needsServer(layout?.['text-font'])
+  const serverGlyphs = needsServer ? glyphProvider!.glyphs(layout?.['text-font'], text) : null
+  if (needsServer && serverGlyphs === null)
+    return
 
-  const metrics = text && !awaitingGlyphs
-    ? (serverGlyphs
-        ? measureGlyphs(serverGlyphs, textSize)
-        : formatted
-          ? measureSections(glyphAtlas, formatted.sections, { ...drawOptions, color: textColor })
-          : glyphAtlas.measureText(text, textSize, textStyle))
-    : null
-  const textWidth = metrics ? metrics.width : 0
-  const textHeight = metrics ? metrics.height : 0
+  // Plain text wraps at `text-max-width` ems; the other two paths draw a
+  // single run.
+  const maxWidthEm = (resolve(layout?.['text-max-width']) as number | undefined) ?? 10
+  const lines = text && !formatted && !serverGlyphs
+    ? wrapText(text, maxWidthEm * textSize, s => glyphAtlas.measureText(s, textSize, textStyle).width)
+    : [text]
 
-  for (const ring of rings) {
-    for (const pt of ring) {
-      if (!text && !iconEntry)
-        continue
-
-      // Screen space throughout: the canvas is the viewport, so placement and
-      // drawing share one coordinate system and the bearing is already in it.
-      const at = project(pt.x, pt.y)
-      if (!at)
-        continue
-      const anchorX = at.x
-      const anchorY = at.y
-
-      let minX = anchorX
-      let minY = anchorY
-      let maxX = anchorX
-      let maxY = anchorY
-
-      // Top-left of the text box, after anchoring and offsetting.
-      let textX = 0
-      let textY = 0
-
-      if (metrics) {
-        const shift = anchorOffset(anchor, textWidth, textHeight)
-        textX = anchorX + shift.x + offset.x
-        textY = anchorY + shift.y + offset.y
-
-        const bounds = rotate === 0
-          ? { minX: textX, minY: textY, maxX: textX + textWidth, maxY: textY + textHeight }
-          : rotatedBounds(textX, textY, textWidth, textHeight, rotate, anchorX, anchorY)
-
-        minX = Math.min(minX, bounds.minX)
-        minY = Math.min(minY, bounds.minY)
-        maxX = Math.max(maxX, bounds.maxX)
-        maxY = Math.max(maxY, bounds.maxY)
-      }
-
-      if (iconEntry) {
-        const target = iconSize ?? iconEntry.width
-        const ix = anchorX - target / 2
-        const iy = anchorY - target / 2
-        minX = Math.min(minX, ix)
-        minY = Math.min(minY, iy)
-        maxX = Math.max(maxX, ix + target)
-        maxY = Math.max(maxY, iy + target)
-      }
-
-      if (!place({ minX, minY, maxX, maxY }))
-        continue
-
-      // Icon first, then text on top.
-      if (iconEntry && iconAtlas) {
-        iconAtlas.drawIcon(ctx, iconId, anchorX, anchorY, {
-          size: iconSize ?? iconEntry.width,
-          rotation: iconRotate,
-          color: iconColor,
-          opacity: iconOpacity,
-          haloColor: iconHaloColor,
-          haloWidth: iconHaloWidth,
-        })
-      }
-
-      if (text && metrics) {
-        const localX = textX
-        const localY = textY
-        // drawText takes a baseline, not a box top: sit it an ascent below.
-        const baselineY = localY + (metrics?.ascent ?? textHeight)
-
-        const paintText = (): void => {
-          if (serverGlyphs)
-            drawGlyphs(ctx, serverGlyphs, localX, baselineY, drawOptions, glyphProvider?.cache)
-          else if (formatted)
-            drawSections(ctx, glyphAtlas, formatted.sections, localX, baselineY, drawOptions)
-          else
-            glyphAtlas.drawText(ctx, text, localX, baselineY, drawOptions)
-        }
-
-        if (rotate === 0) {
-          paintText()
-        }
-        else {
-          ctx.save()
-          ctx.translate(anchorX, anchorY)
-          ctx.rotate(rotate)
-          ctx.translate(-anchorX, -anchorY)
-          paintText()
-          ctx.restore()
-        }
+  let textWidth = 0
+  let textHeight = 0
+  let ascent = 0
+  const lineWidths: number[] = []
+  const lineHeight = textSize * 1.2
+  if (text) {
+    if (serverGlyphs) {
+      const m = measureGlyphs(serverGlyphs, textSize)
+      textWidth = m.width
+      textHeight = m.height
+      ascent = m.ascent ?? m.height
+    }
+    else if (formatted) {
+      const m = measureSections(glyphAtlas, formatted.sections, { ...drawOptions, color: textColor })
+      textWidth = m.width
+      textHeight = m.height
+      ascent = m.ascent ?? m.height
+    }
+    else {
+      for (const line of lines) {
+        const m = glyphAtlas.measureText(line, textSize, textStyle)
+        lineWidths.push(m.width)
+        textWidth = Math.max(textWidth, m.width)
+        ascent = m.ascent
+        textHeight = m.height + (lines.length - 1) * lineHeight
       }
     }
   }
-}
 
-interface LineLabelOptions {
-  text: string
-  textSize: number
-  textStyle: { italic: boolean, bold: boolean, family?: string, letterSpacing?: number }
-  drawOptions: {
-    color: string
-    haloColor?: string
-    haloWidth?: number
-    size: number
-    italic?: boolean
-    bold?: boolean
-    family?: string
+  // Lines line up on the side the label hangs from, as `text-justify: auto`.
+  const justify = anchor.includes('left') ? 0 : anchor.includes('right') ? 1 : 0.5
+
+  // Top-left of the text box relative to the anchor, after anchoring and
+  // offsetting.
+  const shift = anchorOffset(anchor, textWidth, textHeight)
+  const textX = shift.x + offset.x
+  const textY = shift.y + offset.y
+
+  let box = { minX: 0, minY: 0, maxX: 0, maxY: 0 }
+  if (text && textWidth > 0) {
+    const bounds = rotate === 0
+      ? { minX: textX, minY: textY, maxX: textX + textWidth, maxY: textY + textHeight }
+      : rotatedBounds(textX, textY, textWidth, textHeight, rotate, 0, 0)
+    box = { ...bounds }
   }
-  maxAngle: number
-  spacing: number
-  centreOnly: boolean
-  /** Claim space and report whether this label may draw. */
-  place: (box: { minX: number, minY: number, maxX: number, maxY: number }) => boolean
-}
-
-/**
- * Draw a label that follows its line — the angled street names every road map
- * has, which point placement cannot produce.
- *
- * Each glyph is drawn separately, rotated to the tangent at its own position,
- * because a single rotated run would only be correct on a straight segment.
- */
-function drawLineLabel(
-  ctx: CanvasRenderingContext2D,
-  rings: Point[][],
-  project: ProjectPoint,
-  options: LineLabelOptions,
-  glyphAtlas: GlyphAtlas,
-): void {
-  const advances = glyphAtlas.advances(options.text, options.textSize, options.textStyle)
-  if (!advances.length)
+  if (iconEntry) {
+    const target = iconSize ?? iconEntry.width
+    box.minX = Math.min(box.minX, -target / 2)
+    box.minY = Math.min(box.minY, -target / 2)
+    box.maxX = Math.max(box.maxX, target / 2)
+    box.maxY = Math.max(box.maxY, target / 2)
+  }
+  if (!text && !iconEntry)
     return
 
-  const widths = advances.map(a => a.advance)
-  const labelWidth = widths.reduce((sum, w) => sum + w, 0)
-  if (labelWidth <= 0)
-    return
-
-  // The label's own height, for the collision box it reserves.
-  const height = glyphAtlas.measureText(options.text, options.textSize, options.textStyle).height
-
-  for (const ring of rings) {
-    if (ring.length < 2)
-      continue
-
-    // Projected to the screen first, so the label follows the road as it
-    // appears now — including when the map is rotated — rather than as the
-    // tile happened to store it.
-    const line: Array<{ x: number, y: number }> = []
-    for (const pt of ring) {
-      const at = project(pt.x, pt.y)
-      if (at)
-        line.push(at)
-    }
-    if (line.length < 2)
-      continue
-
-    const length = lineLength(line)
-    const starts = options.centreOnly
-      ? (length >= labelWidth ? [(length - labelWidth) / 2] : [])
-      : repeatDistances(length, labelWidth, options.spacing)
-
-    for (const start of starts) {
-      const glyphs = placeGlyphsAlongLine(line, {
-        advances: widths,
-        start,
-        maxAngle: options.maxAngle,
+  const paintLabel = (ctx: CanvasRenderingContext2D): void => {
+    // Icon first, then text on top.
+    if (iconEntry && iconAtlas) {
+      iconAtlas.drawIcon(ctx, iconId, 0, 0, {
+        size: iconSize ?? iconEntry.width,
+        rotation: iconRotate,
+        color: iconColor,
+        opacity: iconOpacity,
+        haloColor: iconHaloColor,
+        haloWidth: iconHaloWidth,
       })
-      if (!glyphs)
-        continue
+    }
+    if (!text || textWidth <= 0)
+      return
 
-      // One box for the whole label: reserving per glyph would let another
-      // label thread through the gaps between characters.
-      let minX = Infinity
-      let minY = Infinity
-      let maxX = -Infinity
-      let maxY = -Infinity
-      for (const glyph of glyphs) {
-        const bounds = rotatedBounds(glyph.x, glyph.y - height / 2, widths[glyph.index]!, height, glyph.angle, glyph.x, glyph.y)
-        if (bounds.minX < minX) minX = bounds.minX
-        if (bounds.minY < minY) minY = bounds.minY
-        if (bounds.maxX > maxX) maxX = bounds.maxX
-        if (bounds.maxY > maxY) maxY = bounds.maxY
-      }
+    ctx.save()
+    ctx.globalAlpha = alpha
+    if (rotate !== 0)
+      ctx.rotate(rotate)
+    // drawText takes a baseline, not a box top: sit it an ascent below.
+    const baselineY = textY + ascent
+    if (serverGlyphs)
+      drawGlyphs(ctx, serverGlyphs, textX, baselineY, drawOptions, glyphProvider?.cache)
+    else if (formatted)
+      drawSections(ctx, glyphAtlas, formatted.sections, textX, baselineY, drawOptions)
+    else
+      lines.forEach((line, i) => glyphAtlas.drawText(ctx, line, textX + (textWidth - lineWidths[i]!) * justify, baselineY + i * lineHeight, drawOptions))
+    ctx.restore()
+  }
 
-      if (!options.place({ minX, minY, maxX, maxY }))
-        continue
+  const signature = formatted
+    ? '' // Formatted runs are rare enough to rasterise per label.
+    : `${styleLayer.id}\u0000${lines.join('\n')}\u0000${iconId}\u0000${textSize}\u0000${font.family ?? ''}\u0000${italic}${bold}\u0000${textColor}\u0000${haloColor ?? ''}\u0000${haloWidth ?? 0}\u0000${anchor}\u0000${offset.x},${offset.y}\u0000${rotateDeg}\u0000${iconSize ?? ''}\u0000${iconColor ?? ''}\u0000${iconOpacity ?? ''}\u0000${letterSpacing}\u0000${alpha}`
 
-      for (const glyph of glyphs) {
-        ctx.save()
-        ctx.translate(glyph.x, glyph.y)
-        ctx.rotate(glyph.angle)
-        // Baseline sits a little below the line so the text rides on it
-        // rather than being bisected by it.
-        glyphAtlas.drawText(ctx, advances[glyph.index]!.char, 0, height * 0.35, options.drawOptions)
-        ctx.restore()
-      }
+  for (const ring of rings) {
+    for (const pt of ring) {
+      const at = context.toTile(pt.x, pt.y)
+      const key = `${styleLayer.id}\u0000${text}\u0000${iconId}\u0000${context.spot(at.x, at.y, 21)}`
+      out.push({
+        ...base,
+        kind: 'point',
+        key,
+        order: context.next(),
+        x: at.x,
+        y: at.y,
+        box,
+        paint: paintLabel,
+        signature: signature || key,
+      })
     }
   }
 }

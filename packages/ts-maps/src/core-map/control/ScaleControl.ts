@@ -4,6 +4,7 @@ import { Control } from './Control'
 export class ScaleControl extends Control {
   declare _mScale?: HTMLElement
   declare _iScale?: HTMLElement
+  declare _hideTimer?: ReturnType<typeof setTimeout>
 
   onAdd(map: any): HTMLElement {
     const className = 'tsmap-control-scale'
@@ -14,11 +15,33 @@ export class ScaleControl extends Control {
 
     map.on(options.updateWhenIdle ? 'moveend' : 'move', this._update, this)
     map.whenReady(this._update, this)
+
+    // `transient`: shown only while the zoom is changing, then faded out —
+    // the scale is there when you are judging distance and gone when you are
+    // reading the map, as in Apple Maps.
+    if (options.transient) {
+      container.classList.add('tsmap-control-scale-transient')
+      map.on('zoomstart zoom', this._reveal, this)
+      map.on('zoomend', this._scheduleHide, this)
+    }
     return container
   }
 
   onRemove(map: any): void {
     map.off(this.options!.updateWhenIdle ? 'moveend' : 'move', this._update, this)
+    map.off('zoomstart zoom', this._reveal, this)
+    map.off('zoomend', this._scheduleHide, this)
+    clearTimeout(this._hideTimer)
+  }
+
+  _reveal(): void {
+    clearTimeout(this._hideTimer)
+    this._container?.classList.add('tsmap-visible')
+  }
+
+  _scheduleHide(): void {
+    clearTimeout(this._hideTimer)
+    this._hideTimer = setTimeout(() => this._container?.classList.remove('tsmap-visible'), this.options!.transientDelay ?? 1200)
   }
 
   _addScales(options: any, className: string, container: HTMLElement): void {
@@ -83,4 +106,7 @@ ScaleControl.setDefaultOptions( {
   metric: true,
   imperial: true,
   updateWhenIdle: false,
+  /** Show only while zooming, fading out `transientDelay` ms after. */
+  transient: false,
+  transientDelay: 1200,
 })
