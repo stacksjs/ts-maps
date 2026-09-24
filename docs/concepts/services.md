@@ -25,6 +25,11 @@ const results = await geocoder.search('Tower Bridge, London')
 const reverse = await geocoder.reverse({ lat: 51.5055, lng: -0.0754 })
 ```
 
+For Apple Maps–style search — suggestions from the map itself as you type,
+Find Nearby, result pins and place cards — see the
+[search control](./controls.md#search), which merges any provider with what is
+on the map and in downloaded offline maps.
+
 ### Self-hosted place search
 
 The public geocoders are shared services with usage policies — Nominatim's forbids search-as-you-type outright. `ts-maps/gazetteer` runs place search on your own server instead: GeoNames populated places in SQLite with a full-text index, ranked by name match, population and nearness. `cities1000` (every place of 1,000+ people, ~170k) builds in a few seconds into a ~60 MB file and answers in about a millisecond.

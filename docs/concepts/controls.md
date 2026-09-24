@@ -61,7 +61,60 @@ session, and a denied permission cannot be re-requested from script.
 Following stops the moment the user pans or zooms by hand; the dot stays where
 it is. The map fires `locatefound` and `locateerror`.
 
+## Search
+
+Search as in Apple Maps: one "Search Maps" field for places, addresses and
+kinds of place.
+
+```ts
+const nav = turnByTurn(map)
+control.search({ turnByTurn: nav }).addTo(map)
+```
+
+- **Focused and empty:** it offers **Find Nearby** (Restaurants, Coffee, Bars,
+  Groceries, Gas Stations…) and your **Recents**, which are kept in
+  `localStorage`.
+- **As you type:** suggestions appear straight away. Each shows its icon (the
+  same badge the map draws), what kind of place it is, how far away, and its
+  street, e.g. "Café · 0.3 mi · Market Street". The typed part is in bold.
+- **A category, or Enter on a query:** a pin drops for every result and they
+  are listed, nearest first. Move the map, and **Search This Area** runs the
+  search again there.
+- **Choosing a place:** the map flies to it and opens its card: kind, distance,
+  address, coordinates, and **Directions**. Directions previews the route on
+  the `TurnByTurn` you pass, from `origin` (the device's position by default)
+  and calls `onDirections`.
+- **Keyboard:** arrow keys move through the rows, Enter picks, and Escape goes
+  back one step.
+
+Answers come from three places at once, merged so the same café is one result:
+
+- **The map's own vector tiles:** instant, and needs no network.
+- **Downloaded [offline maps](./offline.md).**
+- **An online geocoder:** Photon by default, which is built for
+  search-as-you-type (Nominatim's usage policy forbids autocomplete). Pass
+  `provider: null` to stay off the network. The online geocoder is skipped
+  when the browser is offline or "Only Use Offline Maps" is on.
+
+| Option | Default | |
+| --- | --- | --- |
+| `provider` | Photon | Any `GeocoderProvider`, or `null`. |
+| `offline` | the page's | Downloaded maps to search, or `null`. |
+| `categories` | first eight of `SEARCH_CATEGORIES` | The Find Nearby buttons. |
+| `recents` | `true` | |
+| `units` | from the locale | `'metric'` or `'imperial'`. |
+| `location` | map centre | Where distances are measured from. |
+| `turnByTurn`, `origin`, `onDirections` | — | What Directions does. |
+
+`search.search('coffee')`, `search.searchCategory(category)`,
+`search.select(place)` and `search.cancel()` drive it from code.
+`search.listen((type, e) => …)` hears `results`, `select`, `directions` and
+`clear`. The engine underneath is `SearchEngine`, with `suggest`, `search` and
+`nearby`. Use it on its own to build a search UI of your own.
+
 ## Geocoder
+
+The simpler search box, for a single provider and no more.
 
 A search box over the geocoding providers in `services/`. The default provider
 is Nominatim, which needs no key, so this works out of the box:

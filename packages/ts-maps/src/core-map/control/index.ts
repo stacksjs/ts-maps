@@ -12,4 +12,6 @@ export { formatBytes, nameFromLabels, OFFLINE_MAPS_EVENTS, OfflineMapsControl } 
 export type { OfflineMapsControlOptions, OfflineMapsEvent, OfflineMapsTarget } from './OfflineMapsControl'
 export type { NavigationControlOptions } from './NavigationControl'
 export { ScaleControl } from './ScaleControl'
+export { badge, SEARCH_EVENTS, SearchControl } from './SearchControl'
+export type { SearchControlOptions, SearchEvent } from './SearchControl'
 export { ZoomControl } from './ZoomControl'
