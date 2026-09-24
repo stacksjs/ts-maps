@@ -11,7 +11,7 @@ import { Polyline } from '../layer/vector/Polyline'
 // Routes are vector paths; this installs the renderer lookup they need, so the
 // module works without the rest of the library having been imported first.
 import '../layer/vector/Renderer.getRenderer'
-import { formatDistance, maneuverIcon, parseManeuver, prefersImperial } from '../services/instructions'
+import { formatDistance, laneIcon, maneuverIcon, parseManeuver, prefersImperial } from '../services/instructions'
 import { Navigator } from '../services/navigator'
 import { RouteSimulator } from '../services/simulator'
 import { OSRMDirections } from '../services/providers/OSRM'
@@ -516,7 +516,12 @@ export class TurnByTurn extends Evented {
     const name = p.nextStep?.name
     const road = name ? abbreviated(p.banner, name) : p.banner
     const then = p.thenManeuver ? `<div class="tsmap-nav-then">Then <span class="tsmap-nav-then-icon">${maneuverIcon(p.thenManeuver)}</span></div>` : ''
-    const html = `<div class="tsmap-nav-icon">${icon}</div><div class="tsmap-nav-banner-text"><div class="tsmap-nav-distance">${formatDistance(p.distanceToManeuver, this.options.units)}</div><div class="tsmap-nav-road">${escape(road)}</div></div>${then}`
+    // Apple's lane strip: every lane approaching the maneuver, the ones to be
+    // in bright and the rest dimmed, shown as the maneuver draws near.
+    const lanes = p.lanes
+      ? `<div class="tsmap-nav-lanes" role="img" aria-label="Lane guidance">${p.lanes.map(lane => `<span class="tsmap-nav-lane${lane.valid ? ' tsmap-nav-lane-valid' : ''}">${laneIcon(lane, p.nextManeuver)}</span>`).join('')}</div>`
+      : ''
+    const html = `<div class="tsmap-nav-icon">${icon}</div><div class="tsmap-nav-banner-text"><div class="tsmap-nav-distance">${formatDistance(p.distanceToManeuver, this.options.units)}</div><div class="tsmap-nav-road">${escape(road)}</div></div>${then}${lanes}`
     if (banner.innerHTML !== html)
       banner.innerHTML = html
   }

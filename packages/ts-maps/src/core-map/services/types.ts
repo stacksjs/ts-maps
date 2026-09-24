@@ -34,6 +34,22 @@ export interface GeocoderProvider {
 
 export type TransportProfile = 'driving' | 'walking' | 'cycling'
 
+/**
+ * One lane of the road approaching a maneuver, left to right as the driver
+ * sees them.
+ */
+export interface LaneInfo {
+  /**
+   * The arrows painted on the lane: `'left'`, `'slight right'`, `'straight'`,
+   * `'uturn'`, … `'none'` for an unmarked lane.
+   */
+  indications: string[]
+  /** Whether this lane can be used for the maneuver. */
+  valid: boolean
+  /** Whether it is the lane the provider recommends, where it says. */
+  active?: boolean
+}
+
 export interface RouteStep {
   distance: number // meters
   duration: number // seconds
@@ -44,6 +60,8 @@ export interface RouteStep {
   name?: string
   /** Which exit to take, at a roundabout. */
   exit?: number
+  /** The lanes approaching this step's maneuver, where the provider knows them. */
+  lanes?: LaneInfo[]
 }
 
 export interface Route {

@@ -8,6 +8,8 @@
  * vocabulary, and everything else here works from that.
  */
 
+import type { LaneInfo } from './types'
+
 export type ManeuverKind
   = | 'depart'
     | 'arrive'
@@ -207,13 +209,136 @@ export function spokenDistance(meters: number, units: DistanceUnits): string {
 
 /**
  * What the voice says: "In 400 feet, turn right onto Market Street", or with
- * no distance, the instruction on its own for the moment of the turn.
+ * no distance, the instruction on its own for the moment of the turn. Given
+ * the lanes, and a warning to give, it says which to be in, as Apple Maps
+ * does: "In 400 feet, use the left 2 lanes to turn left onto Broadway".
  */
-export function spokenInstruction(maneuver: Maneuver, name: string | undefined, distance: number | undefined, units: DistanceUnits): string {
+export function spokenInstruction(maneuver: Maneuver, name: string | undefined, distance: number | undefined, units: DistanceUnits, lanes?: LaneInfo[]): string {
   const text = formatInstruction(maneuver, { name })
   if (distance === undefined)
     return text
-  return `In ${spokenDistance(distance, units)}, ${text[0]!.toLowerCase()}${text.slice(1)}`
+  const lower = `${text[0]!.toLowerCase()}${text.slice(1)}`
+  const hint = laneHint(lanes)
+  return hint
+    ? `In ${spokenDistance(distance, units)}, use ${hint} to ${lower}`
+    : `In ${spokenDistance(distance, units)}, ${lower}`
+}
+
+// ---------------------------------------------------------------------------
+// Lanes
+// ---------------------------------------------------------------------------
+
+/** Where each painted lane arrow points, degrees from straight ahead, clockwise. */
+const INDICATION_ANGLES: Record<string, number> = {
+  'sharp left': -135,
+  'left': -90,
+  'slight left': -45,
+  'merge to left': -30,
+  'straight': 0,
+  'none': 0,
+  'merge to right': 30,
+  'slight right': 45,
+  'right': 90,
+  'sharp right': 135,
+  'uturn': -180,
+}
+
+/** Which way a maneuver goes, in the same terms as a lane arrow. */
+export function maneuverAngle(maneuver: Maneuver): number {
+  if (maneuver.kind === 'uturn')
+    return -180
+  if (maneuver.direction === 'straight')
+    return 0
+  const sign = maneuver.direction === 'left' ? -1 : 1
+  if (maneuver.kind === 'turn')
+    return sign * (maneuver.degree === 'slight' ? 45 : maneuver.degree === 'sharp' ? 135 : 90)
+  // Ramps, exits, forks, keeps and merges bear off rather than turn.
+  return sign * 45
+}
+
+/** The arrow on a lane that the maneuver uses: the one pointing closest to it. */
+export function laneIndicationFor(lane: LaneInfo, maneuver: Maneuver): string {
+  const target = maneuverAngle(maneuver)
+  let best = lane.indications[0] ?? 'none'
+  let gap = Infinity
+  for (const indication of lane.indications) {
+    const angle = INDICATION_ANGLES[indication] ?? 0
+    const d = Math.abs(angle - target)
+    if (d < gap) {
+      gap = d
+      best = indication
+    }
+  }
+  return best
+}
+
+/**
+ * Whether lane guidance is worth showing: more than one lane, and a choice to
+ * make between them. Where every lane works, or none is marked usable, there
+ * is nothing to tell the driver.
+ */
+export function lanesMatter(lanes: LaneInfo[] | undefined): boolean {
+  if (!lanes || lanes.length < 2)
+    return false
+  const valid = lanes.filter(l => l.valid).length
+  return valid > 0 && valid < lanes.length
+}
+
+/**
+ * Which lanes to be in, the way a person says it: "the left lane", "the
+ * right 2 lanes", "the middle lane", "the second lane from the left".
+ * Nothing when every lane will do.
+ */
+export function laneHint(lanes: LaneInfo[] | undefined): string | undefined {
+  if (!lanes || !lanesMatter(lanes))
+    return undefined
+  const valid = lanes.map((l, i) => (l.valid ? i : -1)).filter(i => i >= 0)
+  const n = lanes.length
+  const k = valid.length
+  const first = valid[0]!
+  const last = valid[k - 1]!
+  const contiguous = last - first === k - 1
+  if (!contiguous)
+    return undefined
+  if (first === 0)
+    return k === 1 ? 'the left lane' : `the left ${k} lanes`
+  if (last === n - 1)
+    return k === 1 ? 'the right lane' : `the right ${k} lanes`
+  if (k === 1)
+    return n === 3 ? 'the middle lane' : `the ${ordinal(first + 1)} lane from the left`
+  return `the middle ${k} lanes`
+}
+
+/**
+ * One lane's arrows, as an SVG string in `currentColor`: every arrow painted
+ * on the lane, the one the maneuver uses solid and the rest faint, and the
+ * whole lane faint when it is not one to be in — Apple's lane strip.
+ */
+export function laneIcon(lane: LaneInfo, maneuver: Maneuver): string {
+  const used = laneIndicationFor(lane, maneuver)
+  const stroke = 'stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"'
+  const arrows = [...new Set(lane.indications.length ? lane.indications : ['none'])]
+    // The one in use last, so it is drawn over the others.
+    .sort((a, b) => Number(a === used) - Number(b === used))
+    .map((indication) => {
+      const opacity = lane.valid && indication === used ? 1 : 0.35
+      const head = (x: number, y: number, a: number): string => {
+        const s = 5
+        const p = (d: number, r: number): string => `${(x + Math.sin(a + d) * r).toFixed(1)} ${(y - Math.cos(a + d) * r).toFixed(1)}`
+        return `<path d="M${p(0, s)}L${p(2.4, s * 0.85)}L${p(-2.4, s * 0.85)}Z" fill="currentColor" fill-opacity="${opacity}"/>`
+      }
+      if (indication === 'uturn')
+        return `<path d="M15 30V13a4 4 0 0 0-8 0v5" ${stroke} stroke-opacity="${opacity}"/>${head(7, 21, Math.PI)}`
+      const angle = ((INDICATION_ANGLES[indication] ?? 0) * Math.PI) / 180
+      if (angle === 0)
+        return `<path d="M12 30V7" ${stroke} stroke-opacity="${opacity}"/>${head(12, 5, 0)}`
+      // Up most of the lane before bending, as a painted arrow does.
+      const bend = 13
+      const ex = 12 + Math.sin(angle) * 8
+      const ey = bend - Math.cos(angle) * 8
+      return `<path d="M12 30V${bend + 3}Q12 ${bend} ${((12 + ex) / 2).toFixed(1)} ${((bend + ey) / 2).toFixed(1)}L${ex.toFixed(1)} ${ey.toFixed(1)}" ${stroke} stroke-opacity="${opacity}"/>${head(ex, ey, angle)}`
+    })
+  return `<svg viewBox="0 0 24 32" width="24" height="32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" data-valid="${lane.valid}">${arrows.join('')}</svg>`
 }
 
 /**

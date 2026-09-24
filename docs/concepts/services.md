@@ -129,6 +129,14 @@ and distance of each.
   speed and pulled back at speed, gliding between GPS fixes rather than
   jumping once a second — pan it and a *Resume* button brings it back.
 
+**Lane guidance** appears under the banner as a maneuver draws near — within
+800 m driving, 250 m cycling — when the road has lanes and a choice to make
+between them: every lane approaching the maneuver, the ones to be in bright
+with the arrow they use, the rest dimmed. The early and get-ready prompts say
+which to be in: "In 400 feet, use the left 2 lanes to turn left onto
+Broadway". Lanes come from OSRM and Mapbox, which describe them; `laneHint`,
+`laneIcon` and `lanesMatter` in `services` word and draw them for your own UI.
+
 Spoken prompts come early, to get ready, and at the turn ("In a quarter mile,
 turn right onto Market Street"), each once. A few seconds off the route
 fetches a new one from where you are; arriving says so.

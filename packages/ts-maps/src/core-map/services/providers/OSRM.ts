@@ -30,6 +30,7 @@ interface OSRMStep {
   duration: number
   geometry: OSRMGeometry
   name?: string
+  intersections?: Array<{ lanes?: Array<{ indications?: string[], valid?: boolean }> }>
   maneuver?: {
     type?: string
     modifier?: string
@@ -103,6 +104,11 @@ function parseStep(step: OSRMStep): RouteStep {
     out.name = step.name
   if (typeof step.maneuver?.exit === 'number')
     out.exit = step.maneuver.exit
+  // The first intersection is the maneuver itself; its lanes are the ones
+  // approaching it.
+  const lanes = step.intersections?.[0]?.lanes
+  if (lanes?.length)
+    out.lanes = lanes.map(l => ({ indications: l.indications?.length ? l.indications : ['none'], valid: !!l.valid }))
   return out
 }
 

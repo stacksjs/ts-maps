@@ -16,7 +16,7 @@ export type { NavigationLinkOptions, NavigationLinks, NavigationMode } from './l
 export { climb, distanceMeters, pathLengthMeters, resamplePath } from './paths'
 export type { Climb } from './paths'
 export { directionsRouter, RouteBuilder, straightRouter } from './route-builder'
-export { abbreviateStreet, formatDistance, formatInstruction, maneuverIcon, parseManeuver, prefersImperial, spokenDistance, spokenInstruction } from './instructions'
+export { abbreviateStreet, formatDistance, formatInstruction, laneHint, laneIcon, laneIndicationFor, lanesMatter, maneuverAngle, maneuverIcon, parseManeuver, prefersImperial, spokenDistance, spokenInstruction } from './instructions'
 export type { DistanceUnits, InstructionOptions, Maneuver, ManeuverDegree, ManeuverDirection, ManeuverKind } from './instructions'
 export { Navigator } from './navigator'
 export type { Instruction, NavigationProgress, NavigatorOptions, PositionFix } from './navigator'

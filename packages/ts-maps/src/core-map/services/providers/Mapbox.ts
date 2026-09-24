@@ -153,6 +153,7 @@ interface MapboxDirectionsStep {
   geometry: { type: 'LineString', coordinates: [number, number][] }
   maneuver?: { type?: string, modifier?: string, instruction?: string, exit?: number }
   name?: string
+  intersections?: Array<{ lanes?: Array<{ indications?: string[], valid?: boolean, active?: boolean }> }>
 }
 
 interface MapboxDirectionsLeg {
@@ -194,6 +195,14 @@ function mbStepToStep(s: MapboxDirectionsStep): RouteStep {
     out.name = s.name
   if (typeof s.maneuver?.exit === 'number')
     out.exit = s.maneuver.exit
+  const lanes = s.intersections?.[0]?.lanes
+  if (lanes?.length) {
+    out.lanes = lanes.map(l => ({
+      indications: l.indications?.length ? l.indications : ['none'],
+      valid: !!l.valid,
+      ...(l.active !== undefined ? { active: l.active } : {}),
+    }))
+  }
   return out
 }
 

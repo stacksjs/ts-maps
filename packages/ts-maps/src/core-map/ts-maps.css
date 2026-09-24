@@ -1325,6 +1325,33 @@ a.tsmap-control-locate-denied::after {
   }
 }
 
+.tsmap-nav-lanes {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin: 8px -18px -14px;
+  padding: 8px 18px 10px;
+  border-top: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 0 0 18px 18px;
+  background: rgb(0 0 0 / 22%);
+}
+
+.tsmap-nav-lane {
+  display: inline-flex;
+  padding: 0 5px;
+  color: #fff;
+
+  svg {
+    width: 28px;
+    height: 36px;
+  }
+
+  & + & {
+    border-left: 1px dashed rgb(255 255 255 / 25%);
+  }
+}
+
 .tsmap-nav-card {
   left: 12px;
   right: 12px;

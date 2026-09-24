@@ -1,7 +1,7 @@
-import type { LatLngLike, Route, RouteStep, TransportProfile } from './types'
+import type { LaneInfo, LatLngLike, Route, RouteStep, TransportProfile } from './types'
 import type { DistanceUnits, Maneuver } from './instructions'
 import { Evented } from '../core/Events'
-import { formatInstruction, parseManeuver, spokenInstruction } from './instructions'
+import { formatInstruction, lanesMatter, parseManeuver, spokenInstruction } from './instructions'
 
 /**
  * Turn-by-turn guidance along a route: where you are on it, what is next, how
@@ -59,6 +59,12 @@ export interface NavigationProgress {
   banner: string
   /** The maneuver after next, when it follows closely — Apple's "Then". */
   thenManeuver?: Maneuver
+  /**
+   * The lanes approaching the next maneuver, when there is a choice to make
+   * between them and it is near enough to act on — the lane strip under the
+   * banner.
+   */
+  lanes?: LaneInfo[]
 }
 
 export interface NavigatorOptions {
@@ -79,6 +85,13 @@ export interface Instruction {
   stage: 'early' | 'prepare' | 'now'
   stepIndex: number
   distance: number
+}
+
+/** How close a maneuver is before its lanes are shown, in metres, by profile. */
+const LANE_DISTANCE: Record<TransportProfile, number> = {
+  driving: 800,
+  cycling: 250,
+  walking: 0,
 }
 
 /** When to announce a maneuver, in metres before it, by profile. */
@@ -270,6 +283,7 @@ export class Navigator extends Evented {
       distanceToManeuver,
       banner: formatInstruction(nextManeuver, { name: next?.name, abbreviate: true }),
       thenManeuver,
+      lanes: lanesMatter(next?.lanes) && distanceToManeuver <= LANE_DISTANCE[this.options.profile] ? next!.lanes : undefined,
     }
     this.progress = progress
 
@@ -360,7 +374,9 @@ export class Navigator extends Evented {
 
       const instruction: Instruction = {
         text: formatInstruction(progress.nextManeuver, { name: next.name }),
-        spoken: spokenInstruction(progress.nextManeuver, next.name, stage === 'now' ? undefined : d, this.options.units),
+        // Which lane to be in is said with the warnings, while there is
+        // still time to change lanes; not at the turn itself.
+        spoken: spokenInstruction(progress.nextManeuver, next.name, stage === 'now' ? undefined : d, this.options.units, this.options.profile === 'walking' ? undefined : next.lanes),
         stage,
         stepIndex: progress.stepIndex,
         distance: d,
