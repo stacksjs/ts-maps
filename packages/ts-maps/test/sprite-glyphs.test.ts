@@ -385,7 +385,7 @@ describe('style wiring', () => {
     expect(makeMap(base).getGlyphSource()).toBeUndefined()
   })
 
-  test('an array of sprite sheets loads every one', () => {
+  test('an array of sprite sheets loads every one', async () => {
     const requested: string[] = []
     const map = makeMap(base)
     const original = globalThis.fetch
@@ -402,6 +402,8 @@ describe('style wiring', () => {
           { id: 'brand', url: 'https://x/sprites/brand' },
         ],
       })
+      // Requests wait a moment to learn whether a downloaded map has them.
+      await new Promise(resolve => setTimeout(resolve, 10))
       expect(requested.some(u => u.includes('/sprites/base'))).toBe(true)
       expect(requested.some(u => u.includes('/sprites/brand'))).toBe(true)
     }

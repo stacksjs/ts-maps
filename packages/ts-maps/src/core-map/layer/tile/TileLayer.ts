@@ -2,6 +2,7 @@ import type { Point } from '../../geometry/Point'
 import Browser from '../../core/Browser'
 import * as Util from '../../core/Util'
 import * as DomEvent from '../../dom/DomEvent'
+import { activeOfflineMaps, offlineMapsNow } from '../../offline/OfflineMaps'
 import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { GridLayer } from './GridLayer'
 
@@ -78,29 +79,55 @@ export class TileLayer extends GridLayer {
     tile.alt = ''
 
     const url = this.getTileUrl(coords)
+    // Downloaded maps are read first; while it is still unknown whether there
+    // are any, the tile waits the moment it takes to find out.
+    if (offlineMapsNow())
+      this._resolveOffline(tile, url, done)
+    else
+      this._resolveOnline(tile, url)
+
+    return tile
+  }
+
+  _resolveOnline(tile: HTMLImageElement, url: string): void {
     if (this._offlineCache)
       this._resolveThroughCache(tile, url)
     else
       tile.src = url
+  }
 
-    return tile
+  _resolveOffline(tile: HTMLImageElement, url: string, done: (err: any, tile: HTMLElement) => void): void {
+    activeOfflineMaps()
+      .then(async (maps) => {
+        const hit = await maps?.lookup(url).catch(() => undefined)
+        if (hit?.data.byteLength && this._showBytes(tile, hit.data, hit.mime))
+          return
+        if (maps?.enabled && maps.onlyOffline)
+          this._tileOnError(done, tile, new Error(`Only using offline maps, and ${url} is not downloaded`))
+        else
+          this._resolveOnline(tile, url)
+      })
+      .catch(() => this._resolveOnline(tile, url))
+  }
+
+  /** Point an image at bytes already in hand. False where this environment cannot. */
+  _showBytes(tile: HTMLImageElement, data: Uint8Array, mime: string): boolean {
+    const URLCtor = (globalThis as any).URL
+    if (!URLCtor || typeof URLCtor.createObjectURL !== 'function' || typeof (globalThis as any).Blob !== 'function')
+      return false
+    const blobUrl = URLCtor.createObjectURL(new (globalThis as any).Blob([data], { type: mime })) as string
+    this._activeBlobUrls.add(blobUrl)
+    tile.src = blobUrl
+    return true
   }
 
   _resolveThroughCache(tile: HTMLImageElement, url: string): void {
     const cache = this._offlineCache ?? getDefaultCache()
     cachedFetch(url, { cache }).then((res) => {
-      const URLCtor = (globalThis as any).URL
-      if (URLCtor && typeof URLCtor.createObjectURL === 'function' && typeof (globalThis as any).Blob === 'function') {
-        const blob = new (globalThis as any).Blob([res.data], { type: res.mime })
-        const blobUrl = URLCtor.createObjectURL(blob) as string
-        this._activeBlobUrls.add(blobUrl)
-        tile.src = blobUrl
-      }
-      else {
-        // No Blob / URL.createObjectURL — fall back to plain URL; `res.data`
-        // still populated the cache, which is the point of the trip.
+      // No Blob / URL.createObjectURL — fall back to plain URL; `res.data`
+      // still populated the cache, which is the point of the trip.
+      if (!this._showBytes(tile, res.data, res.mime))
         tile.src = url
-      }
     }).catch(() => {
       // Network + cache both failed: surface a load error via the browser's
       // own pathway by attempting the original URL, which will then hit the

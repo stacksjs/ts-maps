@@ -1538,3 +1538,333 @@ a.tsmap-control-locate-denied::after {
   transform: rotate(-45deg);
   box-sizing: border-box;
 }
+
+/* Offline Maps, after Apple Maps (see control/OfflineMapsControl). The card
+ * shares the navigation card's look; the area picker dims the map around a
+ * rounded frame with a handle at each corner. */
+.tsmap-offline-button {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: var(--tsmap-fg-muted);
+
+  &.tsmap-offline-button-active {
+    color: var(--tsmap-accent);
+  }
+}
+
+.tsmap-offline-card,
+.tsmap-offline-pill {
+  position: absolute;
+  z-index: 1000;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.tsmap-offline-card {
+  left: 12px;
+  right: 12px;
+  bottom: 28px;
+  max-width: 400px;
+  max-height: calc(100% - 96px);
+  overflow-y: auto;
+  margin: 0 auto;
+  padding: 14px 16px 16px;
+  border-radius: 18px;
+  background: var(--tsmap-nav-card-bg);
+  color: var(--tsmap-nav-card-fg);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+  font-size: 15px;
+  box-sizing: border-box;
+
+  & button {
+    font: inherit;
+    cursor: pointer;
+    border: 0;
+    background: none;
+    color: inherit;
+  }
+}
+
+.tsmap-offline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tsmap-offline-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tsmap-offline-card .tsmap-offline-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--tsmap-nav-option-bg);
+  color: var(--tsmap-nav-card-muted);
+  font-size: 13px;
+}
+
+.tsmap-offline-card .tsmap-offline-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--tsmap-nav-option-bg);
+  color: #0a84ff;
+  font-weight: 600;
+  text-align: left;
+}
+
+.tsmap-offline-section {
+  margin: 18px 2px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tsmap-nav-card-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.tsmap-offline-list {
+  border-radius: 12px;
+  background: var(--tsmap-nav-option-bg);
+  overflow: hidden;
+}
+
+.tsmap-offline-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  padding: 11px 14px;
+
+  & + & {
+    border-top: 1px solid rgb(128 128 128 / 20%);
+  }
+}
+
+.tsmap-offline-card .tsmap-offline-row-name {
+  padding: 0;
+  font-weight: 600;
+  text-align: left;
+}
+
+.tsmap-offline-row-detail {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--tsmap-nav-card-muted);
+}
+
+.tsmap-offline-row-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tsmap-offline-card .tsmap-offline-action {
+  padding: 5px 9px;
+  border-radius: 8px;
+  color: #0a84ff;
+  font-size: 14px;
+
+  &:hover {
+    background: rgb(10 132 255 / 12%);
+  }
+
+  &.tsmap-offline-danger {
+    color: #ff3b30;
+    font-weight: 600;
+  }
+}
+
+.tsmap-offline-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: rgb(128 128 128 / 25%);
+  overflow: hidden;
+
+  & > span {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: #0a84ff;
+    transition: width 0.3s ease;
+  }
+
+  &.tsmap-offline-bar-paused > span {
+    background: var(--tsmap-nav-card-muted);
+  }
+}
+
+.tsmap-offline-error {
+  color: #ff3b30;
+}
+
+.tsmap-offline-empty,
+.tsmap-offline-hint,
+.tsmap-offline-usage {
+  margin: 12px 2px 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--tsmap-nav-card-muted);
+}
+
+.tsmap-offline-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--tsmap-nav-option-bg);
+  cursor: pointer;
+}
+
+/* An iOS switch. */
+.tsmap-offline-switch {
+  appearance: none;
+  position: relative;
+  width: 51px;
+  height: 31px;
+  margin: 0;
+  border-radius: 16px;
+  background: rgb(120 120 128 / 32%);
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 3px 8px rgb(0 0 0 / 15%);
+    transition: transform 0.2s ease;
+  }
+
+  &:checked {
+    background: #34c759;
+  }
+
+  &:checked::after {
+    transform: translateX(20px);
+  }
+}
+
+.tsmap-offline-name {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--tsmap-nav-option-bg);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+
+.tsmap-offline-estimate {
+  margin-top: 12px;
+  font-size: 15px;
+}
+
+.tsmap-offline-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+
+  & button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+}
+
+.tsmap-offline-card .tsmap-offline-cancel {
+  background: var(--tsmap-nav-option-bg);
+}
+
+.tsmap-offline-card .tsmap-offline-download {
+  background: #0a84ff;
+  color: #fff;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.tsmap-offline-select {
+  position: absolute;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tsmap-offline-frame {
+  position: absolute;
+  border: 2.5px solid #fff;
+  border-radius: 22px;
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 38%), 0 0 12px rgb(0 0 0 / 20%);
+}
+
+/* A dark map needs a deeper shade for the outside to read as set aside. */
+.tsmap-container.tsmap-dark .tsmap-offline-frame {
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 58%), 0 0 12px rgb(0 0 0 / 40%);
+}
+
+.tsmap-offline-handle {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  pointer-events: auto;
+  touch-action: none;
+
+  &.tsmap-offline-handle-nw,
+  &.tsmap-offline-handle-se {
+    cursor: nwse-resize;
+  }
+
+  &.tsmap-offline-handle-ne,
+  &.tsmap-offline-handle-sw {
+    cursor: nesw-resize;
+  }
+}
+
+.tsmap-offline-pill {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border-radius: 16px;
+  background: rgb(60 60 67 / 88%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 22%);
+  pointer-events: none;
+
+  &.tsmap-offline-pill-covered {
+    background: rgb(10 132 255 / 92%);
+  }
+}

@@ -39,6 +39,7 @@ import type { BuildingDraw, BuildingFootprint, BuildingMesh } from '../../render
 import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../renderer/webgl/BuildingOverlay'
 import type { Occluder, OcclusionSource } from '../../symbols/BuildingOcclusion'
 import { occluded, OccluderIndex } from '../../symbols/BuildingOcclusion'
+import { activeOfflineMaps } from '../../offline/OfflineMaps'
 import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { earcut, flatten } from '../../geometry/earcut'
 import { ortho } from '../../renderer/webgl/mat4'
@@ -1656,6 +1657,16 @@ export class VectorTileMapLayer extends GridLayer {
   }
 
   async _fetchTileBytes(url: string, entry: DecodedTileEntry): Promise<Uint8Array> {
+    // A downloaded map has it: no network, and no connection needed.
+    const maps = await activeOfflineMaps()
+    if (maps) {
+      const hit = await maps.lookup(url).catch(() => undefined)
+      if (hit)
+        return hit.data
+      if (maps.enabled && maps.onlyOffline)
+        throw new Error(`Only using offline maps, and ${url} is not downloaded`)
+    }
+
     // Cache-backed path. Serves from IndexedDB (or memory fallback), falls
     // back to cached bytes when the network is down.
     if (this._offlineCache) {

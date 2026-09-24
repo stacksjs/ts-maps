@@ -164,6 +164,13 @@ and draw a maneuver from any provider, whose maneuver codes are folded into one
 vocabulary by `parseManeuver`. Steps now carry the road's `name` and a
 roundabout's `exit` where the provider gives them.
 
+### With no connection
+
+Downloaded offline maps carry their own place index and road network:
+`map.offline.geocoder()` and `map.offline.directions()` are providers like
+any other, and `withOfflineFallback(online, offline)` puts one behind an
+online provider. See [Offline maps](./offline.md#search-and-directions-offline).
+
 ## Isochrones
 
 ```ts

@@ -18,12 +18,13 @@ export * from './geo/index'
 export * from './layer/index'
 export * from './map/index'
 export * from './storage/index'
+export * from './offline/index'
 export { earcut, flatten, deviation } from './geometry/earcut'
 export { WebGLTileRenderer, WebGLUnsupportedError } from './renderer/webgl/index'
 export type { CircleOptions as WebGLCircleOptions, GLContextOptions, LineOptions as WebGLLineOptions, Mat4 } from './renderer/webgl/index'
 
 // Shorthand factory helpers (similar to upstream's function-style API).
-import { AttributionControl, Control, FullscreenControl, GeocoderControl, LayersControl, LocateControl, NavigationControl, ScaleControl, ZoomControl } from './control/index'
+import { AttributionControl, Control, FullscreenControl, GeocoderControl, LayersControl, LocateControl, NavigationControl, OfflineMapsControl, ScaleControl, ZoomControl } from './control/index'
 import { Browser, Class, Evented, Handler, Util } from './core/index'
 import { Animation, Draggable, PosAnimation } from './dom/index'
 import { CRS, EPSG3395, EPSG3857, EPSG4326, LatLng, LatLngBounds, Projection, SimpleCRS, toLatLng, toLatLngBounds } from './geo/index'
@@ -106,6 +107,7 @@ export const control: Factory < ConstructorParameters < typeof Control>, Control
   geocoder: Factory < ConstructorParameters < typeof GeocoderControl>, GeocoderControl>
   navigation: Factory < ConstructorParameters < typeof NavigationControl>, NavigationControl>
   fullscreen: Factory < ConstructorParameters < typeof FullscreenControl>, FullscreenControl>
+  offlineMaps: Factory < ConstructorParameters < typeof OfflineMapsControl>, OfflineMapsControl>
 } = Object.assign(factory(Control), {
   zoom: factory(ZoomControl),
   layers: factory(LayersControl),
@@ -115,6 +117,7 @@ export const control: Factory < ConstructorParameters < typeof Control>, Control
   geocoder: factory(GeocoderControl),
   navigation: factory(NavigationControl),
   fullscreen: factory(FullscreenControl),
+  offlineMaps: factory(OfflineMapsControl),
 })
 
 // Default namespace object grouping all public exports.

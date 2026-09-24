@@ -109,6 +109,17 @@ Either way the map re-measures itself, and fires `fullscreenstart` /
 `fullscreenend`. Pass `container` to expand a wrapper element instead of the
 map.
 
+## Offline maps
+
+```ts
+control.offlineMaps().addTo(map)
+```
+
+Apple Maps' Offline Maps: a list of downloaded areas with size, date, progress,
+pause, update and delete; an area picker that dims the map around a frame you
+resize by its corners, with an estimated size before downloading; and a pill
+when the connection drops. See [Offline maps](./offline.md).
+
 ## Scale, layers, attribution
 
 `control.scale()` draws a metric and/or imperial scale bar. Pass

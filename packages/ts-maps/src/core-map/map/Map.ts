@@ -16,8 +16,8 @@ import { Point } from '../geometry/Point'
 import { Style } from './Style'
 import type { LayerSpecification, SourceSpecification, Style as StyleSpec } from '../style-spec/types'
 import { diffStyles } from '../style-spec/diff'
-import type { OfflineRegionOptions, OfflineRegionResult } from '../storage'
-import { getDefaultCache, saveOfflineRegion } from '../storage'
+import type { OfflineMaps } from '../offline/OfflineMaps'
+import { activeOfflineMaps, offlineFetch, offlineMaps } from '../offline/OfflineMaps'
 import { buildTerrainMesh } from '../geo/terrainMesh'
 import { TerrainSource } from '../geo/TerrainSource'
 import { WebGLTileRenderer } from '../renderer/webgl/WebGLTileRenderer'
@@ -310,14 +310,8 @@ export class TsMap extends Evented {
   // vector, none) is attached. Lazy-created on first setTerrain().
   declare _terrainOverlayCanvas?: HTMLCanvasElement
   declare _terrainOverlayRenderer?: WebGLTileRenderer
-  // Lazy-initialized offline region API. See `getOfflineApi()` / the `offline`
-  // getter below. Holds a small facade over the storage/TileCache pipeline so
-  // callers can pre-download tiles for a bbox × zoom range.
-  declare _offlineApi?: {
-    save: (opts: OfflineRegionOptions) => Promise<OfflineRegionResult>
-    size: () => Promise<{ bytes: number, entries: number }>
-    clear: () => Promise<void>
-  }
+  // The URL the style was loaded from, when it was — kept with a downloaded map.
+  declare _styleUrl?: string
 
   initialize(id: string | HTMLElement, options?: MapOptions): void {
     options = Util.setOptions(this as any, options) as MapOptions
@@ -924,11 +918,10 @@ export class TsMap extends Evented {
     this._terrainSource?.clear()
     this._terrainFetchInFlight?.clear()
 
-    // Close map-owned offline cache if one was allocated. Callers that
-    // passed in their own `TileCache` via `OfflineRegionOptions` are
-    // responsible for closing it themselves.
-    if (this._offlineApi)
-      delete this._offlineApi
+    // Offline maps outlive any one map, but should not keep this one alive.
+    const maps = offlineMaps()
+    if (maps.map === this)
+      maps.map = undefined
 
     return this
   }
@@ -2335,7 +2328,7 @@ export class TsMap extends Evented {
     // away for a load that might fail.
     if (typeof style === 'string') {
       const token = (this._styleLoadToken = (this._styleLoadToken ?? 0) + 1)
-      fetch(style)
+      offlineFetch(style)
         .then((response) => {
           if (!response.ok)
             throw new Error(`HTTP ${response.status} fetching style ${style}`)
@@ -2346,12 +2339,15 @@ export class TsMap extends Evented {
           if (token !== this._styleLoadToken)
             return
           this.setStyle(spec as StyleSpec, opts)
+          this._styleUrl = style
         })
         .catch(error => this.fire('error', { error, style }))
       return this
     }
 
-    // Any in-flight style URL is now stale.
+    // Any in-flight style URL is now stale, and this style was not loaded
+    // from one — unless it is that URL's document, which says so on arrival.
+    this._styleUrl = undefined
     this._styleLoadToken = (this._styleLoadToken ?? 0) + 1
 
     const useDiff = opts?.diff !== false
@@ -2491,7 +2487,7 @@ export class TsMap extends Evented {
     }
 
     const { GlyphSource } = require('../symbols/loadGlyphs')
-    this._glyphSource = new GlyphSource(glyphs)
+    this._glyphSource = new GlyphSource(glyphs, { fetch: offlineFetch })
   }
 
   /**
@@ -2567,7 +2563,11 @@ export class TsMap extends Evented {
     const { loadSprite, addSpriteToAtlas } = require('../symbols/loadSprite')
 
     for (const sheet of sheets) {
-      loadSprite(sheet.url, { pixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1 })
+      loadSprite(sheet.url, {
+        pixelRatio: typeof window !== 'undefined' ? window.devicePixelRatio : 1,
+        fetch: offlineFetch,
+        loadImage: loadSpriteImage,
+      })
         .then((loaded: any) => {
           // A style swapped while this was in flight owns the atlas now.
           if (token !== this._spriteToken || !this._style)
@@ -4147,29 +4147,16 @@ export class TsMap extends Evented {
     return this._customLayers ? Array.from(this._customLayers.values()) : []
   }
 
-  // Lazy offline-region facade. Delegates to the shared `TileCache` unless the
-  // caller supplies their own via `OfflineRegionOptions.cache`. Progress
-  // updates are fired as `offline:progress` events on the map.
-  get offline(): {
-    save: (opts: OfflineRegionOptions) => Promise<OfflineRegionResult>
-    size: () => Promise<{ bytes: number, entries: number }>
-    clear: () => Promise<void>
-  } {
-    if (!this._offlineApi) {
-      const self = this
-      this._offlineApi = {
-        save(opts: OfflineRegionOptions): Promise<OfflineRegionResult> {
-          return saveOfflineRegion(opts, self)
-        },
-        async size(): Promise<{ bytes: number, entries: number }> {
-          return (getDefaultCache()).size()
-        },
-        async clear(): Promise<void> {
-          await (getDefaultCache()).clear()
-        },
-      }
-    }
-    return this._offlineApi
+  /**
+   * Offline maps: download an area of this map to use with no connection, and
+   * manage what has been downloaded. The same manager serves every map on the
+   * page; reaching it through a map makes that map the one whose layers a bare
+   * `download({ bounds })` downloads.
+   */
+  get offline(): OfflineMaps {
+    const maps = offlineMaps()
+    maps.map = this
+    return maps
   }
 }
 
@@ -4221,7 +4208,7 @@ async function fetchDemTile(url: string, demSize: number): Promise<Uint8Array | 
   if (typeof fetch !== 'function' || typeof Image !== 'function' || typeof document?.createElement !== 'function')
     return null
   try {
-    const res = await fetch(url)
+    const res = await offlineFetch(url)
     if (!res.ok)
       return null
     const blob = await res.blob()
@@ -4245,4 +4232,29 @@ async function fetchDemTile(url: string, demSize: number): Promise<Uint8Array | 
   catch {
     return null
   }
+}
+
+/**
+ * A sprite sheet's image, from a downloaded map where there is one. Loaded as
+ * an `Image` either way, anonymous so the atlas canvas is not tainted.
+ */
+async function loadSpriteImage(url: string): Promise<HTMLImageElement> {
+  const maps = await activeOfflineMaps()
+  const hit = await maps?.lookup(url).catch(() => undefined)
+  const blobUrl = hit?.data.byteLength ? URL.createObjectURL(new Blob([hit.data as BlobPart], { type: hit.mime })) : undefined
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => {
+      if (blobUrl)
+        URL.revokeObjectURL(blobUrl)
+      resolve(image)
+    }
+    image.onerror = () => {
+      if (blobUrl)
+        URL.revokeObjectURL(blobUrl)
+      reject(new Error(`failed to load sprite image ${url}`))
+    }
+    image.src = blobUrl ?? url
+  })
 }
