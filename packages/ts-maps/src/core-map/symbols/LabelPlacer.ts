@@ -55,6 +55,13 @@ interface LabelBase {
   ignorePlacement: boolean
   /** Extra room kept clear around the label, in CSS pixels. */
   padding: number
+  /**
+   * Whether a building in front hides it. True for what names a spot on the
+   * ground — a street, a point of interest with its icon; false for the name
+   * of an area, which floats over it in Apple Maps whatever is in the way.
+   * Defaults to true.
+   */
+  occludable?: boolean
 }
 
 export interface PointLabel extends LabelBase {
@@ -118,6 +125,11 @@ export interface PlaceFrameOptions {
    * labels step instead of glide, so it is only asked for once settled.
    */
   snap: boolean
+  /**
+   * Whether the ground under a screen point is hidden from the camera — by a
+   * 3D building, say. A hidden label fades out and claims no space.
+   */
+  occluded?: (x: number, y: number, key: string) => boolean
 }
 
 interface Sprite {
@@ -244,8 +256,21 @@ export class LabelPlacer {
         }
       }
 
+      // Behind a building: tested at the anchor for a point label and the
+      // middle of the run for a street name. Asked only of a label that would
+      // otherwise have its slot — the test is the costly one.
+      const hidden = (): boolean => !!options.occluded && label.occludable !== false && (label.kind === 'point'
+        ? options.occluded(item.x, item.y, label.key)
+        : options.occluded((box.minX + box.maxX) / 2, (box.minY + box.maxY) / 2, label.key))
+
       let placed: boolean
       if (tooClose) {
+        placed = false
+      }
+      else if (!label.allowOverlap && !label.ignorePlacement && collision.hits(box)) {
+        placed = false
+      }
+      else if (hidden()) {
         placed = false
       }
       else if (label.allowOverlap) {

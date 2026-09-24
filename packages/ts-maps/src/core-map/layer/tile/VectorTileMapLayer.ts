@@ -13,7 +13,7 @@
 //   - one <canvas> element per tile
 
 import type { BBox } from '../../geometry/RTree'
-import type { Point } from '../../geometry/Point'
+import { Point } from '../../geometry/Point'
 import type { CompiledExpression, EvaluationContext } from '../../style-spec/expressions'
 import { compile as compileExpression, isExpression } from '../../style-spec/expressions'
 import { Pbf } from '../../proto/Pbf'
@@ -36,6 +36,8 @@ import type { LabelCandidate, LabelGroup } from '../../symbols/LabelPlacer'
 import { LabelPlacer } from '../../symbols/LabelPlacer'
 import type { BuildingDraw, BuildingFootprint, BuildingMesh } from '../../renderer/webgl/BuildingOverlay'
 import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../renderer/webgl/BuildingOverlay'
+import type { Occluder, OcclusionSource } from '../../symbols/BuildingOcclusion'
+import { occluded, OccluderIndex } from '../../symbols/BuildingOcclusion'
 import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { earcut, flatten } from '../../geometry/earcut'
 import { ortho } from '../../renderer/webgl/mat4'
@@ -343,7 +345,11 @@ export class VectorTileMapLayer extends GridLayer {
    * grid tiles show parts of one source tile, and meshing it for each would
    * build — and draw — the same buildings a dozen times.
    */
-  declare _buildingMeshes?: Map<string, { version: number, meshes: Array<{ layer: string, mesh: BuildingMesh }> }>
+  declare _buildingMeshes?: Map<string, { version: number, meshes: Array<{ layer: string, mesh: BuildingMesh }>, occluders: OccluderIndex }>
+  /** This frame's buildings and camera, for hiding the labels behind them. */
+  declare _occlusion?: { sources: OcclusionSource[], camera: { x: number, y: number }, rise: number } | null
+  /** Occlusion answers by label, kept while the camera has not moved. */
+  declare _occlusionMemo?: { signature: string, results: Map<string, boolean> }
   /** Bumped whenever cached label candidates stop being valid. */
   declare _labelVersion: number
   /** Whether the camera is between a movestart and its moveend. */
@@ -881,15 +887,39 @@ export class VectorTileMapLayer extends GridLayer {
     const size = this.getTileSize().x
     const map = this._map
     if (map?._pitch) {
-      // Labels on ground drawn at under a third of its size near the centre
-      // are left off: towards the horizon they would be stacked too tightly
-      // to read, and Apple Maps thins them out the same way.
+      // Tile pixels to layer pixels is affine; only the camera after it is
+      // not. That part is `_pitchPoint` written out, so a label's points —
+      // every vertex of every street name, every frame — cost a few
+      // multiplications instead of an unproject and a reproject each.
+      const mapZoom = map.getZoom()
+      const k = map.getZoomScale(mapZoom, coords.z)
+      const origin = map.getPixelOrigin()
+      const ox = coords.x * size * k - origin.x
+      const oy = coords.y * size * k - origin.y
+      const view = map.getSize()
+      const cx = view.x / 2
+      const cy = view.y / 2
+      const pos = map._getMapPanePos()
+      const b = ((map._bearing ?? 0) * Math.PI) / 180
+      const t = (map._pitch * Math.PI) / 180
+      const cb = Math.cos(b)
+      const sb = Math.sin(b)
+      const ct = Math.cos(t)
+      const st = Math.sin(t)
+      const { h } = map._cameraGeometry()
       return (x, y) => {
-        const layer = map.latLngToLayerPoint(map.unproject([coords.x * size + x, coords.y * size + y], coords.z))
-        if (map._groundScaleAt(layer) < 1 / 3)
+        const dx = x * k + ox - cx
+        const dy = y * k + oy - cy
+        const rx = dx * cb - dy * sb
+        const ry = dx * sb + dy * cb
+        const depth = h - ry * st
+        // Labels on ground drawn at under a third of its size near the
+        // centre are left off: towards the horizon they would be stacked too
+        // tightly to read, and Apple Maps thins them out the same way.
+        if (depth <= 0 || h / depth < 1 / 3)
           return null
-        const point = map.layerPointToContainerPoint(layer)
-        return { x: point.x, y: point.y }
+        const scale = h / depth
+        return { x: cx + pos.x + rx * scale, y: cy + pos.y + ry * ct * scale }
       }
     }
 
@@ -1001,6 +1031,7 @@ export class VectorTileMapLayer extends GridLayer {
       this._buildingOverlay?.release(item)
 
     const meshes: Array<{ layer: string, mesh: BuildingMesh }> = []
+    const occluders: Occluder[] = []
     const tile = entry.tile
     if (tile) {
       const sub = this._subTile(entry.coords)
@@ -1031,12 +1062,28 @@ export class VectorTileMapLayer extends GridLayer {
           if (!(height > base))
             continue
           const color = parseCssColor((resolve(paint?.['fill-extrusion-color']) as string | undefined) ?? '#000', 1)
-          footprints.push({
-            rings: feature.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x * scale, y: pt.y * scale }))),
-            height,
-            base,
-            color: [color[0], color[1], color[2], color[3]],
-          })
+          const rings = feature.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x * scale, y: pt.y * scale })))
+          footprints.push({ rings, height, base, color: [color[0], color[1], color[2], color[3]] })
+
+          // The outer ring stands in for the building when hiding labels;
+          // a courtyard is too small to see a street name through.
+          const outer = rings[0]
+          if (outer && outer.length >= 3) {
+            const ring = new Float64Array(outer.length * 2)
+            let minX = Infinity
+            let minY = Infinity
+            let maxX = -Infinity
+            let maxY = -Infinity
+            outer.forEach((p, n) => {
+              ring[n * 2] = p.x
+              ring[n * 2 + 1] = p.y
+              minX = Math.min(minX, p.x)
+              minY = Math.min(minY, p.y)
+              maxX = Math.max(maxX, p.x)
+              maxY = Math.max(maxY, p.y)
+            })
+            occluders.push({ ring, minX, minY, maxX, maxY, top: height, base })
+          }
         }
 
         if (footprints.length)
@@ -1044,8 +1091,30 @@ export class VectorTileMapLayer extends GridLayer {
       }
     }
 
-    this._buildingMeshes.set(key, { version: this._labelVersion, meshes })
+    this._buildingMeshes.set(key, { version: this._labelVersion, meshes, occluders: new OccluderIndex(occluders, this.getTileSize().x) })
     return meshes
+  }
+
+  /**
+   * The occlusion test for this frame's labels, answering from memory while
+   * the camera stays where it was: a label fading in or out asks again every
+   * frame of its fade, and nothing it could be hidden by has moved.
+   */
+  _occlusionTest(occlusion: NonNullable<VectorTileMapLayer['_occlusion']>): (x: number, y: number, key: string) => boolean {
+    const map = this._map
+    const signature = `${occlusion.camera.x.toFixed(1)},${occlusion.camera.y.toFixed(1)},${occlusion.rise.toFixed(1)},${map.getZoom()},${occlusion.sources.length},${this._labelVersion}`
+    let memo = this._occlusionMemo
+    if (!memo || memo.signature !== signature)
+      memo = this._occlusionMemo = { signature, results: new Map() }
+    const results = memo.results
+    return (x, y, key) => {
+      let hidden = results.get(key)
+      if (hidden === undefined) {
+        hidden = occluded(occlusion.sources, map.containerPointToLayerPoint([x, y]), occlusion.camera, occlusion.rise)
+        results.set(key, hidden)
+      }
+      return hidden
+    }
   }
 
   /**
@@ -1054,6 +1123,7 @@ export class VectorTileMapLayer extends GridLayer {
    */
   _drawBuildings(): boolean {
     const map = this._map
+    this._occlusion = null
     if (!map || !this._buildingsActive())
       return false
     const overlay = this._buildingOverlay!
@@ -1092,6 +1162,7 @@ export class VectorTileMapLayer extends GridLayer {
     let pending = false
     const draws: BuildingDraw[] = []
     const fogEnd = h * 10
+    const occlusionSources: OcclusionSource[] = []
     const meshes = this._buildingMeshes ??= new Map()
     const drawn = new Set<string>()
     const ready = (e: DecodedTileEntry): boolean => meshes.get(this._sourceKey(e.coords))?.version === this._labelVersion
@@ -1128,17 +1199,39 @@ export class VectorTileMapLayer extends GridLayer {
       const lat = map.unproject([(x + 0.5) * tileSize, (y + 0.5) * tileSize], z).lat
       const heightScale = worldSize / (40075016.686 * Math.cos((lat * Math.PI) / 180))
 
+      let solid = false
       for (const item of tileMeshes) {
         const layerOpacity = opacity.get(item.layer)
         if (layerOpacity === undefined || layerOpacity <= 0 || !item.mesh.count)
           continue
         draws.push({ key: item, mesh: item.mesh, matrix, heightScale, opacity: layerOpacity })
+        if (layerOpacity >= 0.5)
+          solid = true
       }
+      // Buildings only hide what is behind them once they are mostly there;
+      // while they fade in with the zoom, labels stay.
+      const cached = meshes.get(key)
+      if (solid && cached)
+        occlusionSources.push({ index: cached.occluders, scale: k, origin: [x * tileSize * k - origin.x, y * tileSize * k - origin.y], pxPerMetre: heightScale })
     }
 
     // Lit from the north-west, as maps traditionally are; distant buildings
     // fade out into the haze over a few camera heights.
     overlay.render(draws, { light: [-Math.SQRT1_2, -Math.SQRT1_2], fog: [h * 3, fogEnd] })
+
+    // Where the camera stands, for the labels' lines of sight: `h` from the
+    // view centre along the view axis, which tilts towards the viewer — the
+    // bottom of the screen — with the pitch.
+    if (occlusionSources.length) {
+      const theta = ((map._pitch ?? 0) * Math.PI) / 180
+      const center = map.containerPointToLayerPoint(size.divideBy(2))
+      const toward = map._rotatePoint(new Point(0, 1), -(map._bearing ?? 0), new Point(0, 0))
+      this._occlusion = {
+        sources: occlusionSources,
+        camera: { x: center.x + toward.x * h * Math.sin(theta), y: center.y + toward.y * h * Math.sin(theta) },
+        rise: h * Math.cos(theta),
+      }
+    }
 
     // Meshes whose source tile no tile holds any more go, with their buffers.
     const held = new Set<string>()
@@ -1291,12 +1384,14 @@ export class VectorTileMapLayer extends GridLayer {
     const size = map.getSize?.()
     const ratio = this._symbolOverlay?._ratio ?? 1
     this._labelPlacer ??= new LabelPlacer()
+    const occlusion = this._occlusion
     const fading = this._labelPlacer.drawFrame(ctx, groups, {
       width: size?.x ?? 0,
       height: size?.y ?? 0,
       ratio,
       now: now(),
       snap: !this._cameraMoving,
+      occluded: occlusion ? this._occlusionTest(occlusion) : undefined,
     })
     return fading || pending
   }
@@ -2372,6 +2467,10 @@ function buildSymbolCandidates(
       out.push({
         ...base,
         kind: 'point',
+        // A bare name over a point is an area's — a district, a city — and
+        // stays in view over the buildings; one with an icon marks a place
+        // on the ground, and hides behind them.
+        occludable: !!iconEntry,
         key,
         order: context.next(),
         x: at.x,
