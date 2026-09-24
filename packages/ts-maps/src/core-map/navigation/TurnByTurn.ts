@@ -57,6 +57,58 @@ export interface TurnByTurnOptions {
   destinationName?: string
 }
 
+/**
+ * Every event a `TurnByTurn` fires, with the callback-prop name the framework
+ * bindings give it. One table, so React, Solid, Svelte and the rest cannot
+ * drift apart on what the events are called.
+ */
+export const TURN_BY_TURN_EVENTS: {
+  readonly preview: 'onPreview'
+  readonly routeselect: 'onRouteSelect'
+  readonly start: 'onStart'
+  readonly progress: 'onProgress'
+  readonly instruction: 'onInstruction'
+  readonly reroute: 'onReroute'
+  readonly arrive: 'onArrive'
+  readonly end: 'onEnd'
+  readonly error: 'onError'
+} = {
+  preview: 'onPreview',
+  routeselect: 'onRouteSelect',
+  start: 'onStart',
+  progress: 'onProgress',
+  instruction: 'onInstruction',
+  reroute: 'onReroute',
+  arrive: 'onArrive',
+  end: 'onEnd',
+  error: 'onError',
+}
+
+export type TurnByTurnEvent = keyof typeof TURN_BY_TURN_EVENTS
+
+/** A place, as `{ lat, lng }` or `[lat, lng]` — the order `center` takes. */
+export type LatLngInput = LatLngLike | [number, number]
+
+/** What `sync` brings the navigation into line with. */
+export interface TurnByTurnTarget {
+  from?: LatLngInput | null
+  to?: LatLngInput | null
+  /** Guide along the route rather than just preview it. */
+  active?: boolean
+}
+
+function toLatLng(input: LatLngInput | null | undefined): LatLngLike | null {
+  if (!input)
+    return null
+  if (Array.isArray(input))
+    return { lat: input[0], lng: input[1] }
+  return { lat: input.lat, lng: input.lng }
+}
+
+function samePlace(a: LatLngLike | null, b: LatLngLike | null): boolean {
+  return a === b || (!!a && !!b && a.lat === b.lat && a.lng === b.lng)
+}
+
 const BLUE = '#0a84ff'
 const BLUE_CASING = '#0060df'
 const GREY = '#a8b3c4'
@@ -89,6 +141,9 @@ export class TurnByTurn extends Evented {
   _camera = { bearing: 0, zoom: 17, lastFrame: 0 }
   _rerouting = false
   _muted = false
+  _target: { from: LatLngLike | null, to: LatLngLike | null, active: boolean } = { from: null, to: null, active: false }
+  _syncs = 0
+  _previews = 0
   _interrupt = (): void => this._pauseFollow()
 
   constructor(map: any, options: TurnByTurnOptions = {}) {
@@ -114,10 +169,15 @@ export class TurnByTurn extends Evented {
     this.stop()
     this.from = from
     this.to = to
+    // Routes for a trip that has since been replaced arrive late and are
+    // dropped: typing a new destination must not be overwritten by the last.
+    const call = ++this._previews
     const routes = await this.options.directions.getDirections([from, to], {
       profile: this.options.profile,
       alternatives: this.options.alternatives,
     })
+    if (call !== this._previews)
+      return routes
     if (!routes.length)
       throw new Error('No route found')
     this.routes = routes
@@ -224,6 +284,90 @@ export class TurnByTurn extends Evented {
     if (wasNavigating) {
       this.map.easeTo?.({ bearing: 0, pitch: 0, duration: 600 })
       this.fire('end')
+    }
+  }
+
+  /**
+   * Bring the navigation into line with a declarative description of it —
+   * what the framework bindings call as their props change.
+   *
+   * New endpoints preview the routes between them; clearing either clears the
+   * map. `active` starts guidance once a preview is showing, and turning it
+   * off ends guidance and goes back to the preview. A call that arrives while
+   * an earlier one is still fetching routes wins: the earlier one's routes are
+   * dropped rather than shown late.
+   */
+  async sync(target: TurnByTurnTarget): Promise<void> {
+    const from = toLatLng(target.from)
+    const to = toLatLng(target.to)
+    const moved = !samePlace(from, this._target.from) || !samePlace(to, this._target.to)
+    this._target = { from, to, active: !!target.active }
+    const call = ++this._syncs
+
+    const previewAgain = async (): Promise<boolean> => {
+      if (!from || !to) {
+        this.stop()
+        return false
+      }
+      try {
+        await this.preview(from, to)
+      }
+      catch (error) {
+        if (call === this._syncs)
+          this.fire('error', { error })
+        return false
+      }
+      return call === this._syncs
+    }
+
+    if (moved && !(await previewAgain()))
+      return
+
+    if (this._target.active && this.state === 'preview') {
+      this.start()
+    }
+    else if (!this._target.active && (this.state === 'navigating' || this.state === 'arrived')) {
+      this.stop()
+      await previewAgain()
+    }
+  }
+
+  /**
+   * An event reduced to plain data, for a binding that has to send it across
+   * a boundary — the React Native WebView bridge — where live objects and
+   * dates do not survive.
+   */
+  static plainEvent(type: TurnByTurnEvent, event: any): Record<string, unknown> {
+    const p = event?.progress as NavigationProgress | undefined
+    switch (type) {
+      case 'progress':
+      case 'arrive':
+      case 'reroute':
+        return p
+          ? {
+              location: p.location,
+              distanceRemaining: p.distanceRemaining,
+              durationRemaining: p.durationRemaining,
+              arrival: p.arrival.toISOString(),
+              distanceToManeuver: p.distanceToManeuver,
+              banner: p.banner,
+              stepIndex: p.stepIndex,
+              offRouteDistance: p.offRouteDistance,
+              lanes: p.lanes,
+            }
+          : {}
+      case 'instruction': {
+        const i = event?.instruction as Instruction | undefined
+        return i ? { text: i.text, spoken: i.spoken, stage: i.stage, distance: i.distance } : {}
+      }
+      case 'preview':
+        return { routes: (event?.routes as Route[] | undefined ?? []).map(r => ({ distance: r.distance, duration: r.duration })) }
+      case 'routeselect':
+        return { index: event?.index }
+      case 'error':
+        return { message: String(event?.error?.message ?? event?.error ?? 'error') }
+      default:
+        return {}
     }
   }
 

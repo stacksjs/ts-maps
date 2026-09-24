@@ -11,6 +11,7 @@ sketched in one framework reads the same in another.
 | `TileLayer` `Source` `Layer` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | `Marker` `Popup` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `markers` prop |
 | Controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `controls` prop |
+| `TurnByTurn` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `turnByTurn` prop |
 | Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
 | Event subscription | `useMapEvent` | `useMapEvent` | `useMapEvent` | `useMapEvent` | `onMapEvent` | auto-imported | ✅ |
 
@@ -114,6 +115,59 @@ useEffect(() => {
   layers.addTo(map)
   return () => { layers.remove() }
 }, [map])
+```
+
+## Turn-by-turn navigation
+
+`TurnByTurn` puts Apple Maps–style navigation on the map (see
+[services](../concepts/services.md#turn-by-turn-navigation)). It is declarative
+in every binding: `from` and `to` preview the routes between two places, and
+`active` starts guidance — set it false, or tap End, to stop. Places are
+`[lat, lng]`, the order `center` takes, or `{ lat, lng }`.
+
+```tsx
+// React and Solid
+<Map center={[37.79, -122.39]} zoom={13}>
+  <TurnByTurn
+    from={[37.7955, -122.3937]}
+    to={[37.8029, -122.4484]}
+    active={driving}
+    destinationName="Palace of Fine Arts"
+    onProgress={e => setEta(e.progress.arrival)}
+    onArrive={() => setDriving(false)}
+  />
+</Map>
+```
+
+```vue
+<!-- Vue, and Nuxt as <TsMapsTurnByTurn> -->
+<TsTurnByTurn :from="start" :to="end" :active="driving" @arrive="driving = false" />
+```
+
+```svelte
+<TurnByTurn from={start} to={end} active={driving} onArrive={() => (driving = false)} />
+```
+
+The events are the same everywhere — `preview`, `routeselect`, `start`,
+`progress`, `instruction`, `reroute`, `arrive`, `end`, `error` — spelled as each
+framework spells an event: `onArrive` props in React, Solid and Svelte, `@arrive`
+in Vue, and a bubbling `turnbyturn:arrive` DOM event in stx. A `ready` event
+(`onReady`, `@ready`, `turnbyturn:ready`) hands over the underlying
+`TurnByTurn`, for `selectRoute`, `recenter` and feeding positions with
+`update`. The other options — `profile`, `units`, `voice`, `simulate`,
+`alternatives`, `destinationName`, `directions` — are read once, when the
+component mounts.
+
+On React Native it is a prop of `MapView`, carried over the bridge like
+`markers`, with every event arriving at one `onTurnByTurn({ type, data })` as
+plain data:
+
+```tsx
+<MapView
+  runtime={runtime}
+  turnByTurn={{ from: start, to: end, active: driving, destinationName: 'Home' }}
+  onTurnByTurn={e => e.type === 'arrive' && setDriving(false)}
+/>
 ```
 
 ## Subscribing to events

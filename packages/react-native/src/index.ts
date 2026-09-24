@@ -13,5 +13,7 @@ export type {
   MapViewProps,
   MarkerPressEvent,
   MarkerSpec,
+  TurnByTurnBridgeEvent,
+  TurnByTurnSpec,
 } from './types'
 export { type MapEventHandler, useMapEvent } from './useMapEvent'

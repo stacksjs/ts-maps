@@ -62,8 +62,8 @@ import * as services from './services/index'
 import * as styles from './styles/index'
 
 export { services, styles }
-export { TurnByTurn, turnByTurn, formatDuration } from './navigation/TurnByTurn'
-export type { TurnByTurnOptions } from './navigation/TurnByTurn'
+export { formatDuration, TURN_BY_TURN_EVENTS, TurnByTurn, turnByTurn } from './navigation/TurnByTurn'
+export type { LatLngInput, TurnByTurnEvent, TurnByTurnOptions, TurnByTurnTarget } from './navigation/TurnByTurn'
 
 // Factory helper: turns a constructor into a callable function.
 type Factory<A extends any[], T> = (..._args: A) => T

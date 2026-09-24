@@ -127,3 +127,63 @@ describe('camera pans', () => {
     expect(events[0].relayout).toBe(true)
   })
 })
+
+describe('TurnByTurn.sync', () => {
+  test('follows from, to and active as a binding sets them', async () => {
+    const map = makeMap()
+    const directions = provider([fast])
+    const nav = new TurnByTurn(map, { directions, voice: false })
+    const events: string[] = []
+    for (const e of ['preview', 'start', 'end'])
+      nav.on(e, () => events.push(e))
+
+    await nav.sync({ from: [0, 0], to: [P(5, 3).lat, P(5, 3).lng] })
+    expect(nav.state).toBe('preview')
+    // Same places, restated: no new request.
+    await nav.sync({ from: { lat: 0, lng: 0 }, to: P(5, 3) })
+    expect(directions.calls).toBe(1)
+
+    await nav.sync({ from: [0, 0], to: P(5, 3), active: true })
+    expect(nav.state).toBe('navigating')
+    await nav.sync({ from: [0, 0], to: P(5, 3), active: false })
+    expect(nav.state).toBe('preview')
+    expect(events).toEqual(['preview', 'start', 'end', 'preview'])
+
+    await nav.sync({ from: null, to: null })
+    expect(nav.state).toBe('idle')
+    expect(map.getContainer().querySelector('.tsmap-nav-card')).toBeNull()
+  })
+
+  test('a newer call wins over one still fetching routes', async () => {
+    const map = makeMap()
+    let release!: () => void
+    const slowFirst: DirectionsProvider = {
+      name: 'fake',
+      getDirections: (async (waypoints: any[]) => {
+        if (waypoints[1].lat === P(5, 3).lat)
+          await new Promise<void>((r) => { release = r })
+        return [waypoints[1].lat === P(5, 3).lat ? fast : slow]
+      }) as any,
+    }
+    const nav = new TurnByTurn(map, { directions: slowFirst, voice: false })
+    const first = nav.sync({ from: P(0, 0), to: P(5, 3) })
+    await nav.sync({ from: P(0, 0), to: P(4, 3) })
+    release()
+    await first
+    expect(nav.route).toBe(slow)
+  })
+
+  test('events cross a bridge as plain data', async () => {
+    const map = makeMap()
+    const nav = new TurnByTurn(map, { directions: provider([fast]), voice: false })
+    await nav.preview(P(0, 0), P(5, 3))
+    nav.start()
+    const progress = nav.update({ ...P(2, 0), time: 0 })
+    const plain = TurnByTurn.plainEvent('progress', { progress })
+    expect(JSON.parse(JSON.stringify(plain))).toEqual(plain)
+    expect(plain.banner).toBe('Turn right onto Market St')
+    expect(typeof plain.arrival).toBe('string')
+    expect(TurnByTurn.plainEvent('error', { error: new Error('offline') })).toEqual({ message: 'offline' })
+    nav.stop()
+  })
+})

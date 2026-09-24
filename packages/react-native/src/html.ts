@@ -1,4 +1,4 @@
-import type { ControlSpec, MapRuntime, MarkerSpec, TerritorySpec } from './types'
+import type { ControlSpec, MapRuntime, MarkerSpec, TerritorySpec, TurnByTurnSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -13,6 +13,7 @@ export interface BuildHtmlOptions {
     territories?: TerritorySpec[]
     self?: string
     runTrail?: number[][]
+    turnByTurn?: TurnByTurnSpec
   }
 }
 
@@ -193,8 +194,31 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    trailLayer.setTrack(track);',
   '  }',
+  // Navigation is the same TurnByTurn the other bindings use. Its events come
+  // back over the bridge as plain data, since dates and live objects do not.
+  '  let nav = null;',
+  '  function applyTurnByTurn(spec) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!spec) { if (nav) { nav.stop(); nav = null; } return; }',
+  '    if (!ns.TurnByTurn) return;',
+  '    if (!nav) {',
+  '      const opts = {};',
+  '      ["profile", "units", "voice", "simulate", "alternatives", "destinationName"].forEach(function (k) {',
+  '        if (spec[k] != null) opts[k] = spec[k];',
+  '      });',
+  '      try { nav = new ns.TurnByTurn(map, opts); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '      Object.keys(ns.TURN_BY_TURN_EVENTS || {}).forEach(function (type) {',
+  '        nav.on(type, function (e) {',
+  '          send({ type: "turnByTurn", id: `tb${Date.now()}`, payload: { type: type, data: ns.TurnByTurn.plainEvent(type, e) } });',
+  '        });',
+  '      });',
+  '    }',
+  '    nav.sync({ from: spec.from, to: spec.to, active: !!spec.active });',
+  '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
+  '  applyTurnByTurn(initial.turnByTurn);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
@@ -232,6 +256,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setRunTrail") {',
   '      applyTrail(env.payload && env.payload.runTrail);',
+  '    }',
+  '    else if (env.type === "setTurnByTurn") {',
+  '      applyTurnByTurn(env.payload && env.payload.turnByTurn);',
   '    }',
   '  }',
   '  function onMessage(data) {',

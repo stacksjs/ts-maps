@@ -1,0 +1,41 @@
+<script server>
+/**
+ * Turn-by-turn navigation, after Apple Maps.
+ *
+ * ```stx
+ * <Map center="[37.79, -122.39]" zoom="13">
+ *   <TurnByTurn :from="[37.7955, -122.3937]" :to="[37.8029, -122.4484]" destinationName="Palace of Fine Arts" />
+ * </Map>
+ * ```
+ *
+ * `from` and `to` preview the routes, and `active` starts guidance straight
+ * away. Events cannot be props here — stx passes props as data — so each one
+ * is a DOM event bubbling from the map: `turnbyturn:preview`,
+ * `turnbyturn:progress`, `turnbyturn:arrive`, and the rest of the names the
+ * other bindings use, with the core event as `detail`. `turnbyturn:ready`
+ * hands the page the `TurnByTurn` itself, for starting, stopping and
+ * `sync({ from, to, active })` later:
+ *
+ * ```js
+ * container.addEventListener('turnbyturn:ready', e => { nav = e.detail.nav })
+ * go.onclick = () => nav.sync({ from, to, active: true })
+ * ```
+ */
+export const optionsJson = JSON.stringify({
+  from: $props.from,
+  to: $props.to,
+  active: $props.active,
+  profile: $props.profile,
+  units: $props.units,
+  voice: $props.voice,
+  simulate: $props.simulate,
+  alternatives: $props.alternatives,
+  destinationName: $props.destinationName,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="turn-by-turn"
+  data-options="{{ optionsJson }}"
+></span>

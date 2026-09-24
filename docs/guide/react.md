@@ -27,6 +27,8 @@ bun add ts-maps @ts-maps/react
 - `<Source>` / `<Layer>` — style-spec sources and layers.
 - `<Marker>` — marker with an optional `<Popup>` child.
 - `<Popup>` — standalone popup.
+- `<TurnByTurn>` — Apple Maps–style navigation: route preview, guidance, voice
+  and lane guidance. See [framework bindings](./framework-bindings.md#turn-by-turn-navigation).
 
 ## Basic usage
 

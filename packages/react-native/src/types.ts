@@ -101,6 +101,41 @@ export interface TerritorySpec {
   weight?: number
 }
 
+/**
+ * Turn-by-turn navigation on the map, after Apple Maps — the same thing
+ * `<TurnByTurn>` is in the other bindings, carried as data because a
+ * component cannot cross the WebView bridge.
+ *
+ * Live: changing `from`, `to` or `active` updates the navigation over the
+ * bridge. Options are read when it is first set.
+ */
+export interface TurnByTurnSpec {
+  /** Where the trip starts, `[lat, lng]`. */
+  from?: [number, number] | null
+  /** Where it ends. With both set, the routes between them are previewed. */
+  to?: [number, number] | null
+  /** Guide along the chosen route. Off returns to the preview. */
+  active?: boolean
+  profile?: 'driving' | 'walking' | 'cycling'
+  units?: 'metric' | 'imperial'
+  voice?: boolean
+  /** Drive the route instead of following the device. */
+  simulate?: boolean | { speed?: number, interval?: number, timeScale?: number }
+  alternatives?: boolean
+  destinationName?: string
+}
+
+/**
+ * One navigation event from the map. `type` is the event's name in the other
+ * bindings' terms — `preview`, `routeselect`, `start`, `progress`,
+ * `instruction`, `reroute`, `arrive`, `end`, `error` — and `data` its content
+ * as plain data (times as ISO strings).
+ */
+export interface TurnByTurnBridgeEvent {
+  type: 'preview' | 'routeselect' | 'start' | 'progress' | 'instruction' | 'reroute' | 'arrive' | 'end' | 'error'
+  data: Record<string, unknown>
+}
+
 export interface MapViewProps {
   style?: ViewStyle
 
@@ -151,6 +186,9 @@ export interface MapViewProps {
    */
   runTrail?: number[][]
 
+  /** Turn-by-turn navigation. Live, like `markers`. */
+  turnByTurn?: TurnByTurnSpec
+
   onLoad?: () => void
   // eslint-disable-next-line no-unused-vars
   onMove?: (e: MapMoveEvent) => void
@@ -161,6 +199,10 @@ export interface MapViewProps {
 
   // eslint-disable-next-line no-unused-vars
   onMarkerPress?: (e: MarkerPressEvent) => void
+
+  /** Every navigation event, as `{ type, data }`. */
+  // eslint-disable-next-line no-unused-vars
+  onTurnByTurn?: (e: TurnByTurnBridgeEvent) => void
 
   // eslint-disable-next-line no-unused-vars
   onReady?: (api: MapApi) => void
@@ -179,6 +221,8 @@ export type BridgeEnvelope =
   | { type: 'setMarkers', id: string, payload: { markers: unknown[] } }
   | { type: 'setTerritories', id: string, payload: { territories: unknown[] } }
   | { type: 'setRunTrail', id: string, payload: { runTrail: number[][] } }
+  | { type: 'setTurnByTurn', id: string, payload: { turnByTurn: TurnByTurnSpec | null } }
+  | { type: 'turnByTurn', id: string, payload: TurnByTurnBridgeEvent }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }

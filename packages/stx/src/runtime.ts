@@ -1,5 +1,5 @@
 import type { TsMap } from 'ts-maps'
-import { control, divIcon, marker as makeMarker, popup as makePopup, RunTrailLayer, styles, TerritoryLayer, tileLayer } from 'ts-maps'
+import { control, divIcon, marker as makeMarker, popup as makePopup, RunTrailLayer, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 
 /**
  * How the components in this package become things on a map.
@@ -201,6 +201,22 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           anyMap.addLayer(layer)
           created.push(layer as unknown as Removable)
           root.dispatchEvent(new CustomEvent('runtrail:ready', { bubbles: true, detail: { layer } }))
+          break
+        }
+
+        case 'turn-by-turn': {
+          const { from, to, active, ...options } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
+          const nav = new TurnByTurn(map, options)
+          // Every event, as a DOM event: stx props are data, so a callback
+          // cannot be one. The names are the core ones, prefixed.
+          for (const event of Object.keys(TURN_BY_TURN_EVENTS)) {
+            nav.on(event, (detail: unknown) => {
+              root.dispatchEvent(new CustomEvent(`turnbyturn:${event}`, { bubbles: true, detail }))
+            })
+          }
+          root.dispatchEvent(new CustomEvent('turnbyturn:ready', { bubbles: true, detail: { nav } }))
+          nav.sync({ from: from as any, to: to as any, active: !!active })
+          created.push({ remove: () => nav.stop() })
           break
         }
 

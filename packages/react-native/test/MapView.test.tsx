@@ -245,3 +245,82 @@ describe('<MapView>', () => {
     host.remove()
   })
 })
+
+describe('turn-by-turn over the bridge', () => {
+  test('the document carries the initial trip and accepts updates', () => {
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { turnByTurn: { from: [37.7955, -122.3937], to: [37.8029, -122.4484], destinationName: 'Palace of Fine Arts' } },
+    })
+    expect(html).toContain('"destinationName":"Palace of Fine Arts"')
+    expect(html).toContain('applyTurnByTurn(initial.turnByTurn)')
+    expect(html).toContain('env.type === "setTurnByTurn"')
+  })
+
+  test('a changed trip is sent over the bridge, and an unchanged one is not', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+    const trip = { from: [37.7955, -122.3937] as [number, number], to: [37.8029, -122.4484] as [number, number] }
+
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, turnByTurn: trip }))
+    })
+    const sent: any[] = []
+    // The mock hands out a fresh ref handle on each render, so listen on
+    // every handle, including the ones renders below will create.
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+
+    // Same trip, new object: nothing to send.
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, turnByTurn: { ...trip } }))
+    })
+    expect(sent.filter(e => e.type === 'setTurnByTurn').length).toBe(0)
+
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, turnByTurn: { ...trip, active: true } }))
+    })
+    const updates = sent.filter(e => e.type === 'setTurnByTurn')
+    expect(updates.length).toBe(1)
+    expect(updates[0].payload.turnByTurn.active).toBe(true)
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('navigation events reach onTurnByTurn', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const events: any[] = []
+    await act(async () => {
+      root.render(createElement(MapView, {
+        runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+        onTurnByTurn: (e) => { events.push(e) },
+      }))
+    })
+    const inst = lastInstance()
+    const payload = { type: 'arrive', data: { distanceRemaining: 3 } }
+    await act(async () => {
+      inst.onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'turnByTurn', id: 't1', payload }) } })
+    })
+    expect(events).toEqual([payload])
+
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+})

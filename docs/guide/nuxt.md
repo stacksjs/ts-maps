@@ -40,6 +40,7 @@ export default defineNuxtConfig({
 - `<TsMapsTileLayer>`
 - `<TsMapsMarker>`, `<TsMapsPopup>`
 - `<TsMapsSource>`, `<TsMapsLayer>`
+- `<TsMapsTurnByTurn>` — turn-by-turn navigation
 
 ## Basic usage
 
