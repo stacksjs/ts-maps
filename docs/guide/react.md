@@ -28,6 +28,7 @@ bun add ts-maps @ts-maps/react
 - `<Marker>` — marker with an optional `<Popup>` child.
 - `<Popup>` — standalone popup.
 - `<TurnByTurn>` — Apple Maps–style navigation: route preview, guidance, voice
+- `<OfflineMaps>` — Apple Maps–style offline maps: download areas, list, offline pill
   and lane guidance. See [framework bindings](./framework-bindings.md#turn-by-turn-navigation).
 
 ## Basic usage

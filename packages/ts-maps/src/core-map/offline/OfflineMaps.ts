@@ -77,8 +77,7 @@ export class OfflineMaps extends Evented {
   map?: any
   /** Read downloaded tiles at all. */
   enabled: boolean = true
-  /** Never go to the network for map data, as Apple's "Only Use Offline Maps". */
-  onlyOffline: boolean = false
+  _onlyOffline: boolean = false
 
   _fetch: (url: string, init?: RequestInit) => Promise<Response>
   _regions: Map<string, OfflineRegionRecord> = new Map()
@@ -98,6 +97,21 @@ export class OfflineMaps extends Evented {
     this.concurrency = Math.max(1, options.concurrency ?? 6)
     this.maxTiles = options.maxTiles ?? 150_000
     this._fetch = options.fetch ?? ((url, init) => globalThis.fetch(url, init))
+  }
+
+  /**
+   * Never go to the network for map data, as Apple's "Only Use Offline
+   * Maps". Setting it fires `modechange`.
+   */
+  get onlyOffline(): boolean {
+    return this._onlyOffline
+  }
+
+  set onlyOffline(value: boolean) {
+    if (value === this._onlyOffline)
+      return
+    this._onlyOffline = value
+    this.fire('modechange', { onlyOffline: value })
   }
 
   /**

@@ -95,6 +95,7 @@ describe('component registration', () => {
       'TsMapsTerritoryLayer',
       'TsMapsRunTrailLayer',
       'TsMapsTurnByTurn',
+      'TsMapsOfflineMaps',
       'TsMapsZoomControl',
       'TsMapsNavigationControl',
       'TsMapsGeocoderControl',

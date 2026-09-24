@@ -34,6 +34,41 @@ export interface OfflineMapsControlOptions {
   title?: string
 }
 
+/**
+ * Every event the offline maps UI reports, with the callback-prop name the
+ * framework bindings give it. One table, so the bindings cannot drift apart.
+ *
+ * `change` carries `{ regions }`; `progress`, `complete` and `error` carry
+ * `{ region }` (and `error` an `error`); `delete` `{ id }`; `modechange`
+ * `{ onlyOffline }`; `openchange` `{ open }`, when the panel opens or closes.
+ */
+export const OFFLINE_MAPS_EVENTS: {
+  readonly change: 'onChange'
+  readonly progress: 'onProgress'
+  readonly complete: 'onComplete'
+  readonly error: 'onError'
+  readonly delete: 'onDelete'
+  readonly modechange: 'onModeChange'
+  readonly openchange: 'onOpenChange'
+} = {
+  change: 'onChange',
+  progress: 'onProgress',
+  complete: 'onComplete',
+  error: 'onError',
+  delete: 'onDelete',
+  modechange: 'onModeChange',
+  openchange: 'onOpenChange',
+}
+
+export type OfflineMapsEvent = keyof typeof OFFLINE_MAPS_EVENTS
+
+/** What `sync` brings the control into line with. Either left out is left alone. */
+export interface OfflineMapsTarget {
+  /** The panel is showing: the list, or the area picker. */
+  open?: boolean
+  onlyOffline?: boolean
+}
+
 const CLASS = 'tsmap-offline'
 
 const ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>'
@@ -78,9 +113,14 @@ export class OfflineMapsControl extends Control {
   declare _nameEdited?: boolean
   declare _offline?: boolean
   declare _unsubscribe?: () => void
+  declare _listeners?: Set<(type: OfflineMapsEvent, event: any) => void>
+  declare _wasOpen?: boolean
 
   initialize(options: OfflineMapsControlOptions = {}): void {
-    super.initialize({ position: 'topright', showStatus: true, ...options })
+    // An option passed as undefined — as bindings pass every prop — means
+    // the default, not "no position".
+    const given = Object.fromEntries(Object.entries(options).filter(([, v]) => v !== undefined))
+    super.initialize({ position: 'topright', showStatus: true, ...given })
     this.maps = options.maps ?? offlineMaps()
   }
 
@@ -98,7 +138,7 @@ export class OfflineMapsControl extends Control {
     this._button = link
 
     const refresh = (): void => this._refresh()
-    this.maps.on('change progress', refresh)
+    this.maps.on('change progress modechange', refresh)
     const connection = (): void => this._updateStatus()
     if (typeof window !== 'undefined') {
       window.addEventListener('online', connection)
@@ -106,7 +146,7 @@ export class OfflineMapsControl extends Control {
     }
     map.on('moveend', connection)
     this._unsubscribe = () => {
-      this.maps.off('change progress', refresh)
+      this.maps.off('change progress modechange', refresh)
       if (typeof window !== 'undefined') {
         window.removeEventListener('online', connection)
         window.removeEventListener('offline', connection)
@@ -126,6 +166,78 @@ export class OfflineMapsControl extends Control {
     this._pill = undefined
   }
 
+  /** Whether the panel is showing: the list, or the area picker. */
+  get isOpen(): boolean {
+    return !!this._card
+  }
+
+  /**
+   * Hear every event the UI reports — the manager's, and the panel opening
+   * and closing — as `(type, event)`. Returns the way to stop.
+   */
+  listen(fn: (type: OfflineMapsEvent, event: any) => void): () => void {
+    this._listeners ??= new Set()
+    this._listeners.add(fn)
+    const forward: Array<[string, (e: any) => void]> = (['change', 'progress', 'complete', 'error', 'delete', 'modechange'] as const)
+      .map(type => [type, (e: any) => fn(type, e)])
+    for (const [type, handler] of forward)
+      this.maps.on(type, handler)
+    return () => {
+      this._listeners?.delete(fn)
+      for (const [type, handler] of forward)
+        this.maps.off(type, handler)
+    }
+  }
+
+  /**
+   * Bring the control into line with a declarative description of it — what
+   * the framework bindings call as their props change.
+   */
+  sync(target: OfflineMapsTarget): this {
+    if (target.onlyOffline !== undefined)
+      this.maps.onlyOffline = !!target.onlyOffline
+    if (target.open === true && !this.isOpen)
+      this.open()
+    else if (target.open === false && this.isOpen)
+      this.close()
+    return this
+  }
+
+  /**
+   * An event reduced to plain data, for a binding that sends it across a
+   * boundary — the React Native WebView bridge — where live objects do not
+   * survive.
+   */
+  static plainEvent(type: OfflineMapsEvent, event: any): Record<string, unknown> {
+    const plain = (region: OfflineRegionRecord | undefined): OfflineRegionRecord | undefined =>
+      region ? JSON.parse(JSON.stringify(region)) : undefined
+    switch (type) {
+      case 'change':
+        return { regions: (event?.regions ?? []).map(plain) }
+      case 'progress':
+      case 'complete':
+        return { region: plain(event?.region) }
+      case 'error':
+        return { region: plain(event?.region), message: String(event?.error?.message ?? event?.error ?? 'error') }
+      case 'delete':
+        return { id: event?.id }
+      case 'modechange':
+        return { onlyOffline: !!event?.onlyOffline }
+      case 'openchange':
+        return { open: !!event?.open }
+      default:
+        return {}
+    }
+  }
+
+  _setOpen(open: boolean): void {
+    if (this._wasOpen === open)
+      return
+    this._wasOpen = open
+    for (const fn of this._listeners ?? [])
+      fn('openchange', { open })
+  }
+
   /** Show the list of downloaded maps. */
   open(): this {
     this._endSelection()
@@ -134,6 +246,7 @@ export class OfflineMapsControl extends Control {
     this._button?.classList.add(`${CLASS}-button-active`)
     this.maps.ready().then(() => this._renderList(), () => this._renderList())
     this._renderList()
+    this._setOpen(true)
     return this
   }
 
@@ -144,6 +257,7 @@ export class OfflineMapsControl extends Control {
     this._confirming = undefined
     this._hideOutline()
     this._button?.classList.remove(`${CLASS}-button-active`)
+    this._setOpen(false)
     return this
   }
 
@@ -180,6 +294,7 @@ export class OfflineMapsControl extends Control {
     map.on('moveend', this._settleSelection, this)
     this._layoutSelection()
     this._settleSelection()
+    this._setOpen(true)
     return this
   }
 
@@ -522,8 +637,10 @@ export class OfflineMapsControl extends Control {
     }
     // Any downloaded map on screen: that part of the view, at least, is whole.
     const view = this._map.getBounds()
-    const covered = this.maps.regions.some(({ status, bounds: b }) =>
-      status === 'complete' && b[0] <= view.getEast() && b[2] >= view.getWest() && b[1] <= view.getNorth() && b[3] >= view.getSouth())
+    const covered = this.maps.regions.some((region) => {
+      const [w, south, e, n] = region.bounds
+      return region.status === 'complete' && w <= view.getEast() && e >= view.getWest() && south <= view.getNorth() && n >= view.getSouth()
+    })
     const text = only
       ? 'Using Offline Maps Only'
       : covered ? 'Offline · Using Downloaded Maps' : 'You’re Offline'

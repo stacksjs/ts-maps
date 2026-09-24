@@ -1,4 +1,4 @@
-import type { ControlSpec, MapRuntime, MarkerSpec, TerritorySpec, TurnByTurnSpec } from './types'
+import type { ControlSpec, MapRuntime, MarkerSpec, OfflineMapsSpec, TerritorySpec, TurnByTurnSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -14,6 +14,7 @@ export interface BuildHtmlOptions {
     self?: string
     runTrail?: number[][]
     turnByTurn?: TurnByTurnSpec
+    offlineMaps?: OfflineMapsSpec
   }
 }
 
@@ -216,18 +217,44 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    nav.sync({ from: spec.from, to: spec.to, active: !!spec.active });',
   '  }',
+  // Offline maps are the same control the other bindings use; its events
+  // come back over the bridge as plain data.
+  '  let offline = null;',
+  '  function applyOfflineMaps(spec) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!spec) { if (offline) { offline.remove(); offline = null; } return; }',
+  '    if (!ns.OfflineMapsControl) return;',
+  '    if (!offline) {',
+  '      const opts = {};',
+  '      ["position", "resources", "showStatus", "title"].forEach(function (k) {',
+  '        if (spec[k] != null) opts[k] = spec[k];',
+  '      });',
+  '      try { offline = new ns.OfflineMapsControl(opts); offline.addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '      offline.listen(function (type, e) {',
+  '        send({ type: "offlineMaps", id: `om${Date.now()}`, payload: { type: type, data: ns.OfflineMapsControl.plainEvent(type, e) } });',
+  '      });',
+  '    }',
+  '    offline.sync({ open: spec.open, onlyOffline: spec.onlyOffline });',
+  '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
   '  applyTurnByTurn(initial.turnByTurn);',
+  '  applyOfflineMaps(initial.offlineMaps);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
   '      const method = env.payload && env.payload.method;',
   '      const args = (env.payload && env.payload.args) || [];',
   '      try {',
-  '        const fn = method && map[method];',
+  // A dotted name reaches one level in — `offline.download`, `offline.list`
+  // — called on the object it belongs to.
+  '        const path = String(method || "").split(".");',
+  '        let owner = map;',
+  '        for (let i = 0; i < path.length - 1 && owner != null; i++) owner = owner[path[i]];',
+  '        const fn = owner != null ? owner[path[path.length - 1]] : undefined;',
   '        if (typeof fn !== "function") throw new Error(`no such method: ${method}`);',
-  '        const result = fn.apply(map, args);',
+  '        const result = fn.apply(owner, args);',
   '        Promise.resolve(result).then(function (r) {',
   '          send({ type: "call:result", id: env.id, result: r });',
   '        }).catch(function (err) {',
@@ -259,6 +286,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setTurnByTurn") {',
   '      applyTurnByTurn(env.payload && env.payload.turnByTurn);',
+  '    }',
+  '    else if (env.type === "setOfflineMaps") {',
+  '      applyOfflineMaps(env.payload && env.payload.offlineMaps);',
   '    }',
   '  }',
   '  function onMessage(data) {',

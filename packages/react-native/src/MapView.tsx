@@ -39,6 +39,7 @@ export function MapView(props: MapViewProps): ReactElement {
     self,
     runTrail,
     turnByTurn,
+    offlineMaps,
     onLoad,
     onMove,
     onClick,
@@ -46,6 +47,7 @@ export function MapView(props: MapViewProps): ReactElement {
     onReady,
     onMarkerPress,
     onTurnByTurn,
+    onOfflineMaps,
   } = props
 
   const webviewRef = useRef<WebViewHandle | null>(null)
@@ -53,7 +55,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail, turnByTurn } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -140,6 +142,14 @@ export function MapView(props: MapViewProps): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnByTurnKey, post])
 
+  const offlineMapsKey = JSON.stringify(offlineMaps ?? null)
+  useEffect(() => {
+    if (!readyRef.current)
+      return
+    post({ type: 'setOfflineMaps', id: nextId(), payload: { offlineMaps: offlineMaps ?? null } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offlineMapsKey, post])
+
   const handleMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {
       const env = decode(event.nativeEvent?.data)
@@ -167,6 +177,9 @@ export function MapView(props: MapViewProps): ReactElement {
         case 'turnByTurn':
           onTurnByTurn?.(env.payload)
           break
+        case 'offlineMaps':
+          onOfflineMaps?.(env.payload)
+          break
         case 'call:result': {
           const p = pendingRef.current.get(env.id)
           if (p) {
@@ -187,7 +200,7 @@ export function MapView(props: MapViewProps): ReactElement {
           break
       }
     },
-    [api, onClick, onError, onLoad, onMove, onReady, onMarkerPress, onTurnByTurn],
+    [api, onClick, onError, onLoad, onMove, onReady, onMarkerPress, onTurnByTurn, onOfflineMaps],
   )
 
   // react-native-webview isn't typed well across versions, and `WebView`

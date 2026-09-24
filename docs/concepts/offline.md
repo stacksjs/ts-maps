@@ -26,6 +26,10 @@ When the browser goes offline, a pill at the top says so, and says whether a dow
 | `resources` | — | Other URLs to keep with every download, such as a TileJSON your page fetches itself. |
 | `showStatus` | `true` | The offline pill. |
 
+Every framework binding has it as `<OfflineMaps>`, with `open` and
+`onlyOffline` followed as props — see
+[framework bindings](../guide/framework-bindings.md#offline-maps).
+
 ### From code
 
 `map.offline` is the manager behind the control, and `offlineMaps()` returns the same object:

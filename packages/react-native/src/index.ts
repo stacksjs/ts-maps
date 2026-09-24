@@ -13,6 +13,8 @@ export type {
   MapViewProps,
   MarkerPressEvent,
   MarkerSpec,
+  OfflineMapsBridgeEvent,
+  OfflineMapsSpec,
   TurnByTurnBridgeEvent,
   TurnByTurnSpec,
 } from './types'

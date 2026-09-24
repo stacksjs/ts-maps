@@ -324,3 +324,123 @@ describe('turn-by-turn over the bridge', () => {
     host.remove()
   })
 })
+
+describe('offline maps over the bridge', () => {
+  test('the document carries the spec and accepts updates', () => {
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { offlineMaps: { position: 'topleft', resources: ['https://tiles.example/planet'] } },
+    })
+    expect(html).toContain('"resources":["https://tiles.example/planet"]')
+    expect(html).toContain('applyOfflineMaps(initial.offlineMaps)')
+    expect(html).toContain('env.type === "setOfflineMaps"')
+  })
+
+  test('a changed spec is sent over the bridge, and an unchanged one is not', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+    const spec = { position: 'topright' as const }
+
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, offlineMaps: spec }))
+    })
+    const sent: any[] = []
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, offlineMaps: { ...spec } }))
+    })
+    expect(sent.filter(e => e.type === 'setOfflineMaps').length).toBe(0)
+
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, offlineMaps: { ...spec, open: true, onlyOffline: true } }))
+    })
+    const updates = sent.filter(e => e.type === 'setOfflineMaps')
+    expect(updates.length).toBe(1)
+    expect(updates[0].payload.offlineMaps).toEqual({ position: 'topright', open: true, onlyOffline: true })
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('offline maps events reach onOfflineMaps', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const events: any[] = []
+    await act(async () => {
+      root.render(createElement(MapView, {
+        runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+        onOfflineMaps: (e) => { events.push(e) },
+      }))
+    })
+    const payload = { type: 'complete', data: { region: { id: 'r', name: 'Home' } } }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'offlineMaps', id: 'o1', payload }) } })
+    })
+    expect(events).toEqual([payload])
+
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView script builds the control, follows updates, and reaches map.offline', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.78, -122.42], zoom: 14, offlineMaps: { open: true } },
+    })
+    // The inline script is the last one in the document.
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    // eslint-disable-next-line no-new-func
+    new Function(script)()
+
+    expect(page.querySelector('.tsmap-offline-button')).not.toBeNull()
+    expect(page.querySelector('.tsmap-offline-card')).not.toBeNull()
+    expect(posted.some(e => e.type === 'offlineMaps' && e.payload.type === 'openchange' && e.payload.data.open === true)).toBe(true)
+
+    // Updates arrive as messages from the native side.
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    deliver({ type: 'setOfflineMaps', id: 's1', payload: { offlineMaps: { open: false, onlyOffline: true } } })
+    expect(page.querySelector('.tsmap-offline-card')).toBeNull()
+    expect(tsMaps.offlineMaps().onlyOffline).toBe(true)
+    expect(posted.some(e => e.type === 'offlineMaps' && e.payload.type === 'modechange' && e.payload.data.onlyOffline === true)).toBe(true)
+
+    // A dotted method reaches the manager.
+    deliver({ type: 'call', id: 'c1', payload: { method: 'offline.usage', args: [] } })
+    await new Promise(r => setTimeout(r, 20))
+    const result = posted.find(e => e.type === 'call:result' && e.id === 'c1')
+    expect(result?.result).toEqual({ bytes: 0, entries: 0 })
+
+    deliver({ type: 'setOfflineMaps', id: 's2', payload: { offlineMaps: null } })
+    expect(page.querySelector('.tsmap-offline-button')).toBeNull()
+    tsMaps.offlineMaps().onlyOffline = false
+    delete w.tsMaps
+    delete w.ReactNativeWebView
+    page.remove()
+  })
+})

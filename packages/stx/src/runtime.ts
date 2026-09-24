@@ -1,5 +1,5 @@
 import type { TsMap } from 'ts-maps'
-import { control, divIcon, marker as makeMarker, popup as makePopup, RunTrailLayer, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import { control, divIcon, marker as makeMarker, OfflineMapsControl, popup as makePopup, RunTrailLayer, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 
 /**
  * How the components in this package become things on a map.
@@ -217,6 +217,26 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           root.dispatchEvent(new CustomEvent('turnbyturn:ready', { bubbles: true, detail: { nav } }))
           nav.sync({ from: from as any, to: to as any, active: !!active })
           created.push({ remove: () => nav.stop() })
+          break
+        }
+
+        case 'offline-maps': {
+          const { open, onlyOffline, ...options } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
+          const offline = new OfflineMapsControl(options)
+          offline.addTo(map)
+          // Every event, as a DOM event: stx props are data, so a callback
+          // cannot be one. The names are the core ones, prefixed.
+          const unlisten = offline.listen((event, detail) => {
+            root.dispatchEvent(new CustomEvent(`offlinemaps:${event}`, { bubbles: true, detail }))
+          })
+          root.dispatchEvent(new CustomEvent('offlinemaps:ready', { bubbles: true, detail: { control: offline } }))
+          offline.sync({ open: open as boolean | undefined, onlyOffline: onlyOffline as boolean | undefined })
+          created.push({
+            remove: () => {
+              unlisten()
+              offline.remove()
+            },
+          })
           break
         }
 

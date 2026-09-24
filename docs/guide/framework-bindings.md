@@ -12,6 +12,7 @@ sketched in one framework reads the same in another.
 | `Marker` `Popup` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `markers` prop |
 | Controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `controls` prop |
 | `TurnByTurn` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `turnByTurn` prop |
+| `OfflineMaps` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `offlineMaps` prop |
 | Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
 | Event subscription | `useMapEvent` | `useMapEvent` | `useMapEvent` | `useMapEvent` | `onMapEvent` | auto-imported | ✅ |
 
@@ -169,6 +170,59 @@ plain data:
   onTurnByTurn={e => e.type === 'arrive' && setDriving(false)}
 />
 ```
+
+## Offline maps
+
+`OfflineMaps` adds Apple Maps–style offline maps (see
+[offline maps](../concepts/offline.md)): a button opening the list of downloaded
+maps, an area picker with an estimated size, and a pill when the connection
+drops. Two props are followed as they change — `open` shows the panel, and
+`onlyOffline` keeps map data off the network — and both report back when the
+panel's own ✕ or switch changes them.
+
+```tsx
+// React and Solid
+<Map center={[37.78, -122.42]} zoom={13}>
+  <OfflineMaps
+    open={showOffline}
+    onOpenChange={e => setShowOffline(e.open)}
+    onComplete={e => toast(`${e.region.name} is ready offline`)}
+  />
+</Map>
+```
+
+```vue
+<!-- Vue, and Nuxt as <TsMapsOfflineMaps> -->
+<TsOfflineMaps v-model:open="showOffline" v-model:onlyOffline="offlineOnly" @complete="done" />
+```
+
+```svelte
+<OfflineMaps bind:open={showOffline} bind:onlyOffline onComplete={done} />
+```
+
+The events are the same everywhere — `change` (`{ regions }`), `progress`,
+`complete` and `error` (`{ region }`), `delete` (`{ id }`), `modechange`
+(`{ onlyOffline }`) and `openchange` (`{ open }`) — as `onComplete` props in
+React, Solid and Svelte, `@complete` in Vue, and a bubbling
+`offlinemaps:complete` DOM event in stx. `ready` hands over the control, whose
+`maps` is the manager for downloading, listing and deleting from code. The other
+options — `position`, `maps`, `geocoder`, `resources`, `showStatus`, `title` —
+are read once, when the component mounts.
+
+On React Native it is a prop of `MapView`, with every event arriving at one
+`onOfflineMaps({ type, data })`. The manager is reached through `api.call`, whose
+method names can now reach one level in:
+
+```tsx
+<MapView
+  runtime={runtime}
+  offlineMaps={{ open: showOffline, onlyOffline }}
+  onOfflineMaps={e => e.type === 'complete' && refresh()}
+  onReady={api => api.call('offline.list').then(setRegions)}
+/>
+```
+
+Downloads made in the WebView are kept in its IndexedDB.
 
 ## Subscribing to events
 

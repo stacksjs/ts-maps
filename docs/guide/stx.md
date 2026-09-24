@@ -53,6 +53,7 @@ tiles somewhere below the fold.
 | `Popup` | A bubble, bound to a marker or free-standing |
 | `ZoomControl` `NavigationControl` `GeocoderControl` `FullscreenControl` `LocateControl` `ScaleControl` `AttributionControl` | Map controls |
 | `TurnByTurn` | Turn-by-turn navigation; events arrive as `turnbyturn:*` DOM events |
+| `OfflineMaps` | Offline maps; events arrive as `offlinemaps:*` DOM events |
 
 Same names and prop shapes as the React, Vue, Svelte and Solid bindings.
 

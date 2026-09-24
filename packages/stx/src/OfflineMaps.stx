@@ -1,0 +1,40 @@
+<script server>
+/**
+ * Offline maps, after Apple Maps: a button opening the list of downloaded
+ * maps, an area picker with an estimated size, and a pill when the
+ * connection drops.
+ *
+ * ```stx
+ * <Map center="[37.78, -122.42]" zoom="13">
+ *   <OfflineMaps position="topright" :resources="['https://tiles.openfreemap.org/planet']" />
+ * </Map>
+ * ```
+ *
+ * `open` shows the list straight away, and `onlyOffline` keeps map data off
+ * the network. Events cannot be props here — stx passes props as data — so
+ * each one is a DOM event bubbling from the map: `offlinemaps:change`,
+ * `offlinemaps:progress`, `offlinemaps:complete`, and the rest of the names
+ * the other bindings use, with the core event as `detail`.
+ * `offlinemaps:ready` hands the page the control itself, whose `maps` is the
+ * manager, and whose `sync({ open, onlyOffline })` changes either later:
+ *
+ * ```js
+ * container.addEventListener('offlinemaps:ready', e => { offline = e.detail.control })
+ * button.onclick = () => offline.sync({ open: true })
+ * ```
+ */
+export const optionsJson = JSON.stringify({
+  open: $props.open,
+  onlyOffline: $props.onlyOffline,
+  position: $props.position,
+  resources: $props.resources,
+  showStatus: $props.showStatus,
+  title: $props.title,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="offline-maps"
+  data-options="{{ optionsJson }}"
+></span>

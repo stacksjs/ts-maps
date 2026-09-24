@@ -136,6 +136,43 @@ export interface TurnByTurnBridgeEvent {
   data: Record<string, unknown>
 }
 
+/**
+ * Offline maps on the map, after Apple Maps — the same thing `<OfflineMaps>`
+ * is in the other bindings, carried as data. The button, the list of
+ * downloaded maps, the area picker and the offline pill all run inside the
+ * WebView, and downloads are kept in its IndexedDB.
+ *
+ * Live: changing `open` or `onlyOffline` updates the control over the bridge.
+ * The other options are read when it is first set. Anything else —
+ * downloading an area from code, listing what is downloaded — goes through
+ * `api.call('offline.download', { bounds, name })`, `api.call('offline.list')`
+ * and the rest of `map.offline`.
+ */
+export interface OfflineMapsSpec {
+  /** Show the panel — the list of downloaded maps. */
+  open?: boolean
+  /** Never go to the network for map data. */
+  onlyOffline?: boolean
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
+  /** Other URLs to keep with every download, such as a TileJSON. */
+  resources?: string[]
+  /** The pill shown when the connection drops. Default true. */
+  showStatus?: boolean
+  title?: string
+}
+
+/**
+ * One offline maps event from the map. `type` is the event's name in the
+ * other bindings' terms, and `data` its content as plain data: `{ regions }`
+ * for `change`, `{ region }` for `progress` and `complete`, `{ region,
+ * message }` for `error`, `{ id }` for `delete`, `{ onlyOffline }` for
+ * `modechange` and `{ open }` for `openchange`.
+ */
+export interface OfflineMapsBridgeEvent {
+  type: 'change' | 'progress' | 'complete' | 'error' | 'delete' | 'modechange' | 'openchange'
+  data: Record<string, unknown>
+}
+
 export interface MapViewProps {
   style?: ViewStyle
 
@@ -189,6 +226,9 @@ export interface MapViewProps {
   /** Turn-by-turn navigation. Live, like `markers`. */
   turnByTurn?: TurnByTurnSpec
 
+  /** Offline maps: download areas to use with no connection. Live, like `markers`. */
+  offlineMaps?: OfflineMapsSpec
+
   onLoad?: () => void
   // eslint-disable-next-line no-unused-vars
   onMove?: (e: MapMoveEvent) => void
@@ -203,6 +243,10 @@ export interface MapViewProps {
   /** Every navigation event, as `{ type, data }`. */
   // eslint-disable-next-line no-unused-vars
   onTurnByTurn?: (e: TurnByTurnBridgeEvent) => void
+
+  /** Every offline maps event, as `{ type, data }`. */
+  // eslint-disable-next-line no-unused-vars
+  onOfflineMaps?: (e: OfflineMapsBridgeEvent) => void
 
   // eslint-disable-next-line no-unused-vars
   onReady?: (api: MapApi) => void
@@ -223,6 +267,8 @@ export type BridgeEnvelope =
   | { type: 'setRunTrail', id: string, payload: { runTrail: number[][] } }
   | { type: 'setTurnByTurn', id: string, payload: { turnByTurn: TurnByTurnSpec | null } }
   | { type: 'turnByTurn', id: string, payload: TurnByTurnBridgeEvent }
+  | { type: 'setOfflineMaps', id: string, payload: { offlineMaps: OfflineMapsSpec | null } }
+  | { type: 'offlineMaps', id: string, payload: OfflineMapsBridgeEvent }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }

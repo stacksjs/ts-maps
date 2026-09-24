@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { control, TileLayer, TsMap } from '../src/core-map'
-import { formatBytes } from '../src/core-map/control/OfflineMapsControl'
+import { formatBytes, OFFLINE_MAPS_EVENTS, OfflineMapsControl } from '../src/core-map/control/OfflineMapsControl'
 import { MemoryOfflineStore, OfflineMaps, setOfflineMaps } from '../src/core-map/offline'
 
 const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
@@ -183,5 +183,59 @@ describe('image tiles', () => {
     await until(() => error !== undefined)
     expect(String(error)).toContain('Only using offline maps')
     expect(tile.getAttribute('src') ?? '').not.toContain('img.test')
+  })
+})
+
+describe('for the framework bindings', () => {
+  test('sync follows open and onlyOffline, and listen hears both', async () => {
+    const maps = new OfflineMaps({ store: new MemoryOfflineStore(), fetch: tileServer().fetch })
+    const map = makeMap()
+    const offline = control.offlineMaps({ maps }).addTo(map)
+    const heard: Array<[string, unknown]> = []
+    const stop = offline.listen((type, e) => heard.push([type, e]))
+
+    offline.sync({ open: true })
+    expect(offline.isOpen).toBe(true)
+    offline.sync({ onlyOffline: true })
+    expect(maps.onlyOffline).toBe(true)
+    // Left out is left alone.
+    offline.sync({})
+    expect(offline.isOpen).toBe(true)
+    expect(maps.onlyOffline).toBe(true)
+    offline.sync({ open: false, onlyOffline: false })
+    expect(offline.isOpen).toBe(false)
+
+    await maps.download({ bounds: [-122.421, 37.779, -122.419, 37.781], minZoom: 16, map })
+    stop()
+    maps.onlyOffline = true
+
+    const types = heard.map(([type]) => type)
+    expect(types).toContain('openchange')
+    expect(types).toContain('modechange')
+    expect(types).toContain('complete')
+    expect(heard.filter(([t]) => t === 'modechange')).toHaveLength(2)
+    expect(heard.filter(([t]) => t === 'openchange').map(([, e]) => (e as any).open)).toEqual([true, false])
+  })
+
+  test('the switch in the panel reports the change', async () => {
+    const maps = new OfflineMaps({ store: new MemoryOfflineStore(), fetch: tileServer().fetch })
+    const map = makeMap()
+    const offline = control.offlineMaps({ maps }).addTo(map)
+    const modes: boolean[] = []
+    offline.listen((type, e) => type === 'modechange' && modes.push(e.onlyOffline))
+    offline.open()
+    const toggle = map.getContainer().querySelector<HTMLInputElement>('.tsmap-offline-switch')!
+    toggle.checked = true
+    toggle.dispatchEvent(new Event('change'))
+    expect(modes).toEqual([true])
+  })
+
+  test('events reduce to plain data', () => {
+    const region = { id: 'r', name: 'R', bounds: [0, 0, 1, 1], status: 'complete' }
+    expect(OfflineMapsControl.plainEvent('progress', { region })).toEqual({ region })
+    expect(OfflineMapsControl.plainEvent('error', { region, error: new Error('boom') })).toEqual({ region, message: 'boom' })
+    expect(OfflineMapsControl.plainEvent('modechange', { onlyOffline: true })).toEqual({ onlyOffline: true })
+    expect(OfflineMapsControl.plainEvent('delete', { id: 'r' })).toEqual({ id: 'r' })
+    expect(Object.keys(OFFLINE_MAPS_EVENTS)).toEqual(['change', 'progress', 'complete', 'error', 'delete', 'modechange', 'openchange'])
   })
 })
