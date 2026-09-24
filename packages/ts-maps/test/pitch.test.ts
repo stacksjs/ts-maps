@@ -29,7 +29,7 @@ describe('pitch (camera tilt)', () => {
     expect(map.getPitch()).toBe(0)
   })
 
-  test('accepts an initial pitch via options, clamped to [0, 60]', () => {
+  test('accepts an initial pitch via options, clamped to [0, 85]', () => {
     const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3, pitch: 45 })
     expect(map.getPitch()).toBe(45)
   })
@@ -46,10 +46,10 @@ describe('pitch (camera tilt)', () => {
     expect(map.getPitch()).toBe(0)
   })
 
-  test('setPitch(90) clamps to 60 (default maxPitch)', () => {
+  test('setPitch(90) clamps to 85 (default maxPitch)', () => {
     const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
     map.setPitch(90)
-    expect(map.getPitch()).toBe(60)
+    expect(map.getPitch()).toBe(85)
   })
 
   test('respects custom maxPitch from options at runtime', () => {

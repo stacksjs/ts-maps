@@ -11,7 +11,7 @@ const map = new TsMap('map-id', {
   center: [51.5074, -0.1278],   // [lat, lng] or LatLng
   zoom: 10,                     // fractional zoom is supported
   bearing: 0,                   // degrees clockwise from north
-  pitch: 0,                     // 0–60, degrees of camera tilt
+  pitch: 0,                     // 0–85, degrees of camera tilt (maxPitch)
   minZoom: 2,
   maxZoom: 19,
   worldCopyJump: true,

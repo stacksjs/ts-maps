@@ -93,7 +93,9 @@ export class DragHandler extends Handler {
     const d = this._draggable as any
     if (map._pitch && d?._startPoint) {
       const rect = map._container.getBoundingClientRect()
-      this._groundStart = new Point(d._startPoint.x - rect.left - map._container.clientLeft, d._startPoint.y - rect.top - map._container.clientTop)
+      // Grabbed near the horizon, the ground under the pointer is so far off
+      // that following it would fling the map; hold on lower down instead.
+      this._groundStart = map._clampToGround(new Point(d._startPoint.x - rect.left - map._container.clientLeft, d._startPoint.y - rect.top - map._container.clientTop), 1 / 8)
       this._groundAnchor = map.containerPointToLatLng(this._groundStart)
     }
 
@@ -151,7 +153,7 @@ export class DragHandler extends Handler {
     return
 
     const offset = d._newPos.subtract(d._startPos)
-    const cursor = this._groundCursor = this._groundStart.add(offset)
+    const cursor = this._groundCursor = map._clampToGround(this._groundStart.add(offset), 1 / 8)
     d._newPos = d._startPos.clone()
     d._absPos = undefined
 

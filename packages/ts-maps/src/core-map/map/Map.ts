@@ -64,7 +64,8 @@ export interface MapOptions {
   */
   pitch?: number
   /**
-  * Maximum allowed pitch in degrees. Default 60 (same as Mapbox GL JS).
+  * Maximum allowed pitch in degrees. Default 85, as in Apple Maps; past about
+  * 72° the horizon comes into view and a sky is drawn above it.
   */
   maxPitch?: number
   /**
@@ -516,13 +517,13 @@ export class TsMap extends Evented {
    */
   _panGround(offset: Point, options: any): this {
     const size = this.getSize()
-    const around: Point = options.around ? new Point(options.around) : size.divideBy(2)
-    // Kept on screen: past the top edge a tilted view runs out towards the
-    // horizon, where a few pixels cover kilometres.
-    const target = new Point(
+    const around: Point = this._clampToGround(options.around ? new Point(options.around) : size.divideBy(2), 1 / 8)
+    // Kept on screen, and short of the horizon, where a few pixels cover
+    // kilometres.
+    const target = this._clampToGround(new Point(
       Math.min(size.x, Math.max(0, around.x + offset.x)),
       Math.min(size.y, Math.max(0, around.y + offset.y)),
-    )
+    ), 1 / 8)
     const zoom = this._zoom
     const shift = this.project(this.containerPointToLatLng(target), zoom)
       .subtract(this.project(this.containerPointToLatLng(around), zoom))
@@ -937,6 +938,10 @@ export class TsMap extends Evented {
     const pane = DomUtil.create('div', className, container || this._mapPane)
     if (name)
     this._panes[name] = pane
+    // A pane made while the map is turned or tilted starts on the ground with
+    // everything else.
+    if (name && !container && (this._bearing || this._pitch))
+    this._applyCameraTransform()
     return pane
   }
 
@@ -1017,8 +1022,6 @@ export class TsMap extends Evented {
     this.fire('pitchstart', { pitch: this._pitch })
     this._pitch = clamped
     this._applyCameraTransform()
-    if (this._atmosphereOverlay)
-      this._updateAtmosphereOverlay()
     this.fire('pitch', { pitch: clamped })
     this.fire('pitchend', { pitch: clamped })
     return this
@@ -1043,7 +1046,7 @@ export class TsMap extends Evented {
 
   _clampPitch(pitch: number): number {
     const min = this.options.minPitch ?? 0
-    const max = this.options.maxPitch ?? 60
+    const max = this.options.maxPitch ?? 85
     return Math.max(min, Math.min(max, pitch))
   }
 
@@ -1785,9 +1788,14 @@ export class TsMap extends Evented {
   }
 
   /**
-  * Pushes the current `_bearing` and `_pitch` onto the CSS transforms of
-  * `_mapPane` and the upright panes (symbol / marker / popup / tooltip). Both
-  * camera transforms pivot around the viewport center via `transform-origin`.
+  * Pushes the current `_bearing` and `_pitch` onto the panes' CSS transforms.
+  *
+  * The camera goes on the ground panes — tiles, vector overlays, shadows,
+  * and any custom pane a caller creates — each turned and tilted about the
+  * view centre. The upright panes (labels, markers, popups, tooltips) get no
+  * camera at all: they are screen space, offset only by the pane position
+  * they share with the ground, which is where `_latLngToUprightPoint` puts
+  * things.
   *
   * ## Pitch
   *
@@ -1797,19 +1805,13 @@ export class TsMap extends Evented {
   * orthographic squash that the projection maths — and so every label, marker
   * and hit-test — disagreed with.
   *
-  * The upright panes have to come out of that tilt entirely, which a 2D
-  * counter-rotation cannot do: an element inside a transformed parent is
-  * flattened into the parent's plane, so text came out squashed however it
-  * was counter-rotated. The pane is made a 3D context (`preserve-3d`) and each
-  * upright pane applies the exact inverse, which leaves it in the screen plane
-  * with nothing but the pane offset.
-  *
-  * In a 3D context the browser orders panes by depth rather than z-index, and
-  * a tilted ground plane passes through the screen plane — the near half of
-  * the map would be drawn over the labels on it. So the ground is pushed back
-  * by `D` and scaled up by `S = (h + D) / h`, which leaves its projection
-  * exactly as before but puts every visible part of it behind the upright
-  * panes. `D` is the depth of the lowest visible ground row.
+  * The camera used to sit on the map pane, with the upright panes applying
+  * its inverse inside a `preserve-3d` context. That squashed nothing, but it
+  * put the whole map into the browser's depth sorting, which gives up past a
+  * handful of large coplanar layers: with distant tiles at five zoom levels
+  * on screen at 75°, Chrome drew none of the ground at all. Keeping the camera
+  * on the ground panes leaves every pane flat and ordered by z-index, as on a
+  * map that is not tilted.
   */
   _applyCameraTransform(): void {
     if (!this._mapPane)
@@ -1835,39 +1837,26 @@ export class TsMap extends Evented {
     const size = this.getSize()
     const center = size.divideBy(2)
     const originCss = `${center.x}px ${center.y}px`
-    this._mapPane.style.transformOrigin = originCss
 
-    const geometry = this._pitch ? this._cameraGeometry() : null
     let ground = ''
-    let inverse = ''
-    if (geometry) {
-      const { h, depth, scale } = geometry
-      ground = `perspective(${h}px) translateZ(${-depth}px) rotateX(${this._pitch}deg) rotate(${this._bearing}deg) scale(${scale})`
-      inverse = `scale(${1 / scale}) rotate(${-this._bearing}deg) rotateX(${-this._pitch}deg) translateZ(${depth}px)`
-    }
-    else if (this._bearing) {
-      ground = `rotate(${this._bearing}deg)`
-      inverse = `rotate(${-this._bearing}deg)`
-    }
-    this._mapPane.style.transformStyle = geometry ? 'preserve-3d' : ''
-    DomUtil.setCamera(this._mapPane, ground)
+    if (this._pitch)
+    ground = `perspective(${this._cameraGeometry().h}px) rotateX(${this._pitch}deg) rotate(${this._bearing}deg)`
+    else if (this._bearing)
+    ground = `rotate(${this._bearing}deg)`
 
-    // Counter-transform the upright panes so labels, icons, popups and
-    // tooltips neither spin nor tilt with the map. What is left is a plain
-    // screen-space layer offset by the pane position, which is where
-    // `_latLngToUprightPoint` puts things.
-    const upright = ['symbolPane', 'markerPane', 'popupPane', 'tooltipPane']
-    for (const name of upright) {
-      const pane = this._panes?.[name]
-      if (!pane)
+    // The map pane itself only ever moves.
+    DomUtil.setCamera(this._mapPane, '')
+
+    const upright = new Set(['symbolPane', 'markerPane', 'popupPane', 'tooltipPane'])
+    for (const [name, pane] of Object.entries(this._panes ?? {})) {
+      // Nested panes inherit their parent's camera.
+      if (pane === this._mapPane || pane.parentNode !== this._mapPane)
       continue
-      if (inverse) {
-        pane.classList.add('tsmap-upright')
+      if (ground && !upright.has(name)) {
         pane.style.transformOrigin = originCss
-        pane.style.transform = inverse
+        pane.style.transform = ground
       }
       else {
-        pane.classList.remove('tsmap-upright')
         pane.style.transform = ''
         pane.style.transformOrigin = ''
       }
@@ -1875,24 +1864,20 @@ export class TsMap extends Evented {
 
     this._appliedPitch = this._pitch
     this._appliedBearing = this._bearing
+
+    // The sky follows the horizon, which moves with every change of pitch.
+    if (this._atmosphereOverlay || this._horizonDistance() < size.y / 2)
+    this._updateAtmosphereOverlay()
   }
 
   /**
   * The perspective camera for the current pitch: its height `h` above the
-  * ground in pixels, and the depth offset and matching scale that keep the
-  * visible ground behind the screen plane (see `_applyCameraTransform`).
+  * ground in pixels, from the view height and a 36.87° vertical field of
+  * view (Mapbox's default).
   */
-  _cameraGeometry(): { h: number, depth: number, scale: number } {
+  _cameraGeometry(): { h: number } {
     const H = this.getSize().y
-    const h = (H / 2) / Math.tan((36.87 * Math.PI / 180) / 2)
-    const theta = (this._pitch * Math.PI) / 180
-    const sin = Math.sin(theta)
-    // The ground row at the bottom edge of the view is the nearest thing on
-    // screen; a little past it for antialiasing. Never at or past the camera.
-    const bottom = this._unpitchPoint(new Point(0, H / 2)).y + 2
-    const near = Math.min(bottom * sin, h * 0.95)
-    const depth = Math.max(0, (h * near) / (h - near))
-    return { h, depth, scale: (h + depth) / h }
+    return { h: (H / 2) / Math.tan((36.87 * Math.PI / 180) / 2) }
   }
 
   /**
@@ -1907,9 +1892,54 @@ export class TsMap extends Evented {
   * camera. It depends only on bearing, pitch and view size, not on centre or
   * zoom.
   */
-  _groundOffset(containerPoint: Point): Point {
+  _groundOffset(containerPoint: Point, minScale: number = 1 / 16): Point {
     const half = this.getSize().divideBy(2)
-    return this.containerPointToLayerPoint(containerPoint).subtract(this.containerPointToLayerPoint(half))
+    return this.containerPointToLayerPoint(this._clampToGround(containerPoint, minScale)).subtract(this.containerPointToLayerPoint(half))
+  }
+
+  /**
+  * `containerPoint`, moved down if needed until the ground under it is shown
+  * at no less than `minScale` of its size at the view's centre.
+  *
+  * Steeply tilted, the ground near the horizon is compressed without limit:
+  * a pixel there can cover kilometres, and the sky above it covers nothing.
+  * Anchoring a drag, a zoom or the tile footprint up there would fling the
+  * map or ask for the whole world, so they stop at the ground that is still
+  * legible. Flat or gently tilted, where no such ground is on screen, this
+  * changes nothing.
+  */
+  _clampToGround(containerPoint: Point, minScale: number = 1 / 16): Point {
+    if (!this._pitch)
+    return containerPoint
+    const limit = this.getSize().y / 2 - (1 - minScale) * this._horizonDistance()
+    return containerPoint.y < limit ? new Point(containerPoint.x, limit) : containerPoint
+  }
+
+  /**
+  * How far above the view's centre the horizon sits, in pixels: `h·cot(pitch)`.
+  * Infinite when flat. Past about 72° it is less than half the view's height
+  * and the horizon is on screen.
+  */
+  _horizonDistance(): number {
+    if (!this._pitch)
+    return Infinity
+    const theta = (this._pitch * Math.PI) / 180
+    return this._cameraGeometry().h / Math.tan(theta)
+  }
+
+  /**
+  * How large the ground at `layerPoint` is drawn relative to the ground at
+  * the view's centre: 1 when flat, larger nearer the camera, smaller towards
+  * the horizon, and not a positive number behind the camera.
+  */
+  _groundScaleAt(layerPoint: Point): number {
+    if (!this._pitch)
+    return 1
+    const center = this.getSize().divideBy(2)
+    const rotated = this._rotatePoint(new Point(layerPoint.x, layerPoint.y).subtract(center), this._bearing, new Point(0, 0))
+    const { h } = this._cameraGeometry()
+    const depth = h - rotated.y * Math.sin((this._pitch * Math.PI) / 180)
+    return depth > 0 ? h / depth : -1
   }
 
   /**
@@ -1954,8 +1984,10 @@ export class TsMap extends Evented {
     const sinT = Math.sin(theta)
     const cosT = Math.cos(theta)
     const denom = h - p.y * sinT
-    if (Math.abs(denom) < 1e-6)
-    return p.clone()
+    // Behind the camera: nowhere on screen. Sent far below the view rather
+    // than projected, which would flip it back on screen upside down.
+    if (denom <= h * 1e-3)
+    return new Point(p.x < 0 ? -1e7 : 1e7, 1e7)
     const sx = h * p.x / denom
     const sy = h * p.y * cosT / denom
     return new Point(sx, sy)
@@ -1977,6 +2009,12 @@ export class TsMap extends Evented {
     const cosT = Math.cos(theta)
     // Derived in task notes: solving sy = h*ly*cos/(h - ly*sin) for ly,
     // then back-substituting for lx.
+    //
+    // A point at or above the horizon has no ground under it; it is taken as
+    // just below the horizon, the furthest ground that direction reaches.
+    const horizon = -h * cosT / sinT
+    if (p.y < horizon + 0.5)
+    p = new Point(p.x, horizon + 0.5)
     const denom = h * cosT + p.y * sinT
     if (Math.abs(denom) < 1e-6)
     return p.clone()
@@ -3781,6 +3819,15 @@ export class TsMap extends Evented {
     return 1 - t * t * (3 - 2 * t)
   }
 
+  /** Keep the atmosphere over the viewport while the map pane is offset. */
+  _pinAtmosphere(): void {
+    const overlay = this._atmosphereOverlay
+    if (!overlay?.style || overlay.parentNode !== this._mapPane)
+      return
+    const pos = this._getMapPanePos()
+    overlay.style.transform = `translate3d(${-pos.x}px, ${-pos.y}px, 0)`
+  }
+
   /**
    * Builds / updates / removes the atmosphere overlay inside the map
    * container. The overlay is a single `<div>` absolutely positioned over
@@ -3799,33 +3846,57 @@ export class TsMap extends Evented {
     const globeMix = this._isGlobeProjection() ? this._globeAtmosphereMix() : 0
     const hasHalo = globeMix > 0
 
-    if (!hasSky && !hasFog && !hasHalo) {
+    // Where the horizon is on screen, in pixels from the top. Tilted steeply
+    // enough to see it, there is always a sky above it, as in Apple Maps —
+    // the theme's own unless `setSky` chose one.
+    const size = this.getSize()
+    const horizon = size.y / 2 - this._horizonDistance()
+    const horizonVisible = horizon > 0 && !hasHalo
+
+    if (!hasSky && !hasFog && !hasHalo && !horizonVisible) {
       if (this._atmosphereOverlay && this._atmosphereOverlay.parentNode)
         this._atmosphereOverlay.parentNode.removeChild(this._atmosphereOverlay)
       this._atmosphereOverlay = undefined
+      this.off('move', this._pinAtmosphere, this)
       return
     }
 
     if (!this._atmosphereOverlay) {
       const div = (container.ownerDocument ?? document).createElement('div')
       div.className = 'ts-maps-atmosphere'
+      // Inside the map pane, over the tiles and under the labels (350) and
+      // everything above them: the sky covers the ground past the horizon,
+      // never a marker or popup standing on it. Pinned to the screen against
+      // the pane's own offset.
+      const parent = this._mapPane ?? container
       if (div.style) {
         div.style.position = 'absolute'
-        div.style.inset = '0'
+        div.style.left = '0'
+        div.style.top = '0'
+        div.style.width = `${size.x}px`
+        div.style.height = `${size.y}px`
         div.style.pointerEvents = 'none'
-        div.style.zIndex = '400'
+        div.style.zIndex = parent === container ? '400' : '300'
       }
-      container.appendChild(div)
+      parent.appendChild(div)
       this._atmosphereOverlay = div
+      if (parent !== container)
+      this.on('move', this._pinAtmosphere, this)
     }
+    if (this._atmosphereOverlay.style) {
+      this._atmosphereOverlay.style.width = `${size.x}px`
+      this._atmosphereOverlay.style.height = `${size.y}px`
+    }
+    this._pinAtmosphere()
 
     const pitch = this.getPitch?.() ?? 0
     // Linear-gradient sky/fog band fades in with pitch; a top-down map has
     // no horizon to tint.
     const pitchT = Math.max(0, Math.min(1, (pitch - 5) / 55))
 
-    const skyColor = this._sky?.['sky-color'] ?? '#87ceeb'
-    const horizonColor = this._sky?.['horizon-color'] ?? '#ffffff'
+    const dark = !!this._container?.classList?.contains('tsmap-dark')
+    const skyColor = this._sky?.['sky-color'] ?? (horizonVisible && !hasSky ? (dark ? '#0b1322' : '#a9cdef') : '#87ceeb')
+    const horizonColor = this._sky?.['horizon-color'] ?? (horizonVisible && !hasSky ? (dark ? '#1f2837' : '#eef3f7') : '#ffffff')
     const fogColor = this._fog?.color ?? 'rgb(245, 247, 250)'
     const horizonBlend = this._fog?.['horizon-blend'] ?? 0.1
 
@@ -3843,12 +3914,26 @@ export class TsMap extends Evented {
       )
     }
 
-    if (hasSky) {
+    if (horizonVisible) {
+      // Sky down to the horizon, then a haze over the most distant ground so
+      // the map dissolves into it instead of ending at a hard line.
+      const haze = Math.max(16, size.y * 0.08)
+      gradients.push(
+        `linear-gradient(to bottom, ${skyColor} 0px, ${horizonColor} ${horizon.toFixed(1)}px, transparent ${(horizon + haze).toFixed(1)}px)`,
+      )
+      if (hasFog) {
+        const band = Math.max(8, size.y * Math.max(0.05, Math.min(0.4, horizonBlend * 2)) / 2)
+        gradients.push(
+          `linear-gradient(to bottom, transparent ${(horizon - band).toFixed(1)}px, ${fogColor} ${horizon.toFixed(1)}px, transparent ${(horizon + band).toFixed(1)}px)`,
+        )
+      }
+    }
+    else if (hasSky) {
       gradients.push(
         `linear-gradient(to bottom, ${skyColor} 0%, ${horizonColor} 40%, transparent 60%)`,
       )
     }
-    if (hasFog) {
+    if (hasFog && !horizonVisible) {
       const band = Math.max(0.05, Math.min(0.4, horizonBlend * 2))
       const mid = 0.45
       const from = Math.max(0, mid - band / 2)
@@ -3864,7 +3949,7 @@ export class TsMap extends Evented {
     style.background = gradients.join(', ')
     // Halo contributes even when pitch == 0 (the globe reads just fine
     // top-down); otherwise fall back to the original pitch-gated opacity.
-    const linearOpacity = (hasSky || hasFog) ? pitchT : 0
+    const linearOpacity = horizonVisible ? 1 : (hasSky || hasFog) ? pitchT : 0
     const opacity = Math.max(linearOpacity, hasHalo ? globeMix * 0.9 : 0)
     style.opacity = String(opacity.toFixed(3))
     style.display = opacity <= 0 ? 'none' : 'block'
@@ -4099,7 +4184,9 @@ TsMap.setDefaultOptions( {
   trackResize: true,
   bearing: 0,
   pitch: 0,
-  maxPitch: 60,
+  // As Apple Maps: steep enough to look along a street at the skyline. Past
+  // about 72° the horizon is on screen, and the sky is drawn above it.
+  maxPitch: 85,
   minPitch: 0,
 })
 

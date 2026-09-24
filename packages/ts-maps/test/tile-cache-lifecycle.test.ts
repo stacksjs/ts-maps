@@ -65,26 +65,17 @@ describe('Map.remove cleanup', () => {
     map.setSky({ 'sky-color': '#2563eb' })
     map.setTerrain({ source: 'dem' })
 
-    // Both overlays are attached inside the container.
-    let sawAtmos = false
-    let sawTerrain = false
-    for (let i = 0; i < container.children.length; i++) {
-      const c = (container.children[i] as HTMLElement).className ?? ''
-      if (c.includes('ts-maps-atmosphere'))
-        sawAtmos = true
-      if (c.includes('ts-maps-terrain-overlay'))
-        sawTerrain = true
-    }
+    // Both overlays are attached inside the container — the atmosphere
+    // within the map pane, under the labels.
+    const sawAtmos = !!container.querySelector('.ts-maps-atmosphere')
+    const sawTerrain = !!container.querySelector('.ts-maps-terrain-overlay')
     expect(sawAtmos || sawTerrain).toBe(true)
 
     map.remove()
 
     // After remove, both should be gone.
-    for (let i = 0; i < container.children.length; i++) {
-      const c = (container.children[i] as HTMLElement).className ?? ''
-      expect(c.includes('ts-maps-atmosphere')).toBe(false)
-      expect(c.includes('ts-maps-terrain-overlay')).toBe(false)
-    }
+    expect(container.querySelector('.ts-maps-atmosphere')).toBeNull()
+    expect(container.querySelector('.ts-maps-terrain-overlay')).toBeNull()
     container.remove()
   })
 })

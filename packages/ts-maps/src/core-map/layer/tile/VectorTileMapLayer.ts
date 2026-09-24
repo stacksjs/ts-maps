@@ -862,8 +862,19 @@ export class VectorTileMapLayer extends GridLayer {
    */
   _tileProjector(coords: { x: number, y: number, z: number }): ((x: number, y: number) => { x: number, y: number } | null) | null {
     const size = this.getTileSize().x
-    if (this._map?._pitch)
-      return (x, y) => this._projectTilePoint(coords, x, y)
+    const map = this._map
+    if (map?._pitch) {
+      // Labels on ground drawn at under a third of its size near the centre
+      // are left off: towards the horizon they would be stacked too tightly
+      // to read, and Apple Maps thins them out the same way.
+      return (x, y) => {
+        const layer = map.latLngToLayerPoint(map.unproject([coords.x * size + x, coords.y * size + y], coords.z))
+        if (map._groundScaleAt(layer) < 1 / 3)
+          return null
+        const point = map.layerPointToContainerPoint(layer)
+        return { x: point.x, y: point.y }
+      }
+    }
 
     const o = this._projectTilePoint(coords, 0, 0)
     const u = this._projectTilePoint(coords, size, 0)

@@ -234,13 +234,6 @@
   transition: none;
 }
 
-/* Upright panes — labels, marker icons, popups and tooltips stay flat to the
- * screen however the map is rotated or tilted. The inverse camera transform
- * and its origin are driven from JS (see `TsMap._applyCameraTransform`). */
-.tsmap-upright {
-  will-change: transform;
-}
-
 /* cursors */
 
 .tsmap-interactive {

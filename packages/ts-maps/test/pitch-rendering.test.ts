@@ -35,8 +35,6 @@ function mul(a: Mat, b: Mat): Mat {
 
 const identity = (): Mat => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
 function perspective(d: number): Mat { const m = identity(); m[11] = -1 / d; return m }
-function translateZ(z: number): Mat { const m = identity(); m[14] = z; return m }
-function scale(s: number): Mat { const m = identity(); m[0] = s; m[5] = s; return m }
 function rotateZ(deg: number): Mat {
   const a = (deg * Math.PI) / 180
   const m = identity()
@@ -57,27 +55,31 @@ function apply(m: Mat, x: number, y: number): { x: number, y: number, z: number 
   return { x: X / W, y: Y / W, z: Z }
 }
 
-/** The map pane's CSS camera, as `_applyCameraTransform` composes it. */
+/** The ground panes' CSS camera, as `_applyCameraTransform` composes it. */
 function groundMatrix(map: TsMap): Mat {
-  const { h, depth, scale: s } = map._cameraGeometry()
-  return [perspective(h), translateZ(-depth), rotateX(map._pitch), rotateZ(map._bearing), scale(s)].reduce(mul)
-}
-
-/** The upright panes' counter-transform. */
-function uprightMatrix(map: TsMap): Mat {
-  const { depth, scale: s } = map._cameraGeometry()
-  return [scale(1 / s), rotateZ(-map._bearing), rotateX(-map._pitch), translateZ(depth)].reduce(mul)
+  const { h } = map._cameraGeometry()
+  return [perspective(h), rotateX(map._pitch), rotateZ(map._bearing)].reduce(mul)
 }
 
 describe('pitch rendering', () => {
-  test('the pane transform carries the perspective the projection assumes', () => {
+  test('the ground panes carry the perspective the projection assumes', () => {
     const map = makeMap()
     map.setPitch(45)
     const { h } = map._cameraGeometry()
-    const transform = map._mapPane.style.transform
-    expect(transform).toContain(`perspective(${h}px)`)
-    expect(transform).toContain('rotateX(45deg)')
-    expect(map._mapPane.style.transformStyle).toBe('preserve-3d')
+    for (const name of ['tilePane', 'overlayPane', 'shadowPane']) {
+      const transform = map.getPane(name).style.transform
+      expect(transform).toContain(`perspective(${h}px)`)
+      expect(transform).toContain('rotateX(45deg)')
+    }
+  })
+
+  test('nothing is left to the browser\'s depth sorting', () => {
+    // A preserve-3d context with distant tiles at several zooms made Chrome
+    // drop the whole ground; every pane stays flat instead.
+    const map = makeMap()
+    map.setPitch(75)
+    expect(map._mapPane.style.transformStyle || '').toBe('')
+    expect(map._mapPane.style.transform).not.toContain('rotateX')
   })
 
   test('the CSS camera puts every ground point where latLngToContainerPoint says', () => {
@@ -97,41 +99,26 @@ describe('pitch rendering', () => {
     }
   })
 
-  test('everything visible on the ground sits behind the upright panes', () => {
-    const map = makeMap()
-    map.setPitch(60)
-    const m = groundMatrix(map)
-    const center = map.getSize().divideBy(2)
-    // The bottom edge is the nearest ground on screen.
-    for (const x of [0, 400, 800]) {
-      const layer = map.containerPointToLayerPoint(new Point(x, 600))
-      expect(apply(m, layer.x - center.x, layer.y - center.y).z).toBeLessThanOrEqual(0)
-    }
-  })
-
-  test('upright panes come out in the screen plane, unsquashed and unrotated', () => {
+  test('upright panes are plain screen space, neither turned nor tilted', () => {
     const map = makeMap()
     map.setBearing(40)
     map.setPitch(45)
-    const net = mul(groundMatrix(map), uprightMatrix(map))
-    for (const [x, y] of [[0, 0], [120, -80], [-300, 250]]) {
-      const p = apply(net, x, y)
-      expect(p.x).toBeCloseTo(x, 6)
-      expect(p.y).toBeCloseTo(y, 6)
-      expect(p.z).toBeCloseTo(0, 6)
-    }
-    const pane = map.getPane('markerPane')
-    expect(pane.style.transform).toContain('rotateX(-45deg)')
-    expect(pane.style.transform).toContain('rotate(-40deg)')
+    for (const name of ['symbolPane', 'markerPane', 'popupPane', 'tooltipPane'])
+      expect(map.getPane(name).style.transform).toBe('')
   })
 
-  test('flattening again clears the 3D context', () => {
+  test('a pane created while tilted joins the ground', () => {
+    const map = makeMap()
+    map.setPitch(50)
+    const pane = map.createPane('customPane')
+    expect(pane.style.transform).toContain('rotateX(50deg)')
+  })
+
+  test('flattening again clears the camera', () => {
     const map = makeMap()
     map.setPitch(45)
     map.setPitch(0)
-    expect(map._mapPane.style.transformStyle).toBe('')
-    expect(map._mapPane.style.transform).not.toContain('perspective')
-    expect(map.getPane('symbolPane').style.transform).toBe('')
+    expect(map.getPane('tilePane').style.transform).toBe('')
   })
 
   test('a marker stands at its projected point under bearing and pitch', () => {
@@ -220,5 +207,69 @@ describe('ground offsets', () => {
     const events = (new GridLayer() as any).getEvents()
     expect(events.pitchend).toBeDefined()
     expect(events.rotateend).toBeDefined()
+  })
+})
+
+describe('steep pitch, with the horizon on screen', () => {
+  test('the default limit is 85°, as in Apple Maps', () => {
+    const map = makeMap()
+    map.setPitch(90)
+    expect(map.getPitch()).toBe(85)
+  })
+
+  test('the horizon comes on screen past about 72°', () => {
+    const map = makeMap({ pitch: 70 })
+    expect(map._horizonDistance()).toBeGreaterThan(300)
+    map.setPitch(80)
+    expect(map._horizonDistance()).toBeLessThan(300)
+  })
+
+  test('a point in the sky maps to the furthest ground, not somewhere arbitrary', () => {
+    const map = makeMap({ pitch: 85 })
+    const sky = map.containerPointToLatLng([500, 5])
+    const ground = map.containerPointToLatLng([500, 400])
+    expect(Number.isFinite(sky.lat) && Number.isFinite(sky.lng)).toBe(true)
+    const c = map.getCenter()
+    expect(sky.distanceTo(c)).toBeGreaterThan(ground.distanceTo(c))
+  })
+
+  test('ground behind the camera projects off screen', () => {
+    const map = makeMap({ pitch: 85 })
+    const behind = map.containerPointToLayerPoint(new Point(500, 640)).add([0, 20000])
+    const p = map.layerPointToContainerPoint(behind)
+    expect(p.y).toBeGreaterThan(640)
+  })
+
+  test('gesture anchors near the horizon are held to legible ground', () => {
+    const map = makeMap({ pitch: 85 })
+    expect(map._clampToGround(new Point(500, 0)).y).toBeGreaterThan(0)
+    const flat = makeMap({ pitch: 30 })
+    expect(flat._clampToGround(new Point(500, 0)).y).toBe(0)
+  })
+
+  test('a sky is drawn above the horizon without asking for one', () => {
+    const map = makeMap({ pitch: 60 })
+    expect(map._atmosphereOverlay).toBeUndefined()
+    map.setPitch(80)
+    const overlay = map._atmosphereOverlay!
+    expect(overlay).toBeDefined()
+    const horizon = map.getSize().y / 2 - map._horizonDistance()
+    expect(overlay.style.background).toContain(`${horizon.toFixed(1)}px`)
+    // Under the labels and markers, so they stay in front of it.
+    expect(overlay.parentNode).toBe(map._mapPane)
+    map.setPitch(40)
+    expect(map._atmosphereOverlay).toBeUndefined()
+  })
+
+  test('the tiles reach the horizon at falling detail, and stay bounded', async () => {
+    const { GridLayer } = await import('../src/core-map/layer/tile/GridLayer')
+    const map = makeMap({ pitch: 85 })
+    const layer = new GridLayer({ tileSize: 256 }) as any
+    layer._map = map
+    layer._tileZoom = 15
+    layer._resetGrid()
+    const tiles = layer._coveringTiles(map.getCenter())
+    expect(tiles.length).toBeLessThan(300)
+    expect(new Set(tiles.map((t: any) => t.z)).size).toBeGreaterThan(3)
   })
 })

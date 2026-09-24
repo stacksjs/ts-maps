@@ -513,9 +513,15 @@ export class GridLayer extends Layer {
     // The ground the view sees, in pixels at the map's zoom, relative to the
     // centre. A screen rectangle seen through a perspective camera lands on
     // the ground as a convex quadrilateral.
-    const cap = Math.max(size.x, size.y) * 8
+    //
+    // Steeply tilted, the top of the view can be sky, or ground so far off
+    // that even the coarsest tile allowed would be drawn denser than one
+    // texel a pixel. The footprint stops there; the haze under the horizon
+    // covers the sliver beyond.
+    const reach = 2 ** -Math.max(3, options.detailLevels ?? 5)
+    const cap = Math.max(size.x, size.y) * 64
     const poly = [new Point(0, 0), new Point(size.x, 0), new Point(size.x, size.y), new Point(0, size.y)].map((corner) => {
-      const g: Point = map._groundOffset(corner)
+      const g: Point = map._groundOffset(corner, reach)
       return new Point(Math.max(-cap, Math.min(cap, g.x)), Math.max(-cap, Math.min(cap, g.y)))
     })
 
