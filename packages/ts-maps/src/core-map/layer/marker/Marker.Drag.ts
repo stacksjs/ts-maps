@@ -5,7 +5,7 @@ import { Bounds } from '../../geometry/Bounds'
 import { Point } from '../../geometry/Point'
 
 export class MarkerDrag extends Handler {
-  _marker: any
+  declare _marker: any
   declare _draggable?: Draggable
   declare _oldLatLng?: any
   declare _panRequest?: number

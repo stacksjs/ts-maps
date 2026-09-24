@@ -36,6 +36,8 @@ export class GridLayer extends Layer {
   declare _wrapX?: [number, number] | false
   declare _wrapY?: [number, number] | false
   declare _tileSize?: Point
+  /** World tile range and wrap limits per zoom, for tiles off the main level. */
+  declare _grids?: Map<number, { range: Bounds | undefined, wrapX: [number, number] | false, wrapY: [number, number] | false }>
   _onMove?: (...args: any[]) => void
   _abortLoading?(): void
 
@@ -238,21 +240,35 @@ export class GridLayer extends Layer {
       }
     }
 
-    let level = this._levels[zoom]
-    const map = this._map
-
-    if (!level) {
-      level = this._levels[zoom] = {} as Level
-      level.el = DomUtil.create('div', 'tsmap-tile-container tsmap-zoom-animated', this._container)
-      level.el.style.zIndex = String(maxZoom)
-      level.origin = map.project(map.unproject(map.getPixelOrigin()), zoom).round()
-      level.zoom = zoom
-      this._setZoomTransform(level, map.getCenter(), map.getZoom())
-      Util.falseFn(level.el.offsetWidth)
-      this._onCreateLevel(level)
-    }
-
+    const level = this._levelFor(zoom)
     this._level = level
+    return level
+  }
+
+  /**
+   * The container for tiles of zoom `z`, created on first use.
+   *
+   * A flat map shows one level at a time, plus whatever is standing in during
+   * a zoom. A tilted one shows several at once — fine tiles near the camera,
+   * coarser ones in the distance — each in its own container scaled to the
+   * current zoom.
+   */
+  _levelFor(z: number): Level {
+    let level = this._levels[z]
+    if (level)
+    return level
+
+    const map = this._map
+    const maxZoom = this.options!.maxZoom ?? 30
+    level = this._levels[z] = {} as Level
+    level.el = DomUtil.create('div', 'tsmap-tile-container tsmap-zoom-animated', this._container)
+    // Finer levels over coarser ones, wherever the two meet.
+    level.el.style.zIndex = String(maxZoom - Math.abs((this._tileZoom ?? z) - z))
+    level.origin = map.project(map.unproject(map.getPixelOrigin()), z).round()
+    level.zoom = z
+    this._setZoomTransform(level, map.getCenter(), map.getZoom())
+    Util.falseFn(level.el.offsetWidth)
+    this._onCreateLevel(level)
     return level
   }
 
@@ -421,6 +437,7 @@ export class GridLayer extends Layer {
     const crs = map.options.crs
     const tileSize = this._tileSize = this.getTileSize()
     const tileZoom = this._tileZoom!
+    this._grids = undefined
 
     const bounds = this._map.getPixelWorldBounds(this._tileZoom)
     if (bounds)
@@ -434,6 +451,147 @@ export class GridLayer extends Layer {
     Math.floor(map.project([crs.wrapLat[0], 0], tileZoom).y / tileSize.x),
     Math.ceil(map.project([crs.wrapLat[1], 0], tileZoom).y / tileSize.y),
     ]
+  }
+
+  /** The world's tile range and wrap limits at zoom `z`. */
+  _gridFor(z: number): { range: Bounds | undefined, wrapX: [number, number] | false, wrapY: [number, number] | false } {
+    if (z === this._tileZoom)
+    return { range: this._globalTileRange, wrapX: this._wrapX ?? false, wrapY: this._wrapY ?? false }
+
+    this._grids ??= new Map()
+    const cached = this._grids.get(z)
+    if (cached)
+    return cached
+
+    const map = this._map
+    const crs = map.options.crs
+    const tileSize = this.getTileSize()
+    const bounds = map.getPixelWorldBounds(z)
+    const grid = {
+      range: bounds ? this._pxBoundsToTileRange(bounds) : undefined,
+      wrapX: (crs.wrapLng && !this.options!.noWrap && [
+        Math.floor(map.project([0, crs.wrapLng[0]], z).x / tileSize.x),
+        Math.ceil(map.project([0, crs.wrapLng[1]], z).x / tileSize.y),
+      ]) as [number, number] | false,
+      wrapY: (crs.wrapLat && !this.options!.noWrap && [
+        Math.floor(map.project([crs.wrapLat[0], 0], z).y / tileSize.x),
+        Math.ceil(map.project([crs.wrapLat[1], 0], z).y / tileSize.y),
+      ]) as [number, number] | false,
+    }
+    this._grids.set(z, grid)
+    return grid
+  }
+
+  /**
+   * The tiles a rotated or tilted view needs: every tile the visible ground
+   * touches, each at the coarsest zoom that still looks sharp where it sits.
+   *
+   * A tilted view shrinks the ground towards the horizon, so a tile near the
+   * top of the screen covers a fraction of the pixels it would near the
+   * bottom. Loading it at full detail anyway is how a 60° view came to need
+   * seven times the tiles of a flat one — most of them drawn a few pixels
+   * across. Apple Maps and Mapbox both drop detail with distance instead, and
+   * this does the same: a quadtree walk from a few levels up, splitting a tile
+   * only while its nearest corner is magnified on screen enough to need its
+   * children. Near the camera that ends at the view's own zoom; in the
+   * distance it stops a level, two, or more above it.
+   *
+   * On a map that is only rotated nothing shrinks, so every tile comes out at
+   * the view's zoom — but only those the turned view actually touches, rather
+   * than the whole box around it.
+   */
+  _coveringTiles(center: any): Array<Point & { z: number }> {
+    const map = this._map
+    const tileZoom = this._tileZoom as number
+    const mapZoom = map.getZoom()
+    const size = map.getSize()
+    const T = this.getTileSize().x
+    const options = this.options!
+    const floor = Math.max(0, options.minNativeZoom ?? options.minZoom ?? 0)
+    const minZ = Math.max(floor, Math.min(tileZoom, tileZoom - (options.detailLevels ?? 5)))
+
+    // The ground the view sees, in pixels at the map's zoom, relative to the
+    // centre. A screen rectangle seen through a perspective camera lands on
+    // the ground as a convex quadrilateral.
+    const cap = Math.max(size.x, size.y) * 8
+    const poly = [new Point(0, 0), new Point(size.x, 0), new Point(size.x, size.y), new Point(0, size.y)].map((corner) => {
+      const g: Point = map._groundOffset(corner)
+      return new Point(Math.max(-cap, Math.min(cap, g.x)), Math.max(-cap, Math.min(cap, g.y)))
+    })
+
+    // How much the ground is magnified at a point, relative to the view's
+    // centre: 1 on a flat map, above 1 nearer the camera, below it further
+    // away. Undoes the bearing to get the point's distance along the tilt.
+    const pitch = map._pitch as number
+    const geometry = pitch ? map._cameraGeometry() : null
+    const bearing = ((map._bearing as number) * Math.PI) / 180
+    const sinB = Math.sin(bearing)
+    const cosB = Math.cos(bearing)
+    const sinT = Math.sin((pitch * Math.PI) / 180)
+    const magnification = (x: number, y: number): number => {
+      if (!geometry)
+      return 1
+      const along = x * sinB + y * cosB
+      const depth = geometry.h - along * sinT
+      return depth <= geometry.h * 0.05 ? Infinity : geometry.h / depth
+    }
+
+    const centerPx = map.project(center, mapZoom)
+    const out: Array<Point & { z: number }> = []
+    const limit = 600
+
+    const visit = (x: number, y: number, z: number): void => {
+      if (out.length >= limit)
+      return
+      const coords = new Point(x, y) as Point & { z: number }
+      coords.z = z
+      if (!this._isValidTile(coords))
+      return
+
+      const k = map.getZoomScale(mapZoom, z)
+      const x0 = x * T * k - centerPx.x
+      const y0 = y * T * k - centerPx.y
+      const x1 = x0 + T * k
+      const y1 = y0 + T * k
+      if (!rectTouchesPolygon(x0, y0, x1, y1, poly))
+      return
+
+      const s = Math.max(magnification(x0, y0), magnification(x1, y0), magnification(x0, y1), magnification(x1, y1))
+      const wanted = Number.isFinite(s) ? Math.round(mapZoom + Math.log2(s)) : tileZoom
+      if (z < Math.min(tileZoom, wanted)) {
+        for (let dy = 0; dy < 2; dy++) {
+          for (let dx = 0; dx < 2; dx++)
+          visit(x * 2 + dx, y * 2 + dy, z + 1)
+        }
+        return
+      }
+      out.push(coords)
+    }
+
+    // Start from the coarsest level over the polygon's bounding box.
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const p of poly) {
+      minX = Math.min(minX, p.x)
+      minY = Math.min(minY, p.y)
+      maxX = Math.max(maxX, p.x)
+      maxY = Math.max(maxY, p.y)
+    }
+    const k = map.getZoomScale(mapZoom, minZ) * T
+    for (let y = Math.floor((centerPx.y + minY) / k); y <= Math.floor((centerPx.y + maxY) / k); y++) {
+      for (let x = Math.floor((centerPx.x + minX) / k); x <= Math.floor((centerPx.x + maxX) / k); x++)
+      visit(x, y, minZ)
+    }
+
+    // Nearest the centre first, finest first: what the eye lands on loads
+    // before the horizon does.
+    const distance = (c: Point & { z: number }): number => {
+      const kk = map.getZoomScale(mapZoom, c.z) * T
+      return Math.hypot((c.x + 0.5) * kk - centerPx.x, (c.y + 0.5) * kk - centerPx.y)
+    }
+    return out.sort((a, b) => b.z - a.z || distance(a) - distance(b))
   }
 
   _onMoveEnd(): void {
@@ -513,6 +671,11 @@ export class GridLayer extends Layer {
       return
     }
 
+    if ((map._bearing || map._pitch) && map._groundOffset) {
+      this._updateCovering(center)
+      return
+    }
+
     for (let j = tileRange.min.y; j <= tileRange.max.y; j++) {
       for (let i = tileRange.min.x; i <= tileRange.max.x; i++) {
         const coords = new Point(i, j) as Point & { z: number }
@@ -544,10 +707,46 @@ export class GridLayer extends Layer {
     }
   }
 
+  /** `_update` for a rotated or tilted view: see `_coveringTiles`. */
+  _updateCovering(center: any): void {
+    const covering = this._coveringTiles(center)
+    for (const tile of Object.values(this._tiles))
+    tile.current = false
+
+    const queue: Array<Point & { z: number }> = []
+    for (const coords of covering) {
+      const tile = this._tiles[this._tileCoordsToKey(coords)]
+      if (tile)
+      tile.current = true
+      else
+      queue.push(coords)
+    }
+    if (!queue.length)
+    return
+
+    if (!this._loading) {
+      this._loading = true
+      this.fire('loading')
+    }
+
+    // One fragment per level: each zoom's tiles live in their own container.
+    const fragments = new Map<number, DocumentFragment>()
+    for (const coords of queue) {
+      let fragment = fragments.get(coords.z)
+      if (!fragment) {
+        fragment = document.createDocumentFragment()
+        fragments.set(coords.z, fragment)
+      }
+      this._addTile(coords, fragment)
+    }
+    for (const [z, fragment] of fragments)
+    this._levelFor(z).el.appendChild(fragment)
+  }
+
   _isValidTile(coords: Point & { z: number }): boolean {
     const crs = this._map.options.crs
     if (!crs.infinite) {
-      const bounds = this._globalTileRange!
+      const bounds = this._gridFor(coords.z).range!
       if (
       (!crs.wrapLng && (coords.x < bounds.min.x || coords.x > bounds.max.x))
       || (!crs.wrapLat && (coords.y < bounds.min.y || coords.y > bounds.max.y))
@@ -669,13 +868,15 @@ export class GridLayer extends Layer {
   }
 
   _getTilePos(coords: Point & { z: number }): Point {
-    return coords.scaleBy(this.getTileSize()).subtract(this._level!.origin)
+    const level = this._levels[coords.z] ?? this._levelFor(coords.z)
+    return coords.scaleBy(this.getTileSize()).subtract(level.origin)
   }
 
   _wrapCoords(coords: Point & { z: number }): Point & { z: number } {
+    const { wrapX, wrapY } = this._gridFor(coords.z)
     const newCoords = new Point(
-    this._wrapX ? Util.wrapNum(coords.x, this._wrapX) : coords.x,
-    this._wrapY ? Util.wrapNum(coords.y, this._wrapY) : coords.y,
+    wrapX ? Util.wrapNum(coords.x, wrapX) : coords.x,
+    wrapY ? Util.wrapNum(coords.y, wrapY) : coords.y,
     ) as Point & { z: number }
     newCoords.z = coords.z
     return newCoords
@@ -710,4 +911,54 @@ GridLayer.setDefaultOptions( {
   pane: 'tilePane',
   className: '',
   keepBuffer: 2,
+  /**
+   * How many zoom levels coarser than the view's own a tilted map may use for
+   * distant ground. `0` keeps full detail all the way to the horizon.
+   */
+  detailLevels: 5,
 })
+
+/**
+ * Whether an axis-aligned rectangle and a convex polygon overlap, by the
+ * separating-axis test: they are apart exactly when some edge of either
+ * shape has them on opposite sides of it.
+ */
+function rectTouchesPolygon(x0: number, y0: number, x1: number, y1: number, poly: Point[]): boolean {
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const p of poly) {
+    minX = Math.min(minX, p.x)
+    minY = Math.min(minY, p.y)
+    maxX = Math.max(maxX, p.x)
+    maxY = Math.max(maxY, p.y)
+  }
+  if (maxX < x0 || minX > x1 || maxY < y0 || minY > y1)
+    return false
+
+  const corners = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i]!
+    const b = poly[(i + 1) % poly.length]!
+    const nx = a.y - b.y
+    const ny = b.x - a.x
+    let pMin = Infinity
+    let pMax = -Infinity
+    for (const p of poly) {
+      const d = p.x * nx + p.y * ny
+      pMin = Math.min(pMin, d)
+      pMax = Math.max(pMax, d)
+    }
+    let rMin = Infinity
+    let rMax = -Infinity
+    for (const [cx, cy] of corners) {
+      const d = cx! * nx + cy! * ny
+      rMin = Math.min(rMin, d)
+      rMax = Math.max(rMax, d)
+    }
+    if (rMax < pMin || rMin > pMax)
+      return false
+  }
+  return true
+}

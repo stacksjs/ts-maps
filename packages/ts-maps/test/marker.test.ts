@@ -17,4 +17,17 @@ describe('Marker', () => {
     expect(marker._icon).toBeDefined()
     expect(marker._icon).not.toBeNull()
   })
+
+  test('a draggable marker can be added to the map', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const map = new TsMap(container)
+    map.setView([0, 0], 5)
+
+    // The drag handler's marker used to be a class field, reset to undefined
+    // after construction, so adding any draggable marker threw.
+    const marker = new Marker([0, 0], { draggable: true })
+    expect(() => marker.addTo(map)).not.toThrow()
+    expect(marker.dragging?._marker).toBe(marker)
+  })
 })

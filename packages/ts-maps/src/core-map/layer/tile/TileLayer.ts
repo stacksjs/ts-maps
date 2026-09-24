@@ -116,10 +116,11 @@ export class TileLayer extends GridLayer {
       s: this._getSubdomain(coords),
       x: coords.x,
       y: coords.y,
-      z: this._getZoomForUrl(),
+      // The tile's own zoom: a tilted map loads coarser tiles in the distance.
+      z: this._getZoomForUrl(coords.z),
     })
     if (this._map && !this._map.options.crs.infinite) {
-      const invertedY = this._globalTileRange!.max.y - coords.y
+      const invertedY = this._gridFor(coords.z).range!.max.y - coords.y
       if (this.options!.tms)
       data.y = invertedY
       data['-y'] = invertedY
@@ -142,8 +143,8 @@ export class TileLayer extends GridLayer {
     e.tile.onload = null
   }
 
-  _getZoomForUrl(): number {
-    let zoom = this._tileZoom as number
+  _getZoomForUrl(z?: number): number {
+    let zoom = z ?? this._tileZoom as number
     const maxZoom = this.options!.maxZoom
     const zoomReverse = this.options!.zoomReverse
     const zoomOffset = this.options!.zoomOffset
