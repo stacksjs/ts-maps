@@ -116,6 +116,10 @@
   z-index: 200;
 }
 
+.tsmap-building-pane {
+  z-index: 320;
+}
+
 .tsmap-symbol-pane {
   z-index: 350;
 }

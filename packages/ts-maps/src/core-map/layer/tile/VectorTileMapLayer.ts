@@ -34,6 +34,8 @@ import { IconAtlas } from '../../symbols/IconAtlas'
 import { anchorOffset, lineLength, offsetPixels, pointAtDistance, repeatDistances, rotatedBounds } from '../../symbols/placement'
 import type { LabelCandidate, LabelGroup } from '../../symbols/LabelPlacer'
 import { LabelPlacer } from '../../symbols/LabelPlacer'
+import type { BuildingDraw, BuildingFootprint, BuildingMesh } from '../../renderer/webgl/BuildingOverlay'
+import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../renderer/webgl/BuildingOverlay'
 import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { earcut, flatten } from '../../geometry/earcut'
 import { ortho } from '../../renderer/webgl/mat4'
@@ -333,6 +335,15 @@ export class VectorTileMapLayer extends GridLayer {
   declare _symbolOverlay?: SymbolOverlay
   declare _symbolHandlers?: Record<string, () => void>
   declare _labelPlacer?: LabelPlacer
+  /** The 3D building canvas; `null` once WebGL has been tried and refused. */
+  declare _buildingOverlay?: BuildingOverlay | null
+  /**
+   * Building meshes by published source tile, versioned like the labels.
+   * Keyed by source rather than grid tile: past the source's top zoom a dozen
+   * grid tiles show parts of one source tile, and meshing it for each would
+   * build — and draw — the same buildings a dozen times.
+   */
+  declare _buildingMeshes?: Map<string, { version: number, meshes: Array<{ layer: string, mesh: BuildingMesh }> }>
   /** Bumped whenever cached label candidates stop being valid. */
   declare _labelVersion: number
   /** Whether the camera is between a movestart and its moveend. */
@@ -784,7 +795,11 @@ export class VectorTileMapLayer extends GridLayer {
 
     this._labelPlacer ??= new LabelPlacer()
     this._symbolOverlay = new SymbolOverlay(this._map, {
-      drawSymbols: (ctx, collision) => this._drawSymbols(ctx, collision),
+      // Buildings and labels move together, in the same frame.
+      drawSymbols: (ctx, collision) => {
+        const buildings = this._drawBuildings()
+        return this._drawSymbols(ctx, collision) || buildings
+      },
       createCollisionIndex: () => new CollisionIndex(),
     })
 
@@ -823,6 +838,8 @@ export class VectorTileMapLayer extends GridLayer {
     this._symbolOverlay?.remove()
     this._symbolOverlay = undefined
     this._labelPlacer?.reset()
+    this._buildingOverlay?.remove()
+    this._buildingOverlay = undefined
   }
 
   /** Ask for a label repaint — after tiles decode, or a style change. */
@@ -898,7 +915,7 @@ export class VectorTileMapLayer extends GridLayer {
    * only current ones would blank the labels for the moment it takes the new
    * level to load.
    */
-  _labelEntries(): DecodedTileEntry[] {
+  _labelEntries(isReady: (entry: DecodedTileEntry) => boolean = entry => entry.labels?.version === this._labelVersion): DecodedTileEntry[] {
     const current: DecodedTileEntry[] = []
     const others: DecodedTileEntry[] = []
     const ready = new Set<DecodedTileEntry>()
@@ -908,11 +925,11 @@ export class VectorTileMapLayer extends GridLayer {
       if (!tile?.current || !tile.coords)
         continue
       const entry = this._decodedTiles.get(tile.el as HTMLCanvasElement)
-      const isReady = !!entry?.tile && entry.labels?.version === this._labelVersion
-      currentCoords.push({ coords: tile.coords, ready: isReady })
+      const resolved = !!entry?.tile && isReady(entry)
+      currentCoords.push({ coords: tile.coords, ready: resolved })
       if (entry?.tile) {
         current.push(entry)
-        if (isReady)
+        if (resolved)
           ready.add(entry)
       }
     }
@@ -949,6 +966,194 @@ export class VectorTileMapLayer extends GridLayer {
    * tile's labels are a property of the tile, not of the camera, which is
    * what makes them cheap to carry through a zoom.
    */
+  /**
+   * Whether `fill-extrusion` layers are drawn as 3D buildings. Creates the
+   * building canvas the first time it is asked, and remembers a refusal — no
+   * WebGL — so tiles fall back to flat footprints without asking again.
+   */
+  _buildingsActive(): boolean {
+    if (this._buildingOverlay === undefined) {
+      const pane = this._map?.getPane?.('buildingPane') ?? null
+      if (!pane || !this._styleLayers.some(l => l.type === 'fill-extrusion'))
+        return false
+      const overlay = new BuildingOverlay(pane)
+      this._buildingOverlay = overlay.active ? overlay : null
+    }
+    return !!this._buildingOverlay?.active
+  }
+
+  /**
+   * The building meshes for the source tile behind `entry`, one per
+   * `fill-extrusion` layer, built once and kept until something invalidates
+   * them (see `_labelVersion`).
+   *
+   * Built in the source tile's own pixels. Height, base and colour are
+   * evaluated at its zoom, as the style spec evaluates layout; opacity is left
+   * to the frame, so a layer can fade in with the live zoom.
+   */
+  _buildingsFor(entry: DecodedTileEntry, layers: VectorTileStyleLayer[]): Array<{ layer: string, mesh: BuildingMesh }> {
+    const key = this._sourceKey(entry.coords)
+    this._buildingMeshes ??= new Map()
+    const cached = this._buildingMeshes.get(key)
+    if (cached && cached.version === this._labelVersion)
+      return cached.meshes
+    for (const item of cached?.meshes ?? [])
+      this._buildingOverlay?.release(item)
+
+    const meshes: Array<{ layer: string, mesh: BuildingMesh }> = []
+    const tile = entry.tile
+    if (tile) {
+      const sub = this._subTile(entry.coords)
+      const source = { x: sub.x, y: sub.y, z: sub.z }
+      const size = this.getTileSize().x
+      const sourceId = this._sourceId ?? ''
+      const lookup = this._featureStateLookup
+
+      for (const styleLayer of layers) {
+        const mvtLayer = tile.layers[styleLayer.sourceLayer]
+        if (!mvtLayer)
+          continue
+        const scale = size / (mvtLayer.extent || 4096)
+        const paint = styleLayer.paint
+        const footprints: BuildingFootprint[] = []
+
+        for (let i = 0; i < mvtLayer.length; i++) {
+          const feature = mvtLayer.feature(i)
+          if (feature.type !== 3 || !filterPasses(styleLayer, feature, source.z, source))
+            continue
+          let featureState: Record<string, unknown> | undefined
+          if (lookup && feature.id !== undefined)
+            featureState = lookup(sourceId, styleLayer.sourceLayer, feature.id as number | string)
+
+          const resolve = (value: unknown): unknown => resolvePaintExpression(value, source.z, feature, featureState)
+          const height = Number(resolve(paint?.['fill-extrusion-height']) ?? 0)
+          const base = Number(resolve(paint?.['fill-extrusion-base']) ?? 0)
+          if (!(height > base))
+            continue
+          const color = parseCssColor((resolve(paint?.['fill-extrusion-color']) as string | undefined) ?? '#000', 1)
+          footprints.push({
+            rings: feature.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x * scale, y: pt.y * scale }))),
+            height,
+            base,
+            color: [color[0], color[1], color[2], color[3]],
+          })
+        }
+
+        if (footprints.length)
+          meshes.push({ layer: styleLayer.id, mesh: buildBuildingMesh(footprints, size) })
+      }
+    }
+
+    this._buildingMeshes.set(key, { version: this._labelVersion, meshes })
+    return meshes
+  }
+
+  /**
+   * Draw this frame's 3D buildings. Returns true while tiles' meshes are
+   * still being built, so the overlay comes back for them next frame.
+   */
+  _drawBuildings(): boolean {
+    const map = this._map
+    if (!map || !this._buildingsActive())
+      return false
+    const overlay = this._buildingOverlay!
+
+    const size = map.getSize()
+    const pos = map._getMapPanePos()
+    overlay.resize(size.x, size.y, this._symbolOverlay?._ratio ?? 1, [pos.x, pos.y])
+
+    const mapZoom = map.getZoom()
+    const all = this._styleLayers.filter(l => l.type === 'fill-extrusion' && l.layout?.visibility !== 'none')
+    const active = all.filter(l =>
+      !(l.minzoom !== undefined && mapZoom < l.minzoom)
+      && !(l.maxzoom !== undefined && mapZoom > l.maxzoom),
+    )
+    if (!active.length) {
+      overlay.clear()
+      return false
+    }
+
+    const opacity = new Map<string, number>()
+    for (const l of active) {
+      const value = resolvePaintExpression(l.paint?.['fill-extrusion-opacity'], mapZoom, undefined, undefined)
+      opacity.set(l.id, typeof value === 'number' ? Math.max(0, Math.min(1, value)) : 1)
+    }
+
+    const { h } = map._cameraGeometry()
+    const camera = { width: size.x, height: size.y, bearing: map._bearing ?? 0, pitch: map._pitch ?? 0, h, pos: [pos.x, pos.y] as [number, number] }
+    const tileSize = this.getTileSize().x
+    const origin = map.getPixelOrigin()
+    const crs = map.options.crs
+    const worldSize = crs?.scale ? crs.scale(mapZoom) : 256 * 2 ** mapZoom
+
+    // Meshes are the one expensive step, and a zoom can land a dozen tiles at
+    // once; spread them over frames, with stand-in tiles covering meanwhile.
+    const started = now()
+    let pending = false
+    const draws: BuildingDraw[] = []
+    const fogEnd = h * 10
+    const meshes = this._buildingMeshes ??= new Map()
+    const drawn = new Set<string>()
+    const ready = (e: DecodedTileEntry): boolean => meshes.get(this._sourceKey(e.coords))?.version === this._labelVersion
+    for (const entry of this._labelEntries(ready)) {
+      // Once per source tile, however many grid tiles show part of it.
+      const key = this._sourceKey(entry.coords)
+      if (drawn.has(key))
+        continue
+      drawn.add(key)
+
+      const { x, y, z } = this._subTile(entry.coords)
+      const k = map.getZoomScale(mapZoom, z)
+      const matrix = buildingMatrix(camera, k, [x * tileSize * k - origin.x, y * tileSize * k - origin.y])
+
+      // A tile wholly past the haze has nothing to show: skip it before its
+      // buildings are ever built. Its nearest ground corner decides — the
+      // clip-space w is the distance from the camera.
+      let nearest = Infinity
+      for (const [cx, cy] of [[0, 0], [tileSize, 0], [0, tileSize], [tileSize, tileSize]])
+        nearest = Math.min(nearest, matrix[3]! * cx! + matrix[7]! * cy! + matrix[15]!)
+      if (nearest > fogEnd)
+        continue
+
+      if (!ready(entry) && now() - started > 6) {
+        pending = true
+        continue
+      }
+      const tileMeshes = this._buildingsFor(entry, all)
+      if (!tileMeshes.length)
+        continue
+
+      // Pixels per metre where this tile is: Mercator stretches the ground
+      // by 1/cos(latitude), and a building's height with it.
+      const lat = map.unproject([(x + 0.5) * tileSize, (y + 0.5) * tileSize], z).lat
+      const heightScale = worldSize / (40075016.686 * Math.cos((lat * Math.PI) / 180))
+
+      for (const item of tileMeshes) {
+        const layerOpacity = opacity.get(item.layer)
+        if (layerOpacity === undefined || layerOpacity <= 0 || !item.mesh.count)
+          continue
+        draws.push({ key: item, mesh: item.mesh, matrix, heightScale, opacity: layerOpacity })
+      }
+    }
+
+    // Lit from the north-west, as maps traditionally are; distant buildings
+    // fade out into the haze over a few camera heights.
+    overlay.render(draws, { light: [-Math.SQRT1_2, -Math.SQRT1_2], fog: [h * 3, fogEnd] })
+
+    // Meshes whose source tile no tile holds any more go, with their buffers.
+    const held = new Set<string>()
+    for (const entry of this._decodedTiles.values())
+      held.add(this._sourceKey(entry.coords))
+    for (const [key, cached] of meshes) {
+      if (held.has(key))
+        continue
+      for (const item of cached.meshes)
+        overlay.release(item)
+      meshes.delete(key)
+    }
+    return pending
+  }
+
   _labelsFor(entry: DecodedTileEntry, symbolLayers: VectorTileStyleLayer[]): LabelCandidate[] {
     if (entry.labels && entry.labels.version === this._labelVersion)
       return entry.labels.list
@@ -1489,12 +1694,19 @@ export class VectorTileMapLayer extends GridLayer {
             drawFill(ctx, rings, scale, paint, mapZoom, feature, featureState)
         }
         else if (styleLayer.type === 'fill-extrusion') {
-          // Extrusions require a 3D renderer. In Canvas2D mode we fall back
-          // to a flat fill so the layer remains visible (minus depth).
+          // Drawn in 3D over the tiles (see `_drawBuildings`) wherever WebGL
+          // is available. Otherwise: through the tile's own renderer, or as
+          // a flat footprint so the layer is at least visible.
+          if (this._buildingsActive())
+            continue
           if (glRenderer)
             drawFillExtrusionGL(glRenderer, rings, scale, paint, mapZoom, feature, featureState)
-          else if (ctx)
-            drawFill(ctx, rings, scale, paint as VectorTilePaintProperties, mapZoom, feature, featureState)
+          else if (ctx) {
+            // The flat footprint in the extrusion's own colour — its paint
+            // has no `fill-color`, which drew every building black.
+            const flat = { 'fill-color': paint?.['fill-extrusion-color'], 'fill-opacity': paint?.['fill-extrusion-opacity'] } as VectorTilePaintProperties
+            drawFill(ctx, rings, scale, flat, mapZoom, feature, featureState)
+          }
         }
         else if (styleLayer.type === 'line') {
           if (glRenderer)

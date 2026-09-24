@@ -1520,6 +1520,10 @@ export class TsMap extends Evented {
     DomUtil.setPosition(this._mapPane, new Point(0, 0))
 
     this.createPane('tilePane')
+    // 3D buildings: screen space like the labels, drawn through the camera
+    // rather than tilted with the ground, above the tiles and the sky and
+    // under every label.
+    this.createPane('buildingPane')
     // Labels sit above the tiles and below everything a user interacts with:
     // a marker or popup should never be hidden behind a street name.
     this.createPane('symbolPane')
@@ -1847,7 +1851,7 @@ export class TsMap extends Evented {
     // The map pane itself only ever moves.
     DomUtil.setCamera(this._mapPane, '')
 
-    const upright = new Set(['symbolPane', 'markerPane', 'popupPane', 'tooltipPane'])
+    const upright = new Set(['buildingPane', 'symbolPane', 'markerPane', 'popupPane', 'tooltipPane'])
     for (const [name, pane] of Object.entries(this._panes ?? {})) {
       // Nested panes inherit their parent's camera.
       if (pane === this._mapPane || pane.parentNode !== this._mapPane)

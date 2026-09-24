@@ -193,16 +193,19 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
         },
       },
       {
+        // 3D buildings, as in Apple Maps: extruded to their mapped height,
+        // lit from the north-west, standing up as the map tilts. They fade in
+        // with the zoom rather than switching on at a tile boundary.
         id: 'building',
-        type: 'fill',
+        type: 'fill-extrusion',
         source: SOURCE_ID,
         'source-layer': layer.building,
-        minzoom: 13,
+        minzoom: 14,
         paint: {
-          'fill-color': palette.buildings,
-          // Faded in rather than switched on, so the 13/14 boundary is not a
-          // visible pop while zooming.
-          'fill-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 15, 1],
+          'fill-extrusion-color': palette.buildings,
+          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], ['get', 'height'], 8],
+          'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0],
+          'fill-extrusion-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0, 15, 1],
         },
       },
       {
