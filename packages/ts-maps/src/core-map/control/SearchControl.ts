@@ -72,6 +72,15 @@ export const SEARCH_EVENTS: {
 
 export type SearchEvent = keyof typeof SEARCH_EVENTS
 
+/** What `sync` brings search into line with. Left out is left alone. */
+export interface SearchTarget {
+  /**
+   * Search for this, as though typed and Search pressed — a category's name
+   * runs the category. An empty string clears the search.
+   */
+  query?: string
+}
+
 const CLASS = 'tsmap-search'
 
 type Row
@@ -125,6 +134,7 @@ export class SearchControl extends Control {
   declare _timer?: ReturnType<typeof setTimeout>
   declare _abort?: AbortController
   declare _listeners?: Set<(type: SearchEvent, event: any) => void>
+  declare _synced?: string
 
   initialize(options: SearchControlOptions = {}): void {
     const given = Object.fromEntries(Object.entries(options).filter(([, v]) => v !== undefined))
@@ -255,6 +265,45 @@ export class SearchControl extends Control {
     this._show('idle')
     this._emit('clear', {})
     return this
+  }
+
+  /**
+   * Bring search into line with a declarative description of it — what the
+   * framework bindings call as their props change. The same query twice is
+   * searched once.
+   */
+  sync(target: SearchTarget): this {
+    if (target.query === undefined || target.query === this._synced)
+      return this
+    this._synced = target.query
+    if (target.query.trim())
+      this.search(target.query.trim()).catch(() => {})
+    else
+      this.cancel()
+    return this
+  }
+
+  /**
+   * An event reduced to plain data, for a binding that sends it across a
+   * boundary — the React Native WebView bridge — where live objects do not
+   * survive.
+   */
+  static plainEvent(type: SearchEvent, event: any): Record<string, unknown> {
+    const plain = (place: SearchPlace | undefined): SearchPlace | undefined =>
+      place ? JSON.parse(JSON.stringify(place)) : undefined
+    switch (type) {
+      case 'results':
+        return {
+          query: event?.query,
+          category: event?.category ? { id: event.category.id, label: event.category.label } : undefined,
+          places: (event?.places ?? []).map(plain),
+        }
+      case 'select':
+      case 'directions':
+        return { place: plain(event?.place) }
+      default:
+        return {}
+    }
   }
 
   /** Hear what happens: results, a place chosen, Directions. Returns the way to stop. */

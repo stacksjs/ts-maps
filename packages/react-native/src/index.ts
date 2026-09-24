@@ -15,6 +15,8 @@ export type {
   MarkerSpec,
   OfflineMapsBridgeEvent,
   OfflineMapsSpec,
+  SearchBridgeEvent,
+  SearchSpec,
   TurnByTurnBridgeEvent,
   TurnByTurnSpec,
 } from './types'

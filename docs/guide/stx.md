@@ -54,6 +54,7 @@ tiles somewhere below the fold.
 | `ZoomControl` `NavigationControl` `GeocoderControl` `FullscreenControl` `LocateControl` `ScaleControl` `AttributionControl` | Map controls |
 | `TurnByTurn` | Turn-by-turn navigation; events arrive as `turnbyturn:*` DOM events |
 | `OfflineMaps` | Offline maps; events arrive as `offlinemaps:*` DOM events |
+| `Search` | Search; events arrive as `search:*` DOM events, and Directions uses a `TurnByTurn` in the same map |
 
 Same names and prop shapes as the React, Vue, Svelte and Solid bindings.
 

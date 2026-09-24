@@ -173,6 +173,37 @@ export interface OfflineMapsBridgeEvent {
   data: Record<string, unknown>
 }
 
+/**
+ * Search on the map, after Apple Maps — the same thing `<Search>` is in the
+ * other bindings, carried as data. The field, suggestions, pins and place
+ * cards all run inside the WebView. With `turnByTurn` set too, Directions on
+ * a place's card previews the route there; either way a `directions` event
+ * reaches `onSearch`, for the app to act on.
+ *
+ * Live: changing `query` searches over the bridge. The other options are read
+ * when it is first set.
+ */
+export interface SearchSpec {
+  /** Search for this; a category's name runs the category. Empty clears. */
+  query?: string
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
+  placeholder?: string
+  /** Keep Recents. Default true. */
+  recents?: boolean
+  units?: 'metric' | 'imperial'
+  language?: string
+}
+
+/**
+ * One search event from the map. `type` is the event's name in the other
+ * bindings' terms, and `data` its content as plain data: `{ query, category,
+ * places }` for `results`, `{ place }` for `select` and `directions`.
+ */
+export interface SearchBridgeEvent {
+  type: 'results' | 'select' | 'directions' | 'clear'
+  data: Record<string, unknown>
+}
+
 export interface MapViewProps {
   style?: ViewStyle
 
@@ -229,6 +260,9 @@ export interface MapViewProps {
   /** Offline maps: download areas to use with no connection. Live, like `markers`. */
   offlineMaps?: OfflineMapsSpec
 
+  /** Search: places, addresses and kinds of place. Live, like `markers`. */
+  search?: SearchSpec
+
   onLoad?: () => void
   // eslint-disable-next-line no-unused-vars
   onMove?: (e: MapMoveEvent) => void
@@ -247,6 +281,10 @@ export interface MapViewProps {
   /** Every offline maps event, as `{ type, data }`. */
   // eslint-disable-next-line no-unused-vars
   onOfflineMaps?: (e: OfflineMapsBridgeEvent) => void
+
+  /** Every search event, as `{ type, data }`. */
+  // eslint-disable-next-line no-unused-vars
+  onSearch?: (e: SearchBridgeEvent) => void
 
   // eslint-disable-next-line no-unused-vars
   onReady?: (api: MapApi) => void
@@ -269,6 +307,8 @@ export type BridgeEnvelope =
   | { type: 'turnByTurn', id: string, payload: TurnByTurnBridgeEvent }
   | { type: 'setOfflineMaps', id: string, payload: { offlineMaps: OfflineMapsSpec | null } }
   | { type: 'offlineMaps', id: string, payload: OfflineMapsBridgeEvent }
+  | { type: 'setSearch', id: string, payload: { search: SearchSpec | null } }
+  | { type: 'search', id: string, payload: SearchBridgeEvent }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }

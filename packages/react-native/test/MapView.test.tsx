@@ -444,3 +444,120 @@ describe('offline maps over the bridge', () => {
     page.remove()
   })
 })
+
+describe('search over the bridge', () => {
+  test('the document carries the spec and accepts updates', () => {
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { search: { query: 'coffee', placeholder: 'Find a place' } },
+    })
+    expect(html).toContain('"placeholder":"Find a place"')
+    expect(html).toContain('applySearch(initial.search)')
+    expect(html).toContain('env.type === "setSearch"')
+  })
+
+  test('a changed query is sent over the bridge, and an unchanged one is not', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, search: { query: 'coffee' } }))
+    })
+    const sent: any[] = []
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, search: { query: 'coffee' } }))
+    })
+    expect(sent.filter(e => e.type === 'setSearch').length).toBe(0)
+    await act(async () => {
+      root.render(createElement(MapView, { runtime, search: { query: 'tacos' } }))
+    })
+    const updates = sent.filter(e => e.type === 'setSearch')
+    expect(updates.length).toBe(1)
+    expect(updates[0].payload.search).toEqual({ query: 'tacos' })
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('search events reach onSearch', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const events: any[] = []
+    await act(async () => {
+      root.render(createElement(MapView, {
+        runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+        onSearch: (e) => { events.push(e) },
+      }))
+    })
+    const payload = { type: 'select', data: { place: { name: 'Ferry Building' } } }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'search', id: 's1', payload }) } })
+    })
+    expect(events).toEqual([payload])
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView script builds search, searches over the bridge, and links Directions to navigation', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.79, -122.4], zoom: 15, search: { recents: false }, turnByTurn: { voice: false } },
+    })
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    // Photon, answering for the Ferry Building.
+    const original = globalThis.fetch
+    globalThis.fetch = (async () => new Response(JSON.stringify({
+      features: [{ geometry: { type: 'Point', coordinates: [-122.3937, 37.7955] }, properties: { name: 'Ferry Building', osm_key: 'tourism', osm_value: 'attraction', city: 'San Francisco' } }],
+    }))) as any
+    try {
+      // eslint-disable-next-line no-new-func
+      new Function(script)()
+      expect(page.querySelector('.tsmap-search-input')).not.toBeNull()
+
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setSearch', id: 's1', payload: { search: { query: 'ferry building' } } }) }))
+      await new Promise(r => setTimeout(r, 30))
+      const results = posted.find(e => e.type === 'search' && e.payload.type === 'results')
+      expect(results?.payload.data.places[0].name).toBe('Ferry Building')
+
+      // A result's card offers Directions, since navigation is on the map.
+      const row = page.querySelector<HTMLElement>('.tsmap-search-row')!
+      row.click()
+      expect(page.querySelector('[data-action="directions"]')).not.toBeNull()
+      expect(posted.some(e => e.type === 'search' && e.payload.type === 'select')).toBe(true)
+
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setSearch', id: 's2', payload: { search: null } }) }))
+      expect(page.querySelector('.tsmap-search-input')).toBeNull()
+    }
+    finally {
+      globalThis.fetch = original
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+})

@@ -1,4 +1,4 @@
-import type { ControlSpec, MapRuntime, MarkerSpec, OfflineMapsSpec, TerritorySpec, TurnByTurnSpec } from './types'
+import type { ControlSpec, MapRuntime, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TurnByTurnSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -15,6 +15,7 @@ export interface BuildHtmlOptions {
     runTrail?: number[][]
     turnByTurn?: TurnByTurnSpec
     offlineMaps?: OfflineMapsSpec
+    search?: SearchSpec
   }
 }
 
@@ -237,10 +238,36 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    offline.sync({ open: spec.open, onlyOffline: spec.onlyOffline });',
   '  }',
+  // Search is the same control the other bindings use. Directions previews on
+  // the navigation above when there is one, reached lazily so it can be set
+  // up in either order; the event reaches the app regardless.
+  '  let search = null;',
+  '  const searchNav = {',
+  '    get options() { return nav ? nav.options : {}; },',
+  '    preview: function (from, to) { return nav ? nav.preview(from, to) : Promise.resolve([]); },',
+  '  };',
+  '  function applySearch(spec) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!spec) { if (search) { search.remove(); search = null; } return; }',
+  '    if (!ns.SearchControl) return;',
+  '    if (!search) {',
+  '      const opts = { turnByTurn: searchNav };',
+  '      ["position", "placeholder", "recents", "units", "language"].forEach(function (k) {',
+  '        if (spec[k] != null) opts[k] = spec[k];',
+  '      });',
+  '      try { search = new ns.SearchControl(opts); search.addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '      search.listen(function (type, e) {',
+  '        send({ type: "search", id: `sr${Date.now()}`, payload: { type: type, data: ns.SearchControl.plainEvent(type, e) } });',
+  '      });',
+  '    }',
+  '    search.sync({ query: spec.query });',
+  '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
   '  applyTurnByTurn(initial.turnByTurn);',
   '  applyOfflineMaps(initial.offlineMaps);',
+  '  applySearch(initial.search);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
@@ -289,6 +316,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setOfflineMaps") {',
   '      applyOfflineMaps(env.payload && env.payload.offlineMaps);',
+  '    }',
+  '    else if (env.type === "setSearch") {',
+  '      applySearch(env.payload && env.payload.search);',
   '    }',
   '  }',
   '  function onMessage(data) {',

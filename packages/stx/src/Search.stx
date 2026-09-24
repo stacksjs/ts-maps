@@ -1,0 +1,40 @@
+<script server>
+/**
+ * Search, after Apple Maps: "Search Maps" with Find Nearby and Recents,
+ * suggestions as you type, pins for results, and a card with Directions.
+ *
+ * ```stx
+ * <Map center="[37.79, -122.41]" zoom="15">
+ *   <TurnByTurn />
+ *   <Search query="coffee" />
+ * </Map>
+ * ```
+ *
+ * `query` searches straight away. With a `<TurnByTurn>` in the same map,
+ * Directions on a place's card previews the route on it. Events cannot be
+ * props here — stx passes props as data — so each one is a DOM event
+ * bubbling from the map: `search:results`, `search:select`,
+ * `search:directions` and `search:clear`, with the core event as `detail`.
+ * `search:ready` hands the page the control itself, for `search`,
+ * `select` and `sync({ query })` later — and for a provider, which as a live
+ * object cannot come from markup:
+ *
+ * ```js
+ * container.addEventListener('search:ready', e => { search = e.detail.control })
+ * ```
+ */
+export const optionsJson = JSON.stringify({
+  query: $props.query,
+  position: $props.position,
+  placeholder: $props.placeholder,
+  recents: $props.recents,
+  units: $props.units,
+  language: $props.language,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="search"
+  data-options="{{ optionsJson }}"
+></span>

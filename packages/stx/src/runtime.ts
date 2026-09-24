@@ -1,5 +1,5 @@
 import type { TsMap } from 'ts-maps'
-import { control, divIcon, marker as makeMarker, OfflineMapsControl, popup as makePopup, RunTrailLayer, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import { control, divIcon, marker as makeMarker, OfflineMapsControl, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 
 /**
  * How the components in this package become things on a map.
@@ -164,6 +164,10 @@ function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, la
 export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   const created: Removable[] = []
   const anyMap = map as any
+  // Search's Directions previews routes on the map's TurnByTurn, whichever
+  // of the two is written first.
+  let nav: TurnByTurn | undefined
+  const searches: SearchControl[] = []
 
   const ensureStyle = (): void => {
     // A source or layer needs a style to live in; starting an empty one means
@@ -206,17 +210,37 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
 
         case 'turn-by-turn': {
           const { from, to, active, ...options } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
-          const nav = new TurnByTurn(map, options)
+          nav = new TurnByTurn(map, options)
+          const current = nav
           // Every event, as a DOM event: stx props are data, so a callback
           // cannot be one. The names are the core ones, prefixed.
           for (const event of Object.keys(TURN_BY_TURN_EVENTS)) {
-            nav.on(event, (detail: unknown) => {
+            current.on(event, (detail: unknown) => {
               root.dispatchEvent(new CustomEvent(`turnbyturn:${event}`, { bubbles: true, detail }))
             })
           }
-          root.dispatchEvent(new CustomEvent('turnbyturn:ready', { bubbles: true, detail: { nav } }))
-          nav.sync({ from: from as any, to: to as any, active: !!active })
-          created.push({ remove: () => nav.stop() })
+          root.dispatchEvent(new CustomEvent('turnbyturn:ready', { bubbles: true, detail: { nav: current } }))
+          current.sync({ from: from as any, to: to as any, active: !!active })
+          created.push({ remove: () => current.stop() })
+          break
+        }
+
+        case 'search': {
+          const { query, ...options } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
+          const search = new SearchControl(options)
+          search.addTo(map)
+          searches.push(search)
+          const unlisten = search.listen((event, detail) => {
+            root.dispatchEvent(new CustomEvent(`search:${event}`, { bubbles: true, detail }))
+          })
+          root.dispatchEvent(new CustomEvent('search:ready', { bubbles: true, detail: { control: search } }))
+          search.sync({ query: query as string | undefined })
+          created.push({
+            remove: () => {
+              unlisten()
+              search.remove()
+            },
+          })
           break
         }
 
@@ -329,6 +353,11 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
       // One malformed child should not stop the rest of the map from building.
       console.warn(`[ts-maps] failed to build ${kind}`, error)
     }
+  }
+
+  if (nav) {
+    for (const search of searches)
+      search.options.turnByTurn ??= nav
   }
 
   return () => {

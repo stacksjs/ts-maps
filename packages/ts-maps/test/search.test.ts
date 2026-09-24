@@ -1,6 +1,6 @@
 import type { GeocoderProvider, GeocodingResult } from '../src/core-map/services/types'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { control, TsMap } from '../src/core-map'
+import { control, SEARCH_EVENTS, SearchControl, TsMap } from '../src/core-map'
 import { VectorTile } from '../src/core-map/mvt'
 import { MemoryOfflineStore, OfflineMaps } from '../src/core-map/offline'
 import { latToUnit, lngToUnit, unitToLat, unitToLng } from '../src/core-map/offline/plan'
@@ -338,5 +338,39 @@ describe('SearchControl', () => {
     input.dispatchEvent(new Event('focus'))
     const recents = [...map.getContainer().querySelectorAll('.tsmap-search-rows .tsmap-search-row-title')].map(r => r.textContent)
     expect(recents).toEqual(['Bluestem Brasserie', 'bluestem'])
+  })
+})
+
+describe('for the framework bindings', () => {
+  test('sync searches for a query once, runs a category by name, and clears on empty', async () => {
+    const map = makeMap()
+    const search = addSearch(map)
+    const results: string[] = []
+    let clears = 0
+    search.listen((type, e) => {
+      if (type === 'results')
+        results.push(e.category?.id ?? e.query)
+      else if (type === 'clear')
+        clears++
+    })
+    search.sync({ query: 'bluestem' })
+    search.sync({ query: 'bluestem' })
+    await tick()
+    search.sync({ query: 'coffee' })
+    await tick()
+    search.sync({})
+    expect(results).toEqual(['bluestem', 'coffee'])
+    search.sync({ query: '' })
+    expect(clears).toBe(1)
+    expect(map.getContainer().querySelectorAll('.tsmap-search-pin')).toHaveLength(0)
+  })
+
+  test('events reduce to plain data', () => {
+    const place = { id: 'p', name: 'P', center: { lat: 1, lng: 2 }, kind: 'cafe', icon: 'cafe', source: 'map' as const, rank: 1 }
+    const coffee = categoryForQuery('coffee')!
+    expect(SearchControl.plainEvent('results', { category: coffee, places: [place] })).toEqual({ query: undefined, category: { id: 'coffee', label: 'Coffee' }, places: [place] })
+    expect(SearchControl.plainEvent('select', { place })).toEqual({ place })
+    expect(SearchControl.plainEvent('clear', {})).toEqual({})
+    expect(Object.keys(SEARCH_EVENTS)).toEqual(['results', 'select', 'directions', 'clear'])
   })
 })

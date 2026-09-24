@@ -42,6 +42,7 @@ export default defineNuxtConfig({
 - `<TsMapsSource>`, `<TsMapsLayer>`
 - `<TsMapsTurnByTurn>` — turn-by-turn navigation
 - `<TsMapsOfflineMaps>` — offline maps
+- `<TsMapsSearch>` — search
 
 ## Basic usage
 

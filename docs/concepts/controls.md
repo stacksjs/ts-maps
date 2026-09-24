@@ -106,6 +106,9 @@ Answers come from three places at once, merged so the same café is one result:
 | `location` | map centre | Where distances are measured from. |
 | `turnByTurn`, `origin`, `onDirections` | — | What Directions does. |
 
+Every framework binding has it as `<Search>`, with `query` followed as a prop —
+see [framework bindings](../guide/framework-bindings.md#search).
+
 `search.search('coffee')`, `search.searchCategory(category)`,
 `search.select(place)` and `search.cancel()` drive it from code.
 `search.listen((type, e) => …)` hears `results`, `select`, `directions` and

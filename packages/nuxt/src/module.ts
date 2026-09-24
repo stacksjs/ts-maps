@@ -47,6 +47,7 @@ const tsMapsNuxtModule: ReturnType<typeof defineNuxtModule<ModuleOptions>> = def
       ['RunTrailLayer', 'RunTrailLayer'],
       ['TurnByTurn', 'TurnByTurn'],
       ['OfflineMaps', 'OfflineMaps'],
+      ['Search', 'Search'],
       // Controls. `LayersControl` is not here: it takes dictionaries of live
       // layer instances, so it stays imperative via `useMap()`.
       ['ZoomControl', 'ZoomControl'],

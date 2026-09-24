@@ -29,6 +29,7 @@ bun add ts-maps @ts-maps/vue
 - `<Popup>` — standalone popup.
 - `<TurnByTurn>` — Apple Maps–style navigation: route preview, guidance, voice
 - `<OfflineMaps>` — Apple Maps–style offline maps: download areas, list, offline pill
+- `<Search>` — Apple Maps–style search: Find Nearby, suggestions, pins, place cards
   and lane guidance. See [framework bindings](./framework-bindings.md#turn-by-turn-navigation).
 
 ## Basic usage

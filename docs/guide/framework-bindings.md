@@ -13,6 +13,7 @@ sketched in one framework reads the same in another.
 | Controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `controls` prop |
 | `TurnByTurn` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `turnByTurn` prop |
 | `OfflineMaps` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `offlineMaps` prop |
+| `Search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `search` prop |
 | Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
 | Event subscription | `useMapEvent` | `useMapEvent` | `useMapEvent` | `useMapEvent` | `onMapEvent` | auto-imported | ✅ |
 
@@ -223,6 +224,59 @@ method names can now reach one level in:
 ```
 
 Downloads made in the WebView are kept in its IndexedDB.
+
+## Search
+
+`Search` adds Apple Maps–style search (see [the search control](../concepts/controls.md#search)):
+
+- "Search Maps", with Find Nearby and Recents;
+- suggestions from the map itself as you type;
+- a pin for every result;
+- a place card with Directions.
+
+`query` is followed as it changes: set it and the map searches, and a category's
+name runs the category. Set it to `''` to clear. `turnByTurn` is followed too,
+so Directions can use a `TurnByTurn` whose `ready` arrives after mount.
+
+```tsx
+// React and Solid
+<Map center={[37.79, -122.41]} zoom={15}>
+  <TurnByTurn onReady={setNav} />
+  <Search turnByTurn={nav} onSelect={e => setPlace(e.place)} />
+</Map>
+```
+
+```vue
+<!-- Vue, and Nuxt as <TsMapsSearch> -->
+<TsSearch :query="query" :turn-by-turn="nav" @select="({ place }) => (chosen = place)" />
+```
+
+```svelte
+<Search {query} turnByTurn={nav} onSelect={e => (chosen = e.place)} />
+```
+
+The events are the same everywhere. `results` carries
+`{ query, category, places }`, `select` and `directions` carry `{ place }`, and
+`clear` carries nothing. They arrive as `onSelect` props in React, Solid and
+Svelte, `@select` in Vue, and a bubbling `search:select` DOM event in stx.
+`ready` hands over the control, for `search`, `searchCategory`, `select` and
+`cancel`. The other options — `position`, `placeholder`, `provider`, `offline`,
+`categories`, `recents`, `units`, `location`, `origin`, `language` — are read
+once, when the component mounts. In stx, a `<Search>` and a `<TurnByTurn>` in
+the same map are linked automatically.
+
+On React Native it is a prop of `MapView`, with every event arriving at one
+`onSearch({ type, data })`. Directions previews the route on the map's
+`turnByTurn` when there is one, and the `directions` event reaches the app
+either way:
+
+```tsx
+<MapView
+  runtime={runtime}
+  search={{ query }}
+  onSearch={e => e.type === 'directions' && setTrip({ to: e.data.place })}
+/>
+```
 
 ## Subscribing to events
 
