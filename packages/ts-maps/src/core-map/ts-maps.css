@@ -798,6 +798,81 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   border: 1px solid var(--tsmap-fg-muted);
 }
 
+/* Route editor handles (RouteEditor). The icon is a generous hit area; the
+  dot inside is what shows. `touch-action: none` so a finger on a handle
+  drags it even on a map that leaves one-finger swipes to the page. */
+
+.tsmap-route-handle {
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  cursor: grab;
+}
+
+.tsmap-route-dot {
+  display: block;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--tsmap-route-color, #10b981);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  transition: transform 0.12s ease;
+}
+
+.tsmap-route-handle:hover .tsmap-route-dot,
+.tsmap-route-handle:focus-visible .tsmap-route-dot,
+.tsmap-dragging .tsmap-drag-target .tsmap-route-dot,
+.tsmap-dragging .tsmap-drag-target.tsmap-route-dot {
+  transform: scale(1.3);
+}
+
+.tsmap-route-start .tsmap-route-dot {
+  width: 20px;
+  height: 20px;
+  border-color: #fff;
+  background: var(--tsmap-route-color, #10b981);
+}
+
+.tsmap-route-end .tsmap-route-dot {
+  width: 20px;
+  height: 20px;
+  border-color: #fff;
+  background: #0f172a;
+}
+
+/* Halfway along a leg: a small "+", there to be pulled. */
+.tsmap-route-midpoint .tsmap-route-dot,
+.tsmap-route-ghost .tsmap-route-dot {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  background:
+    linear-gradient(var(--tsmap-route-color, #10b981), var(--tsmap-route-color, #10b981)) center / 6px 2px no-repeat,
+    linear-gradient(var(--tsmap-route-color, #10b981), var(--tsmap-route-color, #10b981)) center / 2px 6px no-repeat,
+    rgb(255 255 255 / 0.9);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+}
+
+.tsmap-route-midpoint {
+  opacity: 0.85;
+}
+
+.tsmap-route-ghost .tsmap-route-dot {
+  transform: scale(1.3);
+}
+
+.tsmap-route-hit.tsmap-interactive {
+  cursor: copy;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tsmap-route-dot {
+    transition: none;
+  }
+}
+
 /* Tooltip */
 /* Base styles for the element that has a tooltip */
 .tsmap-tooltip {

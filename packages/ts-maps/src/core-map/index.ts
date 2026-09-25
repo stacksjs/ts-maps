@@ -40,6 +40,7 @@ import {
   GridLayer,
   HeatmapLayer,
   RasterDEMLayer,
+  RouteEditor,
   RunTrailLayer,
   TerritoryLayer,
   Icon,
@@ -58,7 +59,7 @@ import {
   VideoOverlay,
   WMSTileLayer,
 } from './layer/index'
-import { runTrailLayer, territoryLayer } from './layer/index'
+import { routeEditor, runTrailLayer, territoryLayer } from './layer/index'
 import { createMap, TsMap } from './map/index'
 import * as services from './services/index'
 import * as styles from './styles/index'
@@ -179,6 +180,7 @@ const tsMap: Record<string, unknown> = {
   WMSTileLayer,
   TerritoryLayer,
   RunTrailLayer,
+  RouteEditor,
   Polyline,
   Polygon,
   Rectangle,
@@ -209,6 +211,7 @@ const tsMap: Record<string, unknown> = {
   heatmapLayer,
   territoryLayer,
   runTrailLayer,
+  routeEditor,
   imageOverlay,
   videoOverlay,
   svgOverlay,

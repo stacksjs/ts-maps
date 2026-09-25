@@ -144,6 +144,128 @@ describe('RouteBuilder', () => {
     expect(builder.toJSON()).toMatchObject({ loop: true })
   })
 
+  test('moving a waypoint reroutes only the segments that touch it', async () => {
+    const calls: string[] = []
+    const counting: SegmentRouter = async (from, to) => {
+      calls.push(`${from.lat}>${to.lat}`)
+      return bendingRouter(from, to)
+    }
+    const d = { lat: 32.9350, lng: -117.2450 }
+    const builder = new RouteBuilder({ router: counting })
+    for (const p of [a, b, c, d])
+      await builder.add(p)
+    const untouched = builder.segments[2]
+    calls.length = 0
+    const moved = { lat: 32.9280, lng: -117.2600 }
+    await builder.move(1, moved)
+    expect(builder.waypoints).toEqual([a, moved, c, d])
+    expect(calls).toEqual([`${a.lat}>${moved.lat}`, `${moved.lat}>${c.lat}`])
+    expect(builder.segments[2]).toEqual(untouched)
+    await builder.undo()
+    expect(builder.waypoints).toEqual([a, b, c, d])
+  })
+
+  test('moving the start of a loop keeps it closed; moving a turn keeps an out-and-back retracing', async () => {
+    const loop = new RouteBuilder({ router: bendingRouter })
+    for (const p of [a, b, c])
+      await loop.add(p)
+    await loop.closeLoop()
+    const start = { lat: 32.9190, lng: -117.2540 }
+    await loop.move(0, start)
+    expect(loop.waypoints).toEqual([start, b, c, start])
+    expect(loop.isLoop).toBe(true)
+
+    const back = new RouteBuilder({ router: bendingRouter })
+    for (const p of [a, b, c])
+      await back.add(p)
+    await back.outAndBack()
+    const turn = { lat: 32.9270, lng: -117.2580 }
+    await back.move(1, turn)
+    expect(back.waypoints).toEqual([a, turn, c, turn, a])
+    // The way back is the way out, reversed — routed once, not twice.
+    expect(back.segments[3]).toEqual(back.segments[0].slice().reverse())
+    expect(back.segments[2]).toEqual(back.segments[1].slice().reverse())
+  })
+
+  test('insert puts a waypoint between two others and routes through it', async () => {
+    const builder = new RouteBuilder({ router: bendingRouter })
+    await builder.add(a)
+    await builder.add(c)
+    await builder.insert(1, b)
+    expect(builder.waypoints).toEqual([a, b, c])
+    expect(builder.segments).toHaveLength(2)
+    expect(builder.path[0]).toEqual(a)
+    expect(builder.path[builder.path.length - 1]).toEqual(c)
+    await builder.insert(99, a)
+    expect(builder.waypoints).toEqual([a, b, c, a])
+  })
+
+  test('remove joins the neighbours; removing a loop\'s start keeps it a loop', async () => {
+    const builder = new RouteBuilder({ router: bendingRouter })
+    for (const p of [a, b, c])
+      await builder.add(p)
+    await builder.remove(1)
+    expect(builder.waypoints).toEqual([a, c])
+    expect(builder.segments).toHaveLength(1)
+    await builder.remove(1)
+    expect(builder.waypoints).toEqual([a])
+    expect(builder.path).toEqual([a])
+
+    const d = { lat: 32.9350, lng: -117.2450 }
+    const loop = new RouteBuilder({ router: bendingRouter })
+    for (const p of [a, b, c, d])
+      await loop.add(p)
+    await loop.closeLoop()
+    await loop.remove(0)
+    expect(loop.waypoints).toEqual([b, c, d, b])
+    expect(loop.isLoop).toBe(true)
+
+    const back = new RouteBuilder({ router: bendingRouter })
+    await back.add(a)
+    await back.add(b)
+    await back.outAndBack()
+    await back.remove(1)
+    expect(back.waypoints).toEqual([a])
+  })
+
+  test('nearestSegment finds the leg a press on the line belongs to', async () => {
+    const builder = new RouteBuilder()
+    expect(builder.nearestSegment(a)).toBe(-1)
+    for (const p of [a, b, c])
+      await builder.add(p)
+    expect(builder.nearestSegment({ lat: (a.lat + b.lat) / 2, lng: (a.lng + b.lng) / 2 + 0.0001 })).toBe(0)
+    expect(builder.nearestSegment({ lat: (b.lat + c.lat) / 2, lng: (b.lng + c.lng) / 2 })).toBe(1)
+  })
+
+  test('a loaded line can be cut into waypoints, and editing one leaves the rest as drawn', async () => {
+    // ~1.1 km north, a point every ~11 m.
+    const line = Array.from({ length: 101 }, (_, i) => ({ lat: 32.9 + i * 0.0001, lng: -117.25 + (i % 2) * 0.00002 }))
+    const builder = new RouteBuilder({ router: straightRouter })
+    await builder.load(line, { waypointEveryMeters: 250 })
+    expect(builder.waypoints.length).toBeGreaterThanOrEqual(4)
+    expect(builder.waypoints.length).toBeLessThanOrEqual(6)
+    expect(builder.path).toEqual(line)
+    expect(builder.waypoints[0]).toEqual(line[0])
+    expect(builder.waypoints[builder.waypoints.length - 1]).toEqual(line[100])
+    const last = builder.segments[builder.segments.length - 1]
+    await builder.move(1, { lat: builder.waypoints[1].lat, lng: -117.251 })
+    // The far end of the line is untouched: still every original point.
+    expect(builder.segments[builder.segments.length - 1]).toEqual(last)
+    expect(builder.segments[0]).toHaveLength(2)
+  })
+
+  test('edits count as pending while they route', async () => {
+    const slow: SegmentRouter = (from, to) => new Promise(resolve => setTimeout(() => resolve([from, to]), 10))
+    const builder = new RouteBuilder({ router: slow })
+    await builder.add(a)
+    await builder.add(b)
+    const moving = builder.move(1, c)
+    expect(builder.pending).toBe(1)
+    await moving
+    expect(builder.pending).toBe(0)
+    expect(builder.waypoints).toEqual([a, c])
+  })
+
   test('directionsRouter routes through a provider on the walking profile', async () => {
     const calls: unknown[] = []
     const provider = {
