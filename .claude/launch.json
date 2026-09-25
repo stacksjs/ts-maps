@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "core-map",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["--bun", "run", "playground/core-map/serve.ts"],
+      "port": 3000
+    }
+  ]
+}

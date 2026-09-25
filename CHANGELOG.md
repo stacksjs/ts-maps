@@ -1,5 +1,42 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.11...v0.3.12)
+
+## 💥 Breaking Changes
+
+- fix(camera)!: bearing is the direction at the top of the screen ([3476fd9](https://github.com/stacksjs/ts-maps/commit/3476fd9)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🚀 Features
+
+- **map**: cooperative gestures for maps embedded in a page ([2c38db5](https://github.com/stacksjs/ts-maps/commit/2c38db5)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **bindings**: Search in every framework binding ([51a25c4](https://github.com/stacksjs/ts-maps/commit/51a25c4)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **search**: search like Apple Maps ([4b69504](https://github.com/stacksjs/ts-maps/commit/4b69504)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **bindings**: OfflineMaps in every framework binding ([ed9e82f](https://github.com/stacksjs/ts-maps/commit/ed9e82f)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline**: offline maps like Apple ([2764005](https://github.com/stacksjs/ts-maps/commit/2764005)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **bindings**: TurnByTurn in every framework binding ([b2d0e18](https://github.com/stacksjs/ts-maps/commit/b2d0e18)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **navigation**: lane guidance like Apple Maps ([2963aba](https://github.com/stacksjs/ts-maps/commit/2963aba)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **navigation**: turn-by-turn directions like Apple Maps ([5981bbf](https://github.com/stacksjs/ts-maps/commit/5981bbf)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: POI icons like Apple Maps ([92056b2](https://github.com/stacksjs/ts-maps/commit/92056b2)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: hide labels behind 3D buildings like Apple Maps ([4c2b61a](https://github.com/stacksjs/ts-maps/commit/4c2b61a)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **buildings**: 3D buildings like Apple Maps ([7b57e76](https://github.com/stacksjs/ts-maps/commit/7b57e76)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **camera**: tilt to 85° like Apple Maps, with a sky at the horizon ([28b1366](https://github.com/stacksjs/ts-maps/commit/28b1366)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **tiles**: coarser tiles in the distance on a tilted map ([49c3bfc](https://github.com/stacksjs/ts-maps/commit/49c3bfc)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: place labels every frame, Apple Maps–style ([081bd8e](https://github.com/stacksjs/ts-maps/commit/081bd8e)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🐛 Bug Fixes
+
+- **symbols**: keep labels still through a slow zoom ([7ef6b2f](https://github.com/stacksjs/ts-maps/commit/7ef6b2f)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **camera**: true perspective under pitch, with upright labels and markers ([087d557](https://github.com/stacksjs/ts-maps/commit/087d557)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.12 ([c9ebce7](https://github.com/stacksjs/ts-maps/commit/c9ebce7)) _(by Chris <chrisbreuer93@gmail.com>)_
+- wip ([1733ab5](https://github.com/stacksjs/ts-maps/commit/1733ab5)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.10...v0.3.11)
 
 ## 🐛 Bug Fixes
