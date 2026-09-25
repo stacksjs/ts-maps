@@ -27,6 +27,26 @@ import { placeGlyphsAlongLine } from './placement'
  *   - **Fading.** A label that wins or loses its slot fades over `fadeDuration`
  *     rather than switching, so the churn that zooming out necessarily causes
  *     looks like the map simplifying itself rather than flickering.
+ *
+ * And three more that keep a slow zoom from making the labels twitch:
+ *
+ *   - **One label across zoom levels.** A key carries a quantised position,
+ *     and the same town from a z10 tile and its z11 replacement can land
+ *     either side of a cell boundary. Two keys meant two labels: at every
+ *     tile-level switch the one on screen dropped out and an identical copy
+ *     faded in from nothing in its place. A point label that turns up under a
+ *     new key within `IDENTITY_RADIUS` of one with the same `identity` last
+ *     frame is that label, and carries its fade state on.
+ *   - **Hysteresis.** A label that was not showing needs `HYSTERESIS` pixels
+ *     more room than one that was. Without it a label whose box just touches
+ *     a neighbour's appears and disappears on alternate frames as the camera
+ *     creeps, which is what a slow trackpad zoom does all the way through.
+ *   - **Whole device pixels.** Sprites are drawn at whole device pixels, moving
+ *     or not. A bitmap blitted at a fractional offset is resampled, and the
+ *     resampling changes as the offset does: text that slides smoothly by
+ *     sub-pixels shimmers and swims while it goes. Snapping keeps every glyph
+ *     the same shape from frame to frame, and costs a step of one device
+ *     pixel — half a CSS pixel on a Retina screen.
  */
 
 export interface LabelBox {
@@ -55,6 +75,13 @@ interface LabelBase {
   ignorePlacement: boolean
   /** Extra room kept clear around the label, in CSS pixels. */
   padding: number
+  /**
+   * What the label says, without where it is: layer, text and icon. Two point
+   * labels with the same identity within `IDENTITY_RADIUS` of each other are
+   * one label, whatever their keys — see the class notes. Optional; without
+   * it only the key identifies a label.
+   */
+  identity?: string
   /**
    * Whether a building in front hides it. True for what names a spot on the
    * ground — a street, a point of interest with its icon; false for the name
@@ -121,10 +148,12 @@ export interface PlaceFrameOptions {
   /** `performance.now()` for this frame. */
   now: number
   /**
-   * Snap to whole device pixels. Crisper at rest; while moving it would make
-   * labels step instead of glide, so it is only asked for once settled.
+   * Snap point labels to whole device pixels. On by default, moving or not:
+   * see the class notes for why gliding by sub-pixels looks worse than
+   * stepping by device pixels. `false` is for callers that scale the canvas
+   * afterwards, where the snap would be undone anyway.
    */
-  snap: boolean
+  snap?: boolean
   /**
    * Whether the ground under a screen point is hidden from the camera — by a
    * 3D building, say. A hidden label fades out and claims no space.
@@ -155,6 +184,19 @@ interface Placed {
 
 /** Screen margin a label's anchor may sit outside the view and still count. */
 const CULL_MARGIN = 96
+/**
+ * How far, in CSS pixels, a point label may move between frames and still be
+ * recognised under a new key. The same place from two zoom levels differs by
+ * the tiles' quantisation — a fraction of a pixel — so this is generous; two
+ * different places with the same name are much further apart than this, or
+ * they would be drawn on top of each other anyway.
+ */
+export const IDENTITY_RADIUS = 6
+/**
+ * Extra clearance, in CSS pixels, a label needs to take a slot it did not have
+ * last frame. See the class notes.
+ */
+export const HYSTERESIS = 3
 const SPRITE_CACHE_LIMIT = 4000
 
 export class LabelPlacer {
@@ -164,6 +206,11 @@ export class LabelPlacer {
   _sprites: Map<string, Sprite | null>
   _spriteRatio: number
   _lastTime: number
+  /**
+   * Last frame's point labels by `identity`, with where they were and their
+   * fade state, so a label that reappears under a new key can be matched.
+   */
+  _lastSeen: Map<string, Array<{ x: number, y: number, state: FadeState }>>
 
   constructor(options?: { fadeDuration?: number }) {
     this.fadeDuration = options?.fadeDuration ?? 200
@@ -171,13 +218,40 @@ export class LabelPlacer {
     this._sprites = new Map()
     this._spriteRatio = 0
     this._lastTime = 0
+    this._lastSeen = new Map()
   }
 
   /** Forget every fade, as after a style change: nothing carries over. */
   reset(): void {
     this._states.clear()
     this._sprites.clear()
+    this._lastSeen.clear()
     this._lastTime = 0
+  }
+
+  /**
+   * The fade state a label carries into this frame: its own, or — for a point
+   * label seen for the first time under this key — that of the label with the
+   * same identity that was in the same spot last frame.
+   */
+  _stateFor(label: LabelCandidate, x: number, y: number): FadeState | undefined {
+    const own = this._states.get(label.key)
+    if (own || label.kind !== 'point' || !label.identity)
+      return own
+    let best: FadeState | undefined
+    let bestDistance = IDENTITY_RADIUS * IDENTITY_RADIUS
+    for (const seen of this._lastSeen.get(label.identity) ?? []) {
+      const dx = seen.x - x
+      const dy = seen.y - y
+      const distance = dx * dx + dy * dy
+      if (distance <= bestDistance) {
+        best = seen.state
+        bestDistance = distance
+      }
+    }
+    if (best)
+      this._states.set(label.key, best)
+    return best
   }
 
   /**
@@ -205,12 +279,12 @@ export class LabelPlacer {
     const live: Placed[] = []
     for (const group of groups) {
       for (const label of group.labels) {
-        const state = this._states.get(label.key)
         const entry = label.kind === 'point'
           ? projectPoint(label, group.project, width, height)
           : projectLine(label, group.project, width, height)
         if (!entry)
           continue
+        const state = this._stateFor(label, entry.x, entry.y)
         live.push({ label, x: entry.x, y: entry.y, glyphs: entry.glyphs, state: state ?? { opacity: 0, placed: false } })
       }
     }
@@ -225,6 +299,12 @@ export class LabelPlacer {
 
     const collision = new CollisionIndex()
     const seen = new Set<string>()
+    // Fade states already decided this frame. Two keys can share one — the
+    // same label from two zoom levels — and only the first copy is drawn.
+    const decided = new Set<FadeState>()
+    // Point labels handled so far, by identity, for this frame's `_lastSeen`
+    // and to drop a second copy of one sitting on top of the first.
+    const points = new Map<string, Array<{ x: number, y: number, state: FadeState }>>()
     // Centres of the line labels placed so far, by layer and name.
     const named = new Map<string, Vec[]>()
     const shown: Placed[] = []
@@ -237,6 +317,23 @@ export class LabelPlacer {
       if (seen.has(label.key))
         continue
       seen.add(label.key)
+      if (decided.has(item.state))
+        continue
+      if (label.kind === 'point' && label.identity) {
+        const list = points.get(label.identity)
+        const twin = list?.find(p => (p.x - item.x) ** 2 + (p.y - item.y) ** 2 <= IDENTITY_RADIUS * IDENTITY_RADIUS)
+        if (twin) {
+          // The same label again: it shares the fate of the copy drawn.
+          this._states.set(label.key, twin.state)
+          continue
+        }
+        const record = { x: item.x, y: item.y, state: item.state }
+        if (list)
+          list.push(record)
+        else
+          points.set(label.identity, [record])
+      }
+      decided.add(item.state)
 
       const box = screenBox(item)
       let repeatKey = ''
@@ -263,11 +360,15 @@ export class LabelPlacer {
         ? options.occluded(item.x, item.y, label.key)
         : options.occluded((box.minX + box.maxX) / 2, (box.minY + box.maxY) / 2, label.key))
 
+      // A newcomer has to clear its neighbours by a margin; a label already
+      // showing only has to not overlap them.
+      const test = item.state.placed ? box : inflate(box, HYSTERESIS)
+
       let placed: boolean
       if (tooClose) {
         placed = false
       }
-      else if (!label.allowOverlap && !label.ignorePlacement && collision.hits(box)) {
+      else if (!label.allowOverlap && !label.ignorePlacement && collision.hits(test)) {
         placed = false
       }
       else if (hidden()) {
@@ -279,10 +380,12 @@ export class LabelPlacer {
         placed = true
       }
       else if (label.ignorePlacement) {
-        placed = !collision.hits(box)
+        placed = !collision.hits(test)
       }
       else {
-        placed = collision.tryInsert(box)
+        // Already known to fit: `test` contains `box`.
+        collision.insert(box)
+        placed = true
       }
       if (placed && centre) {
         const list = named.get(repeatKey)
@@ -309,6 +412,7 @@ export class LabelPlacer {
       if (!seen.has(key))
         this._states.delete(key)
     }
+    this._lastSeen = points
 
     // --- Draw ---------------------------------------------------------------
     // Back to front: the most important label is placed first and drawn last,
@@ -317,7 +421,7 @@ export class LabelPlacer {
       const item = shown[i]!
       ctx.globalAlpha = item.state.opacity
       if (item.label.kind === 'point')
-        this._drawPoint(ctx, item.label, item.x, item.y, ratio, options.snap)
+        this._drawPoint(ctx, item.label, item.x, item.y, ratio, options.snap !== false)
       else if (item.glyphs)
         this._drawLine(ctx, item.label, item.glyphs, ratio)
     }
@@ -447,6 +551,10 @@ function projectLine(label: LineLabel, project: LabelGroup['project'], width: nu
   if (!glyphs)
     return null
   return { x: glyphs[0]!.x, y: glyphs[0]!.y, glyphs }
+}
+
+function inflate(box: LabelBox, by: number): LabelBox {
+  return { minX: box.minX - by, minY: box.minY - by, maxX: box.maxX + by, maxY: box.maxY + by }
 }
 
 function screenBox(item: Placed): LabelBox {

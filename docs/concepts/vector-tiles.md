@@ -103,7 +103,13 @@ name stays over its neighbourhood — the way Apple Maps and Google Maps behave.
   a lower `symbol-sort-key` wins, as in the style spec. The legacy
   `symbol-priority` layout property keeps its higher-wins meaning.
 - **Stable.** A label that was showing last frame is tried before an equal one
-  that was not, so labels do not trade places as the camera moves.
+  that was not, so labels do not trade places as the camera moves, and a label
+  that was not showing needs a few pixels of clear space before it takes a
+  slot — so one on the edge of fitting does not blink through a slow zoom.
+- **Steady.** Labels are projected with the camera's exact, unrounded maths and
+  drawn on whole device pixels, so they hold still on the ground through a
+  zoom rather than shaking by a pixel from frame to frame. The same place from
+  two zoom levels' tiles is recognised as one label and keeps its fade.
 - **Faded.** Labels fade in and out over 200 ms when they gain or lose their
   slot, instead of popping.
 - **Not repeated.** The same street name is kept a label-width and a half, or

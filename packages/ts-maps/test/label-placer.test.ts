@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { LabelCandidate, LabelGroup, LineLabel, PointLabel } from '../src/core-map/symbols/LabelPlacer'
-import { LabelPlacer } from '../src/core-map/symbols/LabelPlacer'
+import { HYSTERESIS, LabelPlacer } from '../src/core-map/symbols/LabelPlacer'
 
 // Tile pixels are screen pixels here, so boxes can be reasoned about directly.
 const identity: LabelGroup['project'] = (x, y) => ({ x, y })
@@ -165,5 +165,78 @@ describe('LabelPlacer', () => {
     expect(placed(placer, 'main-1')).toBe(true)
     expect(placed(placer, 'main-2')).toBe(false)
     expect(placed(placer, 'main-3')).toBe(true)
+  })
+
+  test('a label that changes key between zoom levels carries its fade on', () => {
+    // The key holds a quantised position, and the same town from a z10 tile
+    // and its z11 replacement can round into different cells.
+    const placer = new LabelPlacer({ fadeDuration: 100 })
+    let now = 0
+    for (let i = 0; i < 10; i++)
+      frame(placer, [point('town@10', 400, 300, { identity: 'places\u0000Town' })], now += 16)
+    expect(placer._states.get('town@10')!.opacity).toBe(1)
+
+    frame(placer, [point('town@11', 400.2, 299.9, { identity: 'places\u0000Town' })], now += 16)
+    // Still fully shown: not dropped and faded back in from nothing.
+    expect(placer._states.get('town@11')!.opacity).toBe(1)
+    expect(placed(placer, 'town@11')).toBe(true)
+  })
+
+  test('the same label from two zoom levels, under two keys, is drawn once', () => {
+    const placer = new LabelPlacer()
+    const drawn: string[] = []
+    const original = placer._drawPoint.bind(placer)
+    placer._drawPoint = (ctx, label, x, y, ratio, snap) => {
+      drawn.push(label.key)
+      original(ctx, label, x, y, ratio, snap)
+    }
+    const identity = 'places\u0000Town'
+    frame(placer, [point('town@10', 400, 300, { identity }), point('town@11', 400.1, 300, { identity, order: 1 })], 0)
+    expect(drawn).toEqual(['town@10'])
+    // Both keys share one fate, so whichever tile goes first, nothing blinks.
+    expect(placer._states.get('town@11')).toBe(placer._states.get('town@10'))
+  })
+
+  test('two places with the same name far apart are two labels', () => {
+    const placer = new LabelPlacer()
+    const identity = 'places\u0000Springfield'
+    frame(placer, [point('a', 100, 100, { identity }), point('b', 600, 500, { identity, order: 1 })], 0)
+    expect(placed(placer, 'a')).toBe(true)
+    expect(placed(placer, 'b')).toBe(true)
+    expect(placer._states.get('a')).not.toBe(placer._states.get('b'))
+  })
+
+  test('a newcomer needs clear space; a label already showing keeps its slot at the edge', () => {
+    // `city` spans x 360..440. `town`'s box starts `gap` pixels to its right.
+    const at = (gap: number): number => 440 + gap + 40
+    const city = point('city', 400, 300, { rank: 0 })
+
+    const fresh = new LabelPlacer()
+    frame(fresh, [city, point('town', at(1), 300, { rank: 1 })], 0)
+    expect(placed(fresh, 'town')).toBe(false)
+    frame(fresh, [city, point('town', at(HYSTERESIS + 1), 300, { rank: 1 })], 16)
+    expect(placed(fresh, 'town')).toBe(true)
+
+    // Showing already, it creeps to a pixel away — as a slow zoom out does —
+    // and keeps its place rather than blinking.
+    frame(fresh, [city, point('town', at(1), 300, { rank: 1 })], 32)
+    expect(placed(fresh, 'town')).toBe(true)
+    frame(fresh, [city, point('town', at(-1), 300, { rank: 1 })], 48)
+    expect(placed(fresh, 'town')).toBe(false)
+  })
+
+  test('point labels land on whole device pixels while the camera moves', () => {
+    const placer = new LabelPlacer()
+    const ctx = context()
+    const at: Array<[number, number]> = []
+    const original = ctx.drawImage.bind(ctx)
+    ctx.drawImage = ((image: any, x: number, y: number) => { at.push([x, y]); return (original as any)(image, x, y) }) as any
+    const paint = (c: CanvasRenderingContext2D): void => { c.fillRect(0, 0, 1, 1) }
+
+    // No `snap` passed, as for a frame mid-gesture.
+    placer.drawFrame(ctx, [{ labels: [point('a', 400.37, 300.81, { paint })], project: identity }], { width: 800, height: 600, ratio: 2, now: 0 })
+    expect(at.length).toBe(1)
+    expect(Number.isInteger(at[0]![0])).toBe(true)
+    expect(Number.isInteger(at[0]![1])).toBe(true)
   })
 })

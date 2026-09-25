@@ -354,8 +354,6 @@ export class VectorTileMapLayer extends GridLayer {
   declare _occlusionMemo?: { signature: string, results: Map<string, boolean> }
   /** Bumped whenever cached label candidates stop being valid. */
   declare _labelVersion: number
-  /** Whether the camera is between a movestart and its moveend. */
-  declare _cameraMoving: boolean
   declare _featureStateLookup?: (src: string, srcLayer: string, id: number | string) => Record<string, unknown>
   declare _sourceId?: string
   declare _glyphAtlas?: GlyphAtlas
@@ -370,7 +368,6 @@ export class VectorTileMapLayer extends GridLayer {
     this._sourceCache = new Map()
     this._sourcePending = new Map()
     this._labelVersion = 0
-    this._cameraMoving = false
     this._glyphAtlas = this.options!.glyphAtlas
     this._iconAtlas = this.options!.iconAtlas
 
@@ -814,13 +811,9 @@ export class VectorTileMapLayer extends GridLayer {
     // Camera changes redraw within the frame; everything else can wait for
     // the next one.
     const follow = (): void => this._symbolOverlay?.scheduleSync()
-    const settle = (): void => {
-      this._cameraMoving = false
-      this._symbolOverlay?.schedule()
-    }
+    const settle = (): void => this._symbolOverlay?.schedule()
 
     this._symbolHandlers = {
-      movestart: () => { this._cameraMoving = true },
       move: follow,
       zoom: follow,
       rotate: follow,
@@ -862,79 +855,60 @@ export class VectorTileMapLayer extends GridLayer {
   }
 
   /**
-   * Project a point inside a tile to where it currently sits on screen.
+   * Tile pixels to container pixels for the camera as it is this frame.
    *
-   * Goes through the map's own projection rather than a per-tile affine, so
-   * bearing and pitch are handled by the code that already owns them.
+   * Written out rather than routed through `latLngToContainerPoint`, for two
+   * reasons. Cost: a label's points — every vertex of every street name, every
+   * frame — take a few multiplications each instead of an unproject and a
+   * reproject. And exactness: `latLngToContainerPoint` rounds to whole pixels,
+   * which is right for a marker at rest and wrong for anything derived from
+   * it. The previous version solved a per-tile affine from three rounded
+   * corners, so every tile's scale and offset were off by up to a pixel in a
+   * direction that changed from frame to frame — during a slow zoom, labels
+   * shook on the spot, and labels from neighbouring tiles shook differently.
+   *
+   * Tile pixels to layer pixels is a scale and an offset; bearing and pitch
+   * after it are `layerPointToContainerPoint`'s maths, without the rounding.
    */
-  _projectTilePoint(coords: { x: number, y: number, z: number }, localX: number, localY: number): { x: number, y: number } | null {
+  _tileProjector(coords: { x: number, y: number, z: number }): ((x: number, y: number) => { x: number, y: number } | null) | null {
     const map = this._map
     if (!map)
       return null
     const size = this.getTileSize().x
-    const latlng = map.unproject([coords.x * size + localX, coords.y * size + localY], coords.z)
-    const point = map.latLngToContainerPoint(latlng)
-    return { x: point.x, y: point.y }
-  }
+    const mapZoom = map.getZoom()
+    const k = map.getZoomScale(mapZoom, coords.z)
+    const origin = map.getPixelOrigin()
+    const ox = coords.x * size * k - origin.x
+    const oy = coords.y * size * k - origin.y
+    const view = map.getSize()
+    const cx = view.x / 2
+    const cy = view.y / 2
+    const pos = map._getMapPanePos()
 
-  /**
-   * Tile pixels to container pixels for the camera as it is this frame.
-   *
-   * Without pitch the whole mapping is affine — scale, rotation, translation —
-   * so it is solved from three corners and applied to every label in the tile
-   * for a multiply-add each, instead of an unproject and reproject per point.
-   * With pitch it is not, and each point takes the full projection.
-   */
-  _tileProjector(coords: { x: number, y: number, z: number }): ((x: number, y: number) => { x: number, y: number } | null) | null {
-    const size = this.getTileSize().x
-    const map = this._map
-    if (map?._pitch) {
-      // Tile pixels to layer pixels is affine; only the camera after it is
-      // not. That part is `_pitchPoint` written out, so a label's points —
-      // every vertex of every street name, every frame — cost a few
-      // multiplications instead of an unproject and a reproject each.
-      const mapZoom = map.getZoom()
-      const k = map.getZoomScale(mapZoom, coords.z)
-      const origin = map.getPixelOrigin()
-      const ox = coords.x * size * k - origin.x
-      const oy = coords.y * size * k - origin.y
-      const view = map.getSize()
-      const cx = view.x / 2
-      const cy = view.y / 2
-      const pos = map._getMapPanePos()
-      const b = (-(map._bearing ?? 0) * Math.PI) / 180
-      const t = (map._pitch * Math.PI) / 180
-      const cb = Math.cos(b)
-      const sb = Math.sin(b)
-      const ct = Math.cos(t)
-      const st = Math.sin(t)
-      const { h } = map._cameraGeometry()
-      return (x, y) => {
-        const dx = x * k + ox - cx
-        const dy = y * k + oy - cy
-        const rx = dx * cb - dy * sb
-        const ry = dx * sb + dy * cb
-        const depth = h - ry * st
-        // Labels on ground drawn at under a third of its size near the
-        // centre are left off: towards the horizon they would be stacked too
-        // tightly to read, and Apple Maps thins them out the same way.
-        if (depth <= 0 || h / depth < 1 / 3)
-          return null
-        const scale = h / depth
-        return { x: cx + pos.x + rx * scale, y: cy + pos.y + ry * ct * scale }
-      }
+    if (!map._bearing && !map._pitch)
+      return (x, y) => ({ x: x * k + ox + pos.x, y: y * k + oy + pos.y })
+
+    const b = (-(map._bearing ?? 0) * Math.PI) / 180
+    const t = ((map._pitch ?? 0) * Math.PI) / 180
+    const cb = Math.cos(b)
+    const sb = Math.sin(b)
+    const ct = Math.cos(t)
+    const st = Math.sin(t)
+    const { h } = map._cameraGeometry()
+    return (x, y) => {
+      const dx = x * k + ox - cx
+      const dy = y * k + oy - cy
+      const rx = dx * cb - dy * sb
+      const ry = dx * sb + dy * cb
+      const depth = h - ry * st
+      // Labels on ground drawn at under a third of its size near the
+      // centre are left off: towards the horizon they would be stacked too
+      // tightly to read, and Apple Maps thins them out the same way.
+      if (depth <= 0 || h / depth < 1 / 3)
+        return null
+      const scale = h / depth
+      return { x: cx + pos.x + rx * scale, y: cy + pos.y + ry * ct * scale }
     }
-
-    const o = this._projectTilePoint(coords, 0, 0)
-    const u = this._projectTilePoint(coords, size, 0)
-    const v = this._projectTilePoint(coords, 0, size)
-    if (!o || !u || !v)
-      return null
-    const ax = (u.x - o.x) / size
-    const ay = (u.y - o.y) / size
-    const bx = (v.x - o.x) / size
-    const by = (v.y - o.y) / size
-    return (x, y) => ({ x: o.x + ax * x + bx * y, y: o.y + ay * x + by * y })
   }
 
   /**
@@ -1392,7 +1366,7 @@ export class VectorTileMapLayer extends GridLayer {
       height: size?.y ?? 0,
       ratio,
       now: now(),
-      snap: !this._cameraMoving,
+      snap: true,
       occluded: occlusion ? this._occlusionTest(occlusion) : undefined,
     })
     return fading || pending
@@ -2473,13 +2447,18 @@ function buildSymbolCandidates(
     ? '' // Formatted runs are rare enough to rasterise per label.
     : `${styleLayer.id}\u0000${lines.join('\n')}\u0000${iconId}\u0000${textSize}\u0000${font.family ?? ''}\u0000${italic}${bold}\u0000${textColor}\u0000${haloColor ?? ''}\u0000${haloWidth ?? 0}\u0000${anchor}\u0000${offset.x},${offset.y}\u0000${rotateDeg}\u0000${iconSize ?? ''}\u0000${iconColor ?? ''}\u0000${iconOpacity ?? ''}\u0000${letterSpacing}\u0000${alpha}`
 
+  // The key's position is quantised, and the same place from two zoom levels
+  // can round either side of a cell edge; the identity is what lets the
+  // placer see those as one label (see `LabelPlacer`).
+  const identity = `${styleLayer.id}\u0000${text}\u0000${iconId}`
   for (const ring of rings) {
     for (const pt of ring) {
       const at = context.toTile(pt.x, pt.y)
-      const key = `${styleLayer.id}\u0000${text}\u0000${iconId}\u0000${context.spot(at.x, at.y, 21)}`
+      const key = `${identity}\u0000${context.spot(at.x, at.y, 21)}`
       out.push({
         ...base,
         kind: 'point',
+        identity,
         // A bare name over a point is an area's — a district, a city — and
         // stays in view over the buildings; one with an icon marks a place
         // on the ground, and hides behind them.

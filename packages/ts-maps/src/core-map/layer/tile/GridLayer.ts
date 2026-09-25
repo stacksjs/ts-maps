@@ -428,7 +428,12 @@ export class GridLayer extends Layer {
 
   _setZoomTransform(level: Level, center: any, zoom: number): void {
     const scale = this._map.getZoomScale(zoom, level.zoom)
-    const translate = level.origin.multiplyBy(scale).subtract(this._map._getNewPixelOrigin(center, zoom)).round()
+    // Not rounded: at a fractional zoom the level is scaled, so a whole-pixel
+    // offset buys no crispness, and rounding it put the tiles up to half a
+    // pixel from where the labels and markers over them are drawn — a
+    // different half pixel every frame of a zoom. At an integer zoom the
+    // pixel origin is whole already, and so is this.
+    const translate = level.origin.multiplyBy(scale).subtract(this._map._getNewPixelOrigin(center, zoom))
     DomUtil.setTransform(level.el, translate, scale)
   }
 

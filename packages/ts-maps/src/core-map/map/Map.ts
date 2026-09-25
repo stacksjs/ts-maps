@@ -2040,7 +2040,13 @@ export class TsMap extends Evented {
 
   _getNewPixelOrigin(center: any, zoom?: number): Point {
     const viewHalf = this.getSize()._divideBy(2)
-    return this.project(center, zoom)._subtract(viewHalf)._add(this._getMapPanePos())._round()
+    const origin = this.project(center, zoom)._subtract(viewHalf)._add(this._getMapPanePos())
+    // Whole pixels keep raster tiles crisp at an integer zoom, where they are
+    // drawn one to one. At a fractional zoom every tile is scaled anyway, and
+    // rounding only makes the camera step: through a smooth wheel or pinch
+    // zoom the point under the cursor wobbled by up to a pixel from one frame
+    // to the next, and everything on the map wobbled with it.
+    return Number.isInteger(zoom ?? this._zoom) ? origin._round() : origin
   }
 
   _latLngToNewLayerPoint(latlng: any, zoom: number, center: any): Point {
