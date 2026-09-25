@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.12...v0.3.13)
+
+## 🚀 Features
+
+- **routes**: drag a route into shape on the map ([a9b486d](https://github.com/stacksjs/ts-maps/commit/a9b486d)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.13 ([8be4ff5](https://github.com/stacksjs/ts-maps/commit/8be4ff5)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.11...v0.3.12)
 
 ## 💥 Breaking Changes
