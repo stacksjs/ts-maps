@@ -20,6 +20,11 @@ export class Draggable extends Evented {
   declare _lastEvent?: PointerEvent
   declare _lastTarget?: HTMLElement | null
   declare _parentScale?: DomUtil.ScaleInfo
+  /**
+   * Veto a drag before it starts. The map uses it to leave a one-finger swipe
+   * to the page when it shares one (`cooperativeGestures`).
+   */
+  declare _shouldStart?: (e: PointerEvent) => boolean
 
   initialize(element: HTMLElement, dragStartTarget?: HTMLElement, preventOutline?: boolean, options?: any): void {
     Util.setOptions(this as any, options)
@@ -62,6 +67,8 @@ export class Draggable extends Evented {
     }
 
     if (Draggable._dragging || e.shiftKey || (e.button !== 0 && e.pointerType !== 'touch'))
+    return
+    if (this._shouldStart && !this._shouldStart(e))
     return
     Draggable._dragging = this
 

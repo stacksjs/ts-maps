@@ -1,6 +1,8 @@
 export { createMap, TsMap, Map } from './Map'
 export type { MapOptions } from './Map'
 export { BoxZoomHandler } from './handler/BoxZoomHandler'
+export { CooperativeGesturesHandler } from './handler/CooperativeGesturesHandler'
+export type { CooperativeGesturesOptions } from './handler/CooperativeGesturesHandler'
 export { DoubleClickZoomHandler } from './handler/DoubleClickZoomHandler'
 export { DragHandler } from './handler/DragHandler'
 export { KeyboardHandler } from './handler/KeyboardHandler'

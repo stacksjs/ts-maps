@@ -127,6 +127,15 @@ export interface MapOptions {
   * loads.
   */
   wheelDebounceTime?: number
+  /**
+  * Share gestures with the page the map sits in. A plain scroll wheel and a
+  * one-finger swipe scroll the page; ⌘/Ctrl + scroll, a trackpad pinch and
+  * two fingers move the map, and a short hint says so. For a map embedded
+  * among other content — the Google Maps embed behaviour. Off by default;
+  * pass an object to reword the hint. Ignored in fullscreen. See
+  * `CooperativeGesturesHandler`.
+  */
+  cooperativeGestures?: boolean | { wheelHint?: string, touchHint?: string }
   trackResize?: boolean
   [key: string]: any
 }
@@ -266,6 +275,7 @@ export class TsMap extends Evented {
   declare pinchZoom?: any
   declare doubleClickZoom?: any
   declare scrollWheelZoom?: any
+  declare cooperativeGestures?: any
   declare keyboard?: any
   declare tapHold?: any
   declare touchRotate?: any

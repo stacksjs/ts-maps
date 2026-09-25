@@ -47,6 +47,22 @@ around stays exactly under the cursor, pressing `+` again mid-zoom adds a level
 to where the zoom is heading, and `zoomAnimationDuration` (default `320` ms,
 eased out) sets the pace.
 
+## Sharing the page
+
+A map embedded among other content traps the scroll wheel: the page scrolls
+until the pointer crosses the map, then the map zooms instead. Pass
+`cooperativeGestures: true` to share gestures with the page, as a Google Maps
+embed does:
+
+- A plain wheel scrolls the page. ⌘/Ctrl + scroll, or a trackpad pinch, zooms
+  the map.
+- One finger scrolls the page on a touch screen; two fingers pan, pinch, rotate
+  and tilt the map.
+- A short hint over the map says so when it matters. Reword it with
+  `cooperativeGestures: { wheelHint, touchHint }` (`{key}` becomes ⌘ or Ctrl).
+
+In fullscreen the map is the page, and gestures work directly again.
+
 ## Events
 
 Every user interaction and programmatic camera change fires events on the map. Attach handlers with `map.on(type, handler)`; remove with `map.off(type, handler)`.

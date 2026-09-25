@@ -36,6 +36,7 @@ export class DragHandler extends Handler {
     if (!this._draggable) {
       const map = this._map
       this._draggable = new Draggable(map._mapPane, map._container) as any
+      this._draggable!._shouldStart = e => !map.cooperativeGestures?.dragBelongsToPage?.(e)
       this._draggable!.on( {
         dragstart: this._onDragStart,
         drag: this._onDrag,

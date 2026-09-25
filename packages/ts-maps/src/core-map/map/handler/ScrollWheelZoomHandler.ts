@@ -94,6 +94,12 @@ export class ScrollWheelZoomHandler extends Handler {
 
   _onWheelScroll(e: WheelEvent): void {
     const map = this._map
+
+    // Sharing the page (`cooperativeGestures`): a plain wheel scrolls it, and
+    // is left alone — not stopped, not prevented — so it does.
+    if (map.cooperativeGestures?.wheelBelongsToPage?.(e))
+      return
+
     const delta = DomEvent.getWheelDelta(e)
 
     DomEvent.stop(e)

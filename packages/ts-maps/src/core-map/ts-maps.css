@@ -629,6 +629,44 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   }
 }
 
+/* cooperativeGestures: a map that shares the page.
+   One finger scrolls the page; two move the map. Declared after, and more
+   specific than, the drag/zoom `touch-action: none` above. */
+.tsmap-container.tsmap-cooperative,
+.tsmap-container.tsmap-cooperative.tsmap-touch-drag,
+.tsmap-container.tsmap-cooperative.tsmap-touch-drag.tsmap-touch-zoom {
+  touch-action: pan-x pan-y;
+}
+
+.tsmap-cooperative-hint {
+  position: absolute;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 50%);
+  color: #fff;
+  font: 600 17px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+
+  &.tsmap-visible {
+    opacity: 1;
+    transition-duration: 0.15s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tsmap-cooperative-hint {
+    transition: none;
+  }
+}
+
 .tsmap-left .tsmap-control-scale {
   margin-left: 5px;
 }
