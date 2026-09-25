@@ -9,9 +9,14 @@
 //   const builder = new RouteBuilder({ router })
 //   new RouteEditor(builder).addTo(map)
 //
-// On a map that shares its page (`cooperativeGestures`) one finger scrolls the
-// page, so on a phone a press on the thin line scrolls rather than pulls it;
-// the halfway handles are there so a finger always has something to grab.
+// A finger on the line is as likely to be panning the map as pulling the
+// route, so on a touch screen a swipe that starts on the line still pans, and
+// the line is pulled only after the finger has rested on it a moment
+// (`touchHoldMs`). Points and halfway handles drag straight away.
+//
+// On a map that shares its page (`cooperativeGestures`) one finger scrolls
+// the page, so a finger cannot pull the line there at all — only drag the
+// handles. A map built for drawing routes should leave that off.
 
 import type { RouteBuilder } from '../services/route-builder'
 import type { LatLngLike } from '../services/types'
@@ -40,6 +45,11 @@ export interface RouteEditorOptions {
   midpointMinPixels?: number
   /** Press and drag the line itself to add a waypoint there. Default true. */
   dragLine?: boolean
+  /**
+   * On a touch screen, how long a finger rests on the line before it pulls
+   * the line rather than panning the map. Default 300 ms.
+   */
+  touchHoldMs?: number
 }
 
 export type RouteEditAction = 'add' | 'move' | 'insert' | 'remove'
@@ -56,6 +66,7 @@ interface HandleData {
 
 interface LineDrag {
   pointerId: number
+  pointerType: string
   leg: [LatLngLike, LatLngLike]
   startX: number
   startY: number
@@ -65,6 +76,8 @@ interface LineDrag {
 
 const HANDLE_SIZE = 28
 const LINE_DRAG_TOLERANCE = 4
+/** How far a finger may wander while resting on the line and still be holding it. */
+const TOUCH_HOLD_SLOP = 10
 
 function samePoint(a: LatLngLike, b: LatLngLike): boolean {
   return a.lat === b.lat && a.lng === b.lng
@@ -102,9 +115,14 @@ export class RouteEditor extends Layer {
   declare _ghost: Marker | null
   declare _unsubscribe: (() => void) | null
   declare _lineDrag: LineDrag | null
+  /** A finger resting on the line, not yet long enough to be pulling it. */
+  declare _lineHold: { drag: LineDrag, latlng: LatLngLike, timer: ReturnType<typeof setTimeout> } | null
+  /** The map's own drag, set aside while a finger pulls the line. */
+  declare _mapDragPaused: boolean
   /** Drags and dropped changes in flight: the handles stay where the person left them until then. */
   declare _holds: number
-  declare _suppressClickUntil: number
+  /** The click a mouse drag of the line ends with is not a tap: swallow it, once. */
+  declare _swallowClickUntil: number
 
   initialize(builder: RouteBuilder, options?: RouteEditorOptions): void {
     Util.setOptions(this as any, options)
@@ -114,8 +132,10 @@ export class RouteEditor extends Layer {
     this._ghost = null
     this._unsubscribe = null
     this._lineDrag = null
+    this._lineHold = null
+    this._mapDragPaused = false
     this._holds = 0
-    this._suppressClickUntil = 0
+    this._swallowClickUntil = 0
   }
 
   get builder(): RouteBuilder {
@@ -140,6 +160,7 @@ export class RouteEditor extends Layer {
   }
 
   onRemove(map: any): void {
+    this._cancelHold()
     this._endLineDrag(false)
     this._unsubscribe?.()
     this._unsubscribe = null
@@ -343,9 +364,10 @@ export class RouteEditor extends Layer {
   _onMapClick(e: any): void {
     if (!(this.options as RouteEditorOptions).addOnClick || !e?.latlng)
       return
-    // The click a line drag ends with is not a tap.
-    if (Date.now() < this._suppressClickUntil)
+    if (Date.now() < this._swallowClickUntil) {
+      this._swallowClickUntil = 0
       return
+    }
     void this._apply('add', builder => builder.add(plain(e.latlng)))
   }
 
@@ -353,7 +375,7 @@ export class RouteEditor extends Layer {
 
   _onLineDown(e: any): void {
     const event = e.originalEvent as PointerEvent
-    if (!(this.options as RouteEditorOptions).dragLine || this._lineDrag || event.shiftKey)
+    if (!(this.options as RouteEditorOptions).dragLine || this._lineDrag || this._lineHold || event.shiftKey)
       return
     if (event.pointerType === 'mouse' && event.button !== 0)
       return
@@ -361,19 +383,43 @@ export class RouteEditor extends Layer {
     if (index < 0)
       return
     const waypoints = this._builder.waypoints
-    // The map's own drag listens on the same container, after the layer
-    // events: stopping here keeps the map still while the line is pulled.
-    event.stopImmediatePropagation()
-    this._lineDrag = {
+    const drag: LineDrag = {
       pointerId: event.pointerId,
+      pointerType: event.pointerType,
       leg: [waypoints[index], waypoints[index + 1]],
       startX: event.clientX,
       startY: event.clientY,
       moved: false,
     }
+    if (event.pointerType === 'touch') {
+      // Let the map have it for now: a swipe that starts on the line pans.
+      this._startHold(drag, plain(e.latlng))
+      return
+    }
+    // The map's own drag listens on the same container, after the layer
+    // events: stopping here keeps the map still while the line is pulled.
+    event.stopImmediatePropagation()
+    this._beginLineDrag(drag)
+  }
+
+  _beginLineDrag(drag: LineDrag): void {
+    this._lineDrag = drag
     DomEvent.on(document as any, 'pointermove', this._onLineMove, this)
     DomEvent.on(document as any, 'pointerup', this._onLineUp, this)
     DomEvent.on(document as any, 'pointercancel', this._onLineCancel, this)
+  }
+
+  /** Show the line as caught: the "+" under the pointer and the dashed legs to it. */
+  _grab(drag: LineDrag, latlng: LatLngLike): void {
+    drag.latlng = latlng
+    if (!drag.moved) {
+      drag.moved = true
+      this._holds++
+      this._ghost = this._createGhost(drag.leg, latlng)
+      this.fire('dragstart')
+    }
+    this._ghost!.setLatLng([latlng.lat, latlng.lng])
+    this._showPreview(this._ghost!, latlng)
   }
 
   _onLineMove(event: PointerEvent): void {
@@ -389,16 +435,60 @@ export class RouteEditor extends Layer {
       return
     if (event.cancelable)
       event.preventDefault()
-    const latlng = plain(this._map.pointerEventToLatLng(event))
-    drag.latlng = latlng
-    if (!drag.moved) {
-      drag.moved = true
-      this._holds++
-      this._ghost = this._createGhost(drag.leg, latlng)
-      this.fire('dragstart')
+    this._grab(drag, plain(this._map.pointerEventToLatLng(event)))
+  }
+
+  // ── A finger resting on the line ─────────────────────────────────────────
+
+  _startHold(drag: LineDrag, latlng: LatLngLike): void {
+    const wait = (this.options as RouteEditorOptions).touchHoldMs!
+    this._lineHold = { drag, latlng, timer: setTimeout(() => this._onHeld(), wait) }
+    DomEvent.on(document as any, 'pointermove', this._onHoldMove, this)
+    DomEvent.on(document as any, 'pointerup pointercancel', this._onHoldEnd, this)
+  }
+
+  _onHoldMove(event: PointerEvent): void {
+    const hold = this._lineHold
+    if (!hold || event.pointerId !== hold.drag.pointerId)
+      return
+    // Moving off, or a second finger: the map is being panned or pinched.
+    const travel = Math.abs(event.clientX - hold.drag.startX) + Math.abs(event.clientY - hold.drag.startY)
+    if (travel > TOUCH_HOLD_SLOP || PointerEvents.getPointers().length > 1)
+      this._cancelHold()
+  }
+
+  _onHoldEnd(event: PointerEvent): void {
+    if (this._lineHold && event.pointerId === this._lineHold.drag.pointerId)
+      this._cancelHold()
+  }
+
+  _cancelHold(): void {
+    const hold = this._lineHold
+    if (!hold)
+      return
+    clearTimeout(hold.timer)
+    this._lineHold = null
+    DomEvent.off(document as any, 'pointermove', this._onHoldMove, this)
+    DomEvent.off(document as any, 'pointerup pointercancel', this._onHoldEnd, this)
+  }
+
+  /** Held long enough: take the finger from the map and pull the line with it. */
+  _onHeld(): void {
+    const hold = this._lineHold
+    this._cancelHold()
+    if (!hold || !this._map || PointerEvents.getPointers().length !== 1)
+      return
+    // The map has had the finger all along, in case it was a pan; within the
+    // slop it has barely moved, if at all. Disabling ends its drag there.
+    const dragging = this._map.dragging
+    if (dragging?.enabled()) {
+      dragging.disable()
+      this._mapDragPaused = true
     }
-    this._ghost!.setLatLng([latlng.lat, latlng.lng])
-    this._showPreview(this._ghost!, latlng)
+    // A tick under the finger, where the device has one.
+    globalThis.navigator?.vibrate?.(10)
+    this._beginLineDrag(hold.drag)
+    this._grab(hold.drag, hold.latlng)
   }
 
   _onLineUp(event: PointerEvent): void {
@@ -430,6 +520,10 @@ export class RouteEditor extends Layer {
     DomEvent.off(document as any, 'pointermove', this._onLineMove, this)
     DomEvent.off(document as any, 'pointerup', this._onLineUp, this)
     DomEvent.off(document as any, 'pointercancel', this._onLineCancel, this)
+    if (this._mapDragPaused) {
+      this._mapDragPaused = false
+      this._map?.dragging?.enable()
+    }
     if (this._ghost) {
       this._map?.removeLayer(this._ghost)
       this._ghost = null
@@ -437,7 +531,10 @@ export class RouteEditor extends Layer {
     this._preview?.setLatLngs([])
     if (!drag.moved)
       return
-    this._suppressClickUntil = Date.now() + 400
+    // A mouse or pen lets go with a click on the map; a finger that moved
+    // does not tap, so there is nothing to swallow after it.
+    if (drag.pointerType !== 'touch')
+      this._swallowClickUntil = Date.now() + 100
     const to = drag.latlng
     void this._release(commit && to
       ? this._apply('insert', builder => this._insertInto(builder, drag.leg, to))
@@ -454,6 +551,7 @@ RouteEditor.setDefaultOptions({
   midpoints: true,
   midpointMinPixels: 72,
   dragLine: true,
+  touchHoldMs: 300,
 })
 
 export function routeEditor(builder: RouteBuilder, options?: RouteEditorOptions): RouteEditor {

@@ -40,6 +40,12 @@ function makeDblclick(ev: MouseEvent | PointerEvent): Event {
 }
 
 const delay = 200
+/**
+ * How far apart two taps may land and still be one double-tap. Two quick taps
+ * in different places are two taps: on a map, a tap on one thing and then
+ * another must not zoom it.
+ */
+const slop = 30
 
 export interface DoubleTapHandlers {
   dblclick: EventListener
@@ -50,6 +56,8 @@ export function addDoubleTapListener(obj: any, handler: EventListener): DoubleTa
   obj.addEventListener('dblclick', handler)
 
   let last = 0
+  let lastX = 0
+  let lastY = 0
   let detail: number
 
   function simDblclick(ev: any): void {
@@ -69,8 +77,16 @@ export function addDoubleTapListener(obj: any, handler: EventListener): DoubleTa
       return
     }
 
+    // A tap on a marker is the marker's: it does not start or finish a
+    // double-tap on whatever the marker sits on.
+    if (path.some((el: any) => el.classList?.contains('tsmap-marker-icon'))) {
+      last = 0
+      return
+    }
+
     const now = Date.now()
-    if (now - last <= delay) {
+    const near = Math.abs(ev.clientX - lastX) <= slop && Math.abs(ev.clientY - lastY) <= slop
+    if (now - last <= delay && near) {
       detail++
       if (detail === 2) {
         ev.target.dispatchEvent(makeDblclick(ev))
@@ -80,6 +96,8 @@ export function addDoubleTapListener(obj: any, handler: EventListener): DoubleTa
       detail = 1
     }
     last = now
+    lastX = ev.clientX
+    lastY = ev.clientY
   }
 
   obj.addEventListener('click', simDblclick)

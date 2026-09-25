@@ -867,6 +867,17 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   cursor: copy;
 }
 
+/* A fingertip needs more than the 28px a mouse does. The icon's size and
+  offset are inline styles set from its iconSize, hence the !important. */
+@media (pointer: coarse) {
+  .tsmap-route-handle {
+    width: 44px !important;
+    height: 44px !important;
+    margin-top: -22px !important;
+    margin-left: -22px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tsmap-route-dot {
     transition: none;

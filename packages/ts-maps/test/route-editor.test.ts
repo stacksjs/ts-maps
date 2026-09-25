@@ -107,6 +107,41 @@ describe('RouteEditor', () => {
     expect(kept.builder.waypoints).toEqual([a, b, c])
   })
 
+  test('a finger resting on the line pulls it; a finger that moves off pans the map instead', async () => {
+    const { map, builder, editor } = await editorWith([a, c])
+    editor.options!.touchHoldMs = 20
+    const container = map.getContainer()
+    const touch = (type: string, x: number, y: number) =>
+      container.dispatchEvent(new PointerEvent(type, { pointerId: 7, pointerType: 'touch', clientX: x, clientY: y, bubbles: true }))
+    const pressLine = () => {
+      touch('pointerdown', 100, 100)
+      const down = new PointerEvent('pointerdown', { pointerId: 7, pointerType: 'touch', clientX: 100, clientY: 100 })
+      let claimed = false
+      down.stopImmediatePropagation = () => { claimed = true }
+      editor._hit.fire('pointerdown', { latlng: { lat: (a.lat + c.lat) / 2, lng: (a.lng + c.lng) / 2 }, originalEvent: down })
+      return claimed
+    }
+
+    // Swiping off the line: the map keeps the finger, nothing is pulled.
+    expect(pressLine()).toBe(false)
+    touch('pointermove', 140, 100)
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect(editor._ghost).toBeNull()
+    touch('pointerup', 140, 100)
+    expect(map.dragging.enabled()).toBe(true)
+
+    // Resting on it: after the hold the line is caught, and the map lets go.
+    pressLine()
+    await new Promise(resolve => setTimeout(resolve, 40))
+    expect(editor._ghost).not.toBeNull()
+    expect(map.dragging.enabled()).toBe(false)
+    touch('pointerup', 100, 100)
+    await new Promise(resolve => setTimeout(resolve, 0))
+    await builder.settled()
+    expect(builder.waypoints).toHaveLength(3)
+    expect(map.dragging.enabled()).toBe(true)
+  })
+
   test('removing the editor takes its layers off the map', async () => {
     const { map, editor } = await editorWith([a, b])
     const layers = [editor._line, editor._casing, editor._hit, ...editor._handles]

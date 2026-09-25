@@ -1,5 +1,15 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.13...v0.3.14)
+
+## 🧹 Chores
+
+- release v0.3.14 ([87ae508](https://github.com/stacksjs/ts-maps/commit/87ae508)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.12...v0.3.13)
 
 ## 🚀 Features
