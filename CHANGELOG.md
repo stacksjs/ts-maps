@@ -1,5 +1,29 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.14...v0.3.15)
+
+## 🐛 Bug Fixes
+
+- **map**: theme auto follows the host page, and hosts keep their background ([7cd114b](https://github.com/stacksjs/ts-maps/commit/7cd114b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.15 ([1d27526](https://github.com/stacksjs/ts-maps/commit/1d27526)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.14...v0.3.15)
+
+## 🐛 Bug Fixes
+
+- **map**: theme auto follows the host page, and hosts keep their background ([7cd114b](https://github.com/stacksjs/ts-maps/commit/7cd114b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.13...v0.3.14)
 
 ## 🧹 Chores
