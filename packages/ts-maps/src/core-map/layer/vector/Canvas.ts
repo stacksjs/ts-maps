@@ -22,6 +22,7 @@ export class Canvas extends Renderer {
   declare _hoveredLayer?: any
   declare _pointerHoverThrottled?: boolean
   declare _pointerHoverThrottleTimeout?: ReturnType<typeof setTimeout>
+  declare _paintCache?: Map<string, string>
 
   getEvents(): Record<string, any> {
     const events = super.getEvents()
@@ -203,6 +204,7 @@ export class Canvas extends Renderer {
   }
 
   _draw(): void {
+    this._paintCache = undefined
     const bounds = this._redrawBounds
     this._ctx!.save()
     if (bounds) {
@@ -273,7 +275,7 @@ export class Canvas extends Renderer {
 
     if (options.fill) {
       ctx.globalAlpha = options.fillOpacity
-      ctx.fillStyle = options.fillColor ?? options.color
+      ctx.fillStyle = this._resolvePaint(options.fillColor ?? options.color)
       ctx.fill(options.fillRule || 'evenodd')
     }
 
@@ -284,11 +286,35 @@ export class Canvas extends Renderer {
       }
       ctx.globalAlpha = options.opacity
       ctx.lineWidth = options.weight
-      ctx.strokeStyle = options.color
+      ctx.strokeStyle = this._resolvePaint(options.color)
       ctx.lineCap = options.lineCap
       ctx.lineJoin = options.lineJoin
       ctx.stroke()
     }
+  }
+
+  /**
+   * A 2D context takes a colour, not CSS: `fillStyle = 'var(--x)'` is ignored
+   * and the previous fill is reused. Custom properties are resolved against the
+   * canvas element, so they read the same tokens the SVG renderer would. Cached
+   * per draw, because a choropleth asks for the same few colours hundreds of
+   * times a frame and each lookup is a style recalc; cleared on every redraw so
+   * a theme flip is picked up by the next one.
+   */
+  _resolvePaint(value: any): any {
+    if (typeof value !== 'string' || !value.includes('var(') || typeof getComputedStyle !== 'function' || !this._container)
+      return value
+    const cache = (this._paintCache ??= new Map<string, string>())
+    const hit = cache.get(value)
+    if (hit !== undefined)
+      return hit
+    const el = this._container as HTMLElement
+    const previous = el.style.color
+    el.style.color = value
+    const resolved = getComputedStyle(el).color || value
+    el.style.color = previous
+    cache.set(value, resolved)
+    return resolved
   }
 
   _onClick(e: any): void {

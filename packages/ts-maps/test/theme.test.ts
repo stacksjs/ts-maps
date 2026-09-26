@@ -34,6 +34,10 @@ function stubMatchMedia(initial: boolean): { flip: (matches: boolean) => void, l
 describe('map theme', () => {
   afterEach(() => {
     delete (globalThis as any).matchMedia
+    const root = document.documentElement
+    root.removeAttribute('data-theme')
+    root.removeAttribute('data-color-mode')
+    root.classList.remove('dark', 'light')
   })
 
   test('defaults to light chrome', () => {
@@ -102,5 +106,63 @@ describe('map theme', () => {
 
     expect(container.classList.contains('tsmap-dark')).toBe(false)
     expect(media.listeners).toBe(0)
+  })
+
+  test('theme: auto prefers the page\'s declared theme over the OS', () => {
+    // A site toggle is the reader's explicit choice, and prefers-color-scheme
+    // cannot see it: a dark OS with the page switched to light must not get
+    // dark map chrome inside a light page.
+    stubMatchMedia(true)
+    document.documentElement.setAttribute('data-theme', 'light')
+    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    expect(map.getContainer().classList.contains('tsmap-dark')).toBe(false)
+  })
+
+  test('theme: auto tracks the page toggle as it flips', async () => {
+    stubMatchMedia(false)
+    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    const container = map.getContainer()
+    expect(container.classList.contains('tsmap-dark')).toBe(false)
+
+    document.documentElement.setAttribute('data-theme', 'dark')
+    await Promise.resolve()
+    expect(container.classList.contains('tsmap-dark')).toBe(true)
+
+    // A class toggle (the Tailwind convention) counts too.
+    document.documentElement.removeAttribute('data-theme')
+    document.documentElement.classList.add('light')
+    await Promise.resolve()
+    expect(container.classList.contains('tsmap-dark')).toBe(false)
+  })
+
+  test('a value that is not light or dark falls through to the OS', () => {
+    stubMatchMedia(true)
+    document.documentElement.setAttribute('data-theme', 'system')
+    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    expect(map.getContainer().classList.contains('tsmap-dark')).toBe(true)
+  })
+
+  test('leaving auto stops watching the page', async () => {
+    stubMatchMedia(false)
+    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    map.setTheme('light')
+
+    document.documentElement.setAttribute('data-theme', 'dark')
+    await Promise.resolve()
+    expect(map.getContainer().classList.contains('tsmap-dark')).toBe(false)
+  })
+})
+
+describe('container background', () => {
+  test('a map with no style keeps the background its host set', () => {
+    // _syncStyleBackground runs on every zoomend. It used to remove the inline
+    // background-color whenever no style layer supplied one, which wiped the
+    // host's own colour on the first fitBounds.
+    const container = makeContainer()
+    container.style.backgroundColor = 'rgb(8, 11, 18)'
+    const map = new TsMap(container, { center: [0, 0], zoom: 1 })
+    map.setView([10, 10], 2, { animate: false })
+    map._syncStyleBackground()
+    expect(container.style.backgroundColor).toBe('rgb(8, 11, 18)')
   })
 })

@@ -87,8 +87,11 @@ export interface MapOptions {
   * `'light'` (default) and `'dark'` are explicit, because the right chrome
   * follows the *basemap being displayed* rather than the operating system: a
   * dark style on a machine set to light mode still needs dark controls, and
-  * white cards over a near-black map glare. `'auto'` opts back in to the OS
-  * setting via `prefers-color-scheme` and tracks changes to it.
+  * white cards over a near-black map glare. `'auto'` follows the page: an
+  * explicit theme the host declares on `<html>` (`data-theme="dark|light"`,
+  * `data-color-mode`, or a `dark` / `light` class, which is what most site
+  * toggles write) and otherwise the OS `prefers-color-scheme`, tracking changes
+  * to either.
   */
   theme?: 'light' | 'dark' | 'auto'
   /**
@@ -228,6 +231,8 @@ export class TsMap extends Evented {
   declare _theme?: 'light' | 'dark' | 'auto'
   declare _themeQuery?: MediaQueryList
   declare _themeQueryListener?: (event: MediaQueryListEvent) => void
+  declare _themeObserver?: MutationObserver
+  declare _hostBackground?: string
   declare _loaded?: boolean
   declare _zoom: number
   declare _lastCenter?: LatLng | null
@@ -2443,11 +2448,21 @@ export class TsMap extends Evented {
     if (!container)
       return
 
+    // Only ever undo what this set. It runs on every zoomend, and removing the
+    // property unconditionally wiped a background the HOST page had put on the
+    // container -- a choropleth with no style at all lost its sea colour on the
+    // first fitBounds. The host's own value is kept aside the first time a style
+    // overrides it, and put back when the style stops speaking for the ground.
     const colour = this._styleBackgroundColor()
-    if (colour)
+    if (colour) {
+      if (this._hostBackground === undefined)
+        this._hostBackground = container.style.backgroundColor
       container.style.backgroundColor = colour
-    else
-      container.style.removeProperty('background-color')
+    }
+    else if (this._hostBackground !== undefined) {
+      container.style.backgroundColor = this._hostBackground
+      this._hostBackground = undefined
+    }
   }
 
   /** The style's background colour, resolved at the current zoom. */
@@ -3597,33 +3612,78 @@ export class TsMap extends Evented {
    * relayout, and a host page can override the same properties to theme the
    * controls to its own palette.
    *
-   * `'auto'` follows `prefers-color-scheme` and keeps following it: the
-   * listener stays attached until the theme changes again or the map is
-   * removed.
+   * `'auto'` follows the page and keeps following it. A theme the host declares
+   * on `<html>` wins (see `_pageTheme`), because a site's own toggle is the
+   * reader's explicit choice and `prefers-color-scheme` cannot see it: a reader
+   * on a dark OS who picked light on the page would otherwise get dark map
+   * chrome inside a light page. With nothing declared, the OS setting decides.
+   * Both are watched until the theme changes again or the map is removed.
    */
   setTheme(theme: 'light' | 'dark' | 'auto'): this {
     this._detachThemeQuery()
     this._theme = theme
     this.options.theme = theme
 
-    if (theme === 'auto' && typeof matchMedia === 'function') {
-      const query = matchMedia('(prefers-color-scheme: dark)')
-      const listener = (event: MediaQueryListEvent): void => this._applyTheme(event.matches)
-      // addEventListener over the deprecated addListener, but Safari < 14
-      // only has the latter and is still a real share of mobile map traffic.
-      if (typeof query.addEventListener === 'function')
-        query.addEventListener('change', listener)
-      else
-        (query as any).addListener?.(listener)
+    if (theme === 'auto') {
+      const resolve = (): void => {
+        const page = this._pageTheme()
+        const dark = page !== undefined ? page === 'dark' : Boolean(this._themeQuery?.matches)
+        if (dark !== this._container?.classList.contains('tsmap-dark'))
+          this._applyTheme(dark)
+      }
 
-      this._themeQuery = query
-      this._themeQueryListener = listener
-      this._applyTheme(query.matches)
+      if (typeof matchMedia === 'function') {
+        const query = matchMedia('(prefers-color-scheme: dark)')
+        const listener = (): void => resolve()
+        // addEventListener over the deprecated addListener, but Safari < 14
+        // only has the latter and is still a real share of mobile map traffic.
+        if (typeof query.addEventListener === 'function')
+          query.addEventListener('change', listener)
+        else
+          (query as any).addListener?.(listener)
+        this._themeQuery = query
+        this._themeQueryListener = listener
+      }
+
+      const root = typeof document !== 'undefined' ? document.documentElement : undefined
+      if (root && typeof MutationObserver === 'function') {
+        this._themeObserver = new MutationObserver(resolve)
+        this._themeObserver.observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-color-mode', 'class'] })
+      }
+
+      // Applied unconditionally the first time, so themechange fires once on
+      // construction exactly as it does for an explicit theme.
+      const page = this._pageTheme()
+      this._applyTheme(page !== undefined ? page === 'dark' : Boolean(this._themeQuery?.matches))
       return this
     }
 
     this._applyTheme(theme === 'dark')
     return this
+  }
+
+  /**
+   * The theme the host page declares on `<html>`, if it declares one.
+   *
+   * The attribute is checked before the class because a page that writes both
+   * (as stx's useColorMode and several Tailwind setups do) writes the attribute
+   * as the source of truth. Anything other than `dark` / `light` -- `system`,
+   * a brand theme name -- is not a declaration of either and falls through.
+   */
+  _pageTheme(): 'light' | 'dark' | undefined {
+    const root = typeof document !== 'undefined' ? document.documentElement : undefined
+    if (!root)
+      return undefined
+    for (const name of ['data-theme', 'data-color-mode']) {
+      const value = root.getAttribute(name)?.trim().toLowerCase()
+      if (value === 'dark' || value === 'light')
+        return value
+    }
+    if (root.classList.contains('dark'))
+      return 'dark'
+    if (root.classList.contains('light'))
+      return 'light'
+    return undefined
   }
 
   /** The configured theme — `'auto'` stays `'auto'`, not the mode it resolved to. */
@@ -3653,6 +3713,8 @@ export class TsMap extends Evented {
     }
     this._themeQuery = undefined
     this._themeQueryListener = undefined
+    this._themeObserver?.disconnect()
+    this._themeObserver = undefined
   }
 
   /**

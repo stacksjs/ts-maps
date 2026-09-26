@@ -2,6 +2,29 @@ import * as DomUtil from '../../dom/DomUtil'
 import { splitWords, stamp } from '../../core/Util'
 import { Renderer } from './Renderer'
 
+/**
+ * Set a path's fill or stroke colour.
+ *
+ * A presentation attribute cannot hold `var(--x)` -- the SVG parser rejects it
+ * and the path falls back to black -- but the same value as a style property
+ * resolves like any other CSS. So a colour that uses a custom property goes on
+ * `style`, which lets a host theme its paths from its own tokens and have a
+ * light/dark flip repaint them with no script at all. Plain colours stay on the
+ * attribute, where a stylesheet rule on `.tsmap-interactive` can still
+ * override them, and clear any style value a previous `var()` colour left.
+ */
+function setPaint(path: SVGElement, name: 'fill' | 'stroke', value: unknown): void {
+  const colour = String(value)
+  if (colour.includes('var(')) {
+    path.style.setProperty(name, colour)
+    path.removeAttribute(name)
+    return
+  }
+  if (path.style.getPropertyValue(name))
+    path.style.removeProperty(name)
+  path.setAttribute(name, colour)
+}
+
 export class SVG extends Renderer {
   declare _rootGroup?: SVGGElement
   declare _svgSize?: any
@@ -86,7 +109,7 @@ export class SVG extends Renderer {
     return
 
     if (options.stroke) {
-      path.setAttribute('stroke', options.color)
+      setPaint(path, 'stroke', options.color)
       path.setAttribute('stroke-opacity', options.opacity)
       path.setAttribute('stroke-width', options.weight)
       path.setAttribute('stroke-linecap', options.lineCap)
@@ -103,16 +126,16 @@ export class SVG extends Renderer {
       path.removeAttribute('stroke-dashoffset')
     }
     else {
-      path.setAttribute('stroke', 'none')
+      setPaint(path, 'stroke', 'none')
     }
 
     if (options.fill) {
-      path.setAttribute('fill', options.fillColor || options.color)
+      setPaint(path, 'fill', options.fillColor || options.color)
       path.setAttribute('fill-opacity', options.fillOpacity)
       path.setAttribute('fill-rule', options.fillRule || 'evenodd')
     }
     else {
-      path.setAttribute('fill', 'none')
+      setPaint(path, 'fill', 'none')
     }
   }
 
