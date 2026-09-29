@@ -46,7 +46,7 @@
     "format:fix": "bunx --bun pickier . --format --write",
     "changelog": "bunx logsmith --verbose",
     "changelog:generate": "bunx logsmith --output CHANGELOG.md",
-    "release": "bun run changelog:generate && bunx --bun bumpx prompt --recursive",
+    "release": "bun run changelog:generate && bunx --bun @stacksjs/bumpx prompt --recursive",
     "typecheck": "bunx tsc --noEmit",
     "bench:ts-maps": "cd packages/ts-maps && bun run bench",
     "playground:core-map": "bun --bun run playground/core-map/serve.ts",
@@ -55,7 +55,7 @@
     "dev:docs": "bun --bun bunpress dev docs",
     "build:docs": "bun --bun bunpress build docs",
     "preview:docs": "bun --bun bunpress preview docs",
-    "release:patch": "bunx --bun bumpx patch --recursive --commit --tag --push --yes"
+    "release:patch": "bunx --bun @stacksjs/bumpx patch --recursive --commit --tag --push --yes"
   },
   "devDependencies": {
     "@stacksjs/bunpress": "^0.2.11",
