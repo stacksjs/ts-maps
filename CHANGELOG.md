@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.20...v0.3.21)
+
+## 🐛 Bug Fixes
+
+- **worker**: the rewritten tiles.json has its own ETag ([4c47f5f](https://github.com/stacksjs/ts-maps/commit/4c47f5f)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.21 ([d0dc2f1](https://github.com/stacksjs/ts-maps/commit/d0dc2f1)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.19...v0.3.20)
 
 ## 🐛 Bug Fixes
