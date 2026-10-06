@@ -256,14 +256,38 @@ describe('GET /<archive>/{z}/{x}/{y}.pbf', () => {
     expect(layersOf(body)).toEqual(['transportation', 'water'])
   })
 
+  /*
+   * Cloudflare's cache drops Content-Encoding from a stored pre-compressed
+   * response but keeps the bytes, which broke every hit in production. The
+   * cached copy keeps its encoding in a header of its own; a hit restores it
+   * for a client that takes gzip and inflates for one that does not.
+   */
+  test('a cache hit restores the encoding, or inflates for a client without gzip', async () => {
+    await get(tilePath(5, x5, y5))
+    const stored = cache.entries.get(`${HOST}${tilePath(5, x5, y5)}?cache=g2`) as Response
+    expect(stored.headers.get('Content-Encoding')).toBeNull()
+    expect(stored.headers.get('X-Tile-Stored-Encoding')).toBe('gzip')
+
+    const gzipHit = await get(tilePath(5, x5, y5), { headers: { 'Accept-Encoding': 'gzip, br' } })
+    expect(gzipHit.headers.get('Content-Encoding')).toBe('gzip')
+    expect(gzipHit.headers.get('X-Tile-Stored-Encoding')).toBeNull()
+    const zipped = new Uint8Array(await gzipHit.arrayBuffer())
+    expect([zipped[0], zipped[1]]).toEqual([0x1F, 0x8B])
+
+    const plainHit = await get(tilePath(5, x5, y5), { headers: { 'Accept-Encoding': 'identity' } })
+    expect(plainHit.headers.get('Content-Encoding')).toBeNull()
+    const plain = new Uint8Array(await plainHit.arrayBuffer())
+    expect(Object.keys(new VectorTile(new Pbf(plain)).layers).sort()).toEqual(['transportation', 'water'])
+  })
+
   test('a repeat tile is answered from caches.default without touching R2', async () => {
     const first = new Uint8Array(await (await get(tilePath(5, x5, y5))).arrayBuffer())
-    expect(cache.entries.has(`${HOST}${tilePath(5, x5, y5)}`)).toBe(true)
+    expect(cache.entries.has(`${HOST}${tilePath(5, x5, y5)}?cache=g2`)).toBe(true)
     const reads = bucket.reads.length
 
     // A fresh isolate (a new worker, nothing in memory) still never reads R2.
     worker = createTileWorker()
-    const again = await get(tilePath(5, x5, y5))
+    const again = await get(tilePath(5, x5, y5), { headers: { 'Accept-Encoding': 'gzip' } })
     expect(again.status).toBe(200)
     expect(again.headers.get('Content-Encoding')).toBe('gzip')
     expect(new Uint8Array(await again.arrayBuffer())).toEqual(first)
@@ -309,7 +333,7 @@ describe('GET /<archive>/{z}/{x}/{y}.pbf', () => {
     const res = await get('/planet/20991231/0/0/0.pbf')
     expect(res.status).toBe(404)
     expect(res.headers.get('Cache-Control')).toBe('no-store')
-    expect(cache.entries.has(`${HOST}/planet/20991231/0/0/0.pbf`)).toBe(false)
+    expect(cache.entries.has(`${HOST}/planet/20991231/0/0/0.pbf?cache=g2`)).toBe(false)
   })
 
   test('keeps leaf directories in the Cache API for the next cold isolate', async () => {
@@ -326,7 +350,7 @@ describe('GET /<archive>/{z}/{x}/{y}.pbf', () => {
     // A new isolate, and the tile's own response evicted from the edge: the
     // header comes from R2, the leaf from the Cache API, then the tile itself.
     worker = createTileWorker()
-    cache.entries.delete(`${HOST}${tilePath(5, x5, y5)}`)
+    cache.entries.delete(`${HOST}${tilePath(5, x5, y5)}?cache=g2`)
     const reads = bucket.reads.length
     expect((await get(tilePath(5, x5, y5))).status).toBe(200)
     expect(bucket.reads.length).toBe(reads + 2)

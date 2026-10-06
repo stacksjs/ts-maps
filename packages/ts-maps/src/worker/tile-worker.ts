@@ -100,6 +100,54 @@ function text(status: number, message: string, cacheControl: string, extra: Reco
   return respond(status, message, { 'Content-Type': TEXT, 'Cache-Control': cacheControl, ...extra })
 }
 
+/**
+ * The edge cache and a pre-compressed body do not mix. Stored with
+ * `Content-Encoding: gzip`, a tile comes back out of `caches.default` with the
+ * gzip bytes and without the header, so a browser hands compressed bytes to
+ * the decoder as if they were a tile. Every cache hit was broken that way.
+ *
+ * So the cached copy carries its encoding in a header of its own, which the
+ * cache has no opinion about, and the bytes are opaque to it. On the way out
+ * the encoding is restored for a client that accepts it, and the bytes are
+ * inflated for one that does not.
+ */
+const STORED_ENCODING = 'X-Tile-Stored-Encoding'
+
+/** The entry space for cached responses. Bumped to orphan entries stored the old way. */
+const CACHE_GENERATION = 'g2'
+
+function cacheKeyFor(url: URL): string {
+  return `${url.origin}${url.pathname}?cache=${CACHE_GENERATION}`
+}
+
+function forCache(response: Response): Response {
+  const headers = new Headers(response.headers)
+  const encoding = headers.get('Content-Encoding')
+  if (!encoding)
+    return response
+  headers.delete('Content-Encoding')
+  headers.set(STORED_ENCODING, encoding)
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+}
+
+function fromCache(request: Request, hit: Response): Response {
+  const encoding = hit.headers.get(STORED_ENCODING)
+  if (!encoding)
+    return hit
+  const headers = new Headers(hit.headers)
+  headers.delete(STORED_ENCODING)
+  const accepted = (request.headers.get('Accept-Encoding') ?? '').toLowerCase().split(',').map(part => part.split(';')[0]!.trim())
+  if (accepted.includes(encoding) || accepted.includes('*')) {
+    headers.set('Content-Encoding', encoding)
+    return new Response(hit.body, { status: hit.status, headers, encodeBody: 'manual' } as WorkerResponseInit)
+  }
+  headers.delete('Content-Length')
+  const body = hit.body && (encoding === 'gzip' || encoding === 'deflate')
+    ? hit.body.pipeThrough(new DecompressionStream(encoding as 'gzip' | 'deflate'))
+    : hit.body
+  return new Response(body, { status: hit.status, headers })
+}
+
 /** `caches.default` where the runtime has it (Workers), else no response cache. */
 function defaultCache(): WorkerCache | undefined {
   return (globalThis as { caches?: { default?: WorkerCache } }).caches?.default
@@ -301,23 +349,23 @@ export function createTileWorker(options: TileWorkerOptions = {}): TileWorker {
     // Keyed on the path alone: a query string must not be a way to bypass
     // the cache and reach R2.
     const cache = defaultCache()
-    const cacheKey = `${url.origin}${url.pathname}`
+    const cacheKey = cacheKeyFor(url)
     const hit = await cache?.match(cacheKey)
     if (hit)
-      return finish(request, hit)
+      return finish(request, fromCache(request, hit))
 
     const { response, cacheable } = await tileResponse(bucket, archiveKey, url.origin, z, x, y, ctx)
     if (cache && cacheable)
-      ctx.waitUntil(cache.put(cacheKey, response.clone()).catch(() => {}))
+      ctx.waitUntil(cache.put(cacheKey, forCache(response.clone())).catch(() => {}))
     return finish(request, response)
   }
 
   async function serveTileJSON(request: Request, url: URL, bucket: R2Bucket, ctx: ExecutionContext): Promise<Response> {
     const cache = defaultCache()
-    const cacheKey = `${url.origin}${url.pathname}`
+    const cacheKey = cacheKeyFor(url)
     const hit = await cache?.match(cacheKey)
     if (hit)
-      return finish(request, hit)
+      return finish(request, fromCache(request, hit))
 
     const object = await bucket.get(tilejsonKey)
     if (!object || !hasBody(object))
@@ -344,7 +392,7 @@ export function createTileWorker(options: TileWorkerOptions = {}): TileWorker {
       'ETag': `W/"${object.etag}"`,
     })
     if (cache)
-      ctx.waitUntil(cache.put(cacheKey, response.clone()).catch(() => {}))
+      ctx.waitUntil(cache.put(cacheKey, forCache(response.clone())).catch(() => {}))
     return finish(request, response)
   }
 
