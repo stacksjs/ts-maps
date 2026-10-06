@@ -216,7 +216,9 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
         type: 'line',
         source: SOURCE_ID,
         'source-layer': layer.boundary,
-        filter: ['<=', ['get', 'admin_level'], 4],
+        // Maritime boundaries are lines drawn on open water: a dashed rule
+        // across the sea that marks nothing anyone can see.
+        filter: ['all', ['<=', ['get', 'admin_level'], 4], ['!=', ['coalesce', ['get', 'maritime'], 0], 1]],
         paint: {
           'line-color': palette.boundary,
           'line-width': ['interpolate', ['linear'], ['zoom'], 3, 0.5, 10, 1.5],

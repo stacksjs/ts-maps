@@ -66,6 +66,11 @@
       "bun": "./src/core-map/symbols/index.ts",
       "import": "./dist/core-map/symbols/index.js"
     },
+    "./static": {
+      "types": "./dist/core-map/static/index.d.ts",
+      "bun": "./src/core-map/static/index.ts",
+      "import": "./dist/core-map/static/index.js"
+    },
     "./styles.css": "./src/core-map/ts-maps.css",
     "./css": "./src/core-map/ts-maps.css"
   },

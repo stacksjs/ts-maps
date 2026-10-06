@@ -9,6 +9,7 @@ const entrypoints = [
   './src/core-map/geo/index.ts',
   './src/core-map/geometry/index.ts',
   './src/core-map/symbols/index.ts',
+  './src/core-map/static/index.ts',
 ]
 // Server-only: `ts-maps/gazetteer` opens SQLite through `bun:sqlite`, so it is
 // bundled for Bun, apart from the browser entry points above.

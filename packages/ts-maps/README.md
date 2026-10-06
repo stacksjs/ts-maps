@@ -191,6 +191,24 @@ const dataUrl = await map.toDataURL()
 const blob = await map.toBlob('image/png')
 ```
 
+### Static vector maps, no browser
+
+`ts-maps/static` draws a style straight to SVG from its vector tiles, with no
+map instance, DOM or GPU: share cards, Open Graph images, figures. Fills and
+lines come out as paths and labels as text, so it stays sharp at any size.
+Pass `avoid` with a route and the labels it would cover move aside, with the
+places along it named first.
+
+```ts
+import { renderStaticMap, staticMapSvg, staticMapView } from 'ts-maps/static'
+import { styles } from 'ts-maps'
+
+const style = styles.dark({ tiles: 'https://tiles.example.com/{z}/{x}/{y}.pbf' })
+const view = staticMapView(route, 1200, 630, 48)!
+const map = await renderStaticMap({ style, width: 1200, height: 630, view })
+const svg = staticMapSvg(map, 1200, 630)
+```
+
 See the [docs folder][docs] for the full concept guides, API reference,
 and runnable examples.
 
