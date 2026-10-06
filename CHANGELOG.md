@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.19...v0.3.20)
+
+## 🐛 Bug Fixes
+
+- **worker**: a cached tile keeps its Content-Encoding ([063e061](https://github.com/stacksjs/ts-maps/commit/063e061)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.20 ([e0411e0](https://github.com/stacksjs/ts-maps/commit/e0411e0)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.18...v0.3.19)
 
 ## 🚀 Features
