@@ -224,6 +224,15 @@ const tiles = createTileServer({ archive: './california.pmtiles', basePath: '/ti
 Bun.serve({ port: 8080, fetch: tiles.fetch }) // http://localhost:8080/tiles/tiles.json
 ```
 
+On Cloudflare, `ts-maps/worker` serves the same archive out of an R2 bucket,
+cached at the edge one tile at a time:
+
+```ts
+import { createTileWorker } from 'ts-maps/worker'
+
+export default createTileWorker() // R2 bucket bound as TILES
+```
+
 The reader underneath, `ts-maps/pmtiles`, also runs in the browser over HTTP
 range requests. See [Self-hosted tiles][tile-server].
 

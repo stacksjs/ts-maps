@@ -14,7 +14,8 @@ export type { PMTilesHeader, PMTilesTile, Source } from '../core-map/pmtiles'
 export { FileSource, S3Source, sourceFromLocation } from './sources'
 export type { FileSourceOptions, OpenArchiveOptions } from './sources'
 
-export { acceptsEncoding, buildTileJSON, createTileServer } from './tile-server'
+export { acceptsEncoding } from '../core-map/pmtiles/http'
+export { buildTileJSON, createTileServer } from './tile-server'
 export type { TileJSON, TileServer, TileServerOptions } from './tile-server'
 
 export { nodeDecompress } from './zlib'

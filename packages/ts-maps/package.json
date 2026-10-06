@@ -81,6 +81,11 @@
       "bun": "./src/server/index.ts",
       "import": "./dist/server/index.js"
     },
+    "./worker": {
+      "types": "./dist/worker/index.d.ts",
+      "bun": "./src/worker/index.ts",
+      "import": "./dist/worker/index.js"
+    },
     "./styles.css": "./src/core-map/ts-maps.css",
     "./css": "./src/core-map/ts-maps.css"
   },

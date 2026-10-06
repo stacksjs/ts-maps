@@ -27,13 +27,12 @@
 //   `404`, which tells a client to overzoom from the parent tile instead.
 // - **CORS** `*` by default: tiles are public data, read cross-origin.
 
-import type { PMTilesHeader } from '../core-map/pmtiles/header'
 import type { Source } from '../core-map/pmtiles/sources'
 import type { OpenArchiveOptions } from './sources'
 import { compressionName } from '../core-map/pmtiles/compression'
 import { Compression, TileType, tileTypeContentType, tileTypeExtension } from '../core-map/pmtiles/header'
+import { acceptsEncoding, archiveBounds, matchesEtag, tileInArchive } from '../core-map/pmtiles/http'
 import { PMTiles } from '../core-map/pmtiles/PMTiles'
-import { tileBounds } from '../core-map/pmtiles/tileid'
 import { FileSource, sourceFromLocation } from './sources'
 import { nodeDecompress } from './zlib'
 
@@ -134,46 +133,6 @@ function extensionsFor(type: number): string[] {
   }
 }
 
-/**
- * Does the client accept `coding`? Honours `q=0` refusals and `*`, which is
- * all a tile server needs from RFC 9110's content negotiation.
- */
-export function acceptsEncoding(header: string | null, coding: string): boolean {
-  if (!header)
-    return false
-  let wildcard: boolean | undefined
-  for (const part of header.split(',')) {
-    const [rawName, ...params] = part.split(';')
-    const name = rawName!.trim().toLowerCase()
-    const q = params.map(p => p.trim()).find(p => p.startsWith('q='))
-    const ok = !q || Number(q.slice(2)) > 0
-    if (name === coding)
-      return ok
-    if (name === '*')
-      wildcard = ok
-  }
-  return wildcard ?? false
-}
-
-/** Does `If-None-Match` name `etag`? Weak comparison, per RFC 9110 §13.1.2. */
-function matchesEtag(header: string | null, etag: string): boolean {
-  if (!header)
-    return false
-  if (header.trim() === '*')
-    return true
-  const bare = etag.replace(/^W\//, '')
-  return header.split(',').some(tag => tag.trim().replace(/^W\//, '') === bare)
-}
-
-function boundsOf(header: PMTilesHeader): [number, number, number, number] {
-  const { minLon, minLat, maxLon, maxLat } = header
-  // An archive that does not know its bounds writes zeros; one crossing the
-  // antimeridian has west > east. Both are treated as "the whole world".
-  if ((minLon === 0 && minLat === 0 && maxLon === 0 && maxLat === 0) || minLon >= maxLon || minLat >= maxLat)
-    return [-180, -85.0511287798066, 180, 85.0511287798066]
-  return [minLon, minLat, maxLon, maxLat]
-}
-
 /** Build the TileJSON for `archive` with tiles under `baseUrl`. */
 export async function buildTileJSON(
   archive: PMTiles,
@@ -206,7 +165,7 @@ export async function buildTileJSON(
     scheme: 'xyz',
     minzoom: header.minZoom,
     maxzoom: header.maxZoom,
-    bounds: boundsOf(header),
+    bounds: archiveBounds(header),
     center: [header.centerLon, header.centerLat, header.centerZoom],
     format: ext,
   }
@@ -287,10 +246,7 @@ export function createTileServer(options: TileServerOptions): TileServer {
     const caching = { 'Cache-Control': versioned ? cacheControl : unversionedCacheControl }
 
     // Outside the zoom range or the bounds: not ours, let the client overzoom.
-    const [w, s, e, nn] = boundsOf(header)
-    const [tw, ts, te, tn] = tileBounds(z, x, y)
-    const inBounds = tw < e && te > w && ts < nn && tn > s
-    if (z < header.minZoom || z > header.maxZoom || !inBounds)
+    if (!tileInArchive(header, z, x, y))
       return respond(request, 404, 'Tile outside archive bounds', { ...plain, ...caching })
 
     const tile = await archive.getTile(z, x, y, request.signal)

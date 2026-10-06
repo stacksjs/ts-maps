@@ -11,6 +11,9 @@ const entrypoints = [
   './src/core-map/symbols/index.ts',
   './src/core-map/static/index.ts',
   './src/core-map/pmtiles/index.ts',
+  // Cloudflare Workers: bundled for the browser target on purpose, since a
+  // Worker has the Web platform and nothing of Node's or Bun's.
+  './src/worker/index.ts',
 ]
 // Server-only: `ts-maps/gazetteer` opens SQLite through `bun:sqlite` and
 // `ts-maps/server` reads files and S3 objects, so they are bundled for Bun,

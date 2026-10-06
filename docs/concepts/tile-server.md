@@ -189,3 +189,49 @@ setPMTilesArchive('https://tiles.example.com/private.pmtiles', new FetchSource(u
 ```
 
 To check an archive before publishing it, read a tile with `PMTiles` from `ts-maps/pmtiles` and decode it with `new VectorTile(new Pbf(bytes))` from `ts-maps`.
+
+## 7. Edge-cached on Cloudflare Workers
+
+Reading the archive straight from R2 (section 6) means every tile is a ranged GET that travels to the bucket: nothing in front of it caches a byte range, so a tile costs 160-600 ms every time. `ts-maps/worker` puts a Cloudflare Worker on the bucket's hostname that turns the archive into plain tile URLs and caches each tile in the colo that first asked for it. A repeat tile never leaves the edge, and every existing URL on the hostname keeps working.
+
+```ts
+// src/index.ts
+import { createTileWorker } from 'ts-maps/worker'
+
+export default createTileWorker()
+```
+
+```toml
+# wrangler.toml
+name = "tiles"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[[r2_buckets]]
+binding = "TILES"              # createTileWorker({ binding }) if you name it differently
+bucket_name = "wildloop-tiles"
+
+routes = [{ pattern = "tiles.wildloop.org/*", zone_name = "wildloop.org" }]
+```
+
+The bundle is plain ESM for the Web platform: no `node:*`, no Bun APIs, no dependencies, and the R2 / Cache API types it needs are declared locally (no `@cloudflare/workers-types` required).
+
+| Request | Answer |
+| ------- | ------ |
+| `GET /tiles.json` | The bucket's own `tiles.json`, with its `pmtiles://https://<host>/planet/20261006.pmtiles` rewritten to `https://<this host>/planet/20261006/{z}/{x}/{y}.pbf`. Every other field is kept. `Cache-Control: public, max-age=60` |
+| `GET /planet/20261006/{z}/{x}/{y}.pbf` | A tile from `planet/20261006.pmtiles`: the stored gzip bytes as-is (`Content-Encoding: gzip`), `application/vnd.mapbox-vector-tile`, `ETag`, `Cache-Control: public, max-age=31536000, immutable` |
+| An empty tile inside the bounds / outside the bounds or zoom range / off the grid | `204` / `404` / `400`, the same semantics as `createTileServer` |
+| `GET` / `HEAD` any other key | The R2 object, as the bucket served it: `Range` (`206` + `Content-Range`), `ETag` / `If-None-Match`, its stored `Content-Type` |
+| `OPTIONS` | CORS preflight. Every answer carries `Access-Control-Allow-Origin: *` and exposes `ETag`, `Content-Range`, `Content-Length`, `Accept-Ranges` |
+
+How a tile is answered, cheapest first:
+
+1. **`caches.default`**, keyed on the tile's URL path (a query string cannot bypass it). Hits never touch R2. Because the tile URL names the archive build, the answer can never go stale, so `204`s and `404`s are cached as well.
+2. **The isolate's open reader** for that archive: header and root directory read once, leaf directories decoded and kept in a bounded LRU. A miss here costs one R2 read: the tile's own byte range.
+3. **Leaf directories in the Cache API**, keyed on the archive's ETag, so a freshly started isolate rarely has to read one from R2 either.
+
+All R2 reads go through the binding (`bucket.get(key, { range, onlyIf: { etagMatches } })`), not HTTP, so there is no public request and no egress. An archive overwritten in place fails the ETag precondition and is re-read rather than mixed with the old build, but the rule from section 3 stands: publish each build under a new key, then update `tiles.json`. Clients pick up the new tile URLs within the TileJSON's minute.
+
+Nothing that already points at the hostname breaks. `pmtiles://https://tiles.wildloop.org/planet/20261006.pmtiles` readers still range-read the archive (now through the Worker), and files such as `_builds/20261006/status.json` are served unchanged. Apps that resolve their basemap through `https://tiles.wildloop.org/tiles.json` move to the cached tile URLs on their next load with no code change. Offline regions saved earlier under `pmtiles://` tile URLs stay in their cache under those keys, so download new regions after the switch.
+
+Options: `binding` (default `TILES`), `tilejsonKey` (default `tiles.json`), `tileCacheControl` and `tilejsonCacheControl`. `R2Source` is exported too, for reading an R2 archive with `PMTiles` in a Worker of your own.
