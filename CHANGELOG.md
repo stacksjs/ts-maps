@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.18...v0.3.19)
+
+## 🚀 Features
+
+- **worker**: edge-cached vector tiles from R2 on Cloudflare Workers ([684441b](https://github.com/stacksjs/ts-maps/commit/684441b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.19 ([5f20023](https://github.com/stacksjs/ts-maps/commit/5f20023)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.17...v0.3.18)
 
 ## 🚀 Features
