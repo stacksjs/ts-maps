@@ -65,6 +65,14 @@ export interface R2Bucket {
   get: (key: string, options?: R2GetOptions) => Promise<R2ObjectBody | R2Object | null>
   // eslint-disable-next-line no-unused-vars
   head: (key: string) => Promise<R2Object | null>
+  /** Only needed for a `tileStore`, which writes cut tiles back to the bucket. */
+  // eslint-disable-next-line no-unused-vars
+  put?: (key: string, value: ArrayBuffer | Uint8Array | string, options?: R2PutOptions) => Promise<unknown>
+}
+
+export interface R2PutOptions {
+  httpMetadata?: { contentType?: string, contentEncoding?: string, cacheControl?: string }
+  customMetadata?: Record<string, string>
 }
 
 /** The Cache API cache (`caches.default`). */

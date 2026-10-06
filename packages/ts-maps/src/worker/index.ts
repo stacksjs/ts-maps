@@ -22,6 +22,7 @@ export type {
   R2HTTPMetadata,
   R2Object,
   R2ObjectBody,
+  R2PutOptions,
   R2Range,
   WorkerCache,
 } from './types'

@@ -1,4 +1,4 @@
-import type { ExecutionContext, R2Bucket, R2GetOptions, R2Object, R2ObjectBody, R2Range, TileWorker, WorkerCache } from '../src/worker'
+import type { ExecutionContext, R2Bucket, R2GetOptions, R2Object, R2ObjectBody, R2PutOptions, R2Range, TileWorker, WorkerCache } from '../src/worker'
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { resolve } from 'node:path'
 import { gunzipSync } from 'node:zlib'
@@ -67,9 +67,17 @@ class MemoryBucket implements R2Bucket {
   readonly reads: Array<{ key: string, range?: R2Range }> = []
   private nextEtag = 1
 
-  put(key: string, bytes: Uint8Array | string, contentType?: string): void {
-    const data = typeof bytes === 'string' ? new TextEncoder().encode(bytes) : bytes
+  /** Every `put`, in order, with its options. */
+  readonly writes: Array<{ key: string, options?: R2PutOptions }> = []
+
+  // Same shape as R2's put; a bare string third argument is the fixtures' shorthand for a content type.
+  async put(key: string, bytes: ArrayBuffer | Uint8Array | string, options?: R2PutOptions | string): Promise<unknown> {
+    const data = typeof bytes === 'string' ? new TextEncoder().encode(bytes) : bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+    const contentType = typeof options === 'string' ? options : options?.httpMetadata?.contentType
+    if (typeof options !== 'string')
+      this.writes.push({ key, options })
     this.objects.set(key, { bytes: data, etag: `etag${this.nextEtag++}`, contentType, uploaded: new Date('2026-10-06T00:00:00Z') })
+    return undefined
   }
 
   readsOf(key: string): number {
@@ -493,5 +501,85 @@ describe('bundle', () => {
     expect(code).not.toMatch(/\bBun\./)
     expect(code).not.toMatch(/\brequire\(/)
     expect(code).toContain('createTileWorker')
+  })
+})
+
+/*
+ * The shared tier: a tile cut from the archive is stored back in the bucket
+ * as its own object, and a data center with an empty `caches.default` fetches
+ * that object from the bucket's public origin (through the CDN, where tiered
+ * cache applies) instead of cutting it again.
+ */
+describe('tileStore', () => {
+  const ORIGIN = 'https://origin.test'
+  const realFetch = globalThis.fetch
+  let originFetches: string[]
+
+  beforeEach(() => {
+    originFetches = []
+    // The bucket's public origin, as the CDN would answer: the stored object,
+    // decoded the way a Worker's fetch() hands it over, or a 404.
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = new URL(String(input instanceof Request ? input.url : input))
+      originFetches.push(url.pathname)
+      const stored = bucket.objects.get(decodeURIComponent(url.pathname.slice(1)))
+      if (!stored)
+        return new Response('not found', { status: 404 })
+      const write = bucket.writes.findLast(w => w.key === decodeURIComponent(url.pathname.slice(1)))
+      const gzipped = write?.options?.httpMetadata?.contentEncoding === 'gzip'
+      const body = gzipped ? gunzipSync(stored.bytes) : stored.bytes
+      return new Response(body.byteLength ? body : null, { status: 200, headers: { 'Content-Length': String(body.byteLength), 'ETag': `"${stored.etag}"` } })
+    }) as typeof fetch
+    worker = createTileWorker({ tileStore: { origin: ORIGIN } })
+  })
+
+  afterEach(() => {
+    globalThis.fetch = realFetch
+  })
+
+  test('a tile cut from the archive is stored for every other data center', async () => {
+    const first = await get(tilePath(5, x5, y5), { headers: { 'Accept-Encoding': 'gzip' } })
+    expect(first.status).toBe(200)
+    const key = `_tiles/planet/20261006/5/${x5}/${y5}.pbf`
+    const write = bucket.writes.find(w => w.key === key)
+    expect(write?.options?.httpMetadata).toMatchObject({ contentType: 'application/vnd.mapbox-vector-tile', contentEncoding: 'gzip', cacheControl: 'public, max-age=31536000, immutable' })
+    expect(originFetches).toEqual([`/${key}`])
+  })
+
+  test('another data center fetches the stored tile instead of reading the archive', async () => {
+    await get(tilePath(5, x5, y5), { headers: { 'Accept-Encoding': 'gzip' } })
+    const archiveReads = bucket.readsOf(ARCHIVE_KEY)
+
+    // A different data center: its own empty cache, a fresh isolate.
+    cache = new MemoryCache()
+    ;(globalThis as { caches?: unknown }).caches = { default: cache }
+    worker = createTileWorker({ tileStore: { origin: ORIGIN } })
+
+    const second = await get(tilePath(5, x5, y5))
+    expect(second.status).toBe(200)
+    expect(second.headers.get('Content-Type')).toBe('application/vnd.mapbox-vector-tile')
+    expect(second.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable')
+    expect(second.headers.get('Access-Control-Allow-Origin')).toBe('*')
+    const plain = new Uint8Array(await second.arrayBuffer())
+    expect(Object.keys(new VectorTile(new Pbf(plain)).layers).sort()).toEqual(['transportation', 'water'])
+    expect(bucket.readsOf(ARCHIVE_KEY)).toBe(archiveReads)
+  })
+
+  test('an empty tile is stored as zero bytes and answered 204 from the tier', async () => {
+    expect((await get(tilePath(5, x5 - 1, y5))).status).toBe(204)
+    expect(bucket.objects.get(`_tiles/planet/20261006/5/${x5 - 1}/${y5}.pbf`)?.bytes.byteLength).toBe(0)
+
+    cache = new MemoryCache()
+    ;(globalThis as { caches?: unknown }).caches = { default: cache }
+    const archiveReads = bucket.readsOf(ARCHIVE_KEY)
+    expect((await get(tilePath(5, x5 - 1, y5))).status).toBe(204)
+    expect(bucket.readsOf(ARCHIVE_KEY)).toBe(archiveReads)
+  })
+
+  test('an unreachable origin falls back to the archive', async () => {
+    globalThis.fetch = (async () => {
+      throw new TypeError('network down')
+    }) as typeof fetch
+    expect((await get(tilePath(5, x5, y5))).status).toBe(200)
   })
 })

@@ -47,6 +47,24 @@ export interface TileWorkerOptions {
   tileCacheControl?: string
   /** `Cache-Control` for the TileJSON. Default one minute, so a new build goes live within a minute. */
   tilejsonCacheControl?: string
+  /**
+   * A second cache tier shared by every data center.
+   *
+   * `caches.default` is local to one data center, and Cloudflare's tiered
+   * cache does not reach it, so without this each city cuts each tile out of
+   * the archive itself: a header read, a directory read and a range read, a
+   * second or so. With it, a tile cut once is written back to the bucket as
+   * its own small object under `prefix`, and every other data center fetches
+   * that object from `origin` (a public hostname of the same bucket) through
+   * Cloudflare's CDN, where tiered cache applies: a nearby upper tier answers,
+   * and R2 is asked once per region.
+   */
+  tileStore?: {
+    /** Public origin of the bucket, e.g. `https://tiles-origin.example.com`. */
+    origin: string
+    /** Key prefix for stored tiles. Default `_tiles/`. */
+    prefix?: string
+  }
 }
 
 /**
@@ -331,6 +349,58 @@ export function createTileWorker(options: TileWorkerOptions = {}): TileWorker {
     }
   }
 
+  const tileStore = options.tileStore
+  const tileStorePrefix = tileStore?.prefix ?? '_tiles/'
+
+  /**
+   * The tile as its own object, through Cloudflare's CDN so tiered cache
+   * applies. `undefined` when it has not been stored yet, or the origin is
+   * unreachable: the caller cuts it from the archive, as before. A zero-byte
+   * object is a tile the archive does not have.
+   */
+  async function fromTileStore(key: string): Promise<Response | undefined> {
+    let stored: Response
+    try {
+      stored = await fetch(`${tileStore!.origin.replace(/\/$/, '')}/${key.split('/').map(encodeURIComponent).join('/')}`, {
+        cf: { cacheEverything: true, cacheTtl: 31536000 },
+      } as RequestInit)
+    }
+    catch {
+      return undefined
+    }
+    if (stored.status !== 200) {
+      void stored.body?.cancel()
+      return undefined
+    }
+    const headers = new Headers({
+      'Content-Type': 'application/vnd.mapbox-vector-tile',
+      'Cache-Control': tileCacheControl,
+      ...CORS,
+    })
+    const etag = stored.headers.get('ETag')
+    if (etag)
+      headers.set('ETag', etag)
+    if (stored.headers.get('Content-Length') === '0') {
+      void stored.body?.cancel()
+      return new Response(null, { status: 204, headers })
+    }
+    // The body arrives decoded, whatever the object was stored as, and the
+    // runtime compresses it again for the client that asked.
+    return new Response(stored.body, { status: 200, headers })
+  }
+
+  /** Write a tile cut from the archive back to the bucket for every other data center. */
+  async function storeTile(bucket: R2Bucket, key: string, response: Response): Promise<void> {
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    await bucket.put!(key, bytes, {
+      httpMetadata: {
+        contentType: 'application/vnd.mapbox-vector-tile',
+        cacheControl: tileCacheControl,
+        ...(response.headers.get('Content-Encoding') ? { contentEncoding: response.headers.get('Content-Encoding')! } : {}),
+      },
+    })
+  }
+
   async function serveTile(request: Request, url: URL, bucket: R2Bucket, ctx: ExecutionContext, match: RegExpExecArray): Promise<Response> {
     const [, rawKey, zs, xs, ys] = match
     const z = Number(zs)
@@ -354,9 +424,19 @@ export function createTileWorker(options: TileWorkerOptions = {}): TileWorker {
     if (hit)
       return finish(request, fromCache(request, hit))
 
+    const storedKey = `${tileStorePrefix}${archiveKey.slice(0, -'.pmtiles'.length)}/${z}/${x}/${y}.pbf`
+    const tiered = tileStore ? await fromTileStore(storedKey) : undefined
+    if (tiered) {
+      if (cache)
+        ctx.waitUntil(cache.put(cacheKey, forCache(tiered.clone())).catch(() => {}))
+      return finish(request, tiered)
+    }
+
     const { response, cacheable } = await tileResponse(bucket, archiveKey, url.origin, z, x, y, ctx)
     if (cache && cacheable)
       ctx.waitUntil(cache.put(cacheKey, forCache(response.clone())).catch(() => {}))
+    if (tileStore && cacheable && bucket.put && (response.status === 200 || response.status === 204))
+      ctx.waitUntil(storeTile(bucket, storedKey, response.clone()).catch(() => {}))
     return finish(request, response)
   }
 
