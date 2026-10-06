@@ -25,3 +25,7 @@ packages/ts-maps/bench/reports/*.json
 # Stray .d.ts files that escape into src/ during local builds.
 # Source is .ts only — declarations are emitted to dist/ at publish time.
 packages/*/src/**/*.d.ts
+
+# scripts/build-tiles.ts work directory and output
+.tiles-build
+*.pmtiles
