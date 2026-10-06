@@ -78,7 +78,7 @@ import { LatLng, LatLngBounds } from 'ts-maps/geo'
 ```
 
 Full list: `services`, `style-spec`, `storage`, `geo`, `geometry`,
-`symbols`.
+`symbols`, `static`, `pmtiles`, plus the Bun-only `gazetteer` and `server`.
 
 ## Quick Start
 
@@ -209,10 +209,30 @@ const map = await renderStaticMap({ style, width: 1200, height: 630, view })
 const svg = staticMapSvg(map, 1200, 630)
 ```
 
+### Your own tile server
+
+`ts-maps/server` serves vector (or raster) tiles from one
+[PMTiles][pmtiles] archive on local disk, S3 or
+R2: TileJSON, gzip passthrough, immutable versioned URLs with ETags, CORS,
+`204` for empty tiles. `scripts/build-tiles.ts` builds an OpenMapTiles-schema
+archive for any region with planetiler, the schema the bundled styles draw.
+
+```ts
+import { createTileServer } from 'ts-maps/server'
+
+const tiles = createTileServer({ archive: './california.pmtiles', basePath: '/tiles' })
+Bun.serve({ port: 8080, fetch: tiles.fetch }) // http://localhost:8080/tiles/tiles.json
+```
+
+The reader underneath, `ts-maps/pmtiles`, also runs in the browser over HTTP
+range requests. See [Self-hosted tiles][tile-server].
+
 See the [docs folder][docs] for the full concept guides, API reference,
 and runnable examples.
 
 [docs]: ../../docs
+[pmtiles]: https://github.com/protomaps/PMTiles
+[tile-server]: ../../docs/concepts/tile-server.md
 
 ## Documentation
 

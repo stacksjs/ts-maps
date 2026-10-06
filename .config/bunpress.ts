@@ -41,6 +41,7 @@ const config: BunPressConfig = {
         { text: 'Styles & Theming', link: '/concepts/styles-and-theming' },
         { text: 'Style Spec', link: '/concepts/style-spec' },
         { text: 'Vector Tiles', link: '/concepts/vector-tiles' },
+        { text: 'Self-hosted Tiles', link: '/concepts/tile-server' },
         { text: '3D & Terrain', link: '/concepts/3d' },
         { text: 'Terrain', link: '/concepts/terrain' },
         { text: 'Territory Capture', link: '/concepts/territory-capture' },
