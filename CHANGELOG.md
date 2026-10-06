@@ -1,5 +1,22 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.15...v0.3.16)
+
+## 🚀 Features
+
+- **static**: draw a style to SVG from its vector tiles, with no browser ([5667a28](https://github.com/stacksjs/ts-maps/commit/5667a28)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.16 ([e5f0283](https://github.com/stacksjs/ts-maps/commit/e5f0283)) _(by Chris <chrisbreuer93@gmail.com>)_
+- run @stacksjs/logsmith, not the unrelated npm 'logsmith' ([bad5ecd](https://github.com/stacksjs/ts-maps/commit/bad5ecd)) _(by Chris <chrisbreuer93@gmail.com>)_
+- release through @stacksjs/bumpx, not the unrelated npm 'bumpx' ([d1e9711](https://github.com/stacksjs/ts-maps/commit/d1e9711)) _(by Chris <chrisbreuer93@gmail.com>)_
+- drop the duplicated v0.3.15 changelog entry ([efd3b57](https://github.com/stacksjs/ts-maps/commit/efd3b57)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.14...v0.3.15)
 
 ## 🐛 Bug Fixes
