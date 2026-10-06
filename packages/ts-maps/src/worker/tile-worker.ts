@@ -389,7 +389,11 @@ export function createTileWorker(options: TileWorkerOptions = {}): TileWorker {
     const response = respond(200, JSON.stringify(document), {
       'Content-Type': 'application/json',
       'Cache-Control': tilejsonCacheControl,
-      'ETag': `W/"${object.etag}"`,
+      // Not the stored object's ETag: this is a different document (its tile
+      // URLs are rewritten), and a browser that cached the stored one straight
+      // from the bucket would revalidate with that ETag, get a 304 and keep
+      // the old document for good.
+      'ETag': `W/"tilejson-${object.etag}"`,
     })
     if (cache)
       ctx.waitUntil(cache.put(cacheKey, forCache(response.clone())).catch(() => {}))

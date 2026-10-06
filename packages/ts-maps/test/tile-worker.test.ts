@@ -206,6 +206,18 @@ describe('GET /tiles.json', () => {
     expect(doc).toEqual({ ...published, tiles: [`${HOST}/planet/20261006/{z}/{x}/{y}.pbf`] })
   })
 
+  // A browser that cached tiles.json straight from the bucket revalidates
+  // with the stored object's ETag. That must not 304 into the old document.
+  test('does not answer the stored object\'s ETag with a 304', async () => {
+    const storedEtag = `"${(bucket as any).objects.get('tiles.json').etag}"`
+    const res = await get('/tiles.json', { headers: { 'If-None-Match': storedEtag } })
+    expect(res.status).toBe(200)
+    expect((await res.json() as typeof published).tiles[0]).toBe(`${HOST}/planet/20261006/{z}/{x}/{y}.pbf`)
+    // Its own ETag still revalidates.
+    const own = res.headers.get('ETag')!
+    expect((await get('/tiles.json', { headers: { 'If-None-Match': own } })).status).toBe(304)
+  })
+
   test('uses the host the request arrived on', async () => {
     const ctx = context()
     const res = await worker.fetch(new Request('http://localhost:8787/tiles.json'), { TILES: bucket }, ctx)
