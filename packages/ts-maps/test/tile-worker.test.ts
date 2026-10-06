@@ -528,7 +528,7 @@ describe('tileStore', () => {
       const write = bucket.writes.findLast(w => w.key === decodeURIComponent(url.pathname.slice(1)))
       const gzipped = write?.options?.httpMetadata?.contentEncoding === 'gzip'
       const body = gzipped ? gunzipSync(stored.bytes) : stored.bytes
-      return new Response(body.byteLength ? body : null, { status: 200, headers: { 'Content-Length': String(body.byteLength), 'ETag': `"${stored.etag}"` } })
+      return new Response(body.byteLength ? (body as BodyInit) : null, { status: 200, headers: { 'Content-Length': String(body.byteLength), 'ETag': `"${stored.etag}"` } })
     }) as typeof fetch
     worker = createTileWorker({ tileStore: { origin: ORIGIN } })
   })
@@ -579,7 +579,7 @@ describe('tileStore', () => {
   test('an unreachable origin falls back to the archive', async () => {
     globalThis.fetch = (async () => {
       throw new TypeError('network down')
-    }) as typeof fetch
+    }) as unknown as typeof fetch
     expect((await get(tilePath(5, x5, y5))).status).toBe(200)
   })
 })
