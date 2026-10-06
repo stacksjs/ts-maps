@@ -10,11 +10,14 @@ const entrypoints = [
   './src/core-map/geometry/index.ts',
   './src/core-map/symbols/index.ts',
   './src/core-map/static/index.ts',
+  './src/core-map/pmtiles/index.ts',
 ]
-// Server-only: `ts-maps/gazetteer` opens SQLite through `bun:sqlite`, so it is
-// bundled for Bun, apart from the browser entry points above.
+// Server-only: `ts-maps/gazetteer` opens SQLite through `bun:sqlite` and
+// `ts-maps/server` reads files and S3 objects, so they are bundled for Bun,
+// apart from the browser entry points above.
 const serverEntrypoints = [
   './src/gazetteer/index.ts',
+  './src/server/index.ts',
 ]
 const declarationEntrypoints = [...entrypoints, ...serverEntrypoints]
   .map(entrypoint => entrypoint.replace(/^\.\/src\//, ''))
@@ -24,6 +27,9 @@ await Bun.$`rm -rf dist`
 const result = await Bun.build({
   target: 'browser',
   entrypoints,
+  // Pin the root: Bun otherwise derives it from the module graph, and one
+  // entry's imports can shift every output path under `dist/src/`.
+  root: './src',
   outdir: './dist',
   plugins: [dts({
     root: './src',

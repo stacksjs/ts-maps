@@ -71,6 +71,16 @@
       "bun": "./src/core-map/static/index.ts",
       "import": "./dist/core-map/static/index.js"
     },
+    "./pmtiles": {
+      "types": "./dist/core-map/pmtiles/index.d.ts",
+      "bun": "./src/core-map/pmtiles/index.ts",
+      "import": "./dist/core-map/pmtiles/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "bun": "./src/server/index.ts",
+      "import": "./dist/server/index.js"
+    },
     "./styles.css": "./src/core-map/ts-maps.css",
     "./css": "./src/core-map/ts-maps.css"
   },
