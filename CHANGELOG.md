@@ -1,5 +1,23 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.17...v0.3.18)
+
+## 🚀 Features
+
+- **pmtiles**: read pmtiles:// archives directly in the map, static renderer and offline caches ([4fd33dd](https://github.com/stacksjs/ts-maps/commit/4fd33dd)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🐛 Bug Fixes
+
+- **pmtiles**: share one header reload, version the leaf cache, never download a whole archive ([9655a08](https://github.com/stacksjs/ts-maps/commit/9655a08)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.18 ([546daf0](https://github.com/stacksjs/ts-maps/commit/546daf0)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.16...v0.3.17)
 
 ## 🚀 Features
