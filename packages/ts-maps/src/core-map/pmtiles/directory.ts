@@ -49,7 +49,17 @@ export function decodeDirectory(bytes: Uint8Array): Entry[] {
   const read = (): number => {
     if (pbf.pos >= bytes.length)
       throw new RangeError('PMTiles: directory is truncated')
-    return pbf.readVarint()
+    let value: number
+    try {
+      value = pbf.readVarint()
+    }
+    catch {
+      value = Number.NaN
+    }
+    // A varint cut off mid-way reads past the end instead of stopping there.
+    if (pbf.pos > bytes.length || Number.isNaN(value))
+      throw new RangeError('PMTiles: directory is truncated')
+    return value
   }
 
   const count = read()

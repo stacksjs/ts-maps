@@ -13,6 +13,16 @@
 // Steps 1 and 2 are memoised as *promises*, not values, so a burst of
 // concurrent tile requests — a map opening fires dozens at once — shares one
 // in-flight read of each directory instead of racing to fetch it N times.
+// Because those reads are shared, they never take a caller's AbortSignal: one
+// cancelled request must not fail the directory read twenty others await.
+// Only the final, per-tile read is abortable.
+//
+// Archives get rebuilt (a weekly OSM refresh) and replaced under the same name.
+// Two mechanisms keep a long-lived reader honest about that: sources report an
+// identity (ETag) with each read and throw `PMTilesChangedError` on a mismatch,
+// which makes the reader drop its caches and retry; and with `revalidate` set,
+// the header is re-read periodically, which catches the case no tile read
+// would — a request for a tile the *old* directory says does not exist.
 
 import type { Decompressor } from './compression'
 import type { Entry } from './directory'
@@ -29,6 +39,11 @@ export interface PMTilesOptions {
   decompress?: Decompressor
   /** Leaf directories kept decoded in memory. Default 64 (a few MB at most). */
   directoryCacheSize?: number
+  /**
+   * Re-read the header at most this often (ms) to notice a replaced archive.
+   * Default `false`: the archive is assumed immutable for the reader's life.
+   */
+  revalidate?: number | false
 }
 
 /** A tile exactly as stored in the archive. */
@@ -79,7 +94,9 @@ export class PMTiles {
   readonly source: Source
   private readonly decompress: Decompressor
   private readonly cacheSize: number
+  private readonly revalidate: number | false
   private opened?: Promise<Opened>
+  private openedAt = 0
   private metadata?: Promise<Record<string, unknown>>
   // Keyed by absolute byte offset; Map iteration order doubles as LRU order.
   private readonly directories = new Map<number, Promise<Entry[]>>()
@@ -88,6 +105,7 @@ export class PMTiles {
     this.source = typeof source === 'string' ? new FetchSource(source) : source
     this.decompress = options.decompress ?? defaultDecompress
     this.cacheSize = options.directoryCacheSize ?? 64
+    this.revalidate = options.revalidate ?? false
   }
 
   /** Forget the header, metadata and every cached directory. */
@@ -97,21 +115,21 @@ export class PMTiles {
     this.directories.clear()
   }
 
-  async getHeader(signal?: AbortSignal): Promise<PMTilesHeader> {
-    return (await this.open(signal)).header
+  async getHeader(): Promise<PMTilesHeader> {
+    return (await this.open()).header
   }
 
   /**
    * A short fingerprint of this archive build: changes whenever the archive is
    * rewritten, so it can version tile URLs that are cached forever.
    */
-  async getVersion(signal?: AbortSignal): Promise<string> {
-    return (await this.open(signal)).version
+  async getVersion(): Promise<string> {
+    return (await this.open()).version
   }
 
   /** The archive's JSON metadata (`name`, `attribution`, `vector_layers`, …). */
-  async getMetadata(signal?: AbortSignal): Promise<Record<string, unknown>> {
-    this.metadata ??= this.loadMetadata(signal).catch((error) => {
+  async getMetadata(): Promise<Record<string, unknown>> {
+    this.metadata ??= this.loadMetadata().catch((error) => {
       this.metadata = undefined
       throw error
     })
@@ -150,6 +168,28 @@ export class PMTiles {
     return this.decompress(bytes, compression)
   }
 
+  /**
+   * Every tile entry in id order, walking leaf directories as it goes: the
+   * whole index, without touching tile data. For tooling — inventories,
+   * extracts, picking a dense tile to test with — not for request paths.
+   * Offsets are absolute; an entry covers ids `[tileId, tileId + runLength)`.
+   */
+  async* entries(): AsyncGenerator<Entry> {
+    const opened = await this.open()
+    const { header } = opened
+    const walk = async function* (this: PMTiles, entries: Entry[], depth: number): AsyncGenerator<Entry> {
+      if (depth >= MAX_DEPTH)
+        throw new PMTilesFormatError(`PMTiles: directory nesting deeper than ${MAX_DEPTH} levels in ${this.source.getKey()}`)
+      for (const entry of entries) {
+        if (entry.runLength > 0)
+          yield { ...entry, offset: header.tileDataOffset + entry.offset }
+        else
+          yield* walk.call(this, await this.leaf(opened, header.leafDirectoryOffset + entry.offset, entry.length), depth + 1)
+      }
+    }
+    yield* walk.call(this, opened.root, 0)
+  }
+
   async close(): Promise<void> {
     this.clearCache()
     await this.source.close?.()
@@ -157,18 +197,36 @@ export class PMTiles {
 
   // ---------- internals ----------
 
-  private open(signal?: AbortSignal): Promise<Opened> {
-    this.opened ??= this.readRoot(signal).catch((error) => {
-      // Never memoise a failure: a flaky network on first open must not
-      // poison the reader for the life of the process.
-      this.opened = undefined
-      throw error
-    })
+  private open(): Promise<Opened> {
+    const previous = this.opened
+    if (previous && this.revalidate !== false && Date.now() - this.openedAt >= this.revalidate) {
+      // Re-read the root; if the archive's version moved, everything cached
+      // from the old build is wrong. A failed re-read keeps the old state.
+      this.openedAt = Date.now()
+      this.opened = this.readRoot().then(next => previous.then((prev) => {
+        if (prev.version !== next.version) {
+          this.directories.clear()
+          this.metadata = undefined
+        }
+        return next
+      }, () => next)).catch(() => previous)
+    }
+    if (!this.opened) {
+      this.openedAt = Date.now()
+      const opening = this.readRoot().catch((error) => {
+        // Never memoise a failure: a flaky network on first open must not
+        // poison the reader for the life of the process.
+        if (this.opened === opening)
+          this.opened = undefined
+        throw error
+      })
+      this.opened = opening
+    }
     return this.opened
   }
 
-  private async readRoot(signal?: AbortSignal): Promise<Opened> {
-    const first = await this.source.getBytes(0, PMTILES_ROOT_FETCH_LENGTH, signal)
+  private async readRoot(): Promise<Opened> {
+    const first = await this.source.getBytes(0, PMTILES_ROOT_FETCH_LENGTH)
     const bytes = first.data
     const header = parseHeader(bytes)
 
@@ -179,7 +237,7 @@ export class PMTiles {
     }
     else {
       // Out of spec (root must sit in the first 16 KiB), but cheap to tolerate.
-      rootBytes = (await this.read(header.rootDirectoryOffset, header.rootDirectoryLength, first.etag, signal)).data
+      rootBytes = (await this.read(header.rootDirectoryOffset, header.rootDirectoryLength, first.etag)).data
     }
     const root = decodeDirectory(await this.decompress(rootBytes, header.internalCompression))
     const version = await shortHash([bytes.subarray(0, PMTILES_HEADER_LENGTH), rootBytes, first.etag])
@@ -193,11 +251,11 @@ export class PMTiles {
     return result
   }
 
-  private async loadMetadata(signal?: AbortSignal): Promise<Record<string, unknown>> {
-    const { header, etag } = await this.open(signal)
+  private async loadMetadata(): Promise<Record<string, unknown>> {
+    const { header, etag } = await this.open()
     if (header.metadataLength === 0)
       return {}
-    const { data } = await this.read(header.metadataOffset, header.metadataLength, etag, signal)
+    const { data } = await this.read(header.metadataOffset, header.metadataLength, etag)
     const text = new TextDecoder().decode(await this.decompress(data, header.internalCompression))
     const parsed = JSON.parse(text) as unknown
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
@@ -205,7 +263,7 @@ export class PMTiles {
     return parsed as Record<string, unknown>
   }
 
-  private leaf(opened: Opened, offset: number, length: number, signal?: AbortSignal): Promise<Entry[]> {
+  private leaf(opened: Opened, offset: number, length: number): Promise<Entry[]> {
     const cached = this.directories.get(offset)
     if (cached) {
       // Refresh LRU position.
@@ -214,7 +272,7 @@ export class PMTiles {
       return cached
     }
     const loading = (async () => {
-      const { data } = await this.read(offset, length, opened.etag, signal)
+      const { data } = await this.read(offset, length, opened.etag)
       return decodeDirectory(await this.decompress(data, opened.header.internalCompression))
     })()
     loading.catch(() => this.directories.delete(offset))
@@ -225,7 +283,7 @@ export class PMTiles {
   }
 
   private async readTile(tileId: number, signal?: AbortSignal): Promise<PMTilesTile | undefined> {
-    const opened = await this.open(signal)
+    const opened = await this.open()
     const { header } = opened
     let entries = opened.root
 
@@ -238,7 +296,7 @@ export class PMTiles {
         const { data } = await this.read(offset, entry.length, opened.etag, signal)
         return { data, compression: header.tileCompression, tileId, offset }
       }
-      entries = await this.leaf(opened, header.leafDirectoryOffset + entry.offset, entry.length, signal)
+      entries = await this.leaf(opened, header.leafDirectoryOffset + entry.offset, entry.length)
     }
     throw new PMTilesFormatError(`PMTiles: directory nesting deeper than ${MAX_DEPTH} levels in ${this.source.getKey()}`)
   }

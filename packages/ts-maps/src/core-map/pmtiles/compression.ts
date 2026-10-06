@@ -29,11 +29,11 @@ export function compressionName(compression: CompressionCode): 'none' | 'gzip' |
   }
 }
 
-async function pipeThrough(bytes: Uint8Array, stream: { readable: ReadableStream<Uint8Array>, writable: WritableStream<Uint8Array> }): Promise<Uint8Array> {
+async function pipeThrough(bytes: Uint8Array, stream: { readable: ReadableStream<Uint8Array>, writable: WritableStream<BufferSource> }): Promise<Uint8Array> {
   // `new Response(readable).arrayBuffer()` drains the stream in one call and
   // is faster than a manual reader loop in every engine we run on.
   const writer = stream.writable.getWriter()
-  void writer.write(bytes).then(() => writer.close()).catch(() => {})
+  void writer.write(bytes as Uint8Array<ArrayBuffer>).then(() => writer.close()).catch(() => {})
   return new Uint8Array(await new Response(stream.readable).arrayBuffer())
 }
 

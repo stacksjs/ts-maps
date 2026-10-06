@@ -104,6 +104,21 @@ async function packWithLeaves(entries: readonly Entry[], leafSize: number, compr
   return { root: await packDirectory(rootEntries, compression), leaves: concat(leaves) }
 }
 
+/** The root alone if it fits the 16 KiB budget, otherwise root + leaves. */
+async function packDirectories(entries: readonly Entry[], compression: CompressionCode, leafSize?: number): Promise<{ root: Uint8Array, leaves: Uint8Array }> {
+  if (leafSize)
+    return packWithLeaves(entries, leafSize, compression)
+  const rootBudget = PMTILES_ROOT_FETCH_LENGTH - PMTILES_HEADER_LENGTH
+  const root = await packDirectory(entries, compression)
+  if (root.length <= rootBudget)
+    return { root, leaves: new Uint8Array(0) }
+  for (let size = 4096; ; size *= 2) {
+    const packed = await packWithLeaves(entries, size, compression)
+    if (packed.root.length <= rootBudget)
+      return packed
+  }
+}
+
 /** Write a PMTiles v3 archive. Resolves to the archive's bytes. */
 export async function writePMTiles(tiles: readonly PMTilesWriteTile[], options: WritePMTilesOptions): Promise<Uint8Array> {
   if (tiles.length === 0)
@@ -150,20 +165,7 @@ export async function writePMTiles(tiles: readonly PMTilesWriteTile[], options: 
   }
 
   // 3. Directories: everything in the root if it fits, otherwise leaves.
-  const rootBudget = PMTILES_ROOT_FETCH_LENGTH - PMTILES_HEADER_LENGTH
-  let root: Uint8Array
-  let leaves = new Uint8Array(0)
-  if (options.leafSize) {
-    ({ root, leaves } = await packWithLeaves(entries, options.leafSize, internalCompression))
-  }
-  else {
-    root = await packDirectory(entries, internalCompression)
-    let leafSize = 4096
-    while (root.length > rootBudget) {
-      ({ root, leaves } = await packWithLeaves(entries, leafSize, internalCompression))
-      leafSize *= 2
-    }
-  }
+  const { root, leaves } = await packDirectories(entries, internalCompression, options.leafSize)
 
   const metadataRaw = new TextEncoder().encode(JSON.stringify(options.metadata ?? {}))
   const metadata = internalCompression === Compression.Gzip ? await gzip(metadataRaw) : metadataRaw

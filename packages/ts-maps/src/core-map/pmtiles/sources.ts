@@ -49,8 +49,12 @@ export interface FetchSourceOptions {
   /** Extra request headers, e.g. `Authorization` for a private origin. */
   headers?: Record<string, string>
   /** Custom fetch (a signing wrapper, a test double). Default: global `fetch`. */
-  fetch?: typeof fetch
+  fetch?: FetchLike
 }
+
+/** The slice of `fetch` a `FetchSource` uses. */
+// eslint-disable-next-line no-unused-vars
+export type FetchLike = (url: string, init: RequestInit) => Promise<Response>
 
 /** Strong-compare two ETags, ignoring the weak `W/` prefix CDNs add. */
 function sameEtag(a: string, b: string): boolean {
@@ -68,7 +72,7 @@ function sameEtag(a: string, b: string): boolean {
 export class FetchSource implements Source {
   readonly url: string
   private readonly headers: Record<string, string>
-  private readonly fetchImpl: typeof fetch
+  private readonly fetchImpl: FetchLike
 
   constructor(url: string, options: FetchSourceOptions = {}) {
     this.url = url
