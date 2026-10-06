@@ -4,6 +4,7 @@
  * concurrency, populating a `TileCache` and emitting progress events.
  */
 import type { TileCache } from './TileCache'
+import { isPMTilesUrl, pmtilesSourceUrl, pmtilesTileUrl } from '../pmtiles/protocol'
 import { cachedFetch } from './cachedFetch'
 import { getDefaultCache } from './defaultCache'
 
@@ -24,7 +25,12 @@ export interface ProgressEmitter {
 export interface OfflineRegionOptions {
   bounds: Bounds
   zoomRange: readonly [number, number]
-  /** URL template containing `{z}`, `{x}`, `{y}` placeholders. */
+  /**
+   * URL template containing `{z}`, `{x}`, `{y}` placeholders, or a PMTiles
+   * archive as `pmtiles://https://…/a.pmtiles` (with or without
+   * `/{z}/{x}/{y}`), whose tiles are read from the archive and cached under
+   * `pmtiles://…/a.pmtiles/{z}/{x}/{y}`, the keys the map reads them back by.
+   */
   tileUrl: string
   /** Cache to populate. Defaults to the shared `getDefaultCache()`. */
   cache?: TileCache
@@ -96,7 +102,15 @@ export async function saveOfflineRegion(
   const concurrency = Math.max(1, options.concurrency ?? 4)
   const coords = computeTileCoords(options.bounds, options.zoomRange)
   const total = coords.length
+  // An archive given by its own URL becomes its tile template.
+  const template = isPMTilesUrl(options.tileUrl) ? pmtilesTileUrl(options.tileUrl) : options.tileUrl
   const result: OfflineRegionResult = { saved: 0, failed: 0, skipped: 0 }
+
+  // Keep the archive's TileJSON with its tiles: offline, it is how the map
+  // learns the archive's top zoom, and so which tile to overzoom from. Reading
+  // it also opens the archive once, before the workers race to.
+  if (isPMTilesUrl(options.tileUrl))
+    await cachedFetch(pmtilesSourceUrl(options.tileUrl), { cache, signal: options.signal }).catch(() => {})
 
   let cursor = 0
   let completed = 0
@@ -105,7 +119,7 @@ export async function saveOfflineRegion(
     while (cursor < coords.length) {
       const idx = cursor++
       const c = coords[idx]
-      const url = fillTileUrl(options.tileUrl, c)
+      const url = fillTileUrl(template, c)
       try {
         const res = await cachedFetch(url, { cache, signal: options.signal })
         if (res.fromCache)

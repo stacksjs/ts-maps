@@ -58,12 +58,41 @@ Sources (`sources.ts`):
 | `FileSource(path)` (`ts-maps/server`) | Local disk, positional reads on one file descriptor |
 | `S3Source('s3://bucket/key')` (`ts-maps/server`) | A private bucket, signed with Bun's S3 client |
 
+### In a map: `pmtiles://`
+
+A style source can name an archive directly, and the map, `renderStaticMap`
+and the offline caches all read it with range requests, no tile server
+(`protocol.ts`):
+
+```ts
+sources: { basemap: { type: 'vector', url: 'pmtiles://https://tiles.example.com/planet.pmtiles' } }
+// or: { type: 'vector', tiles: ['pmtiles://https://tiles.example.com/planet.pmtiles'] }
+```
+
+- Readers are shared per archive URL (`getPMTilesArchive`), so a page opens
+  each archive once. `setPMTilesArchive(url, source)` serves a URL from a
+  reader of your own (in memory, behind auth).
+- Tiles get stable synthetic URLs, `pmtiles://<archive>/{z}/{x}/{y}`, which
+  are what the tile caches and downloaded maps key them by. `withPMTiles(fetch)`
+  / `pmtilesFetch` answer those URLs from the archive (`200` with decompressed
+  bytes, `204` for a tile the archive lacks) and the bare `pmtiles://<archive>`
+  with its TileJSON (`pmtilesTileJSON`); every other URL goes to `fetch`.
+- Zoom range, bounds, attribution and `vector_layers` come from the header
+  and metadata unless the source sets them; overzoom past the archive's
+  `maxzoom` works as for any vector source.
+
+The browser needs the bucket's CORS to allow `GET` / `HEAD` with a `Range`
+header and to expose `Content-Range`, `ETag` and `Content-Length`; see
+`docs/concepts/tile-server.md`.
+
 ### Archives that change
 
 Archives get rebuilt and republished under the same name. Sources report an
 identity with every read (an HTTP ETag, a file's inode + size + mtime); when it
 changes, the reader throws away everything cached from the old build and
-retries. With `revalidate: ms` it also re-reads the header periodically, which
+retries, once. A `412` or `416` on a read means the same thing over HTTP.
+Many reads noticing the change together share one header reload. With
+`revalidate: ms` it also re-reads the header periodically, which
 catches the one case no tile read can: asking for a tile the *old* directory
 says does not exist.
 

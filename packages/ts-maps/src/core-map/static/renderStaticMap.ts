@@ -1,6 +1,7 @@
 import type { CompiledExpression } from '../style-spec/expressions'
 import type { LayerSpecification, Style as StyleSpecification } from '../style-spec/types'
 import { compile, convertLegacyFilter, formatColor } from '../style-spec/expressions'
+import { isPMTilesUrl, pmtilesTileJSON, pmtilesTileUrl, withPMTiles } from '../pmtiles/protocol'
 import { VectorTile } from '../mvt'
 import { Pbf } from '../proto'
 
@@ -44,8 +45,11 @@ export interface StaticMapOptions {
   width: number
   height: number
   view: StaticMapView
-  /** Defaults to `globalThis.fetch`. */
-  fetch?: (url: string) => Promise<Response>
+  /**
+   * Defaults to `globalThis.fetch`. A `pmtiles://` source reads its archive
+   * through this too, with `Range` headers in `init`, so pass `init` along.
+   */
+  fetch?: (url: string, init?: RequestInit) => Promise<Response>
   /** Draw point labels (places, water names). Defaults to true. */
   labels?: boolean
   /** Prefixes the ids this markup defines, so two maps can share a document. */
@@ -272,12 +276,13 @@ interface ResolvedSource {
   attribution: string
 }
 
-async function resolveSource(source: Record<string, unknown>, doFetch: NonNullable<StaticMapOptions['fetch']>): Promise<ResolvedSource | null> {
+async function resolveSource(source: Record<string, unknown>, doFetch: NonNullable<StaticMapOptions['fetch']>, archiveFetch?: StaticMapOptions['fetch']): Promise<ResolvedSource | null> {
   let tiles = Array.isArray(source.tiles) ? source.tiles as string[] : []
-  let minzoom = typeof source.minzoom === 'number' ? source.minzoom : 0
-  let maxzoom = typeof source.maxzoom === 'number' ? source.maxzoom : 14
+  let minzoom = typeof source.minzoom === 'number' ? source.minzoom : undefined
+  let maxzoom = typeof source.maxzoom === 'number' ? source.maxzoom : undefined
   let attribution = typeof source.attribution === 'string' ? source.attribution : ''
-  if (tiles.length === 0 && typeof source.url === 'string') {
+  const archiveUrl = isPMTilesUrl(source.url) ? source.url : undefined
+  if (tiles.length === 0 && typeof source.url === 'string' && !archiveUrl) {
     // A TileJSON: the live tile URL, its zoom range and its credit, which is
     // how a server publishes a versioned path without breaking its clients.
     const response = await doFetch(source.url)
@@ -289,7 +294,17 @@ async function resolveSource(source: Record<string, unknown>, doFetch: NonNullab
     maxzoom = tilejson.maxzoom ?? maxzoom
     attribution = attribution || tilejson.attribution || ''
   }
-  return tiles.length ? { tiles, minzoom, maxzoom, attribution } : null
+  // A PMTiles archive, as the source's `url` or a TileJSON's `tiles[0]`: what
+  // neither the source nor the TileJSON said comes from the archive itself.
+  const archive = archiveUrl ?? tiles.find(isPMTilesUrl)
+  if (archive) {
+    const tilejson = await pmtilesTileJSON(archive, { fetch: archiveFetch })
+    tiles = tiles.length ? tiles.map(t => isPMTilesUrl(t) ? pmtilesTileUrl(t) : t) : tilejson.tiles
+    minzoom ??= tilejson.minzoom
+    maxzoom ??= tilejson.maxzoom
+    attribution = attribution || tilejson.attribution || ''
+  }
+  return tiles.length ? { tiles, minzoom: minzoom ?? 0, maxzoom: maxzoom ?? 14, attribution } : null
 }
 
 const FONT_TOKENS: Array<[string, 'bold' | 'semibold' | 'medium' | 'italic' | 'regular' | 'light']> = [
@@ -468,6 +483,9 @@ function round(value: number): string {
 export async function renderStaticMap(options: StaticMapOptions): Promise<StaticMap> {
   const { style, width, height, view } = options
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis)
+  // Tiles named `pmtiles://` are read from their archive; everything else is
+  // fetched as before.
+  const tileFetch = withPMTiles(options.fetch)
   const prefix = options.idPrefix ?? 'static-map'
   const zoom = staticMapZoom(view)
   const fallbackFont = options.fontFamily ?? 'Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif'
@@ -497,7 +515,7 @@ export async function renderStaticMap(options: StaticMapOptions): Promise<Static
     const source = style.sources?.[id] as unknown as Record<string, unknown> | undefined
     if (!source || source.type !== 'vector')
       continue
-    const resolved = await resolveSource(source, doFetch)
+    const resolved = await resolveSource(source, doFetch, options.fetch)
     if (!resolved)
       continue
     if (resolved.attribution)
@@ -516,7 +534,7 @@ export async function renderStaticMap(options: StaticMapOptions): Promise<Static
     const loaded = await Promise.all(wanted.map(async ({ x, y, wrapX }): Promise<LoadedTile | null> => {
       try {
         const template = resolved.tiles[(wrapX + y) % resolved.tiles.length]!
-        const response = await doFetch(tileUrl(template, z, wrapX, y))
+        const response = await tileFetch(tileUrl(template, z, wrapX, y))
         if (!response.ok)
           return null
         const bytes = await gunzipIfNeeded(new Uint8Array(await response.arrayBuffer()))

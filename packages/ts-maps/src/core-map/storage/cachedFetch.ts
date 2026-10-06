@@ -5,6 +5,7 @@
  * to the cache if the network attempt rejects (offline mode).
  */
 import type { TileCache } from './TileCache'
+import { pmtilesFetch } from '../pmtiles/protocol'
 
 export interface CachedFetchOptions {
   cache: TileCache
@@ -44,7 +45,9 @@ export async function cachedFetch(
   }
 
   try {
-    const res = await fetch(url, { signal })
+    // `pmtiles://` tile URLs are read from their archive and cached under that
+    // same URL, so a tile saved here is found again by the map with no network.
+    const res = await pmtilesFetch(url, { signal })
     const buf = new Uint8Array(await res.arrayBuffer())
     const mime = res.headers.get('content-type') ?? 'application/octet-stream'
     if (!noStore)

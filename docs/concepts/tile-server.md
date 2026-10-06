@@ -89,7 +89,7 @@ createTileServer({ archive: 's3://maps/us-2026-10.pmtiles', open: { s3: {      /
 - **S3 / R2 over HTTP Range** keeps the server stateless (any instance, any region, no disk). Each tile is one ranged GET to the bucket, so put a CDN in front of the tile server; with immutable URLs nearly every request is a CDN hit. R2 has no egress fees, which matters at tile volumes.
 - For buckets, publish each build under a new key (`us-2026-10.pmtiles`) and point the server at it, rather than overwriting the key it is serving.
 
-You can also skip the server entirely and let browsers range-read the archive from a CDN with `new PMTiles(url)` from `ts-maps/pmtiles`; the server exists so clients get plain `{z}/{x}/{y}` URLs and TileJSON that MapLibre, Leaflet and every other client already understand.
+You can also skip the server entirely and let browsers range-read the archive from the bucket: see section 6 below. The server exists so clients get plain `{z}/{x}/{y}` URLs and TileJSON that MapLibre, Leaflet and every other client already understand.
 
 ## 4. Behind a Stacks app
 
@@ -122,3 +122,70 @@ const style = styles.light({ tiles: tilejson.tiles[0], attribution: tilejson.att
 ```
 
 An app that resolves its basemap through a TileJSON URL (Wildloop's `VECTOR_TILEJSON`, which today points at `https://tiles.openfreemap.org/planet`) switches by changing that one constant to `https://tiles.example.com/tiles.json` (or the bare base path; both answer TileJSON) and its attribution to the OpenMapTiles / OpenStreetMap credit. Same schema, same styles; only the host changes.
+
+## 6. Serving straight from R2 / a bucket, no server
+
+ts-maps can read the archive itself, in the browser, with HTTP range requests. The whole planet is then one file in a bucket behind a custom domain: no tile server, no per-tile objects, one upload per build. Name the archive in a style source with a `pmtiles://` prefix, either way:
+
+```ts
+// As the source's url
+sources: { basemap: { type: 'vector', url: 'pmtiles://https://tiles.example.com/planet/20261005.pmtiles' } }
+
+// Or TileJSON-style, as tiles[0]: what styles.light / styles.dark produce
+const style = styles.dark({ tiles: 'pmtiles://https://tiles.example.com/planet/20261005.pmtiles' })
+```
+
+A published TileJSON whose `tiles[0]` is a `pmtiles://` URL works the same way, so an app that resolves its basemap through a TileJSON switches by publishing one:
+
+```json
+{ "tilejson": "3.0.0", "tiles": ["pmtiles://https://tiles.example.com/planet/20261005.pmtiles"], "minzoom": 0, "maxzoom": 14 }
+```
+
+What happens:
+
+- **One reader per archive.** Every map, static render and offline download on the page shares it. Opening costs one request (the first 16 KiB: header and root directory) plus one for the metadata. Leaf directories are fetched once and kept in a bounded LRU (64 by default); concurrent tiles needing the same directory share one request. After that, **each tile is one range request**.
+- **Zooms, bounds and credit come from the archive** when the source does not set them: `minzoom`, `maxzoom`, `bounds` from the header, `attribution` and `vector_layers` from the metadata. Past the archive's `maxzoom` tiles are overzoomed exactly as for a tile server. A source that does state a `maxzoom` (`styles.light` / `styles.dark` default to 14) keeps it.
+- **Empty tiles** (open sea, absent from the archive) draw blank, the same as a `204` from a server, and cost no tile request: the directory already says they are not there.
+- **Tiles are gzip-decompressed** in the browser with `DecompressionStream`.
+- **Offline works.** Each tile has a stable synthetic URL, `pmtiles://https://…/planet.pmtiles/{z}/{x}/{y}`, and that is the key the offline cache, `saveOfflineRegion` and downloaded maps (`map.offline.download`) store it under. The archive's TileJSON is stored next to its tiles under `pmtiles://https://…/planet.pmtiles`, so a map with no connection still knows the top zoom and can overzoom past it.
+
+  ```ts
+  // Wildloop's "download for offline": tileUrl is the TileJSON's tiles[0].
+  await saveOfflineRegion({ bounds, zoomRange: [10, 14], tileUrl: 'pmtiles://https://tiles.example.com/planet/20261005.pmtiles', concurrency: 4 })
+  ```
+
+- **Rebuilds.** Publish each build under a new name (`planet/20261012.pmtiles`) and update the style or TileJSON. If an archive is overwritten in place anyway, an `ETag` change, a `412` or a `416` on a tile read makes the reader re-read the header once and retry; concurrent reads share that one reload.
+- **Never a full download.** A host that ignores `Range` and answers `200` with a body over 64 MiB (or of unknown length) is refused and the body cancelled, rather than streaming 90 GB into a tab.
+
+### Bucket CORS
+
+The browser reads the archive cross-origin with a `Range` header, so the bucket must allow it and expose the headers the reader checks. For R2 (bucket → Settings → CORS policy):
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://wildloop.org", "http://localhost:3000"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["Range"],
+    "ExposeHeaders": ["Content-Range", "ETag", "Content-Length"],
+    "MaxAgeSeconds": 86400
+  }
+]
+```
+
+S3 and GCS take the same four fields under their own names. Without `ETag` in `ExposeHeaders` the reader cannot see that an archive was replaced in place; without `Range` in `AllowedHeaders` every request fails its preflight. Serve the archive from a custom domain (`tiles.example.com`) rather than `r2.dev`, which is rate limited and not cached by Cloudflare's CDN; a long `Cache-Control` (`public, max-age=31536000, immutable`) suits a dated file name.
+
+### Reading it yourself
+
+The same pieces are exported for tooling (`ts-maps` and `ts-maps/pmtiles`):
+
+```ts
+import { pmtilesFetch, pmtilesTileJSON, readPMTilesTile, setPMTilesArchive } from 'ts-maps/pmtiles'
+
+const tilejson = await pmtilesTileJSON('pmtiles://https://tiles.example.com/planet/20261005.pmtiles')
+const bytes = await readPMTilesTile('pmtiles://https://tiles.example.com/planet/20261005.pmtiles/14/2620/6332')
+const response = await pmtilesFetch('pmtiles://https://tiles.example.com/planet/20261005.pmtiles/14/2620/6332') // 200, or 204 when empty
+setPMTilesArchive('https://tiles.example.com/private.pmtiles', new FetchSource(url, { headers: { Authorization } }))
+```
+
+To check an archive before publishing it, read a tile with `PMTiles` from `ts-maps/pmtiles` and decode it with `new VectorTile(new Pbf(bytes))` from `ts-maps`.

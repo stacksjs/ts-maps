@@ -18,6 +18,7 @@ import type { OfflineIndex, OfflinePlace, OfflinePlan, OfflineRegionRecord, Offl
 import type { OfflineArea, PlannedArea } from './plan'
 import type { RouteOptions } from './router'
 import { Evented } from '../core/Events'
+import { pmtilesFetch, withPMTiles } from '../pmtiles/protocol'
 import { saveOfflineRegion } from '../storage/offlineRegion'
 import { extractTile, mergePlaces } from './extract'
 import { IndexedDBOfflineStore, MemoryOfflineStore } from './OfflineStore'
@@ -96,7 +97,9 @@ export class OfflineMaps extends Evented {
     this.store = options.store ?? (IndexedDBOfflineStore.available() ? new IndexedDBOfflineStore() : new MemoryOfflineStore())
     this.concurrency = Math.max(1, options.concurrency ?? 6)
     this.maxTiles = options.maxTiles ?? 150_000
-    this._fetch = options.fetch ?? ((url, init) => globalThis.fetch(url, init))
+    // `pmtiles://` tiles are read from their archive (through this same fetch)
+    // and stored under their own URL, which is what the map looks up offline.
+    this._fetch = withPMTiles(options.fetch)
   }
 
   /**
@@ -169,6 +172,7 @@ export class OfflineMaps extends Evented {
    * area's own when there is nothing to go on yet.
    */
   async estimate(area: OfflineArea, options: { sample?: boolean } = {}): Promise<OfflineEstimate> {
+    await this._layersReady(area)
     const planned = this.plan(area)
     const tooLarge = planned.count > this.maxTiles
     if (!tooLarge && options.sample !== false && this._measured.tiles < 8)
@@ -180,6 +184,24 @@ export class OfflineMaps extends Evented {
   quickEstimate(area: OfflineArea): OfflineEstimate {
     const planned = this.plan(area)
     return { tiles: planned.count, bytes: Math.round(planned.count * this._averageTile()), tooLarge: planned.count > this.maxTiles }
+  }
+
+  /**
+   * Wait for layers that learn their zoom range from their source — a
+   * `pmtiles://` archive's header — so the plan walks the real range rather
+   * than a default. Immediate for every other layer.
+   */
+  async _layersReady(area: OfflineArea): Promise<void> {
+    const map = area.map ?? (area.sources ? undefined : this.map)
+    if (typeof map?.eachLayer !== 'function')
+      return
+    const waits: Array<Promise<unknown>> = []
+    map.eachLayer((layer: any) => {
+      const ready = layer?.sourceReady?.()
+      if (ready)
+        waits.push(ready.catch(() => {}))
+    })
+    await Promise.all(waits)
   }
 
   _averageTile(): number {
@@ -224,6 +246,7 @@ export class OfflineMaps extends Evented {
    */
   async download(options: OfflineDownloadOptions): Promise<OfflineRegionRecord> {
     await this.ready()
+    await this._layersReady(options)
     const planned = this.plan(options)
     if (planned.count === 0)
       throw new Error('Nothing to download: the area has no tile layers or sources')
@@ -684,7 +707,7 @@ export function offlineMapsNow(): OfflineMaps | 'pending' | undefined {
 export async function offlineFetch(url: string, init?: RequestInit): Promise<Response> {
   // Known to have nothing downloaded: straight to the network.
   if (offlineMapsNow() === undefined && !shared?.onlyOffline)
-    return fetch(url, init)
+    return pmtilesFetch(url, init)
   const maps = await activeOfflineMaps()
   if (maps?.enabled) {
     const hit = await maps.lookup(url).catch(() => undefined)
@@ -698,5 +721,5 @@ export async function offlineFetch(url: string, init?: RequestInit): Promise<Res
     if (maps.onlyOffline)
       return new Response(null, { status: 504, statusText: 'Only using offline maps' })
   }
-  return fetch(url, init)
+  return pmtilesFetch(url, init)
 }

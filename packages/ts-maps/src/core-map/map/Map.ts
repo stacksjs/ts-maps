@@ -2697,7 +2697,10 @@ export class TsMap extends Evented {
     if (source.type === 'vector') {
       const { VectorTileMapLayer } = require('../layer/tile/VectorTileMapLayer')
       const urls = source.tiles ?? []
-      const url = urls[0]
+      // A PMTiles archive may be named either way — `url: 'pmtiles://…'` or as
+      // `tiles[0]` — and the layer reads it directly (see pmtiles/protocol.ts).
+      // Any other `url` is a TileJSON this branch does not fetch.
+      const url = urls[0] ?? (typeof source.url === 'string' && source.url.startsWith('pmtiles://') ? source.url : undefined)
       if (!url) throw new Error(`source "${sourceId}" has no tiles URL`)
       const styleLayers = this._style!.spec.layers
         .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === sourceId)

@@ -20,6 +20,50 @@ export * from './map/index'
 export * from './storage/index'
 export * from './offline/index'
 export * from './search/index'
+// Decode a vector tile by hand — `new VectorTile(new Pbf(bytes))` — e.g. to
+// check an archive read with `ts-maps/pmtiles` before publishing it.
+export {
+  GEOM_TYPE_NAMES,
+  MVT_GEOM_LINESTRING,
+  MVT_GEOM_POINT,
+  MVT_GEOM_POLYGON,
+  MVT_GEOM_UNKNOWN,
+  VectorTile,
+  VectorTileFeature,
+  VectorTileLayer,
+} from './mvt'
+export type {
+  GeoJSONFeature,
+  GeoJSONGeometry,
+  GeoJSONLineString,
+  GeoJSONMultiLineString,
+  GeoJSONMultiPoint,
+  GeoJSONMultiPolygon,
+  GeoJSONPoint,
+  GeoJSONPolygon,
+  GeomType,
+  VectorTileProperties,
+  VectorTileValue,
+} from './mvt'
+export { Pbf } from './proto'
+// `pmtiles://` sources: a PMTiles archive on a bucket or CDN, read in place.
+// The reader and writer themselves are in `ts-maps/pmtiles`.
+export {
+  clearPMTilesArchives,
+  getPMTilesArchive,
+  isPMTilesUrl,
+  parsePMTilesTileUrl,
+  PMTILES_PROTOCOL,
+  pmtilesArchiveUrl,
+  pmtilesFetch,
+  pmtilesSourceUrl,
+  pmtilesTileJSON,
+  pmtilesTileUrl,
+  readPMTilesTile,
+  setPMTilesArchive,
+  withPMTiles,
+} from './pmtiles/protocol'
+export type { PMTilesArchiveOptions, PMTilesFetch, PMTilesTileJSON } from './pmtiles/protocol'
 export { earcut, flatten, deviation } from './geometry/earcut'
 export { WebGLTileRenderer, WebGLUnsupportedError } from './renderer/webgl/index'
 export type { CircleOptions as WebGLCircleOptions, GLContextOptions, LineOptions as WebGLLineOptions, Mat4 } from './renderer/webgl/index'

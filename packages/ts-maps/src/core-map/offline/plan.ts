@@ -9,6 +9,7 @@
  */
 
 import type { OfflinePlan } from './OfflineStore'
+import { isPMTilesUrl, pmtilesSourceUrl, pmtilesTileUrl } from '../pmtiles/protocol'
 import { glyphUrl } from '../symbols/loadGlyphs'
 import { spriteUrl } from '../symbols/loadSprite'
 
@@ -20,9 +21,9 @@ export type OfflineBounds
 
 /** A tile source described by hand, for downloading without a map. */
 export interface OfflineSource {
-  /** Template with `{z}`, `{x}` and `{y}`. */
+  /** Template with `{z}`, `{x}` and `{y}`, or a `pmtiles://` archive. */
   url: string
-  /** Default `'vector'` for `.pbf`/`.mvt` URLs, `'raster'` otherwise. */
+  /** Default `'vector'` for `.pbf`/`.mvt` URLs and `pmtiles://` archives, `'raster'` otherwise. */
   type?: 'vector' | 'raster'
   /** Default 512 for vector, 256 for raster. */
   tileSize?: number
@@ -140,7 +141,10 @@ function fill(template: string, x: number, y: number, z: number): string {
 }
 
 function jobForSource(source: OfflineSource, minZoom: number, maxZoom: number | undefined): TileJob {
-  const kind = source.type ?? (isVectorUrl(source.url) ? 'vector' : 'raster')
+  // An archive downloads under its synthetic tile URLs, which are what the
+  // map asks the offline store for.
+  const template = isPMTilesUrl(source.url) ? pmtilesTileUrl(source.url) : source.url
+  const kind = source.type ?? (isVectorUrl(template) || isPMTilesUrl(template) ? 'vector' : 'raster')
   const tileSize = source.tileSize ?? (kind === 'vector' ? 512 : 256)
   const shift = Math.round(Math.log2(tileSize / 256))
   const srcMin = source.minZoom ?? 0
@@ -151,9 +155,9 @@ function jobForSource(source: OfflineSource, minZoom: number, maxZoom: number | 
     zooms.push({ z, gridZ: z, mapZ: z + shift })
   return {
     kind,
-    template: source.url,
+    template,
     zooms,
-    url: (x, y, z) => fill(source.url, x, y, z),
+    url: (x, y, z) => fill(template, x, y, z),
     indexAt: kind === 'vector' ? top : undefined,
     server: (x, y, z) => ({ x, y, z }),
   }
@@ -265,7 +269,10 @@ export function planArea(area: OfflineArea): PlannedArea {
     }
   }
 
-  const resources = [...new Set([...(area.map ? styleResources(area.map) : []), ...(area.resources ?? [])])]
+  // An archive's TileJSON is kept with its tiles: offline, it is how the map
+  // learns the archive's top zoom (see `VectorTileMapLayer.sourceReady`).
+  const archives = jobs.filter(job => isPMTilesUrl(job.template)).map(job => pmtilesSourceUrl(job.template))
+  const resources = [...new Set([...(area.map ? styleResources(area.map) : []), ...archives, ...(area.resources ?? [])])]
   const kinds = { vector: 0, raster: 0, resource: resources.length }
   let top = minZoom
   for (const job of jobs) {

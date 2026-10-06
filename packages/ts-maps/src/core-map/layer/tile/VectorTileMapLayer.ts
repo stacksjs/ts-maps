@@ -40,6 +40,8 @@ import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../render
 import type { Occluder, OcclusionSource } from '../../symbols/BuildingOcclusion'
 import { occluded, OccluderIndex } from '../../symbols/BuildingOcclusion'
 import { activeOfflineMaps } from '../../offline/OfflineMaps'
+import type { PMTilesTileJSON } from '../../pmtiles/protocol'
+import { isPMTilesUrl, pmtilesSourceUrl, pmtilesTileJSON, pmtilesTileUrl, readPMTilesTile } from '../../pmtiles/protocol'
 import { cachedFetch, getDefaultCache, TileCache } from '../../storage'
 import { earcut, flatten } from '../../geometry/earcut'
 import { ortho } from '../../renderer/webgl/mat4'
@@ -56,6 +58,11 @@ export interface VectorTileMapLayerOptions {
   /**
    * Tile URL template with `{z}`/`{x}`/`{y}` (and optionally `{s}`).
    * Optional when `localSource` supplies tiles instead.
+   *
+   * Or a PMTiles archive, `pmtiles://https://host/planet.pmtiles`: tiles are
+   * then read from the archive with HTTP range requests, no tile server, and
+   * any of `sourceMaxZoom`, `minNativeZoom`, `bounds` and `attribution` left
+   * unset are taken from the archive's header and metadata.
    */
   url?: string
   /**
@@ -360,6 +367,12 @@ export class VectorTileMapLayer extends GridLayer {
   declare _iconAtlas?: IconAtlas
   declare _offlineCache?: TileCache
   declare _webglFallbackWarned?: boolean
+  /**
+   * For a `pmtiles://` source: the archive's TileJSON once known, and the
+   * request for it until then. Tiles wait on it, because which tile to ask
+   * the archive for past its top zoom depends on what that top zoom is.
+   */
+  declare _archive?: { tilejson?: PMTilesTileJSON, loading?: Promise<void> }
 
   initialize(options?: VectorTileMapLayerOptions): void {
     super.initialize(options)
@@ -379,6 +392,119 @@ export class VectorTileMapLayer extends GridLayer {
 
     if (typeof this.options!.subdomains === 'string')
       this.options!.subdomains = this.options!.subdomains.split('')
+
+    // An archive is addressed by synthetic tile URLs from here on —
+    // `pmtiles://<archive>/{z}/{x}/{y}` — so overzoom, offline lookups and
+    // the offline planner all work on it exactly as on a tile server's.
+    if (isPMTilesUrl(this.options!.url)) {
+      this.options!.url = pmtilesTileUrl(this.options!.url)
+      this._archive = {}
+    }
+  }
+
+  /**
+   * Resolves once the layer knows enough about its source to ask for tiles:
+   * at once for a URL template, after the header and metadata for a
+   * `pmtiles://` archive. A failed read rejects, and the next call retries.
+   */
+  sourceReady(): Promise<void> {
+    const archive = this._archive
+    if (!archive || archive.tilejson)
+      return Promise.resolve()
+    archive.loading ??= this._loadArchiveTileJSON().then(
+      (tilejson) => {
+        archive.tilejson = tilejson
+        archive.loading = undefined
+        this._applyArchive(tilejson)
+      },
+      (error) => {
+        archive.loading = undefined
+        throw error
+      },
+    )
+    return archive.loading
+  }
+
+  /**
+   * The archive's TileJSON: from the archive itself, or — with no connection,
+   * or in "only offline" mode — from a downloaded map or the offline cache,
+   * which keep it under the archive's `pmtiles://` URL next to its tiles.
+   */
+  async _loadArchiveTileJSON(): Promise<PMTilesTileJSON> {
+    const key = pmtilesSourceUrl(this.options!.url!)
+    const maps = await activeOfflineMaps()
+    const offline = async (): Promise<PMTilesTileJSON | undefined> => {
+      const hit = (maps?.enabled ? await maps.lookup(key).catch(() => undefined) : undefined)
+        ?? await this._offlineCache?.get(key).catch(() => undefined)
+      return hit?.data.byteLength ? JSON.parse(new TextDecoder().decode(hit.data)) as PMTilesTileJSON : undefined
+    }
+
+    if (maps?.enabled && maps.onlyOffline) {
+      const stored = await offline()
+      if (!stored)
+        throw new Error(`Only using offline maps, and ${key} is not downloaded`)
+      return stored
+    }
+
+    try {
+      const tilejson = await pmtilesTileJSON(key)
+      // Kept for later offline use, like every tile this layer caches.
+      void this._offlineCache?.put(key, new TextEncoder().encode(JSON.stringify(tilejson)), 'application/json').catch(() => {})
+      return tilejson
+    }
+    catch (error) {
+      const stored = await offline()
+      if (stored)
+        return stored
+      throw error
+    }
+  }
+
+  /** The archive's TileJSON, for a `pmtiles://` source that has loaded it. */
+  getTileJSON(): PMTilesTileJSON | undefined {
+    return this._archive?.tilejson
+  }
+
+  /**
+   * Fill in what the archive knows and the options left unset. Zooms are the
+   * archive's tile zooms shifted into the grid's, the same shift the map
+   * applies to a style source's `minzoom` / `maxzoom` (see `_getZoomForUrl`).
+   */
+  _applyArchive(tilejson: PMTilesTileJSON): void {
+    const options = this.options! as VectorTileMapLayerOptions & { bounds?: unknown }
+    const tileSize = this.getTileSize().x
+    const implied = tileSize > 0 ? Math.round(Math.log2(256 / tileSize)) : 0
+    const toGrid = (z: number): number => z - implied - (options.zoomOffset ?? 0)
+
+    // Past the top zoom, tiles draw their ancestor's quadrant: overzoom works
+    // exactly as it does for a source whose style states its `maxzoom`.
+    if (options.sourceMaxZoom === undefined)
+      options.sourceMaxZoom = toGrid(tilejson.maxzoom)
+
+    // The two below change which tiles the grid asks for, so tiles created
+    // while the header was on its way are laid out again. Neither happens for
+    // a planet (minzoom 0, whole-world bounds), only for regional extracts.
+    let regrid = false
+    if (options.minNativeZoom === undefined && tilejson.minzoom > 0) {
+      options.minNativeZoom = toGrid(tilejson.minzoom)
+      regrid = true
+    }
+    const [west, south, east, north] = tilejson.bounds
+    const world = west <= -180 && east >= 180 && south <= -85 && north >= 85
+    if (!options.bounds && !world && west < east && south < north) {
+      options.bounds = [[south, west], [north, east]]
+      regrid = true
+    }
+
+    if (!options.attribution && tilejson.attribution) {
+      options.attribution = tilejson.attribution
+      // Added to the map after the control already read this layer's (empty)
+      // credit; the control removes it again with the layer.
+      this._map?.attributionControl?.addAttribution(tilejson.attribution)
+    }
+
+    if (regrid && this._map)
+      this.redraw()
   }
 
   // Lazy accessors — callers may pass atlases via options, but symbol layers
@@ -678,6 +804,24 @@ export class VectorTileMapLayer extends GridLayer {
       // `done` is still called the same way, keeping GridLayer's bookkeeping
       // identical for both kinds of source.
       this._drawLocalTile(localSource, canvas, entry, coords, done)
+      return canvas
+    }
+
+    // A `pmtiles://` source whose header has not arrived yet: which tile to
+    // read past the archive's top zoom is not known, so wait for it. One
+    // shared read however many tiles are waiting.
+    if (this._archive && !this._archive.tilejson) {
+      this.sourceReady().then(
+        () => {
+          // Removed (or the view moved on) while waiting: nothing to fetch.
+          if (entry.abort.signal.aborted) {
+            done(new DOMException('aborted', 'AbortError'), canvas)
+            return
+          }
+          this._fetchAndDraw(this.getTileUrl(coords), canvas, entry, coords, done).catch(err => done(err, canvas))
+        },
+        err => done(err, canvas),
+      )
       return canvas
     }
 
@@ -1650,6 +1794,11 @@ export class VectorTileMapLayer extends GridLayer {
       })
       return res.data
     }
+
+    // Read straight from the archive: one range request. A tile the archive
+    // does not have is an empty tile, as a server's 204 is — blank, no error.
+    if (isPMTilesUrl(url))
+      return (await readPMTilesTile(url, { signal: entry.abort.signal })) ?? new Uint8Array(0)
 
     const fetchInit: RequestInit = { signal: entry.abort.signal }
     if (this.options!.crossOrigin === true)
