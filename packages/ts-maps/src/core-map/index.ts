@@ -65,6 +65,10 @@ import * as services from './services/index'
 import * as styles from './styles/index'
 
 export { services, styles }
+// The static renderer rides in the main entry too, so an app that loads
+// ts-maps as one browser chunk can draw a share card's map with what it has.
+export { mercatorX, mercatorY, renderStaticMap, staticMapSvg, staticMapView, staticMapZoom } from './static/index'
+export type { StaticMap, StaticMapOptions, StaticMapView } from './static/index'
 export { formatDuration, TURN_BY_TURN_EVENTS, TurnByTurn, turnByTurn } from './navigation/TurnByTurn'
 export type { LatLngInput, TurnByTurnEvent, TurnByTurnOptions, TurnByTurnTarget } from './navigation/TurnByTurn'
 
