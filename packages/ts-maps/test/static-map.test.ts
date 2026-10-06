@@ -75,6 +75,11 @@ describe('renderStaticMap', () => {
     expect(match![3]).not.toBe('middle')
   })
 
+  test('keeps labels out of reserved areas', async () => {
+    const map = await renderStaticMap({ style: style(), width: 512, height: 512, view: world, fetch: fetchTile, reserve: [[300, 80, 460, 170]] })
+    expect(map.markup).not.toContain('>Del Mar<')
+  })
+
   test('leaves labels out when asked', async () => {
     const map = await renderStaticMap({ style: style(), width: 512, height: 512, view: world, fetch: fetchTile, labels: false })
     expect(map.markup).not.toContain('<text')

@@ -64,6 +64,11 @@ export interface StaticMapOptions {
    * label. Defaults to 48.
    */
   avoidNear?: number
+  /**
+   * Rectangles, `[left, top, right, bottom]` in output pixels, that no label
+   * may enter: where a caller will draw its own text, such as a credit line.
+   */
+  reserve?: Array<[number, number, number, number]>
 }
 
 export interface StaticMap {
@@ -357,6 +362,32 @@ interface Label {
   textWidth: number
 }
 
+/**
+ * A label's width by estimate: a figure has no font metrics to ask. Measured
+ * per character class on a grotesque, because a single average undercounts
+ * capitals badly, and the uppercase tracked-out neighbourhood names are
+ * exactly the labels most likely to be packed side by side.
+ */
+function estimateTextWidth(text: string, size: number, weight: number, letterSpacing: number): number {
+  let ems = 0
+  for (const char of text) {
+    if (char === ' ')
+      ems += 0.28
+    else if (/[MW]/.test(char))
+      ems += 0.86
+    else if (/[A-Z0-9]/.test(char))
+      ems += 0.68
+    else if (/[il.,'’]/.test(char))
+      ems += 0.26
+    else if (/[mw]/.test(char))
+      ems += 0.82
+    else
+      ems += 0.56
+  }
+  const bold = weight >= 600 ? 1.05 : 1
+  return (ems * bold + Math.max(0, [...text].length - 1) * letterSpacing) * size
+}
+
 function labelBox(x: number, y: number, width: number, height: number, anchor: string): [number, number, number, number] {
   let left = x - width / 2
   let top = y - height / 2
@@ -578,9 +609,7 @@ export async function renderStaticMap(options: StaticMapOptions): Promise<Static
                 x += Number(offset[0]) * size
                 y += Number(offset[1]) * size
               }
-              // Measured by estimate: a figure has no font metrics to ask.
-              // Proportional faces average a little over half an em.
-              const textWidth = text.length * size * (font.weight >= 600 ? 0.6 : 0.56) + Math.max(0, text.length - 1) * letterSpacing * size
+              const textWidth = estimateTextWidth(text, size, font.weight, letterSpacing)
               labels.push({
                 text,
                 x,
@@ -702,6 +731,8 @@ export async function renderStaticMap(options: StaticMapOptions): Promise<Static
       const box = labelBox(candidate.x, candidate.y, label.textWidth, label.size * 1.2, candidate.anchor)
       const [left, top, right, bottom] = box
       if (left < 4 || top < 4 || right > width - 4 || bottom > height - 4)
+        continue
+      if (options.reserve?.some(area => overlaps(box, area, 2)))
         continue
       if (options.avoid?.length) {
         const grown: [number, number, number, number] = [left - avoidPadding, top - avoidPadding, right + avoidPadding, bottom + avoidPadding]
