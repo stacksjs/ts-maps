@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.21...v0.3.22)
+
+## 🚀 Features
+
+- **worker**: a second cache tier every data center shares ([062542a](https://github.com/stacksjs/ts-maps/commit/062542a)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.22 ([1d6f52f](https://github.com/stacksjs/ts-maps/commit/1d6f52f)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.20...v0.3.21)
 
 ## 🐛 Bug Fixes
