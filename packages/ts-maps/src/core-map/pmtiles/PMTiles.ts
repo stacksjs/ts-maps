@@ -98,8 +98,10 @@ export class PMTiles {
   private opened?: Promise<Opened>
   private openedAt = 0
   private metadata?: Promise<Record<string, unknown>>
-  // Keyed by absolute byte offset; Map iteration order doubles as LRU order.
-  private readonly directories = new Map<number, Promise<Entry[]>>()
+  // Keyed by archive version + absolute byte offset, so a leaf read on behalf
+  // of an old build can never be served to a lookup against the new one. Map
+  // iteration order doubles as LRU order.
+  private readonly directories = new Map<string, Promise<Entry[]>>()
 
   constructor(source: Source | string, options: PMTilesOptions = {}) {
     this.source = typeof source === 'string' ? new FetchSource(source) : source
@@ -129,9 +131,14 @@ export class PMTiles {
 
   /** The archive's JSON metadata (`name`, `attribution`, `vector_layers`, …). */
   async getMetadata(): Promise<Record<string, unknown>> {
-    this.metadata ??= this.loadMetadata().catch((error) => {
+    this.metadata ??= this.loadMetadata().catch(async (error) => {
       this.metadata = undefined
-      throw error
+      if (!(error instanceof PMTilesChangedError))
+        throw error
+      // Replaced between the header read and this one: reload and read the
+      // new build's metadata once.
+      this.clearCache()
+      return this.loadMetadata()
     })
     return this.metadata
   }
@@ -142,16 +149,24 @@ export class PMTiles {
    */
   async getTile(z: number, x: number, y: number, signal?: AbortSignal): Promise<PMTilesTile | undefined> {
     const tileId = zxyToTileId(z, x, y)
+    const opened = this.open()
     try {
-      return await this.readTile(tileId, signal)
+      return await this.readTile(await opened, tileId, signal)
     }
     catch (error) {
-      // The archive was swapped for a new build mid-read. Drop everything
-      // learned about the old one and try once more against the new one.
+      // The archive was swapped for a new build mid-read (an ETag moved, or
+      // the host answered 412 / 416 for a range the old header promised).
+      // Drop everything learned about the old one and try once more against
+      // the new one.
       if (!(error instanceof PMTilesChangedError))
         throw error
-      this.clearCache()
-      return this.readTile(tileId, signal)
+      // A map fires thirty tile reads at once, so thirty of them see the
+      // change together. Only the first throws the old build away; the rest
+      // find a reload already under way and share it, so the header is
+      // re-read once rather than thirty times.
+      if (this.opened === opened)
+        this.clearCache()
+      return this.readTile(await this.open(), tileId, signal)
     }
   }
 
@@ -264,26 +279,30 @@ export class PMTiles {
   }
 
   private leaf(opened: Opened, offset: number, length: number): Promise<Entry[]> {
-    const cached = this.directories.get(offset)
+    const key = `${opened.version}:${offset}`
+    const cached = this.directories.get(key)
     if (cached) {
       // Refresh LRU position.
-      this.directories.delete(offset)
-      this.directories.set(offset, cached)
+      this.directories.delete(key)
+      this.directories.set(key, cached)
       return cached
     }
     const loading = (async () => {
       const { data } = await this.read(offset, length, opened.etag)
       return decodeDirectory(await this.decompress(data, opened.header.internalCompression))
     })()
-    loading.catch(() => this.directories.delete(offset))
-    this.directories.set(offset, loading)
+    // Only forget it if it is still ours: a clear + refetch may have replaced it.
+    loading.catch(() => {
+      if (this.directories.get(key) === loading)
+        this.directories.delete(key)
+    })
+    this.directories.set(key, loading)
     while (this.directories.size > this.cacheSize)
       this.directories.delete(this.directories.keys().next().value!)
     return loading
   }
 
-  private async readTile(tileId: number, signal?: AbortSignal): Promise<PMTilesTile | undefined> {
-    const opened = await this.open()
+  private async readTile(opened: Opened, tileId: number, signal?: AbortSignal): Promise<PMTilesTile | undefined> {
     const { header } = opened
     let entries = opened.root
 

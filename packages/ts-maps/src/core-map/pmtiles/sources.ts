@@ -62,12 +62,30 @@ function sameEtag(a: string, b: string): boolean {
 }
 
 /**
+ * Largest whole-file answer a `FetchSource` will accept from a host that
+ * ignores `Range`. Past this it refuses rather than buffering the archive.
+ */
+const MAX_WHOLE_FILE_BYTES = 64 * 1024 * 1024
+
+/**
  * Read an archive over HTTP with `Range: bytes=a-b`.
  *
- * Servers answer a range request one of three ways, and all three are handled:
- * `206 Partial Content` (the normal case), `200 OK` with the whole file (a host
- * that ignores `Range` — fine for a small archive, so we slice, and hopeless
- * for a big one, so we say so), or an error status.
+ * Servers answer a range request one of four ways, and all four are handled:
+ *
+ * - `206 Partial Content` — the normal case.
+ * - `200 OK` with the whole file — a host that ignores `Range`. Fine for a
+ *   small archive, so we slice; hopeless for a planet, so anything without a
+ *   `Content-Length` under 64 MiB is cancelled unread. A 90 GB archive must
+ *   never be downloaded whole by accident, one tile request at a time.
+ * - `412 Precondition Failed` / `416 Range Not Satisfiable` — the archive was
+ *   replaced (a conditional request no longer matches, or a smaller rebuild
+ *   ends before a range the old header promised). Reported as
+ *   `PMTilesChangedError`, which makes the reader reload the header and retry.
+ * - Anything else is an error.
+ *
+ * From a browser this needs the bucket's CORS to allow `GET`/`HEAD` with a
+ * `Range` header and to expose `ETag` (see `docs/concepts/tile-server.md`):
+ * without `Access-Control-Expose-Headers: ETag` the identity check is blind.
  */
 export class FetchSource implements Source {
   readonly url: string
@@ -101,9 +119,10 @@ export class FetchSource implements Source {
 
     if (response.status === 200) {
       // The host ignored `Range` and is sending the whole archive. Refuse to
-      // buffer something enormous on every tile request.
+      // buffer something enormous — or something of unknown size, which on a
+      // CDN streaming a planet is the same thing.
       const size = Number(response.headers.get('Content-Length') ?? Number.NaN)
-      if (size > 64 * 1024 * 1024) {
+      if (!(size <= MAX_WHOLE_FILE_BYTES)) {
         await response.body?.cancel()
         throw new Error(`PMTiles: ${this.url} ignores HTTP Range requests; serve it from a host that supports them`)
       }
@@ -112,6 +131,11 @@ export class FetchSource implements Source {
     }
 
     await response.body?.cancel()
+    // A range past the end of the file (416) or a failed precondition (412)
+    // means the archive under this URL is not the one the header came from.
+    // On the very first read there is no header yet, so it is a plain error.
+    if (response.status === 412 || (response.status === 416 && offset > 0))
+      throw new PMTilesChangedError(this.url)
     throw new Error(`PMTiles: ${this.url} answered HTTP ${response.status} for bytes ${offset}-${offset + length - 1}`)
   }
 }
