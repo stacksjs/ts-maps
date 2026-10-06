@@ -1,5 +1,27 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.16...v0.3.17)
+
+## 🚀 Features
+
+- **scripts**: build OpenMapTiles-schema archives with planetiler ([efd5541](https://github.com/stacksjs/ts-maps/commit/efd5541)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **server**: self-hosted vector tile server over a PMTiles archive ([59e7c54](https://github.com/stacksjs/ts-maps/commit/59e7c54)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **pmtiles**: zero-dependency PMTiles v3 reader and writer ([9f0bb5d](https://github.com/stacksjs/ts-maps/commit/9f0bb5d)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **static**: reserved areas, and label widths that count capitals ([c151f01](https://github.com/stacksjs/ts-maps/commit/c151f01)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **static**: export the static renderer from the main entry ([acba761](https://github.com/stacksjs/ts-maps/commit/acba761)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 📚 Documentation
+
+- self-hosting vector tiles with ts-maps/server ([8d40b8b](https://github.com/stacksjs/ts-maps/commit/8d40b8b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.17 ([dabe78b](https://github.com/stacksjs/ts-maps/commit/dabe78b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.15...v0.3.16)
 
 ## 🚀 Features
