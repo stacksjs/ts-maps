@@ -45,13 +45,25 @@ export function messageLocales(): string[] {
   return Object.keys(catalogues)
 }
 
+/**
+ * A locale Intl can read, or undefined: `en_US.UTF-8` as `en-US`. A POSIX
+ * one like `C.UTF-8`, which is what a server or CI runner reports, is none,
+ * and Intl would throw on it.
+ */
+function canonical(locale: string | undefined): string | undefined {
+  if (!locale)
+    return undefined
+  try {
+    return Intl.getCanonicalLocales(locale.replace(/\..*$/, '').replace(/_/g, '-'))[0]
+  }
+  catch {
+    return undefined
+  }
+}
+
 /** The locale to use: the one given, else the browser's, else English. */
 export function resolveLocale(locale?: string): string {
-  if (locale)
-    return locale
-  if (typeof navigator !== 'undefined' && navigator.language)
-    return navigator.language
-  return 'en'
+  return canonical(locale) ?? canonical(typeof navigator !== 'undefined' ? navigator.language : undefined) ?? 'en'
 }
 
 /** `de-AT`, then `de`, then English: where to look for a message. */

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { addMessages, message } from '../src/core-map/i18n'
+import { addMessages, message, resolveLocale } from '../src/core-map/i18n'
 import { categoriesMatching, categoryForQuery, categoryLabel, control, kindLabel, SEARCH_CATEGORIES, TsMap } from '../src/core-map'
 import { describeOpening } from '../src/core-map/search/details'
 import { formatDistance, formatInstruction, laneHint, parseManeuver, spokenInstruction } from '../src/core-map/services/instructions'
@@ -23,6 +23,12 @@ describe('the catalogue', () => {
     expect(message('de-AT', 'search.placeholder')).toBe('Karten durchsuchen')
     expect(message('fr', 'search.placeholder')).toBe('Search Maps')
     expect(message('de', 'no.such.key')).toBe('no.such.key')
+  })
+
+  test('reads a POSIX locale, and falls back to English for one Intl cannot', () => {
+    expect(resolveLocale('de_DE.UTF-8')).toBe('de-DE')
+    expect(resolveLocale('C.UTF-8')).not.toBe('C.UTF-8')
+    expect(message('C.UTF-8', 'search.count', { count: 2 })).toBe('2 results')
   })
 
   test('picks the plural form, and formats the count in the language', () => {
