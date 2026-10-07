@@ -45,6 +45,7 @@ export function MapView(props: MapViewProps): ReactElement {
     search,
     mapType,
     indoor,
+    lookAround,
     landmarks,
     trees,
     onLoad,
@@ -58,6 +59,7 @@ export function MapView(props: MapViewProps): ReactElement {
     onSearch,
     onMapType,
     onIndoor,
+    onLookAround,
   } = props
 
   const webviewRef = useRef<WebViewHandle | null>(null)
@@ -65,7 +67,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, locale, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, landmarks, trees, nativeStore: !!offlineStore } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, locale, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, lookAround, landmarks, trees, nativeStore: !!offlineStore } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,6 +194,14 @@ export function MapView(props: MapViewProps): ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indoorKey, post])
 
+  const lookAroundKey = JSON.stringify(lookAround ?? null)
+  useEffect(() => {
+    if (!readyRef.current)
+      return
+    post({ type: 'setLookAround', id: nextId(), payload: { lookAround: lookAround ?? null } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lookAroundKey, post])
+
   const landmarksKey = JSON.stringify(landmarks ?? null)
   useEffect(() => {
     if (!readyRef.current)
@@ -247,6 +257,9 @@ export function MapView(props: MapViewProps): ReactElement {
         case 'indoor':
           onIndoor?.(env.payload)
           break
+        case 'lookAround':
+          onLookAround?.(env.payload)
+          break
         // The WebView's offline maps, read from and written to the app's storage.
         case 'store': {
           const { op, key, value } = env.payload ?? {}
@@ -287,7 +300,7 @@ export function MapView(props: MapViewProps): ReactElement {
           break
       }
     },
-    [api, onClick, onError, onLoad, onMove, onReady, onMarkerPress, onTurnByTurn, onOfflineMaps, onSearch, onMapType, onIndoor, offlineStore, post],
+    [api, onClick, onError, onLoad, onMove, onReady, onMarkerPress, onTurnByTurn, onOfflineMaps, onSearch, onMapType, onIndoor, onLookAround, offlineStore, post],
   )
 
   // react-native-webview isn't typed well across versions, and `WebView`

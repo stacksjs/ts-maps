@@ -50,6 +50,7 @@ export default function Screen() {
 | `search`      | `SearchSpec`                                                    | Search — live, options included             |
 | `mapType`     | `MapTypeSpec`                                                   | Map type picker — live, options included    |
 | `indoor`      | `IndoorSpec`                                                    | Indoor map — live, options included         |
+| `lookAround`  | `LookAroundSpec`                                                | Look Around — live, options included        |
 | `landmarks`   | `LandmarkSpec[]`                                                | glTF landmarks — live, options included     |
 | `trees`       | `boolean \| TreesSpec`                                          | Trees in woods and parks — live             |
 | `onLoad`      | `() => void`                                                    | Fires when the inner map emits `load`       |
@@ -60,7 +61,7 @@ export default function Screen() {
 
 `turnByTurn`, `offlineMaps` and `search` are live: change any field, options included, and the map follows over the bridge without reloading the WebView; a field removed returns to its default. Only data crosses the bridge, so the options the other bindings take as objects or functions — `directions` for navigation, `maps` and `geocoder` for offline maps, `provider`, `offline`, `location`, `origin`, `onDirections`, `details`, `shareUrl` and `saved` for search — are not available here, and the WebView's defaults are used (for transit, `turnByTurn: { profile: 'transit', otpUrl }` plans with OpenTripPlanner at that URL): Save keeps Favorites in the WebView's own `localStorage`, and `showSaved: false` keeps their stars off the map. Search's events, a chosen place's `details` and Save's `save` and `unsave` among them, reach `onSearch` as plain data. `controls` is read when the map is built.
 
-`locale` is the language the built-in controls speak, `'de'` for German; the WebView's own by default. It is baked into the document, and a change after load goes over the bridge: search, offline maps, the map type picker and turn-by-turn relabel in place, and the indoor map is made again. `controls` keep the language they were built in.
+`locale` is the language the built-in controls speak, `'de'` for German; the WebView's own by default. It is baked into the document, and a change after load goes over the bridge: search, offline maps, the map type picker and turn-by-turn relabel in place, and the indoor map and Look Around are made again. `controls` keep the language they were built in.
 
 `mapType` is Apple's map type picker — Explore, Driving and Satellite. A style cannot cross the bridge, so it takes the plain options of `mapTypes()` — `tiles`, `imagery`, `imageryAttribution`, `attribution`, `maxzoom`, `theme`, `labels` — and the WebView builds the types, building them again when one changes. `value` and `open` are followed as they change, and `onMapType` receives `{ type: 'change', data: { value } }` and `{ type: 'openchange', data: { open } }`:
 
@@ -90,6 +91,17 @@ For a Traffic switch on the card, `trafficProvider` (`'mapbox'` or `'tomtom'`) a
   search={{}}
   indoor={{ venue: 'https://example.org/imdf/sfo.zip', level }}
   onIndoor={e => e.type === 'levelchange' && setLevel(e.data.level as number)}
+/>
+```
+
+`lookAround` is Apple's Look Around: a binoculars button that shows the streets with pictures, and a full-bleed viewer to turn in and walk through them, inside the WebView. A provider cannot cross the bridge, so `provider` names one — `'panoramax'` (the default; `endpoint` for another instance) or `'mapillary'` with an `accessToken`. `choosing` shows the streets with pictures, `at` (`[lat, lng]`) opens the viewer at the picture nearest it and `null` closes it, and `heading` turns it — each followed only when it changes, so the viewer closed by its own Done stays closed. With `search` set too and its `lookAround: true`, a place's card offers the pictures near it. `onLookAround` receives `{ type: 'open' | 'imagechange', data: { image: { id, provider, lat, lng, heading, capturedAt } } }`, `{ type: 'close', data: {} }`, `{ type: 'viewchange', data: { heading, pitch, fov } }`, `{ type: 'choosingchange', data: { choosing } }` and `{ type: 'notfound', data: { at } }`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  search={{ lookAround: true }}
+  lookAround={{ at }}
+  onLookAround={e => e.type === 'close' && setAt(null)}
 />
 ```
 

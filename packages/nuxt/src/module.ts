@@ -51,6 +51,7 @@ const tsMapsNuxtModule: ReturnType<typeof defineNuxtModule<ModuleOptions>> = def
       ['IndoorMap', 'IndoorMap'],
       ['Landmark', 'Landmark'],
       ['Trees', 'Trees'],
+      ['LookAround', 'LookAround'],
       ['Search', 'Search'],
       // Controls. `LayersControl` is not here: it takes dictionaries of live
       // layer instances, so it stays imperative via `useMap()`.

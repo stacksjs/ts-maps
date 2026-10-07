@@ -1,6 +1,6 @@
-import type { IndoorMapOptions, LandmarkOptions, MapTypeControlOptions, MapTypeOption, MapTypesOptions, TsMap } from 'ts-maps'
+import type { IndoorMapOptions, LandmarkOptions, LookAroundOptions, MapTypeControlOptions, MapTypeOption, MapTypesOptions, StreetImageryProvider, TsMap } from 'ts-maps'
 import type { PageTheme, ResolveTileJsonOptions, RouteLatLng, RouteMarker, RouteOptions } from './route'
-import { CircleMarker, control, divIcon, IndoorMap, Landmark, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, Trees, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import { CircleMarker, control, divIcon, IndoorMap, Landmark, LookAround, MapillaryImagery, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, PanoramaxImagery, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, Trees, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 import { basemapStyle, drawRoute, pageTheme, refitOnResize, resolveTileJson, watchPageTheme } from './route'
 
 /**
@@ -247,9 +247,22 @@ function trafficFrom(props: Record<string, any>): TrafficLayer | undefined {
   })
 }
 
+/** What `<LookAround>` builds its provider from: a name, and its token or endpoint. */
+const IMAGERY_PROPS = ['provider', 'accessToken', 'endpoint'] as const
+
+/**
+ * The imagery plain options describe: `provider` `'mapillary'` with an
+ * `accessToken`, else Panoramax, at `endpoint` if given.
+ */
+function imageryFrom(props: Record<string, any>): StreetImageryProvider {
+  if (props.provider === 'mapillary' && props.accessToken)
+    return new MapillaryImagery({ accessToken: props.accessToken })
+  return new PanoramaxImagery(definedOnly({ endpoint: props.endpoint }))
+}
+
 /**
  * The props `<TurnByTurn>`, `<Search>`, `<OfflineMaps>`, `<MapType>`,
- * `<IndoorMap>`, `<Landmark>` and `<Trees>` render. Live objects — a manager, a provider, a callback — cannot come from
+ * `<IndoorMap>`, `<LookAround>`, `<Landmark>` and `<Trees>` render. Live objects — a manager, a provider, a callback — cannot come from
  * markup, so they are not here, and what the page hands the control itself is
  * never reset by the markup.
  */
@@ -259,6 +272,7 @@ const MARKUP_PROPS = {
   'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title', 'locale'],
   'map-type': ['value', 'open', 'position', 'showTraffic', 'locale', ...MAP_TYPES_PROPS, ...TRAFFIC_PROPS],
   'indoor-map': ['venue', 'level', 'position', 'minZoom', 'language', 'locale'],
+  'look-around': [...IMAGERY_PROPS, 'position', 'miniMap', 'locale', 'title', 'choosing', 'at', 'heading'],
   'landmark': ['model', 'position', 'altitude', 'rotation', 'scale', 'replace', 'minZoom', 'opacity'],
   'trees': ['spacing', 'maxPerTile', 'minZoom', 'minPitch', 'colors', 'height'],
 } as const
@@ -303,8 +317,8 @@ function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, la
  *
  * Children are read once, at mount. A page that adds markers later should do
  * so through the map itself — see `findMap`. `<TurnByTurn>`, `<Search>`,
- * `<OfflineMaps>`, `<MapType>`, `<IndoorMap>`, `<Landmark>` and `<Trees>` go
- * on following their `data-options` after that.
+ * `<OfflineMaps>`, `<MapType>`, `<IndoorMap>`, `<LookAround>`, `<Landmark>`
+ * and `<Trees>` go on following their `data-options` after that.
  */
 export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   const created: Removable[] = []
@@ -316,6 +330,15 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   // An indoor map's places are found by every search in the map, whichever
   // is written first: each one links itself again once all are built.
   const indoorLinks: Array<() => void> = []
+  // Search's place card offers the map's Look Around, whichever is written
+  // first, unless the page gave it one of its own.
+  const lookLinks: Array<() => void> = []
+  const linkLookAround = (from: LookAround | null, to: LookAround | null): void => {
+    for (const search of searches) {
+      if (!search.options.lookAround || search.options.lookAround === from)
+        search.sync({ lookAround: to })
+    }
+  }
 
   const ensureStyle = (): void => {
     // A source or layer needs a style to live in; starting an empty one means
@@ -561,6 +584,64 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           break
         }
 
+        case 'look-around': {
+          // A provider is a live object: built here from its name and its
+          // token or endpoint, and built again only when those change, so one
+          // the page hands the control stays. A new `miniMap`, `locale` or
+          // `title` makes the control again, and the searches are linked to
+          // the new one.
+          let look: LookAround | null = null
+          let built: string | undefined
+          let imagery: string | undefined
+          let unlisten = (): void => {}
+          const imageryKey = (props: Record<string, any>): string => JSON.stringify(IMAGERY_PROPS.map(key => props[key] ?? null))
+          const teardown = (): void => {
+            unlisten()
+            unlisten = () => {}
+            if (look) {
+              linkLookAround(look, null)
+              look.remove()
+            }
+            look = null
+          }
+          const build = (props: Record<string, any>): void => {
+            teardown()
+            imagery = imageryKey(props)
+            const made = new LookAround(definedOnly({ provider: imageryFrom(props), position: props.position, miniMap: props.miniMap, locale: props.locale, title: props.title }) as LookAroundOptions)
+            look = made
+            made.addTo(map)
+            // Every event, as a DOM event: stx props are data, so a callback
+            // cannot be one. The names are the core ones, prefixed.
+            unlisten = made.listen((event, detail) => {
+              root.dispatchEvent(new CustomEvent(`lookaround:${event}`, { bubbles: true, detail }))
+            })
+            root.dispatchEvent(new CustomEvent('lookaround:ready', { bubbles: true, detail: { control: made } }))
+            linkLookAround(null, made)
+          }
+          const unfollow = followProps(el, MARKUP_PROPS['look-around'], (props) => {
+            const key = JSON.stringify([props.miniMap, props.locale, props.title])
+            if (key !== built) {
+              built = key
+              build(props)
+            }
+            const next = imageryKey(props)
+            const provider = next !== imagery ? imageryFrom(props) : undefined
+            imagery = next
+            look?.sync({ provider, position: props.position, choosing: props.choosing, at: props.at, heading: props.heading })
+          })
+          lookLinks.push(() => {
+            if (look)
+              linkLookAround(null, look)
+          })
+          created.push({
+            remove: () => {
+              unfollow()
+              teardown()
+            },
+          })
+          break
+        }
+
         case 'landmark': {
           // The model is a URL or a glTF's JSON: markup carries data, not
           // bytes. A new model, `replace` or `minZoom` makes the landmark
@@ -713,6 +794,8 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
     }
   }
   for (const link of indoorLinks)
+    link()
+  for (const link of lookLinks)
     link()
 
   return () => {

@@ -14,6 +14,7 @@
  */
 
 import { controlMessages } from './messages/controls'
+import { lookAroundMessages } from './messages/lookaround'
 import { navigationMessages } from './messages/navigation'
 import { offlineMessages } from './messages/offline'
 import { searchMessages } from './messages/search'
@@ -34,7 +35,7 @@ export function addMessages(locale: string, messages: Catalogue): void {
   catalogues[key] = { ...catalogues[key], ...messages }
 }
 
-for (const part of [searchMessages, offlineMessages, navigationMessages, controlMessages]) {
+for (const part of [searchMessages, offlineMessages, navigationMessages, controlMessages, lookAroundMessages]) {
   for (const [locale, messages] of Object.entries(part))
     addMessages(locale, messages)
 }

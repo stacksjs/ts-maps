@@ -68,7 +68,8 @@ layer instances rather than plain data. Use the map directly for that one.
 `locale` — the language the built-in controls speak, `'de'` for German;
 the browser's by default. A control's own `locale` wins. Read when the map is
 built; `<Search>`, `<OfflineMaps>`, `<MapType>` and `<TurnByTurn>` follow a
-changed `locale` of their own, and `<IndoorMap>` is made again.
+changed `locale` of their own, and `<IndoorMap>` and `<LookAround>` are made
+again.
 
 `basemap` + `tiles` — build one of the bundled basemaps without composing a
 style yourself. `basemapMode` picks `'vector'` (default) or `'raster'`;
@@ -219,6 +220,33 @@ Events bubble as DOM events: `indoor:load` (`{ venue }`), `indoor:levelchange`
 
 ```ts
 container.addEventListener('indoor:levelchange', e => console.log('now on', e.detail.name))
+```
+
+### `<LookAround>`
+
+```stx
+<Map center="[48.8606, 2.3376]" zoom="16">
+  <Search />
+  <LookAround :at="[48.8606, 2.3376]" />
+</Map>
+```
+
+Apple's Look Around: a binoculars button that shows the streets with
+pictures, and a full-bleed viewer to turn in and walk through them. A provider
+cannot be written in markup, so `provider` names one — `panoramax` (the
+default; `endpoint` for another instance) or `mapillary` with an
+`accessToken` — and it is built in the browser. With a `<Search>` in the same
+map, a place card with pictures near it offers them. `provider`, `position`,
+`choosing`, `at` (`null` closes the viewer) and `heading` are followed after
+mount; a changed `miniMap`, `locale` or `title` makes it again. Events bubble
+as DOM events: `lookaround:open` and `lookaround:imagechange` (`{ image }`),
+`lookaround:close`, `lookaround:viewchange` (`{ heading, pitch, fov }`),
+`lookaround:choosingchange` (`{ choosing }`) and `lookaround:notfound`
+(`{ at }`), and `lookaround:ready` hands over the control, for `open`,
+`close`, `setView` and `step`:
+
+```ts
+container.addEventListener('lookaround:open', e => console.log('looking from', e.detail.image.id))
 ```
 
 ### `<Landmark>` and `<Trees>`

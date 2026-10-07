@@ -100,6 +100,7 @@ describe('component registration', () => {
       'TsMapsIndoorMap',
       'TsMapsLandmark',
       'TsMapsTrees',
+      'TsMapsLookAround',
       'TsMapsSearch',
       'TsMapsZoomControl',
       'TsMapsNavigationControl',

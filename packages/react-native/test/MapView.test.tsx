@@ -743,6 +743,143 @@ describe('indoor maps over the bridge', () => {
   })
 })
 
+describe('look around over the bridge', () => {
+  test('a changed spec is sent over the bridge, and events reach onLookAround', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+    const events: any[] = []
+    const render = (lookAround: Record<string, unknown>): Promise<void> => act(async () => {
+      root.render(createElement(MapView, { runtime, lookAround: lookAround as any, onLookAround: (e) => { events.push(e) } }))
+    })
+
+    await render({ choosing: false })
+    const sent: any[] = []
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+
+    await render({ choosing: false })
+    expect(sent.filter(e => e.type === 'setLookAround').length).toBe(0)
+    await render({ at: [48.8601, 2.337] })
+    const updates = sent.filter(e => e.type === 'setLookAround')
+    expect(updates.length).toBe(1)
+    expect(updates[0].payload.lookAround).toEqual({ at: [48.8601, 2.337] })
+
+    const payload = { type: 'open', data: { image: { id: 'p1', provider: 'panoramax', lat: 48.8601, lng: 2.337, heading: 0 } } }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'lookAround', id: 'la1', payload }) } })
+    })
+    expect(events).toEqual([payload])
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView script builds it, follows choosing and at, reports plain events, and links to search', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: {
+        center: [48.8601, 2.337],
+        zoom: 17,
+        styleSpec: tsMaps.styles.light({ tiles: 'https://tiles.test/{z}/{x}/{y}.pbf' }),
+        search: { recents: false, lookAround: true },
+        lookAround: { miniMap: false },
+      },
+    })
+    expect(html).toContain('applyLookAround(initial.lookAround)')
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    const lookEvents = (type: string): unknown[] => posted.filter(e => e.type === 'lookAround' && e.payload.type === type).map(e => e.payload.data)
+    const settle = (): Promise<void> => new Promise(r => setTimeout(r, 30))
+    // Panoramax, with a street of panoramas running north from the Louvre;
+    // Photon, with a café on it; Overpass, with nothing more to say.
+    const item = (i: number): unknown => ({
+      id: `p${i}`,
+      collection: 's1',
+      geometry: { type: 'Point', coordinates: [2.337, 48.86 + i * 0.00009] },
+      properties: { 'view:azimuth': 0, 'datetime': '2025-05-05T09:49:47Z', 'pers:interior_orientation': { field_of_view: 360 } },
+      assets: { sd: { href: `https://img.test/p${i}.jpg` }, thumb: { href: `https://img.test/p${i}-thumb.jpg` } },
+    })
+    const original = globalThis.fetch
+    globalThis.fetch = (async (url: string) => {
+      const u = new URL(String(url))
+      // Tiles, the basemap's and the coverage's, are not found.
+      if (/\.(?:pbf|mvt)$/.test(u.pathname))
+        return new Response('', { status: 404 })
+      if (u.hostname.includes('panoramax')) {
+        const [lng, lat] = (u.searchParams.get('place_position') ?? '0,0').split(',').map(Number)
+        const radius = Number((u.searchParams.get('place_distance') ?? '0-50').split('-')[1])
+        const features = [0, 1, 2, 3].map(item).filter((f: any) => tsMaps.metresBetween({ lat: lat!, lng: lng! }, { lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] }) <= radius)
+        return new Response(JSON.stringify({ features }))
+      }
+      if (u.hostname.includes('overpass'))
+        return new Response(JSON.stringify({ elements: [] }))
+      return new Response(JSON.stringify({ features: [{ geometry: { type: 'Point', coordinates: [2.3375, 48.86027] }, properties: { name: 'Café Marly', osm_key: 'amenity', osm_value: 'cafe', city: 'Paris' } }] }))
+    }) as any
+    try {
+      runScript(script)
+      const map = w.__tsMapsBridge__.map
+      expect(page.querySelector('.tsmap-lookaround-button')).not.toBeNull()
+
+      deliver({ type: 'setLookAround', id: 'a1', payload: { lookAround: { miniMap: false, choosing: true } } })
+      expect(map.getStyle().sources['ts-maps-lookaround']).toBeDefined()
+      expect(lookEvents('choosingchange')).toEqual([{ choosing: true }])
+
+      deliver({ type: 'setLookAround', id: 'a2', payload: { lookAround: { miniMap: false, at: [48.86012, 2.337] } } })
+      await settle()
+      expect(page.querySelector('.tsmap-lookaround')).not.toBeNull()
+      // The picture, reduced to plain data.
+      const [open] = lookEvents('open') as any[]
+      expect(open.image).toMatchObject({ id: 'p1', provider: 'panoramax', lat: 48.86009 })
+      expect(Object.keys(open.image).sort()).toEqual(['capturedAt', 'heading', 'id', 'lat', 'lng', 'provider'])
+      expect(lookEvents('choosingchange')).toEqual([{ choosing: true }, { choosing: false }])
+
+      deliver({ type: 'setLookAround', id: 'a3', payload: { lookAround: { miniMap: false, at: null } } })
+      expect(page.querySelector('.tsmap-lookaround')).toBeNull()
+      expect(lookEvents('close')).toEqual([{}])
+
+      // A place with pictures near offers them on its card.
+      deliver({ type: 'setSearch', id: 's1', payload: { search: { recents: false, lookAround: true, query: 'cafe marly' } } })
+      await settle()
+      page.querySelector<HTMLElement>('.tsmap-search-row')!.click()
+      await settle()
+      expect(page.querySelector('.tsmap-search-lookaround')).not.toBeNull()
+
+      deliver({ type: 'setLookAround', id: 'a4', payload: { lookAround: null } })
+      expect(page.querySelector('.tsmap-lookaround-button')).toBeNull()
+    }
+    finally {
+      globalThis.fetch = original
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+})
+
 describe('landmarks and trees over the bridge', () => {
   // A 10 m wedge as glTF, its buffer inline, served at a URL.
   const positions = new Float32Array([-1, 0, 0, 1, 0, 0, 0, 10, 0])

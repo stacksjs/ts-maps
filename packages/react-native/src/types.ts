@@ -235,7 +235,8 @@ export interface MapTypeBridgeEvent {
  * other bindings, carried as data. The field, suggestions, pins and place
  * cards all run inside the WebView. With `turnByTurn` set too, Directions on
  * a place's card previews the route there; either way a `directions` event
- * reaches `onSearch`, for the app to act on.
+ * reaches `onSearch`, for the app to act on. With `lookAround` set too, and
+ * `lookAround: true` here, a place's card offers the pictures near it.
  *
  * Live: changing `query` searches over the bridge, and changing an option
  * updates the control; an option removed returns to its default. `provider`,
@@ -260,6 +261,8 @@ export interface SearchSpec {
   language?: string
   /** Favorites as stars on the map. Default true. */
   showSaved?: boolean
+  /** Offer `lookAround`'s pictures on a place's card, where it has some near. */
+  lookAround?: boolean
 }
 
 /**
@@ -306,6 +309,51 @@ export interface IndoorSpec {
  */
 export interface IndoorBridgeEvent {
   type: 'load' | 'levelchange' | 'visibilitychange'
+  data: Record<string, unknown>
+}
+
+/**
+ * Look Around, after Apple Maps — the same thing `<LookAround>` is in the
+ * other bindings, carried as data. The binoculars button, the streets with
+ * pictures and the full-bleed viewer all run inside the WebView. A provider
+ * cannot cross the bridge, so `provider` names one, built there: Panoramax
+ * (the default, no key; `endpoint` for another instance) or Mapillary, with
+ * `accessToken`. With `search` set too and its `lookAround: true`, a place's
+ * card offers the pictures near it.
+ *
+ * Live: changing `choosing`, `at` or `heading` acts only when it changes, so
+ * the viewer closed by its own Done stays closed; `position` moves the
+ * button, a new `provider`, `accessToken` or `endpoint` asks another, and a
+ * new `miniMap` makes it again.
+ */
+export interface LookAroundSpec {
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
+  /** Where pictures come from. Default `'panoramax'`. */
+  provider?: 'panoramax' | 'mapillary'
+  /** Mapillary's client token. */
+  accessToken?: string
+  /** Another Panoramax instance's API. */
+  endpoint?: string
+  /** Show the streets with pictures and wait for a tap. */
+  choosing?: boolean
+  /** Look from the picture nearest here, [lat, lng]; `null` to close. */
+  at?: [number, number] | null
+  /** The way to look, compass degrees. */
+  heading?: number
+  /** The small map in the viewer's corner. Default true. */
+  miniMap?: boolean
+}
+
+/**
+ * One Look Around event from the map. `type` is the event's name in the
+ * other bindings' terms, and `data` its content as plain data: `{ image: {
+ * id, provider, lat, lng, heading, capturedAt } }` for `open` and
+ * `imagechange`, `{}` for `close`, `{ heading, pitch, fov }` for
+ * `viewchange`, `{ choosing }` for `choosingchange`, and `{ at }` for
+ * `notfound`, when there is no picture near.
+ */
+export interface LookAroundBridgeEvent {
+  type: 'open' | 'close' | 'imagechange' | 'viewchange' | 'choosingchange' | 'notfound'
   data: Record<string, unknown>
 }
 
@@ -377,8 +425,8 @@ export interface MapViewProps {
    * The language the built-in controls speak: search, offline maps, the map
    * type picker, the level picker and turn-by-turn. Default the WebView's.
    * Live: a change relabels search, offline maps, the map type picker and
-   * turn-by-turn in place, and makes the indoor map again; `controls` keep
-   * the language they were built in.
+   * turn-by-turn in place, and makes the indoor map and Look Around again;
+   * `controls` keep the language they were built in.
    */
   locale?: string
 
@@ -443,6 +491,9 @@ export interface MapViewProps {
   /** An indoor map: a venue's floor plan, a level at a time. Live, like `markers`, options included. */
   indoor?: IndoorSpec
 
+  /** Look Around: street-level pictures to turn in and walk through. Live, like `markers`, options included. */
+  lookAround?: LookAroundSpec
+
   /** glTF models standing where buildings are. Live, like `markers`, options included. */
   landmarks?: LandmarkSpec[]
 
@@ -480,6 +531,10 @@ export interface MapViewProps {
   // eslint-disable-next-line no-unused-vars
   onIndoor?: (e: IndoorBridgeEvent) => void
 
+  /** Every Look Around event, as `{ type, data }`. */
+  // eslint-disable-next-line no-unused-vars
+  onLookAround?: (e: LookAroundBridgeEvent) => void
+
   // eslint-disable-next-line no-unused-vars
   onReady?: (api: MapApi) => void
 }
@@ -507,6 +562,8 @@ export type BridgeEnvelope =
   | { type: 'mapType', id: string, payload: MapTypeBridgeEvent }
   | { type: 'setIndoor', id: string, payload: { indoor: IndoorSpec | null } }
   | { type: 'indoor', id: string, payload: IndoorBridgeEvent }
+  | { type: 'setLookAround', id: string, payload: { lookAround: LookAroundSpec | null } }
+  | { type: 'lookAround', id: string, payload: LookAroundBridgeEvent }
   | { type: 'setLandmarks', id: string, payload: { landmarks: LandmarkSpec[] | null } }
   | { type: 'setTrees', id: string, payload: { trees: boolean | TreesSpec | null } }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }

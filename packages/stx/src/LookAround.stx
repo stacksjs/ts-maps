@@ -1,0 +1,51 @@
+<script server>
+/**
+ * Look Around, after Apple Maps: a binoculars button that shows the streets
+ * with pictures, and a full-bleed viewer to turn in and walk through them.
+ *
+ * ```stx
+ * <Map center="[48.8606, 2.3376]" zoom="16">
+ *   <Search />
+ *   <LookAround :at="[48.8606, 2.3376]" />
+ * </Map>
+ * ```
+ *
+ * A provider is not data markup can carry, so `provider` names one —
+ * `'panoramax'` (the default; `endpoint` for another instance) or
+ * `'mapillary'` with an `accessToken` — and it is built in the browser. With
+ * a `<Search>` in the same map, a place card with pictures near it offers
+ * them. Every prop is followed after mount: a changed `provider`,
+ * `position`, `choosing`, `at` or `heading` goes to the control's `sync`, and
+ * a changed `miniMap`, `locale` or `title` makes the control again. Events
+ * cannot be props here — stx passes props as data — so each one is a DOM
+ * event bubbling from the map: `lookaround:open` and `lookaround:imagechange`
+ * (`{ image }`), `lookaround:close`, `lookaround:viewchange` (`{ heading,
+ * pitch, fov }`), `lookaround:choosingchange` (`{ choosing }`) and
+ * `lookaround:notfound` (`{ at }`). `lookaround:ready` hands the page the
+ * control itself, for `open`, `close`, `setView` and `step`, and for a
+ * provider of its own through `sync`:
+ *
+ * ```js
+ * container.addEventListener('lookaround:ready', e => { look = e.detail.control })
+ * here.onclick = () => look.open([48.8606, 2.3376])
+ * ```
+ */
+export const optionsJson = JSON.stringify({
+  provider: $props.provider,
+  accessToken: $props.accessToken,
+  endpoint: $props.endpoint,
+  position: $props.position,
+  miniMap: $props.miniMap,
+  locale: $props.locale,
+  title: $props.title,
+  choosing: $props.choosing,
+  at: $props.at,
+  heading: $props.heading,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="look-around"
+  data-options="{{ optionsJson }}"
+></span>

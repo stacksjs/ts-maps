@@ -1,4 +1,4 @@
-import type { ControlSpec, IndoorSpec, LandmarkSpec, MapRuntime, MapTypeSpec, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TreesSpec, TurnByTurnSpec } from './types'
+import type { ControlSpec, IndoorSpec, LandmarkSpec, LookAroundSpec, MapRuntime, MapTypeSpec, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TreesSpec, TurnByTurnSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -20,6 +20,7 @@ export interface BuildHtmlOptions {
     search?: SearchSpec
     mapType?: MapTypeSpec
     indoor?: IndoorSpec
+    lookAround?: LookAroundSpec
     landmarks?: LandmarkSpec[]
     trees?: boolean | TreesSpec
     /** Keep downloaded maps in the app's storage, over the bridge. */
@@ -292,14 +293,18 @@ const RUNTIME_SCRIPT = [
   // up in either order; the event reaches the app regardless. `provider`,
   // `offline`, `location`, `origin`, `onDirections` and `saved` cannot cross;
   // the defaults are used, Favorites kept in the WebView's `localStorage`.
+  // With `lookAround: true`, its place card offers the Look Around below,
+  // linked whichever is set up first.
   '  const SEARCH_KEYS = ["position", "placeholder", "categories", "recents", "units", "language", "showSaved"];',
   '  let search = null;',
+  '  let searchSpec = null;',
   '  const searchNav = {',
   '    get options() { return nav ? nav.options : {}; },',
   '    preview: function (from, to) { return nav ? nav.preview(from, to) : Promise.resolve([]); },',
   '  };',
   '  function applySearch(spec) {',
   '    const ns = window.tsMaps || window;',
+  '    searchSpec = spec || null;',
   '    if (!spec) { if (search) { unlinkIndoor(); search.remove(); search = null; } return; }',
   '    if (!ns.SearchControl) return;',
   '    if (!search) {',
@@ -311,6 +316,7 @@ const RUNTIME_SCRIPT = [
   '      });',
   '      linkIndoor();',
   '    }',
+  '    linkLookAround();',
   '    search.sync(follow(spec, SEARCH_KEYS, { query: spec.query == null ? undefined : spec.query }));',
   '  }',
   // The map type picker is the same control the other bindings use. A style
@@ -409,6 +415,51 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    indoor.sync(follow(spec, ["level", "position"], {}));',
   '  }',
+  // Look Around is the same control the other bindings use. A provider
+  // cannot cross the bridge, so it is built here from its name and its token
+  // or endpoint, and built again only when those change. `choosing`, `at`
+  // and `heading` are followed by the control only when they change; a new
+  // `miniMap`, or the map's `locale`, makes it again. Its pictures are
+  // reduced to plain data to cross the bridge.
+  '  let look = null;',
+  '  let lookKey = null;',
+  '  let lookSpec = null;',
+  '  let lookImagery = null;',
+  '  function linkLookAround() {',
+  '    if (search) search.sync({ lookAround: look && searchSpec && searchSpec.lookAround ? look : null });',
+  '  }',
+  '  function imageryFrom(ns, spec) {',
+  '    const key = JSON.stringify([spec.provider || "panoramax", spec.accessToken, spec.endpoint]);',
+  '    if (lookImagery && lookImagery.key === key) return lookImagery.provider;',
+  '    let provider;',
+  '    if (spec.provider === "mapillary" && spec.accessToken && ns.MapillaryImagery) provider = new ns.MapillaryImagery({ accessToken: spec.accessToken });',
+  '    else if (ns.PanoramaxImagery) provider = new ns.PanoramaxImagery(given(spec, ["endpoint"]));',
+  '    lookImagery = { key: key, provider: provider };',
+  '    return provider;',
+  '  }',
+  '  function applyLookAround(spec) {',
+  '    const ns = window.tsMaps || window;',
+  '    lookSpec = spec || null;',
+  '    const key = spec ? JSON.stringify([spec.miniMap, locale]) : null;',
+  '    if (look && key !== lookKey) { look.remove(); look = null; lookKey = null; linkLookAround(); }',
+  '    if (!key || !ns.LookAround) return;',
+  '    const provider = imageryFrom(ns, spec);',
+  '    if (!look) {',
+  '      let made;',
+  '      try { made = new ns.LookAround(Object.assign(given(spec, ["position", "miniMap"]), { provider: provider })); made.addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '      look = made;',
+  '      lookKey = key;',
+  '      made.listen(function (type, e) {',
+  '        send({ type: "lookAround", id: `la${Date.now()}`, payload: { type: type, data: ns.LookAround.plainEvent(type, e) } });',
+  '      });',
+  '      linkLookAround();',
+  '    }',
+  // `at: null` closes, so it is kept as it is rather than made undefined.
+  '    const target = follow(spec, ["position", "choosing", "heading"], { provider: provider });',
+  '    target.at = spec.at === undefined ? undefined : spec.at;',
+  '    look.sync(target);',
+  '  }',
   // Landmarks and trees are the same ones the other bindings use, a model
   // loaded here from its URL. A landmark is matched across updates by `id`,
   // or by index without one: a new `model`, `replace` or `minZoom` makes it
@@ -465,6 +516,7 @@ const RUNTIME_SCRIPT = [
   '    if (picker) picker.sync({ locale: locale });',
   '    if (nav && navTarget) nav.sync(Object.assign({}, navTarget, { locale: locale }));',
   '    if (indoor) applyIndoor(indoorSpec);',
+  '    if (look) applyLookAround(lookSpec);',
   '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
@@ -473,6 +525,7 @@ const RUNTIME_SCRIPT = [
   '  applySearch(initial.search);',
   '  applyMapType(initial.mapType);',
   '  applyIndoor(initial.indoor);',
+  '  applyLookAround(initial.lookAround);',
   '  applyLandmarks(initial.landmarks);',
   '  applyTrees(initial.trees);',
   '  function handle(env) {',
@@ -543,6 +596,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setIndoor") {',
   '      applyIndoor(env.payload && env.payload.indoor);',
+  '    }',
+  '    else if (env.type === "setLookAround") {',
+  '      applyLookAround(env.payload && env.payload.lookAround);',
   '    }',
   '    else if (env.type === "setLandmarks") {',
   '      applyLandmarks(env.payload && env.payload.landmarks);',

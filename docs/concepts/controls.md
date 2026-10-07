@@ -332,6 +332,43 @@ the venue is in view; `language` picks which of IMDF's names to show.
 `listen` hears `load`, `levelchange` (`{ level, name }`) and
 `visibilitychange`. Every framework binding has it as `<IndoorMap>`.
 
+## Look Around
+
+Street-level pictures you can turn in and walk through, as Apple Maps'
+Look Around:
+
+```ts
+const look = lookAround().addTo(map) // Panoramax: open, no key
+control.search({ lookAround: look }).addTo(map)
+```
+
+The binoculars button shows the streets with pictures in blue; tap one and
+the map gives way to the picture taken there, full-bleed. Drag to look
+round, scroll or pinch to zoom, and tap ahead (or use the arrows, or the
+arrow keys) to move along the street. Each step zooms into the picture you
+leave as the next fades in. A small map in the corner shows where you stand
+and which way you look. A place card with pictures near it shows one, and
+tapping it looks from there toward the place.
+
+- `provider`: where pictures come from.
+  - `new PanoramaxImagery()` (the default) uses the open Panoramax
+    federation; `endpoint` picks one instance.
+  - `new MapillaryImagery({ accessToken })` uses Mapillary.
+  - Both keep to 360° pictures unless `panoramasOnly: false`, credit the
+    imagery in the viewer, and keep to their rate limits. Any object with
+    `near`, `get` and optional `coverage` will do.
+- `open(placeOrPicture, { heading, lookAt })`, `close()`, `step('forward')`,
+  `setView({ heading, pitch, fov })` and `setChoosing(true)`, from code.
+- `listen` hears `open`, `close`, `imagechange` (`{ image }`), `viewchange`,
+  `choosingchange` and `notfound` (a tap with no picture near).
+- `miniMap: false` leaves out the small map, and `locale` sets the language
+  its words are in.
+
+Pictures are drawn with WebGL, by ray from the camera into the 360° picture,
+so straight lines stay straight at any zoom. A sharper copy replaces the
+first when it arrives. Without WebGL the picture scrolls as a background.
+Every framework binding has it as `<LookAround>`.
+
 ## Fullscreen
 
 ```ts

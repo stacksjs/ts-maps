@@ -23,6 +23,11 @@ export { label as imdfLabel, loadIMDF, searchIndoor, unzip } from './indoor/imdf
 export type { IMDFFeature, IMDFSource, IndoorLevel, IndoorPlace, IndoorVenue, LoadIMDFOptions } from './indoor/imdf'
 export { INDOOR_EVENTS, IndoorMap, indoorMap } from './indoor/IndoorMap'
 export type { IndoorEvent, IndoorMapOptions } from './indoor/IndoorMap'
+export { LOOK_AROUND_EVENTS, LookAround, lookAround } from './lookaround/LookAround'
+export type { LookAroundEvent, LookAroundOptions, LookAroundTarget } from './lookaround/LookAround'
+export { bearingBetween, headingToward, panoramaU, stepsFrom, stepToward } from './lookaround/navigation'
+export { MapillaryImagery, metresBetween, nearestImage, PanoramaxImagery } from './lookaround/providers'
+export type { MapillaryOptions, PanoramaxOptions, StreetImage, StreetImageryCoverage, StreetImageryProvider } from './lookaround/providers'
 export { loadModel, modelFromGltf, parseGLB } from './landmarks/gltf'
 export type { GltfJson, LandmarkModel, LoadModelOptions, ModelSource } from './landmarks/gltf'
 export { Landmark, landmark } from './landmarks/Landmark'
@@ -86,6 +91,7 @@ export type { CircleOptions as WebGLCircleOptions, GLContextOptions, LineOptions
 
 // Shorthand factory helpers (similar to upstream's function-style API).
 import { AttributionControl, Control, FullscreenControl, GeocoderControl, LayersControl, LocateControl, MapTypeControl, NavigationControl, OfflineMapsControl, ScaleControl, SearchControl, ZoomControl } from './control/index'
+import { LookAround as LookAroundControl } from './lookaround/LookAround'
 import { Browser, Class, Evented, Handler, Util } from './core/index'
 import { Animation, Draggable, PosAnimation } from './dom/index'
 import { CRS, EPSG3395, EPSG3857, EPSG4326, LatLng, LatLngBounds, Projection, SimpleCRS, toLatLng, toLatLngBounds } from './geo/index'
@@ -178,6 +184,7 @@ export const control: Factory < ConstructorParameters < typeof Control>, Control
   offlineMaps: Factory < ConstructorParameters < typeof OfflineMapsControl>, OfflineMapsControl>
   search: Factory < ConstructorParameters < typeof SearchControl>, SearchControl>
   mapType: Factory < ConstructorParameters < typeof MapTypeControl>, MapTypeControl>
+  lookAround: Factory < ConstructorParameters < typeof LookAroundControl>, LookAroundControl>
 } = Object.assign(factory(Control), {
   zoom: factory(ZoomControl),
   layers: factory(LayersControl),
@@ -190,6 +197,7 @@ export const control: Factory < ConstructorParameters < typeof Control>, Control
   offlineMaps: factory(OfflineMapsControl),
   search: factory(SearchControl),
   mapType: factory(MapTypeControl),
+  lookAround: factory(LookAroundControl),
 })
 
 // Default namespace object grouping all public exports.

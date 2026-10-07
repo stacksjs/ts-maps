@@ -10,6 +10,8 @@ export type {
   IndoorBridgeEvent,
   IndoorSpec,
   LandmarkSpec,
+  LookAroundBridgeEvent,
+  LookAroundSpec,
   MapApi,
   MapClickEvent,
   MapErrorEvent,

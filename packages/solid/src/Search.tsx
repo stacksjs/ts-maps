@@ -22,6 +22,8 @@ export interface SearchProps {
   /** A `TurnByTurn` for Directions to preview routes on. */
   turnByTurn?: SearchControlOptions['turnByTurn']
   origin?: SearchControlOptions['origin']
+  /** A `LookAround` — from `<LookAround onReady>` — for the place card's picture of the street. */
+  lookAround?: SearchControlOptions['lookAround']
   language?: string
   /** The language its words are in. Default `language`, else the map's `locale`, else the browser's. */
   locale?: string
@@ -83,6 +85,7 @@ export function Search(props: SearchProps): JSX.Element {
       location: props.location,
       turnByTurn: props.turnByTurn,
       origin: props.origin,
+      lookAround: props.lookAround,
       language: props.language,
       locale: props.locale,
       details: props.details,
@@ -97,7 +100,8 @@ export function Search(props: SearchProps): JSX.Element {
   })
 
   // Every option is followed; the control does nothing for one that has not
-  // changed. A `TurnByTurn` usually arrives after mount, from its own onReady.
+  // changed. A `TurnByTurn` usually arrives after mount, from its own onReady,
+  // and a `LookAround` the same way.
   createEffect(() => {
     const target = {
       position: props.position,
@@ -110,6 +114,7 @@ export function Search(props: SearchProps): JSX.Element {
       location: props.location,
       turnByTurn: props.turnByTurn,
       origin: props.origin,
+      lookAround: props.lookAround,
       language: props.language,
       locale: props.locale,
       details: props.details,

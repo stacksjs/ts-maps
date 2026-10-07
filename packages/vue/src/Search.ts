@@ -39,6 +39,8 @@ export const Search = defineComponent({
     location: { type: Function as PropType<SearchControlOptions['location']>, default: undefined },
     turnByTurn: { type: Object as PropType<SearchControlOptions['turnByTurn']>, default: undefined },
     origin: { type: Function as PropType<SearchControlOptions['origin']>, default: undefined },
+    /** A `LookAround` — from `<TsLookAround @ready>` — for the place card's picture of the street. */
+    lookAround: { type: Object as PropType<SearchControlOptions['lookAround']>, default: undefined },
     language: { type: String, default: undefined },
     /** The language its words are in. Default `language`, else the map's `locale`, else the browser's. */
     locale: { type: String, default: undefined },
@@ -63,6 +65,7 @@ export const Search = defineComponent({
       location: props.location,
       turnByTurn: props.turnByTurn,
       origin: props.origin,
+      lookAround: props.lookAround,
       language: props.language,
       locale: props.locale,
       details: props.details,
@@ -87,8 +90,8 @@ export const Search = defineComponent({
 
     // Every option is followed; the control does nothing for one that has not
     // changed. A `TurnByTurn` usually arrives after mount, from its own
-    // `ready`. Categories are compared by value, so an inline list is not a
-    // change on every render.
+    // `ready`, and a `LookAround` the same way. Categories are compared by
+    // value, so an inline list is not a change on every render.
     watch(
       [
         () => props.position,
@@ -101,6 +104,7 @@ export const Search = defineComponent({
         () => props.location,
         () => props.turnByTurn,
         () => props.origin,
+        () => props.lookAround,
         () => props.language,
         () => props.locale,
         () => props.details,

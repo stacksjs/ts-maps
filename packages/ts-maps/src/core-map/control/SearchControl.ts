@@ -4,6 +4,8 @@ import type { SearchCategory } from '../search/categories'
 import type { PlaceDetails, PlaceDetailsProvider } from '../search/details'
 import type { Guide, SavedPlace, SavedPlaces } from '../search/saved'
 import type { SearchHistoryEntry, SearchPlace } from '../search/SearchEngine'
+import type { LookAround } from '../lookaround/LookAround'
+import type { StreetImage } from '../lookaround/providers'
 import type { DistanceUnits } from '../services/instructions'
 import type { GeocoderProvider, LatLngLike } from '../services/types'
 import * as DomEvent from '../dom/DomEvent'
@@ -15,6 +17,7 @@ import { categoriesMatching, categoryForQuery, categoryLabel, kindLabel, SEARCH_
 import { describeOpening, openingStatus, OverpassPlaceDetails } from '../search/details'
 import { clusterPins, PIN_CLUSTER_RADIUS } from '../search/pins'
 import { savedPlaces } from '../search/saved'
+import { nearestImage } from '../lookaround/providers'
 import { describePlace, distanceMeters, SearchEngine, SearchHistory } from '../search/SearchEngine'
 import { PhotonGeocoder } from '../services/providers/Photon'
 import { formatDistance, prefersImperial } from '../services/instructions'
@@ -76,6 +79,11 @@ export interface SearchControlOptions {
   saved?: SavedPlaces | null
   /** Show favorites on the map as stars. Default true. */
   showSaved?: boolean
+  /**
+   * A `LookAround` for the place card: where it has pictures near a place,
+   * the card shows one, and tapping it looks around from there.
+   */
+  lookAround?: LookAround | null
 }
 
 /**
@@ -186,6 +194,8 @@ export class SearchControl extends Control {
   declare _results: SearchPlace[]
   declare _resultsFor?: { query?: string, category?: SearchCategory, center: LatLngLike, zoom: number }
   declare _place?: SearchPlace
+  /** The picture near the place on the card, for Look Around. */
+  declare _street?: StreetImage
   declare _pins: Map<string, Marker>
   /** The places with pins, most important first, and the one chosen. */
   declare _pinned: SearchPlace[]
@@ -331,6 +341,7 @@ export class SearchControl extends Control {
     this._announce([place.name, kindLabel(place.kind, this._locale()), place.address].filter(Boolean).join(', '))
     this._emit('select', { place })
     void this._loadDetails(place)
+    void this._loadStreet(place)
     return this
   }
 
@@ -348,6 +359,20 @@ export class SearchControl extends Control {
    * Fetch a chosen place's hours, phone and website, and fill them into its
    * card if it is still showing. The card does not wait for them.
    */
+  /** A picture near the place, for the card's Look Around. */
+  async _loadStreet(place: SearchPlace): Promise<void> {
+    this._street = undefined
+    const look = this.options.lookAround
+    if (!look)
+      return
+    const image = await nearestImage(look.provider, place.center, 60).catch(() => undefined)
+    if (this._place !== place || !image)
+      return
+    this._street = image
+    if (this._view === 'place')
+      this._renderPlace()
+  }
+
   async _loadDetails(place: SearchPlace): Promise<PlaceDetails | undefined> {
     const provider = this.detailsProvider
     if (!provider)
@@ -561,7 +586,7 @@ export class SearchControl extends Control {
         this.engine.language = target.language
     }
     // Followed as they are, read when next used.
-    for (const key of ['location', 'turnByTurn', 'origin', 'onDirections', 'details', 'shareUrl'] as const) {
+    for (const key of ['location', 'turnByTurn', 'origin', 'onDirections', 'details', 'shareUrl', 'lookAround'] as const) {
       if (has(key))
         (this.options as any)[key] = target[key]
     }
@@ -839,6 +864,10 @@ export class SearchControl extends Control {
       this._directions(this._place)
       return
     }
+    if (action === 'lookaround' && this._place && this._street) {
+      void this.options.lookAround?.open(this._street, { lookAt: this._place.center })
+      return
+    }
     if (action === 'save' && this._place) {
       void this.toggleSaved(this._place)
       return
@@ -1036,6 +1065,7 @@ export class SearchControl extends Control {
           <button type="button" class="${CLASS}-close" data-action="close-place" aria-label="${escape(this._t('search.close'))}">✕</button>
         </div>
         ${this.options.turnByTurn || this.options.onDirections ? `<button type="button" class="${CLASS}-directions" data-action="directions">${CAR}<span>${escape(this._t('search.directions'))}</span></button>` : ''}
+        ${this._street?.thumbUrl ? `<button type="button" class="${CLASS}-lookaround" data-action="lookaround" style="background-image:url(&quot;${escape(this._street.thumbUrl)}&quot;)"><span>${escape(this._t('lookaround.title'))}</span></button>` : ''}
         <div class="${CLASS}-actions">${actions}</div>
         <div class="${CLASS}-note" role="status" aria-live="polite"></div>
         <div class="${CLASS}-place-info">

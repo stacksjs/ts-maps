@@ -16,6 +16,7 @@ sketched in one framework reads the same in another.
 | `Search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `search` prop |
 | `MapType` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `mapType` prop |
 | `IndoorMap` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `indoor` prop |
+| `LookAround` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `lookAround` prop |
 | `Landmark` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `landmarks` prop |
 | `Trees` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `trees` prop |
 | Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
@@ -414,6 +415,63 @@ the WebView, linked to its `search`, with every event arriving at one
 />
 ```
 
+## Look Around
+
+`LookAround` adds Apple Maps' Look Around: a binoculars button that shows the
+streets with pictures in blue, and a full-bleed viewer to turn in and walk
+through them, with a small map in the corner. `provider` says where pictures
+come from — `new PanoramaxImagery()` (the default, open, no key) or
+`new MapillaryImagery({ accessToken })`. `choosing` shows the streets and
+waits for a tap, `at` opens the viewer at the picture nearest a place (`null`
+closes it), and `heading` turns it — each followed only when it changes, so
+the viewer closed by its own Done stays closed. `provider` and `position` are
+followed as they change; `miniMap`, `locale` and `title` are read when the
+control is made, and a new one makes it again. Given to `Search` as
+`lookAround`, a place's card offers the pictures near it.
+
+```tsx
+// React and Solid
+<Map center={[48.8606, 2.3376]} zoom={16}>
+  <LookAround onReady={setLook} at={at} onClose={() => setAt(null)} />
+  <Search lookAround={look} />
+</Map>
+```
+
+```vue
+<!-- Vue, and Nuxt as <TsMapsLookAround> -->
+<TsLookAround v-model:choosing="choosing" :at="at" @ready="look = $event" />
+<TsSearch :look-around="look" />
+```
+
+```svelte
+<LookAround bind:choosing {at} onReady={(c) => (look = c)} />
+<Search lookAround={look} />
+```
+
+The events are the same everywhere — `open` and `imagechange` (`{ image }`),
+`close`, `viewchange` (`{ heading, pitch, fov }`), `choosingchange`
+(`{ choosing }`) and `notfound` (`{ at }`) when there is no picture near — as
+`onOpen` props in React, Solid and Svelte, `@open` in Vue, and a bubbling
+`lookaround:open` DOM event in stx. `ready` hands over the control, for
+`open`, `close`, `setView` and `step`.
+
+A provider cannot be written in markup, so stx's `<LookAround>` names one —
+`provider` `panoramax` (`endpoint` for another instance) or `mapillary` with
+an `accessToken` — and is linked to a `<Search>` in the same map without being
+told. React Native does the same inside the WebView, linked to its `search`
+by `lookAround: true`, with every event arriving at one
+`onLookAround({ type, data })` — a picture reduced to
+`{ id, provider, lat, lng, heading, capturedAt }`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  search={{ lookAround: true }}
+  lookAround={{ at, provider: 'mapillary', accessToken: token }}
+  onLookAround={e => e.type === 'close' && setAt(null)}
+/>
+```
+
 ## Landmarks and trees
 
 `Landmark` stands a glTF model where a building is, after Apple Maps'
@@ -484,7 +542,7 @@ What follows a change:
 
 - `Search`, `OfflineMaps`, `MapType` and `TurnByTurn` follow their own
   `locale` as it changes, relabelling in place.
-- `IndoorMap` and the control components (`ZoomControl`,
+- `IndoorMap`, `LookAround` and the control components (`ZoomControl`,
   `NavigationControl`, `LocateControl`, `FullscreenControl`) are made again
   for a new `locale`; in stx they are read when built.
 - The map's `locale` is read when it is built in stx. In the other bindings a
@@ -494,7 +552,8 @@ What follows a change:
 
 React Native takes `locale` on `MapView`. It is baked into the document, and
 a change after load goes over the bridge: search, offline maps, the map type
-picker and turn-by-turn relabel in place, and the indoor map is made again.
+picker and turn-by-turn relabel in place, and the indoor map and Look Around
+are made again.
 `controls` keep the language they were built in.
 
 ```tsx
@@ -541,7 +600,7 @@ from your layout. Two rules are worth knowing up front:
   instead each child renders inert markup and `<Map>` walks its subtree and
   builds what it finds. Markers added to the DOM later are not picked up — add
   those through the map. `<OfflineMaps>`, `<Search>`, `<TurnByTurn>`,
-  `<MapType>`, `<IndoorMap>`, `<Landmark>` and `<Trees>` keep following their props after that: a change to the markup is handed to the
+  `<MapType>`, `<IndoorMap>`, `<LookAround>`, `<Landmark>` and `<Trees>` keep following their props after that: a change to the markup is handed to the
   control. Live objects such as `maps` or `provider` cannot be written in
   markup; pass them to the control's `sync` from its `ready` event.
 
