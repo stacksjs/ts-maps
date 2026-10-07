@@ -25,6 +25,7 @@ describe('@ts-maps/vue Search', () => {
           provider,
           offline: null,
           recents: false,
+          details: null,
           query: query.value,
           onResults: (e: any) => results.push(e.places.map((p: any) => p.name)),
           onSelect: (e: any) => selected.push(e.place.name),
@@ -75,6 +76,38 @@ describe('@ts-maps/vue Search', () => {
     expect(control.engine.provider).toBe(other)
     expect(control.options.categories).toEqual([coffee])
     expect(host.querySelector('.tsmap-top.tsmap-right .tsmap-search-input')).not.toBeNull()
+
+    app.unmount()
+    host.remove()
+  })
+
+  test('emits a chosen place\'s details from the details provider', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const found = { openingHours: 'Mo-Su 07:00-22:00', phone: '+1 415 983 8000' }
+    const details = { name: 'fake', details: async () => found }
+    const arrived: any[] = []
+    let control: any
+    const app = createApp({
+      render: () => h(Map as any, { containerClass: 'ts-map-host', center: [37.79, -122.4], zoom: 15 }, () => [
+        h(Search as any, {
+          provider,
+          offline: null,
+          recents: false,
+          details,
+          query: 'ferry',
+          onDetails: (e: any) => arrived.push(e),
+          onReady: (c: any) => (control = c),
+        }),
+      ]),
+    })
+    app.mount(host)
+    await settle()
+    control.select(control.results[0])
+    await settle()
+    expect(arrived).toHaveLength(1)
+    expect(arrived[0].place.name).toBe('Ferry Building')
+    expect(arrived[0].details).toEqual(found)
 
     app.unmount()
     host.remove()

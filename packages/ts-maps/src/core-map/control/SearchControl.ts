@@ -1,6 +1,7 @@
 import type { OfflineMaps } from '../offline/OfflineMaps'
 import type { TileSchema } from '../offline/schema'
 import type { SearchCategory } from '../search/categories'
+import type { PlaceDetails, PlaceDetailsProvider } from '../search/details'
 import type { SearchHistoryEntry, SearchPlace } from '../search/SearchEngine'
 import type { DistanceUnits } from '../services/instructions'
 import type { GeocoderProvider, LatLngLike } from '../services/types'
@@ -9,6 +10,7 @@ import * as DomUtil from '../dom/DomUtil'
 import { DivIcon } from '../layer/marker/DivIcon'
 import { Marker } from '../layer/marker/Marker'
 import { categoriesMatching, categoryForQuery, kindLabel, SEARCH_CATEGORIES } from '../search/categories'
+import { describeOpening, openingStatus, OverpassPlaceDetails } from '../search/details'
 import { clusterPins, PIN_CLUSTER_RADIUS } from '../search/pins'
 import { describePlace, distanceMeters, SearchEngine, SearchHistory } from '../search/SearchEngine'
 import { PhotonGeocoder } from '../services/providers/Photon'
@@ -56,21 +58,32 @@ export interface SearchControlOptions {
   language?: string
   /** The schema of the map's tiles. Default: found from their layer names. */
   schema?: TileSchema
+  /**
+   * Where a chosen place's hours, phone and website come from. Default
+   * OpenStreetMap through Overpass, or none with `provider: null`; `null`
+   * for none.
+   */
+  details?: PlaceDetailsProvider | null
+  /** The link Share sends. Default the place on openstreetmap.org. */
+  shareUrl?: (place: SearchPlace) => string
 }
 
 /**
  * Every event search reports, with the callback-prop name bindings would give
  * it. `results` carries `{ query?, category?, places }`; `select` and
- * `directions` `{ place }`; `clear` nothing.
+ * `directions` `{ place }`; `details` `{ place, details }`, once a chosen
+ * place's hours, phone and website arrive; `clear` nothing.
  */
 export const SEARCH_EVENTS: {
   readonly results: 'onResults'
   readonly select: 'onSelect'
+  readonly details: 'onDetails'
   readonly directions: 'onDirections'
   readonly clear: 'onClear'
 } = {
   results: 'onResults',
   select: 'onSelect',
+  details: 'onDetails',
   directions: 'onDirections',
   clear: 'onClear',
 }
@@ -121,6 +134,9 @@ export function badge(icon: string, size: number = 30): string {
 
 const MAGNIFIER = `<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M10.5 4a6.5 6.5 0 1 1 0 13a6.5 6.5 0 1 1 0-13Z M15.3 15.3 20 20"/></svg>`
 const CLOCK = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 3.5a8.5 8.5 0 1 1 0 17a8.5 8.5 0 1 1 0-17Z M12 7.5V12l3 2"/></svg>`
+const PHONE = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.6 3.5c.5-.4 1.2-.3 1.6.2l2 2.7c.4.5.3 1.2-.1 1.6l-1.3 1.2a11.4 11.4 0 0 0 5.9 5.9l1.2-1.3c.4-.4 1.1-.5 1.6-.1l2.7 2c.5.4.6 1.1.2 1.6l-1.3 1.8c-.6.8-1.6 1.2-2.6.9C10.3 18.7 5.3 13.7 3.9 7.5c-.3-1 .1-2 .9-2.6Z"/></svg>`
+const GLOBE = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 1 0 0-17Zm-8.5 8.5h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5Z"/></svg>`
+const SHARE = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 14.5V3.5m0 0-3.5 3.5M12 3.5l3.5 3.5M8 10H6.5v10h11V10H16"/></svg>`
 const CAR = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.2 5.5h11.6l2.2 6v7h-2.5v-2H6.5v2H4v-7Zm1.5 1.8-1.4 4.2h11.4l-1.4-4.2ZM7 13.2a1.3 1.3 0 1 0 0 2.6a1.3 1.3 0 1 0 0-2.6Zm10 0a1.3 1.3 0 1 0 0 2.6a1.3 1.3 0 1 0 0-2.6Z"/></svg>`
 
 /** A name with the typed part in bold, as suggestions show it. */
@@ -150,6 +166,9 @@ export class SearchControl extends Control {
   declare _pins: Map<string, Marker>
   /** The places with pins, most important first, and the one chosen. */
   declare _pinned: SearchPlace[]
+  /** Details fetched for places, by id; null where there were none. */
+  declare _details: Map<string, PlaceDetails | null>
+  declare _detailsAbort?: AbortController
   declare _selectedId?: string
   /** The clusters drawn now, so a zoom that changes none redraws nothing. */
   declare _pinLayout?: string
@@ -169,6 +188,7 @@ export class SearchControl extends Control {
     this._results = []
     this._pins = new Map()
     this._pinned = []
+    this._details = new Map()
   }
 
   onAdd(map: any): HTMLElement {
@@ -270,7 +290,86 @@ export class SearchControl extends Control {
     }
     this._show('place')
     this._emit('select', { place })
+    void this._loadDetails(place)
     return this
+  }
+
+  /**
+   * The provider for details: the one given, or OpenStreetMap's. None by
+   * default for a search kept off the network with `provider: null`.
+   */
+  get detailsProvider(): PlaceDetailsProvider | null {
+    if (this.options.details === undefined)
+      this.options.details = this.options.provider === null ? null : new OverpassPlaceDetails()
+    return this.options.details
+  }
+
+  /**
+   * Fetch a chosen place's hours, phone and website, and fill them into its
+   * card if it is still showing. The card does not wait for them.
+   */
+  async _loadDetails(place: SearchPlace): Promise<PlaceDetails | undefined> {
+    const provider = this.detailsProvider
+    if (!provider)
+      return undefined
+    if (this._details.has(place.id))
+      return this._details.get(place.id) ?? undefined
+    this._detailsAbort?.abort()
+    const abort = this._detailsAbort = new AbortController()
+    let details: PlaceDetails | undefined
+    try {
+      details = await provider.details(place, { signal: abort.signal })
+    }
+    catch {
+      // Offline, rate-limited, or not found: the card is complete without.
+      return undefined
+    }
+    if (abort.signal.aborted)
+      return undefined
+    this._details.set(place.id, details ?? null)
+    if (details) {
+      if (this._view === 'place' && this._place?.id === place.id)
+        this._renderPlace()
+      this._emit('details', { place, details })
+    }
+    return details
+  }
+
+  /** Share a place: the system share sheet where there is one, the clipboard where not. */
+  async share(place: SearchPlace): Promise<'shared' | 'copied' | 'failed'> {
+    const url = this.options.shareUrl?.(place)
+      ?? `https://www.openstreetmap.org/?mlat=${place.center.lat.toFixed(6)}&mlon=${place.center.lng.toFixed(6)}#map=18/${place.center.lat.toFixed(6)}/${place.center.lng.toFixed(6)}`
+    const nav = typeof navigator === 'undefined' ? undefined : navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
+    if (typeof nav?.share === 'function') {
+      try {
+        await nav.share({ title: place.name, text: [place.name, place.address].filter(Boolean).join(', '), url })
+        return 'shared'
+      }
+      catch (err) {
+        if ((err as Error)?.name === 'AbortError')
+          return 'failed'
+      }
+    }
+    try {
+      await nav?.clipboard?.writeText(url)
+      this._flash('Link copied')
+      return 'copied'
+    }
+    catch {
+      return 'failed'
+    }
+  }
+
+  /** A word on the card for a moment: "Link copied". */
+  _flash(text: string): void {
+    const note = this._body?.querySelector<HTMLElement>(`.${CLASS}-note`)
+    if (!note)
+      return
+    note.textContent = text
+    setTimeout(() => {
+      if (note.textContent === text)
+        note.textContent = ''
+    }, 2000)
   }
 
   /** Close everything: results, pins, the card. */
@@ -331,7 +430,7 @@ export class SearchControl extends Control {
         this.engine.language = target.language
     }
     // Followed as they are, read when next used.
-    for (const key of ['location', 'turnByTurn', 'origin', 'onDirections'] as const) {
+    for (const key of ['location', 'turnByTurn', 'origin', 'onDirections', 'details', 'shareUrl'] as const) {
       if (has(key))
         (this.options as any)[key] = target[key]
     }
@@ -376,6 +475,8 @@ export class SearchControl extends Control {
       case 'select':
       case 'directions':
         return { place: plain(event?.place) }
+      case 'details':
+        return { place: plain(event?.place), details: event?.details ? JSON.parse(JSON.stringify(event.details)) : undefined }
       default:
         return {}
     }
@@ -540,6 +641,10 @@ export class SearchControl extends Control {
       this._directions(this._place)
       return
     }
+    if (action === 'share' && this._place) {
+      void this.share(this._place)
+      return
+    }
     const row = target.closest<HTMLElement>('[data-row]')
     if (row) {
       const chosen = this._rows[Number(row.dataset.row)]
@@ -688,6 +793,16 @@ export class SearchControl extends Control {
     const kind = kindLabel(place.kind)
     const distance = place.distance !== undefined ? formatDistance(place.distance, units) : undefined
     const coords = `${place.center.lat.toFixed(5)}, ${place.center.lng.toFixed(5)}`
+    const details = this._details.get(place.id) ?? undefined
+    const status = details?.openingHours ? openingStatus(details.openingHours) : undefined
+    const hours = status ? `<div class="${CLASS}-place-hours ${CLASS}-${status.open ? 'open' : 'closed'}">${escape(describeOpening(status, new Date(), this.options.language))}</div>` : ''
+    const website = details?.website && /^https?:\/\//i.test(details.website) ? details.website : details?.website ? `https://${details.website}` : undefined
+    const phone = details?.phone?.replace(/[^\d+]/g, '')
+    const actions = [
+      phone ? `<a class="${CLASS}-action" href="tel:${escape(phone)}">${PHONE}<span>Call</span></a>` : '',
+      website ? `<a class="${CLASS}-action" href="${escape(website)}" target="_blank" rel="noopener noreferrer">${GLOBE}<span>Website</span></a>` : '',
+      `<button type="button" class="${CLASS}-action" data-action="share">${SHARE}<span>Share</span></button>`,
+    ].join('')
     this._rows = []
     this._body!.dataset.html = ''
     this._body!.innerHTML = `
@@ -697,11 +812,17 @@ export class SearchControl extends Control {
           <div class="${CLASS}-place-title">
             <div class="${CLASS}-place-name">${escape(place.name)}</div>
             <div class="${CLASS}-place-kind">${escape([kind, distance].filter(Boolean).join(' · '))}</div>
+            ${hours}
           </div>
           <button type="button" class="${CLASS}-close" data-action="close-place" aria-label="Close">✕</button>
         </div>
         ${this.options.turnByTurn || this.options.onDirections ? `<button type="button" class="${CLASS}-directions" data-action="directions">${CAR}<span>Directions</span></button>` : ''}
+        <div class="${CLASS}-actions">${actions}</div>
+        <div class="${CLASS}-note" role="status" aria-live="polite"></div>
         <div class="${CLASS}-place-info">
+          ${details?.openingHours ? `<div class="${CLASS}-info-label">Hours</div><div class="${CLASS}-info-value">${escape(details.openingHours)}</div>` : ''}
+          ${details?.phone ? `<div class="${CLASS}-info-label">Phone</div><div class="${CLASS}-info-value">${escape(details.phone)}</div>` : ''}
+          ${website ? `<div class="${CLASS}-info-label">Website</div><div class="${CLASS}-info-value">${escape(website.replace(/^https?:\/\/(?:www\.)?/i, '').replace(/\/$/, ''))}</div>` : ''}
           ${place.address ? `<div class="${CLASS}-info-label">Address</div><div class="${CLASS}-info-value">${escape(place.address)}</div>` : ''}
           <div class="${CLASS}-info-label">Coordinates</div><div class="${CLASS}-info-value">${coords}</div>
         </div>
@@ -712,7 +833,6 @@ export class SearchControl extends Control {
   // The map
   // ---------------------------------------------------------------------------
 
-  /** Apple's balloon pin: the category's colour and glyph, on a stem. */
   /** Give a place a pin, chosen or not, among the others. */
   _pin(place: SearchPlace, selected: boolean): void {
     if (!this._pinned.some(p => p.id === place.id))
@@ -751,6 +871,7 @@ export class SearchControl extends Control {
     }
   }
 
+  /** Apple's balloon pin: the category's colour and glyph, on a stem. */
   _addPin(place: SearchPlace, selected: boolean): void {
     const category = POI_CATEGORIES[place.icon] ?? POI_CATEGORIES.place!
     const html = `<div class="${CLASS}-pin${selected ? ` ${CLASS}-pin-selected` : ''}" style="--pin:${category.color}">

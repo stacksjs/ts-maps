@@ -15,10 +15,12 @@
  * followed after mount: a changed `data-options` goes to the control's
  * `sync`. Events cannot be props here — stx passes props as data — so each
  * one is a DOM event bubbling from the map: `search:results`,
- * `search:select`, `search:directions` and `search:clear`, with the core
- * event as `detail`. `search:ready` hands the page the control itself, for
- * `search`, `select` and `sync` later — and for the live options markup
- * cannot carry, `provider`, `offline`, `location` and `origin`:
+ * `search:select`, `search:details` (a chosen place's hours, phone and
+ * website, `{ place, details }`), `search:directions` and `search:clear`,
+ * with the core event as `detail`. `search:ready` hands the page the control
+ * itself, for `search`, `select` and `sync` later — and for the live options
+ * markup cannot carry, `provider`, `offline`, `location`, `origin`, `details`
+ * and `shareUrl`:
  *
  * ```js
  * container.addEventListener('search:ready', e => { search = e.detail.control })

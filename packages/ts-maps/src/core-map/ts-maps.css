@@ -2279,6 +2279,64 @@ a.tsmap-control-locate-denied::after {
   font-weight: 600;
 }
 
+/* "Open · Closes 9 PM", green while open and red once closed, as Apple's. */
+.tsmap-search-place-hours {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+
+  &.tsmap-search-open {
+    color: #248a3d;
+  }
+
+  &.tsmap-search-closed {
+    color: #d70015;
+  }
+}
+
+.tsmap-dark .tsmap-search-place-hours {
+  &.tsmap-search-open {
+    color: #30d158;
+  }
+
+  &.tsmap-search-closed {
+    color: #ff6961;
+  }
+}
+
+/* Call, Website and Share: smaller than Directions, side by side. */
+.tsmap-search-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tsmap-search .tsmap-search-action {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: var(--tsmap-nav-option-bg);
+  color: #0a84ff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tsmap-search-note {
+  margin-top: 6px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--tsmap-nav-card-muted);
+
+  &:empty {
+    display: none;
+  }
+}
+
 .tsmap-search-place-info {
   margin-top: 14px;
   padding: 10px 12px;

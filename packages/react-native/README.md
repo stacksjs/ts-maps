@@ -52,7 +52,7 @@ export default function Screen() {
 | `onError`     | `(e: { message }) => void`                                      | Errors from inside the WebView              |
 | `onReady`     | `(api: { call(method, ...args): Promise<unknown> }) => void`    | Escape hatch for imperative `TsMap` methods |
 
-`turnByTurn`, `offlineMaps` and `search` are live: change any field, options included, and the map follows over the bridge without reloading the WebView; a field removed returns to its default. Only data crosses the bridge, so the options the other bindings take as objects or functions — `directions` for navigation, `maps` and `geocoder` for offline maps, `provider`, `offline`, `location`, `origin` and `onDirections` for search — are not available here, and the WebView's defaults are used. `controls` is read when the map is built.
+`turnByTurn`, `offlineMaps` and `search` are live: change any field, options included, and the map follows over the bridge without reloading the WebView; a field removed returns to its default. Only data crosses the bridge, so the options the other bindings take as objects or functions — `directions` for navigation, `maps` and `geocoder` for offline maps, `provider`, `offline`, `location`, `origin`, `onDirections`, `details` and `shareUrl` for search — are not available here, and the WebView's defaults are used. Search's events, a chosen place's `details` among them, reach `onSearch` as plain data. `controls` is read when the map is built.
 
 ## Bundling the runtime
 

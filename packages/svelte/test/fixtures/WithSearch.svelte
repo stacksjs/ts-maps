@@ -5,6 +5,8 @@
   import Search from '../../src/Search.svelte'
 
   export let provider: any
+  // None unless a test gives one, so choosing a place does not ask Overpass.
+  export let details: any = null
   export let events: Array<[string, unknown]> = []
   export let control: any = null
   let query: string | undefined
@@ -37,11 +39,13 @@
     {provider}
     {categories}
     {position}
+    {details}
     offline={null}
     recents={false}
     {query}
     onReady={(c) => { control = c }}
     onResults={(e) => events.push(['results', e.places.map((p) => p.name)])}
     onSelect={(e) => events.push(['select', e.place.name])}
+    onDetails={(e) => events.push(['details', e.details])}
   />
 </Map>

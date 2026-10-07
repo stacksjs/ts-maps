@@ -556,11 +556,11 @@ describe('search over the bridge', () => {
     const w = window as any
     w.tsMaps = tsMaps
     w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
-    // Photon, answering for the Ferry Building.
+    // Photon, answering for the Ferry Building, and Overpass with its details.
     const original = globalThis.fetch
-    globalThis.fetch = (async () => new Response(JSON.stringify({
-      features: [{ geometry: { type: 'Point', coordinates: [-122.3937, 37.7955] }, properties: { name: 'Ferry Building', osm_key: 'tourism', osm_value: 'attraction', city: 'San Francisco' } }],
-    }))) as any
+    globalThis.fetch = (async (url: string) => new Response(JSON.stringify(String(url).includes('overpass')
+      ? { elements: [{ type: 'node', id: 1, tags: { name: 'Ferry Building', phone: '+1 415 983 8000' } }] }
+      : { features: [{ geometry: { type: 'Point', coordinates: [-122.3937, 37.7955] }, properties: { name: 'Ferry Building', osm_key: 'tourism', osm_value: 'attraction', city: 'San Francisco' } }] }))) as any
     try {
       runScript(script)
       expect(page.querySelector('.tsmap-search-input')).not.toBeNull()
@@ -575,6 +575,11 @@ describe('search over the bridge', () => {
       row.click()
       expect(page.querySelector('[data-action="directions"]')).not.toBeNull()
       expect(posted.some(e => e.type === 'search' && e.payload.type === 'select')).toBe(true)
+      // Its details follow, as plain data.
+      await new Promise(r => setTimeout(r, 30))
+      const details = posted.find(e => e.type === 'search' && e.payload.type === 'details')
+      expect(details?.payload.data.place.name).toBe('Ferry Building')
+      expect(details?.payload.data.details.phone).toBe('+1 415 983 8000')
 
       window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setSearch', id: 's2', payload: { search: null } }) }))
       expect(page.querySelector('.tsmap-search-input')).toBeNull()

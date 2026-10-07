@@ -24,7 +24,7 @@ function mount(): { host: HTMLElement, render: (props: Record<string, unknown>) 
     host,
     render: props => act(() => {
       root.render(createElement(Map, { center: [37.79, -122.40], zoom: 15, containerStyle: { width: '430px', height: '800px' } },
-        createElement(Search, { provider, offline: null, recents: false, ...props })))
+        createElement(Search, { provider, offline: null, recents: false, details: null, ...props })))
     }),
   }
 }
@@ -78,5 +78,16 @@ describe('@ts-maps/react Search', () => {
     expect(control.engine.provider).toBe(other)
     expect(control.options.categories).toEqual([coffee])
     expect(host.querySelector('.tsmap-top.tsmap-right .tsmap-search-input')).not.toBeNull()
+  })
+
+  test('a chosen place\'s details arrive as onDetails', async () => {
+    const { render } = mount()
+    let control: any
+    const got: any[] = []
+    const details = { name: 'fake', details: async () => ({ phone: '+1 415 555 0100', openingHours: '24/7' }) }
+    render({ details, onReady: (c: any) => (control = c), onDetails: (e: any) => got.push(e) })
+    control.select({ id: 'p', name: 'Ferry Building', center: place.center, kind: 'attraction', icon: 'attraction', source: 'online', rank: 5 })
+    await settle()
+    expect(got[0]?.details.phone).toBe('+1 415 555 0100')
   })
 })

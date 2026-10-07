@@ -23,10 +23,16 @@ export interface SearchProps {
   turnByTurn?: SearchControlOptions['turnByTurn']
   origin?: SearchControlOptions['origin']
   language?: string
+  /** Where a chosen place's hours, phone and website come from. Default OpenStreetMap; `null` for none. */
+  details?: SearchControlOptions['details']
+  /** The link Share sends. Default the place on openstreetmap.org. */
+  shareUrl?: SearchControlOptions['shareUrl']
   /** The underlying control, for `search`, `searchCategory`, `select` and `cancel`. */
   onReady?: (control: SearchControl) => void
   onResults?: (e: any) => void
   onSelect?: (e: any) => void
+  /** A chosen place's hours, phone and website arrived: `{ place, details }`. */
+  onDetails?: (e: any) => void
   onDirections?: (e: any) => void
   onClear?: (e: any) => void
 }
@@ -68,6 +74,8 @@ export function Search(props: SearchProps): JSX.Element {
       turnByTurn: props.turnByTurn,
       origin: props.origin,
       language: props.language,
+      details: props.details,
+      shareUrl: props.shareUrl,
     }))
     search.addTo(map)
     unlisten = search.listen((type, e) => (props as any)[SEARCH_EVENTS[type]]?.(e))
@@ -90,6 +98,8 @@ export function Search(props: SearchProps): JSX.Element {
       turnByTurn: props.turnByTurn,
       origin: props.origin,
       language: props.language,
+      details: props.details,
+      shareUrl: props.shareUrl,
     }
     control()?.sync(target)
   })

@@ -2,3 +2,7 @@ export { categoriesMatching, categoryForQuery, iconForKind, kindLabel, SEARCH_CA
 export type { SearchCategory } from './categories'
 export { describePlace, distanceMeters, merge as mergeSearchResults, placeFromResult, SearchEngine, SearchHistory, StreetIndex } from './SearchEngine'
 export type { SearchEngineOptions, SearchHistoryEntry, SearchPlace, SearchQueryOptions } from './SearchEngine'
+export { describeOpening, detailsFromTags, openingStatus, osmRef, OverpassPlaceDetails, parseOpeningHours } from './details'
+export type { OpeningStatus, OverpassPlaceDetailsOptions, PlaceDetails, PlaceDetailsProvider } from './details'
+export { clusterPins, PIN_CLUSTER_RADIUS } from './pins'
+export type { PinCluster, PinPoint } from './pins'

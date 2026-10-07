@@ -87,6 +87,11 @@ control.search({ turnByTurn: nav }).addTo(map)
   address, coordinates, and **Directions**. Directions previews the route on
   the `TurnByTurn` you pass, from `origin` (the device's position by default)
   and calls `onDirections`.
+- **Its details:** the card shows at once from what search knows, then fills
+  in as OpenStreetMap answers: whether it is open ("Open · Closes 9 PM",
+  "Closed · Opens tomorrow 8 AM", read from `opening_hours`), its phone and
+  website, with **Call** and **Website** buttons. **Share** opens the system
+  share sheet, or copies a link where there is none.
 - **Keyboard:** arrow keys move through the rows, Enter picks, and Escape goes
   back one step.
 
@@ -108,6 +113,8 @@ Answers come from three places at once, merged so the same café is one result:
 | `units` | from the locale | `'metric'` or `'imperial'`. |
 | `location` | map centre | Where distances are measured from. |
 | `turnByTurn`, `origin`, `onDirections` | — | What Directions does. |
+| `details` | OpenStreetMap, through Overpass | A `PlaceDetailsProvider` for hours, phone and website, or `null`. None by default with `provider: null`. |
+| `shareUrl` | the place on openstreetmap.org | `(place) => string`: the link Share sends. |
 
 Every framework binding has it as `<Search>`, with `query` followed as a prop —
 see [framework bindings](../guide/framework-bindings.md#search).
@@ -168,8 +175,8 @@ for every query the first cannot answer.
 
 `search.search('coffee')`, `search.searchCategory(category)`,
 `search.select(place)` and `search.cancel()` drive it from code.
-`search.listen((type, e) => …)` hears `results`, `select`, `directions` and
-`clear`. The engine underneath is `SearchEngine`, with `suggest`, `search` and
+`search.listen((type, e) => …)` hears `results`, `select`, `details` (with
+`{ place, details }`), `directions` and `clear`. The engine underneath is `SearchEngine`, with `suggest`, `search` and
 `nearby`. Use it on its own to build a search UI of your own.
 
 ## Geocoder

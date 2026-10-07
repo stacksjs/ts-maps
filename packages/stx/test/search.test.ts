@@ -24,11 +24,13 @@ describe('search child', () => {
     root.addEventListener('search:ready', (e: any) => {
       control = e.detail.control
       // A live provider cannot come from markup: the page hands it over.
-      control.sync({ provider: { name: 'fake', search: async () => [place], reverse: async () => [] }, offline: null })
+      // So are details: a fake one, so choosing a place does not ask Overpass.
+      control.sync({ provider: { name: 'fake', search: async () => [place], reverse: async () => [] }, offline: null, details: { name: 'fake', details: async () => ({ phone: '+1 415 983 8000' }) } })
     })
     root.addEventListener('turnbyturn:ready', (e: any) => { nav = e.detail.nav })
     for (const name of ['results', 'select'])
       root.addEventListener(`search:${name}`, (e: any) => seen.push([name, name === 'results' ? e.detail.places.length : e.detail.place.name]))
+    root.addEventListener('search:details', (e: any) => seen.push(['details', e.detail.details.phone]))
 
     const unmount = mountChildren(map, root)
     await new Promise(r => setTimeout(r, 0))
@@ -40,6 +42,8 @@ describe('search child', () => {
     control.select(control.results[0])
     expect(seen).toContainEqual(['select', 'Ferry Building'])
     expect(root.querySelector('[data-action="directions"]')).not.toBeNull()
+    await new Promise(r => setTimeout(r, 0))
+    expect(seen).toContainEqual(['details', '+1 415 983 8000'])
 
     unmount()
     expect(root.querySelector('.tsmap-search-input')).toBeNull()

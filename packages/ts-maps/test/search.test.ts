@@ -370,7 +370,8 @@ describe('for the framework bindings', () => {
     const coffee = categoryForQuery('coffee')!
     expect(SearchControl.plainEvent('results', { category: coffee, places: [place] })).toEqual({ query: undefined, category: { id: 'coffee', label: 'Coffee' }, places: [place] })
     expect(SearchControl.plainEvent('select', { place })).toEqual({ place })
+    expect(SearchControl.plainEvent('details', { place, details: { phone: '+1 415 555 0100' } })).toEqual({ place, details: { phone: '+1 415 555 0100' } })
     expect(SearchControl.plainEvent('clear', {})).toEqual({})
-    expect(Object.keys(SEARCH_EVENTS)).toEqual(['results', 'select', 'directions', 'clear'])
+    expect(Object.keys(SEARCH_EVENTS)).toEqual(['results', 'select', 'details', 'directions', 'clear'])
   })
 })

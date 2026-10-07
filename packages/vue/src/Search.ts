@@ -18,7 +18,7 @@ import { useMap } from './useMap'
  *
  * Every prop is followed as it changes: a new `provider` is asked from the
  * next query on, new `categories` redraw Find Nearby in place. Events carry the core names — `results`,
- * `select`, `directions`, `clear` — and `ready` hands over the control.
+ * `select`, `details`, `directions`, `clear` — and `ready` hands over the control.
  */
 export const Search = defineComponent({
   name: 'TsSearch',
@@ -37,6 +37,8 @@ export const Search = defineComponent({
     turnByTurn: { type: Object as PropType<SearchControlOptions['turnByTurn']>, default: undefined },
     origin: { type: Function as PropType<SearchControlOptions['origin']>, default: undefined },
     language: { type: String, default: undefined },
+    details: { type: Object as PropType<SearchControlOptions['details']>, default: undefined },
+    shareUrl: { type: Function as PropType<SearchControlOptions['shareUrl']>, default: undefined },
   },
   emits: [...Object.keys(SEARCH_EVENTS), 'ready'],
   setup(props, { emit, expose }) {
@@ -55,6 +57,8 @@ export const Search = defineComponent({
       turnByTurn: props.turnByTurn,
       origin: props.origin,
       language: props.language,
+      details: props.details,
+      shareUrl: props.shareUrl,
     })
 
     const stop = watch(
@@ -88,6 +92,8 @@ export const Search = defineComponent({
         () => props.turnByTurn,
         () => props.origin,
         () => props.language,
+        () => props.details,
+        () => props.shareUrl,
       ],
       () => search?.sync(target()),
     )

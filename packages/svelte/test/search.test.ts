@@ -59,4 +59,26 @@ describe('@ts-maps/svelte Search', () => {
     flushSync()
     el.remove()
   })
+
+  test('reports a chosen place\'s details from the details provider', async () => {
+    const WithSearch = (await import('./fixtures/WithSearch.svelte')).default
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const found = { openingHours: 'Mo-Su 07:00-22:00', phone: '+1 415 983 8000' }
+    const details = { name: 'fake', details: async () => found }
+    const events: Array<[string, unknown]> = []
+    const app = mount(WithSearch, { target: el, props: { provider, details, events } }) as any
+
+    await settle()
+    app.setQuery('ferry')
+    await settle()
+    const control = app.getControl()
+    control.select(control.results[0])
+    await settle()
+    expect(events).toContainEqual(['details', found])
+
+    unmount(app)
+    flushSync()
+    el.remove()
+  })
 })

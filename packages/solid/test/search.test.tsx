@@ -24,6 +24,7 @@ describe('@ts-maps/solid Search', () => {
           provider={provider}
           offline={null}
           recents={false}
+          details={null}
           query={query()}
           onReady={(c) => { control = c }}
           onResults={e => results.push(e.places.map((p: any) => p.name))}
@@ -82,6 +83,40 @@ describe('@ts-maps/solid Search', () => {
     expect(el.querySelector('.tsmap-top.tsmap-right .tsmap-search-input')).not.toBeNull()
     // The query has not changed, so it is not searched again.
     expect(results).toEqual([['Ferry Building']])
+
+    dispose()
+    el.remove()
+  })
+
+  test('reports a chosen place\'s details from the details provider', async () => {
+    const el = document.createElement('div')
+    el.style.width = '430px'
+    el.style.height = '800px'
+    document.body.appendChild(el)
+    const found = { openingHours: 'Mo-Su 07:00-22:00', phone: '+1 415 983 8000' }
+    const details = { name: 'fake', details: async () => found }
+    const arrived: any[] = []
+    let control: any
+    const dispose = render(() => (
+      <Map class="map" center={[37.79, -122.4]} zoom={15}>
+        <Search
+          provider={provider}
+          offline={null}
+          recents={false}
+          details={details}
+          query="ferry"
+          onReady={(c) => { control = c }}
+          onDetails={e => arrived.push(e)}
+        />
+      </Map>
+    ), el)
+
+    await settle()
+    control.select(control.results[0])
+    await settle()
+    expect(arrived).toHaveLength(1)
+    expect(arrived[0].place.name).toBe('Ferry Building')
+    expect(arrived[0].details).toEqual(found)
 
     dispose()
     el.remove()
