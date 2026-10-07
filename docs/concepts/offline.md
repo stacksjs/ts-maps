@@ -150,7 +150,7 @@ offlineServiceWorker({
 navigator.serviceWorker.register('/sw.js')
 ```
 
-- **The app shell.** `shell` is cached on install. A navigation tries the network first, since HTML can carry a session, and falls back to the page cached for it, or to `fallback` (the first of `shell`). On activate, older caches named the same up to the last `-` are deleted. `runtime: true` (or a function choosing by URL) also caches same-origin files as they are fetched, which suits a build that splits its scripts into hashed chunks.
+- **The app shell.** `shell` is cached on install. A navigation tries the network first, since HTML can carry a session, and falls back to the page cached for it, or to `fallback` (the first of `shell`). On activate, older caches named the same up to the last `-` are deleted. Files in `shell` are served from the cache, so change `cache` with each release. `runtime: true` (or a function choosing by URL) also keeps same-origin files as they are fetched, which suits a build that splits its scripts into hashed chunks; those go to the network first while there is one, so a new build is picked up at once, and to the cache when there is not.
 - **Map data the library does not fetch itself.** The map reads downloaded tiles on its own, but an `<img>` in a popup or a raster drawn by hand does not. Those go to the network first, and to the downloaded maps when it fails. `maps: false` leaves them alone.
 - **Downloads in the background.** See below.
 

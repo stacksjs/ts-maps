@@ -51,9 +51,10 @@ export interface OfflineServiceWorkerOptions {
    */
   cache?: string
   /**
-   * Also cache same-origin GETs outside `shell` as they are fetched, and
-   * serve them from the cache first. `true` for every one the server lets be
-   * cached; a function to choose. Default false.
+   * Also cache same-origin GETs outside `shell` as they are fetched, to serve
+   * when the network fails. The network comes first while there is one, so
+   * a new build is picked up at once. `true` for every one the server lets
+   * be cached; a function to choose. Default false.
    */
   runtime?: boolean | ((url: URL, request: Request) => boolean)
   /** Answer requests for map data from downloaded maps when the network fails. Default true. */
@@ -161,13 +162,25 @@ export function offlineServiceWorker(options: OfflineServiceWorkerOptions = {}, 
       return
     }
 
+    // The shell, from the cache: it is versioned by the cache's name.
+    if (sameOrigin && shellPaths.has(url.pathname)) {
+      event.respondWith(scope.caches.match(request).then(cached => cached ?? network(request)))
+      return
+    }
+    // Anything else kept as it loads, from the network while there is one,
+    // so a new build is picked up at once, and from the cache when not.
     const runtime = typeof options.runtime === 'function' ? options.runtime(url, request) : !!options.runtime
-    if (sameOrigin && (shellPaths.has(url.pathname) || runtime)) {
-      event.respondWith(scope.caches.match(request).then(cached => cached ?? network(request).then(async (response) => {
+    if (sameOrigin && runtime) {
+      event.respondWith(network(request).then(async (response) => {
         if (cacheable(response))
           await (await scope.caches.open(cacheName)).put(request, response.clone())
         return response
-      })))
+      }, async (error) => {
+        const cached = await scope.caches.match(request)
+        if (cached)
+          return cached
+        throw error
+      }))
       return
     }
 
