@@ -3,7 +3,7 @@ import type { BunPressConfig } from '@stacksjs/bunpress'
 const config: BunPressConfig = {
   title: 'ts-maps',
   description: 'A modern vector map library for TypeScript',
-  url: 'https://ts-maps.stacksjs.org',
+  url: 'https://ts-maps.stacksjs.com',
 
   themeConfig: {
     socialLinks: [

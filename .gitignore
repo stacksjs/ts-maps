@@ -32,3 +32,6 @@ packages/*/src/**/*.d.ts
 
 # Test fixtures: real tiles, gzipped to keep them small.
 !packages/ts-maps/test/fixtures/*.gz
+
+# ts-cloud driver state (which box the sites are deployed onto, which release).
+.ts-cloud/

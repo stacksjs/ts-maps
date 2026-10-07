@@ -86,7 +86,7 @@ discoverable:
 
 Plugins that meet the naming convention above auto-surface in the npm
 search: <https://www.npmjs.com/search?q=ts-maps-plugin>. A curated list
-lives at <https://ts-maps.dev/plugins>.
+lives at <https://ts-maps.stacksjs.com/plugins>.
 
 Submissions welcome — open a PR against `docs/plugins.md` with a short
 description and a link to your package.

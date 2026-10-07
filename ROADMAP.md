@@ -439,7 +439,7 @@ six frameworks.
 
 - **12.1 Docs site.** Built with `@stacksjs/bunpress`; hosted at
 
-  `ts-maps.dev`. API reference generated from TSDoc.
+  `ts-maps.stacksjs.com`. API reference generated from TSDoc.
 
 - **12.2 Examples gallery.** Runnable demos matching Mapbox's + Leaflet's.
 - **12.3 Style playground** (edit style JSON, see the map re-render).
