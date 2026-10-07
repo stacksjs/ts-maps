@@ -64,11 +64,17 @@ function makeClusterIcon(count: number): DivIcon {
   return new DivIcon({
     className: 'cluster-badge',
     html: `<div style="
-      display:flex;align-items:center;justify-content:center;
-      width:${size}px;height:${size}px;border-radius:50%;
-      background:${tint};border:3px solid #fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:${size}px;
+      height:${size}px;
+      border-radius:50%;
+      background:${tint};
+      border:3px solid #fff;
       box-shadow:0 2px 6px rgba(0,0,0,0.35);
-      color:#fff;font:600 14px -apple-system,sans-serif;
+      color:#fff;
+      font:600 14px -apple-system,sans-serif;
     ">${count}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
@@ -119,9 +125,16 @@ repaintClusters()
 const readout = document.createElement('div')
 readout.className = 'cluster-readout'
 readout.style.cssText = `
-  position:absolute;right:16px;top:16px;z-index:500;
-  background:rgba(15,23,42,0.9);color:#e2e8f0;border-radius:8px;
-  padding:10px 14px;font:500 13px -apple-system,sans-serif;max-width:220px;
+  position:absolute;
+  right:16px;
+  top:16px;
+  z-index:500;
+  background:rgba(15,23,42,0.9);
+  color:#e2e8f0;
+  border-radius:8px;
+  padding:10px 14px;
+  font:500 13px -apple-system,sans-serif;
+  max-width:220px;
   box-shadow:0 4px 12px rgba(0,0,0,0.35);
 `
 readout.textContent = 'Click near a cluster to inspect it.'

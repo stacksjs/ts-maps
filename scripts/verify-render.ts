@@ -52,7 +52,7 @@ const port = await new Promise<number>((accept, reject) => {
   const decoder = new TextDecoder()
   let buf = ''
   const t = setTimeout(() => reject(new Error('server did not report its port in time')), 15000)
-  ;(async () => {
+  const readPort = async (): Promise<void> => {
     while (true) {
       const { value, done } = await reader.read()
       if (done)
@@ -68,7 +68,8 @@ const port = await new Promise<number>((accept, reject) => {
     }
     clearTimeout(t)
     reject(new Error('server exited before emitting its port'))
-  })()
+  }
+  void readPort()
 })
 
 const url = `http://localhost:${port}/core-map/${HTML}`
@@ -115,9 +116,18 @@ catch (err) {
   exitCode = 1
 }
 finally {
-  try { view?.destroy?.() } catch {}
-  try { view?.terminate?.() } catch {}
-  try { serverProc.kill() } catch {}
+  try {
+    view?.destroy?.()
+  }
+  catch {}
+  try {
+    view?.terminate?.()
+  }
+  catch {}
+  try {
+    serverProc.kill()
+  }
+  catch {}
 }
 
 process.exit(exitCode)

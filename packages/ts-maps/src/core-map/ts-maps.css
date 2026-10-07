@@ -629,9 +629,11 @@ path.tsmap-interactive:focus:not(:focus-visible) {
   }
 }
 
-/* cooperativeGestures: a map that shares the page.
-   One finger scrolls the page; two move the map. Declared after, and more
-   specific than, the drag/zoom `touch-action: none` above. */
+/*
+ * cooperativeGestures: a map that shares the page.
+ * One finger scrolls the page; two move the map. Declared after, and more
+ * specific than, the drag/zoom `touch-action: none` above.
+ */
 .tsmap-container.tsmap-cooperative,
 .tsmap-container.tsmap-cooperative.tsmap-touch-drag,
 .tsmap-container.tsmap-cooperative.tsmap-touch-drag.tsmap-touch-zoom {
@@ -1039,8 +1041,8 @@ a.tsmap-control-locate-locating .tsmap-locate-icon {
 }
 
 /* Denied or unavailable. Struck through rather than merely greyed: grey reads
-  as "disabled, try later" when the real state is "this will not work until
-  you change a browser setting". */
+  as 'disabled, try later' when the real state is 'this will not work until
+  you change a browser setting'. */
 /*
  * The state class lands on the <a> itself (see LocateControl._setState), so
  * these select the anchor rather than a parent. Written as `.tsmap-control-
@@ -1190,7 +1192,7 @@ a.tsmap-control-locate-denied::after {
 }
 
 /* A spinner would be more literal, but the input is already the thing the eye
-  is on — dimming its text says "working" without adding a moving part. */
+  is on — dimming its text says 'working' without adding a moving part. */
 .tsmap-control-geocoder-busy .tsmap-control-geocoder-input {
   color: var(--tsmap-fg-muted);
 }

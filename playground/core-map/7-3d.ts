@@ -34,9 +34,16 @@ map.setFog({
 
 const panel = document.createElement('div')
 panel.style.cssText = `
-  position:absolute;left:16px;top:16px;z-index:500;
-  background:rgba(15,23,42,0.92);color:#e2e8f0;border-radius:10px;
-  padding:14px 16px;font:500 13px -apple-system,sans-serif;min-width:240px;
+  position:absolute;
+  left:16px;
+  top:16px;
+  z-index:500;
+  background:rgba(15,23,42,0.92);
+  color:#e2e8f0;
+  border-radius:10px;
+  padding:14px 16px;
+  font:500 13px -apple-system,sans-serif;
+  min-width:240px;
   box-shadow:0 4px 12px rgba(0,0,0,0.35);
 `
 panel.innerHTML = `
