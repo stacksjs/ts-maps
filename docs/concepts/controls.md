@@ -89,7 +89,7 @@ control.search({ turnByTurn: nav }).addTo(map)
 
 Answers come from three places at once, merged so the same café is one result:
 
-- **The map's own vector tiles:** instant, and needs no network.
+- **The map's own vector tiles:** instant, and needs no network. OpenMapTiles, Protomaps, Shortbread and Mapbox Streets tiles are all read, told apart by their layer names; `schema` names one.
 - **Downloaded [offline maps](./offline.md).**
 - **An online geocoder:** Photon by default, which is built for
   search-as-you-type (Nominatim's usage policy forbids autocomplete). Pass

@@ -110,7 +110,7 @@ The offline router runs A* over the downloaded roads for driving, walking or cyc
 
 Tiles are simplified when they are made, which drops junction vertices along straight streets. The graph finds those junctions again: at every crossing, and wherever a road ends on another. Roads at different levels are never joined, so a bridge does not connect to the street below it.
 
-Search, reverse geocoding and routing read the OpenMapTiles schema used by the built-in styles.
+Search, reverse geocoding and routing read the tiles' schema, found from their layer names: **OpenMapTiles** (what OpenFreeMap, MapTiler and planetiler publish, and what the built-in styles draw), **Protomaps**, **Shortbread** (VersaTiles, Geofabrik) and **Mapbox Streets v8**. Each is read into one vocabulary, OpenMapTiles' place kinds and road classes, so a café is a `cafe` and a residential street a `minor` road whichever schema it came in. A schema of your own is a `TileSchema` object passed as `new OfflineMaps({ schema })`; the four built in are exported as `OPENMAPTILES`, `PROTOMAPS`, `SHORTBREAD` and `MAPBOX_STREETS`, and `renamedOpenMapTiles({ transportation: 'road' })` matches a style built with `sourceLayers`.
 
 ### Opening the page with no connection
 

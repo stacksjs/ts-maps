@@ -1,4 +1,5 @@
 import type { OfflineMaps } from '../offline/OfflineMaps'
+import type { TileSchema } from '../offline/schema'
 import type { SearchCategory } from '../search/categories'
 import type { SearchHistoryEntry, SearchPlace } from '../search/SearchEngine'
 import type { DistanceUnits } from '../services/instructions'
@@ -52,6 +53,8 @@ export interface SearchControlOptions {
   /** Called by Directions instead of, or as well as, `turnByTurn`. */
   onDirections?: (place: SearchPlace) => void
   language?: string
+  /** The schema of the map's tiles. Default: found from their layer names. */
+  schema?: TileSchema
 }
 
 /**
@@ -162,7 +165,7 @@ export class SearchControl extends Control {
   }
 
   onAdd(map: any): HTMLElement {
-    this.engine = new SearchEngine({ map, provider: this.options.provider, offline: this.options.offline, language: this.options.language })
+    this.engine = new SearchEngine({ map, provider: this.options.provider, offline: this.options.offline, language: this.options.language, schema: this.options.schema })
     const container = DomUtil.create('div', CLASS)
     container.innerHTML = `
       <div class="${CLASS}-field">

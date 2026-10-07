@@ -16,10 +16,12 @@
  */
 
 import type { OfflineMaps } from '../offline/OfflineMaps'
+import type { TileSchema } from '../offline/schema'
 import type { SearchCategory } from './categories'
 import type { GeocoderProvider, GeocodingResult, LatLngLike } from '../services/types'
 import { activeOfflineMaps, offlineMapsNow } from '../offline/OfflineMaps'
 import { unitToLat, unitToLng } from '../offline/plan'
+import { detectSchema } from '../offline/schema'
 import { matchScore } from '../offline/search'
 import { PhotonGeocoder } from '../services/providers/Photon'
 import { iconForKind, kindLabel } from './categories'
@@ -63,10 +65,29 @@ export interface SearchEngineOptions {
   /** Downloaded maps to search. Default: the page's, when it has any. */
   offline?: OfflineMaps | null
   language?: string
+  /**
+   * The schema of the map's vector tiles. Default: found from each source's
+   * layer names — OpenMapTiles, Protomaps, Shortbread or Mapbox Streets.
+   */
+  schema?: TileSchema
 }
 
-/** Tile layers read for places, and what kind of place each holds. */
-const LAYERS = ['poi', 'place', 'transportation_name', 'water_name', 'park', 'aerodrome_label', 'mountain_peak'] as const
+/** What a named feature is to search, whichever layer of whichever schema it came from. */
+type Role = 'poi' | 'place' | 'street' | 'water' | 'park' | 'airport' | 'peak'
+
+/** The schema's layers for each role, POIs first. */
+function roleLayers(schema: TileSchema): Array<[Role, string[]]> {
+  return [['poi', schema.pois], ['place', schema.places], ['street', schema.streetNames], ['water', schema.waters], ['park', schema.parks], ['airport', schema.airports], ['peak', schema.peaks]]
+}
+
+/** The layer names in a source's loaded tiles, to tell its schema by. */
+function loadedLayerNames(host: any): string[] {
+  for (const entry of host._decodedTiles?.values?.() ?? []) {
+    if (entry?.tile?.layers)
+      return Object.keys(entry.tile.layers)
+  }
+  return []
+}
 
 const PLACE_RANK: Record<string, number> = {
   country: 1,
@@ -99,7 +120,7 @@ interface MapFeature {
   name: string
   kind: string
   cls: string
-  layer: string
+  layer: Role
   rank: number
   /** Only decoded for features that are wanted. */
   center: () => LatLngLike | undefined
@@ -110,21 +131,29 @@ interface MapFeature {
  * Every named feature in the vector tiles the map has loaded, with its
  * position worked out only when asked for.
  */
-function* mapFeatures(map: any): Generator<MapFeature> {
+function* mapFeatures(map: any, given?: TileSchema): Generator<MapFeature> {
   for (const host of map?._style?.sourceLayers?.values?.() ?? []) {
     if (typeof host.querySourceFeatures !== 'function' || typeof host._subTile !== 'function')
       continue
-    for (const layer of LAYERS) {
-      for (const { feature, tile } of host.querySourceFeatures({ sourceLayer: layer })) {
+    const schema = given ?? detectSchema(loadedLayerNames(host))
+    for (const [role, sourceLayers] of roleLayers(schema)) {
+      for (const { feature, tile } of sourceLayers.flatMap(sourceLayer => host.querySourceFeatures({ sourceLayer }))) {
         const props = feature.properties ?? {}
-        const name = props['name:latin'] ?? props.name ?? (layer === 'transportation_name' ? props.ref : undefined)
+        const name = props['name:latin'] ?? props.name ?? (role === 'street' ? props.ref : undefined)
         if (typeof name !== 'string' || !name.trim())
           continue
-        const cls = String(props.class ?? layer)
-        const kind = layer === 'transportation_name'
+        // A road layer doubling as the street names: only roads are streets.
+        if (role === 'street' && schema.namedRoads && schema.roadKind(props) === undefined)
+          continue
+        const kind = role === 'street'
           ? 'street'
-          : layer === 'mountain_peak' ? 'peak' : layer === 'aerodrome_label' ? 'airport' : String(props.subclass ?? cls)
-        const rank = typeof props.rank === 'number' ? props.rank : 10
+          : role === 'place'
+            ? schema.placeKind(props)
+            : role === 'poi'
+              ? schema.poiKind(props)
+              : role === 'water' ? schema.waterKind(props) : role
+        const cls = String(props.class ?? kind)
+        const rank = (role === 'place' ? schema.placeRank(props) : role === 'poi' ? schema.poiRank(props) : undefined) ?? 10
         let geometry: LatLngLike[][] | undefined
         const lines = (): LatLngLike[][] => {
           if (geometry)
@@ -153,18 +182,18 @@ function* mapFeatures(map: any): Generator<MapFeature> {
           }
           return ring[Math.floor(ring.length / 2)]
         }
-        yield { name: name.trim(), kind, cls, layer, rank, center, lines }
+        yield { name: name.trim(), kind, cls, layer: role, rank, center, lines }
       }
     }
   }
 }
 
-function prominence(kind: string, rank: number, layer: string): number {
+function prominence(kind: string, rank: number, layer: Role): number {
   if (layer === 'place')
     return PLACE_RANK[kind] ?? 9
   if (layer === 'poi')
     return 11 + Math.min(rank, 60) / 12
-  if (layer === 'transportation_name')
+  if (layer === 'street')
     return 12
   return 10
 }
@@ -176,9 +205,9 @@ function prominence(kind: string, rank: number, layer: string): number {
 export class StreetIndex {
   _cells: Map<string, Array<{ name: string, a: LatLngLike, b: LatLngLike }>> = new Map()
 
-  constructor(map: any, bounds?: [number, number, number, number]) {
-    for (const feature of mapFeatures(map)) {
-      if (feature.layer !== 'transportation_name')
+  constructor(map: any, bounds?: [number, number, number, number], schema?: TileSchema) {
+    for (const feature of mapFeatures(map, schema)) {
+      if (feature.layer !== 'street')
         continue
       for (const line of feature.lines()) {
         for (let i = 1; i < line.length; i++) {
@@ -265,12 +294,14 @@ export class SearchEngine {
   provider: GeocoderProvider | null
   offline?: OfflineMaps | null
   language?: string
+  schema?: TileSchema
 
   constructor(options: SearchEngineOptions = {}) {
     this.map = options.map
     this.provider = options.provider === undefined ? new PhotonGeocoder() : options.provider
     this.offline = options.offline
     this.language = options.language
+    this.schema = options.schema
   }
 
   /** Where "near" is when the caller does not say: the middle of the map. */
@@ -309,7 +340,7 @@ export class SearchEngine {
     const q = fold(query)
     if (!q)
       return out
-    for (const f of mapFeatures(this.map)) {
+    for (const f of mapFeatures(this.map, this.schema)) {
       const match = matchScore(f.name, query)
       if (match <= 0)
         continue
@@ -321,7 +352,7 @@ export class SearchEngine {
         name: f.name,
         center,
         kind: f.kind,
-        icon: f.layer === 'place' || f.layer === 'transportation_name' ? 'place' : iconForKind(f.kind, f.cls),
+        icon: f.layer === 'place' || f.layer === 'street' ? 'place' : iconForKind(f.kind, f.cls),
         source: 'map',
         rank: prominence(f.kind, f.rank, f.layer),
       }, match, near))
@@ -400,7 +431,7 @@ export class SearchEngine {
     const limit = options.limit ?? 25
     const kinds = new Set(category.kinds)
     const out: SearchPlace[] = []
-    for (const f of mapFeatures(this.map)) {
+    for (const f of mapFeatures(this.map, this.schema)) {
       if (f.layer !== 'poi' || !(kinds.has(f.kind) || kinds.has(f.cls)))
         continue
       const center = f.center()
@@ -464,7 +495,7 @@ export class SearchEngine {
     const c = this.map.getCenter?.()
     const key = `${c?.lat.toFixed(3)},${c?.lng.toFixed(3)},${this.map.getZoom?.()?.toFixed(1)}`
     if (this._streets?.key !== key)
-      this._streets = { key, index: new StreetIndex(this.map) }
+      this._streets = { key, index: new StreetIndex(this.map, undefined, this.schema) }
     const index = this._streets.index
     for (const place of needs) {
       const street = index.nearest(place.center)

@@ -21,6 +21,7 @@ import { Evented } from '../core/Events'
 import { pmtilesFetch, withPMTiles } from '../pmtiles/protocol'
 import { saveOfflineRegion } from '../storage/offlineRegion'
 import type { BackgroundFetchLike, OfflineChannelMessage } from './background'
+import type { TileSchema } from './schema'
 import { backgroundFetchRegistration, backgroundId, offlineChannel } from './background'
 import { extractTile, labelGlyphRanges, mergePlaces } from './extract'
 import { IndexedDBOfflineStore, MemoryOfflineStore } from './OfflineStore'
@@ -63,6 +64,12 @@ export interface OfflineMapsOptions {
    * control of the page; without one, downloads stay in the page. Default false.
    */
   background?: boolean
+  /**
+   * The schema of the tiles downloaded, for search and routing. Default:
+   * found from each tile's layer names — OpenMapTiles, Protomaps,
+   * Shortbread or Mapbox Streets.
+   */
+  schema?: TileSchema
 }
 
 export interface AutoUpdateOptions {
@@ -181,6 +188,7 @@ export class OfflineMaps extends Evented {
   _updating: Promise<void> | null = null
   _unwatch?: () => void
   background: boolean
+  schema?: TileSchema
   _channel?: BroadcastChannel
   /** Background downloads this page follows, by region: called when the service worker says one ended. */
   _waiting: Map<string, (region: OfflineRegionRecord | undefined) => void> = new Map()
@@ -195,6 +203,7 @@ export class OfflineMaps extends Evented {
     this.autoResume = options.autoResume ?? false
     this.persist = options.persist ?? true
     this.background = options.background ?? false
+    this.schema = options.schema
     // `pmtiles://` tiles are read from their archive (through this same fetch)
     // and stored under their own URL, which is what the map looks up offline.
     this._fetch = withPMTiles(options.fetch)
@@ -1179,7 +1188,7 @@ export class OfflineMaps extends Evented {
       const tile = await this.store.getTile(url)
       if (!tile?.data.byteLength)
         continue
-      const index = extractTile(tile.data, x, y, z)
+      const index = extractTile(tile.data, x, y, z, this.schema)
       places.push(...index.places)
       roads.push(...index.roads)
     }

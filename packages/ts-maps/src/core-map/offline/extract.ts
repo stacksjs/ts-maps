@@ -2,14 +2,16 @@
  * What search and routing need from a downloaded map, read out of its vector
  * tiles: the names of places, and the road network.
  *
- * Works on the OpenMapTiles schema the built-in styles use. Tiles from a
- * source with other layer names can be read by passing `layers`.
+ * The schema is found from the tile's layer names — OpenMapTiles, Protomaps,
+ * Shortbread or Mapbox Streets — or passed in. See `schema.ts`.
  */
 
 import type { OfflineIndex, OfflinePlace, OfflineRoad } from './OfflineStore'
+import type { TileSchema } from './schema'
 import { VectorTile } from '../mvt/VectorTile'
 import { Pbf } from '../proto/Pbf'
 import { unitToLat, unitToLng } from './plan'
+import { detectSchema, renamedOpenMapTiles } from './schema'
 
 export interface ExtractLayers {
   place: string
@@ -22,16 +24,6 @@ export interface ExtractLayers {
   aerodrome: string
 }
 
-const OPENMAPTILES: ExtractLayers = {
-  place: 'place',
-  poi: 'poi',
-  waterName: 'water_name',
-  transportation: 'transportation',
-  transportationName: 'transportation_name',
-  park: 'park',
-  mountainPeak: 'mountain_peak',
-  aerodrome: 'aerodrome_label',
-}
 
 /** How prominent each kind of place is, when the tile does not say. */
 const PLACE_RANK: Record<string, number> = {
@@ -51,9 +43,6 @@ const PLACE_RANK: Record<string, number> = {
   locality: 9,
   isolated_dwelling: 10,
 }
-
-/** Classes of transportation feature that are not roads. */
-const NOT_ROADS = new Set(['rail', 'transit', 'ferry', 'cable_car', 'aerialway', 'bus_guideway', 'raceway'])
 
 type Pt = [number, number]
 
@@ -140,8 +129,7 @@ function distToSegmentSq(p: Pt, a: Pt, b: Pt): number {
  * Read one tile. `x`, `y`, `z` are the tile's own coordinates, which place its
  * features on the globe.
  */
-export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, layers: Partial<ExtractLayers> = {}): OfflineIndex {
-  const names = { ...OPENMAPTILES, ...layers }
+export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, schemaOrLayers?: TileSchema | Partial<ExtractLayers>): OfflineIndex {
   const places: OfflinePlace[] = []
   const roads: OfflineRoad[] = []
   if (!bytes.length)
@@ -154,6 +142,13 @@ export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, 
   catch {
     return { places, roads }
   }
+  // Layer names alone are OpenMapTiles renamed, which is how the styles'
+  // `sourceLayers` describe a source.
+  const schema: TileSchema = !schemaOrLayers
+    ? detectSchema(Object.keys(tile.layers))
+    : 'roads' in schemaOrLayers && Array.isArray(schemaOrLayers.roads)
+      ? schemaOrLayers as TileSchema
+      : renamedOpenMapTiles(schemaOrLayers as Partial<ExtractLayers>)
   const n = 2 ** z
 
   const toLatLng = (p: Pt, extent: number): [number, number] => [
@@ -161,14 +156,16 @@ export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, 
     unitToLng((x + p[0] / extent) / n),
   ]
 
-  const eachFeature = (layerName: string, fn: (props: Record<string, unknown>, geometry: Pt[][], type: number, extent: number) => void): void => {
-    const layer = tile.layers[layerName]
-    if (!layer)
-      return
-    for (let i = 0; i < layer.length; i++) {
-      const feature = layer.feature(i)
-      const geometry = feature.loadGeometry().map(line => line.map(p => [p.x, p.y] as Pt))
-      fn(feature.properties as Record<string, unknown>, geometry, feature.type, layer.extent)
+  const eachFeature = (layerNames: readonly string[], fn: (props: Record<string, unknown>, geometry: Pt[][], type: number, extent: number) => void): void => {
+    for (const layerName of layerNames) {
+      const layer = tile.layers[layerName]
+      if (!layer)
+        continue
+      for (let i = 0; i < layer.length; i++) {
+        const feature = layer.feature(i)
+        const geometry = feature.loadGeometry().map(line => line.map(p => [p.x, p.y] as Pt))
+        fn(feature.properties as Record<string, unknown>, geometry, feature.type, layer.extent)
+      }
     }
   }
 
@@ -222,30 +219,34 @@ export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, 
     places.push({ name, lat, lng, kind, rank })
   }
 
-  eachFeature(names.place, (props, g, type, extent) => {
-    const kind = String(props.class ?? 'place')
-    const rank = typeof props.rank === 'number' ? props.rank : PLACE_RANK[kind] ?? 9
+  eachFeature(schema.places, (props, g, type, extent) => {
+    const kind = schema.placeKind(props)
+    const rank = schema.placeRank(props) ?? PLACE_RANK[kind] ?? 9
     addPlace(props, g, type, extent, kind, Math.min(rank, PLACE_RANK[kind] ?? rank))
   })
-  eachFeature(names.poi, (props, g, type, extent) => {
-    const kind = String(props.subclass ?? props.class ?? 'poi')
-    addPlace(props, g, type, extent, kind, 12 + (typeof props.rank === 'number' ? Math.min(props.rank, 60) / 10 : 3))
+  eachFeature(schema.pois, (props, g, type, extent) => {
+    const rank = schema.poiRank(props)
+    addPlace(props, g, type, extent, schema.poiKind(props), 12 + (rank !== undefined ? Math.min(rank, 60) / 10 : 3))
   })
-  eachFeature(names.waterName, (props, g, type, extent) => addPlace(props, g, type, extent, String(props.class ?? 'water'), 10))
-  eachFeature(names.park, (props, g, type, extent) => addPlace(props, g, type, extent, 'park', 11))
-  eachFeature(names.mountainPeak, (props, g, type, extent) => addPlace(props, g, type, extent, 'peak', 11))
-  eachFeature(names.aerodrome, (props, g, type, extent) => addPlace(props, g, type, extent, 'airport', 9))
+  eachFeature(schema.waters, (props, g, type, extent) => addPlace(props, g, type, extent, schema.waterKind(props), 10))
+  eachFeature(schema.parks, (props, g, type, extent) => addPlace(props, g, type, extent, 'park', 11))
+  eachFeature(schema.peaks, (props, g, type, extent) => addPlace(props, g, type, extent, 'peak', 11))
+  eachFeature(schema.airports, (props, g, type, extent) => addPlace(props, g, type, extent, 'airport', 9))
 
   // Street names are drawn from their own layer, whose lines are merged for
   // labelling and do not match the road lines one for one. Each road takes
   // the name of the named line lying along it.
   const named: Array<{ name: string, kind: string, line: Pt[] }> = []
-  eachFeature(names.transportationName, (props, g, type, extent) => {
+  eachFeature(schema.streetNames, (props, g, type, extent) => {
     const name = nameOf(props) ?? (typeof props.ref === 'string' ? props.ref : undefined)
     if (!name)
       return
+    // A road layer doubling as the names: only roads name streets.
+    const roadKind = schema.namedRoads ? schema.roadKind(props) : String(props.class ?? '')
+    if (roadKind === undefined)
+      return
     for (const line of g)
-      named.push({ name, kind: String(props.class ?? ''), line })
+      named.push({ name, kind: roadKind.split(':')[0]!, line })
     // One entry per street per tile, for search.
     if (type === 2)
       addPlace({ name }, g, type, extent, 'street', 13)
@@ -309,24 +310,23 @@ export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, 
     return best
   }
 
-  eachFeature(names.transportation, (props, g, type, extent) => {
-    const kind = String(props.class ?? 'minor')
-    if (type !== 2 || NOT_ROADS.has(kind) || kind.endsWith('_construction'))
+  eachFeature(schema.roads, (props, g, type, extent) => {
+    const roadKind = schema.roadKind(props)
+    if (type !== 2 || roadKind === undefined)
       return
-    const oneway = props.oneway === 1 || props.oneway === '1' || props.oneway === true
-      ? 1
-      : props.oneway === -1 || props.oneway === '-1' ? -1 : 0
-    const ramp = props.ramp === 1 || props.ramp === true
-    const level = typeof props.layer === 'number' && props.layer !== 0
-      ? props.layer
-      : props.brunnel === 'bridge' ? 1 : props.brunnel === 'tunnel' ? -1 : 0
+    const kind = roadKind.split(':')[0]!
+    const oneway = schema.oneway(props)
+    const ramp = schema.ramp(props)
+    const level = schema.level(props)
+    // A schema whose roads carry their names needs no matching.
+    const own = schema.namedRoads ? nameOf(props) : undefined
     for (const line of g) {
       for (const piece of clipLine(line, extent)) {
         // Lines are merged by class when tiles are made, not by name, so one
         // line can run along several streets. Split it where the name
         // changes; a stretch with no name found between two with the same
         // one is taken to be that street too.
-        const names = piece.slice(1).map((p, i) => nameFor(piece[i]!, p, kind, extent))
+        const names = piece.slice(1).map((p, i) => own ?? nameFor(piece[i]!, p, kind, extent))
         for (let i = 1; i < names.length - 1; i++) {
           if (names[i] === undefined && names[i - 1] !== undefined && names[i - 1] === names.slice(i + 1).find(n => n !== undefined))
             names[i] = names[i - 1]
@@ -340,7 +340,7 @@ export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, 
             const [lat, lng] = toLatLng(p, extent)
             coords.push(lat, lng)
           }
-          const road: OfflineRoad = { coords, kind: kind === 'path' && props.subclass ? `path:${props.subclass}` : kind, oneway }
+          const road: OfflineRoad = { coords, kind: roadKind, oneway }
           if (ramp)
             road.ramp = true
           if (level)

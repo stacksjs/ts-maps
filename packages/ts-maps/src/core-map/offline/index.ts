@@ -12,3 +12,5 @@ export { matchScore, OfflineDirections, OfflineGeocoder, withOfflineFallback } f
 export type { OfflineData } from './search'
 export { BACKGROUND_PREFIX, backgroundFetchRegistration, backgroundId, OFFLINE_CHANNEL, regionIdOf } from './background'
 export type { BackgroundFetchLike, BackgroundFetchManagerLike, OfflineChannelMessage } from './background'
+export { detectSchema, MAPBOX_STREETS, OPENMAPTILES, PROTOMAPS, renamedOpenMapTiles, roadClassForHighway, SHORTBREAD, TILE_SCHEMAS } from './schema'
+export type { TileSchema } from './schema'
