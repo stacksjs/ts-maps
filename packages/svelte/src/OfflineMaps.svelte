@@ -10,10 +10,10 @@
    * </Map>
    * ```
    *
-   * Options are read when the component mounts; `open` and `onlyOffline`
-   * are followed as they change, and both can be bound. Events are callback
-   * props with the same names the other bindings use — `onChange`,
-   * `onProgress`, `onComplete`, …
+   * Every prop is followed as it changes: a new `maps` moves the panel and
+   * its events onto that manager, a new `position` moves the button. `open`
+   * and `onlyOffline` can be bound. Events are callback props with the same
+   * names the other bindings use — `onChange`, `onProgress`, `onComplete`, …
    */
   import type { OfflineMapsControlOptions, OfflineMaps as TsOfflineMapsManager } from 'ts-maps'
   import { onDestroy, onMount } from 'svelte'
@@ -63,7 +63,9 @@
     onReady?.(offline)
   })
 
-  $: if (offline) offline.sync({ open, onlyOffline })
+  // Every option is followed; the control does nothing for one that has not
+  // changed.
+  $: if (offline) offline.sync({ open, onlyOffline, position, maps, geocoder, resources, showStatus, title })
 
   onDestroy(() => {
     unlisten?.()

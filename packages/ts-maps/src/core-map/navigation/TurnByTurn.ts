@@ -89,12 +89,21 @@ export type TurnByTurnEvent = keyof typeof TURN_BY_TURN_EVENTS
 /** A place, as `{ lat, lng }` or `[lat, lng]` — the order `center` takes. */
 export type LatLngInput = LatLngLike | [number, number]
 
-/** What `sync` brings the navigation into line with. */
-export interface TurnByTurnTarget {
+/**
+ * What `sync` brings the navigation into line with: the trip, and the
+ * options, which are followed when their key is present, undefined meaning
+ * the default. A binding passes every prop; code of your own passes what it
+ * changes.
+ */
+export interface TurnByTurnTarget extends TurnByTurnOptions {
   from?: LatLngInput | null
   to?: LatLngInput | null
   /** Guide along the route rather than just preview it. */
   active?: boolean
+}
+
+function sameSimulate(a: TurnByTurnOptions['simulate'], b: TurnByTurnOptions['simulate']): boolean {
+  return a === b || JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
 }
 
 function toLatLng(input: LatLngInput | null | undefined): LatLngLike | null {
@@ -144,11 +153,13 @@ export class TurnByTurn extends Evented {
   _target: { from: LatLngLike | null, to: LatLngLike | null, active: boolean } = { from: null, to: null, active: false }
   _syncs = 0
   _previews = 0
+  _givenDirections: DirectionsProvider | undefined
   _interrupt = (): void => this._pauseFollow()
 
   constructor(map: any, options: TurnByTurnOptions = {}) {
     super()
     this.map = map
+    this._givenDirections = options.directions
     this.options = {
       directions: options.directions ?? new OSRMDirections(),
       profile: options.profile ?? 'driving',
@@ -298,9 +309,16 @@ export class TurnByTurn extends Evented {
    * dropped rather than shown late.
    */
   async sync(target: TurnByTurnTarget): Promise<void> {
+    const reroute = this._syncOptions(target)
     const from = toLatLng(target.from)
     const to = toLatLng(target.to)
-    const moved = !samePlace(from, this._target.from) || !samePlace(to, this._target.to)
+    // Another profile or provider is another set of routes: a showing
+    // preview is fetched again. During guidance it applies from the next
+    // reroute, rather than pulling the route from under the driver.
+    const moved = !samePlace(from, this._target.from) || !samePlace(to, this._target.to) || (reroute && this.state === 'preview')
+    // `active` is followed when it changes, or the trip does: Go pressed on
+    // the card is not undone because some other prop changed meanwhile.
+    const toggled = !!target.active !== this._target.active
     this._target = { from, to, active: !!target.active }
     const call = ++this._syncs
 
@@ -322,6 +340,8 @@ export class TurnByTurn extends Evented {
 
     if (moved && !(await previewAgain()))
       return
+    if (!moved && !toggled)
+      return
 
     if (this._target.active && this.state === 'preview') {
       this.start()
@@ -330,6 +350,60 @@ export class TurnByTurn extends Evented {
       this.stop()
       await previewAgain()
     }
+  }
+
+  /**
+   * Follow the options present in `target`. Units, voice, the destination's
+   * name and simulation take effect at once or at the next start; returns
+   * whether the routes themselves would change (profile, provider,
+   * alternatives).
+   */
+  _syncOptions(target: TurnByTurnOptions): boolean {
+    const has = (key: keyof TurnByTurnOptions): boolean => key in target
+    const o = this.options
+    let reroute = false
+    // Compared with what the caller passed, not with what is in use: an
+    // undefined provider is the default, and should not build a new OSRM
+    // client on every call.
+    if (has('directions') && target.directions !== this._givenDirections) {
+      this._givenDirections = target.directions
+      o.directions = target.directions ?? new OSRMDirections()
+      reroute = true
+    }
+    if (has('profile') && (target.profile ?? 'driving') !== o.profile) {
+      o.profile = target.profile ?? 'driving'
+      reroute = true
+    }
+    if (has('alternatives') && (target.alternatives ?? true) !== o.alternatives) {
+      o.alternatives = target.alternatives ?? true
+      reroute = true
+    }
+    let redraw = false
+    const units = target.units ?? (prefersImperial() ? 'imperial' : 'metric')
+    if (has('units') && units !== o.units) {
+      o.units = units
+      if (this.navigator)
+        (this.navigator.options as { units: DistanceUnits }).units = units
+      redraw = true
+    }
+    if (has('destinationName') && target.destinationName !== o.destinationName) {
+      o.destinationName = target.destinationName
+      redraw = true
+    }
+    if (has('voice') && (target.voice ?? true) !== o.voice) {
+      o.voice = target.voice ?? true
+      if (!o.voice && typeof speechSynthesis !== 'undefined')
+        speechSynthesis.cancel()
+    }
+    if (has('simulate') && !sameSimulate(target.simulate, o.simulate))
+      o.simulate = target.simulate
+    if (redraw && this.state === 'preview')
+      this._showPreviewCard()
+    else if (redraw && this.state === 'navigating' && this.navigator?.progress) {
+      this._showBanner()
+      this._showTripCard()
+    }
+    return reroute
   }
 
   /**

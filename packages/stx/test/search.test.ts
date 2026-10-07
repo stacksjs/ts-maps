@@ -23,9 +23,8 @@ describe('search child', () => {
     const seen: Array<[string, unknown]> = []
     root.addEventListener('search:ready', (e: any) => {
       control = e.detail.control
-      // A live provider cannot come from markup: the page swaps it in.
-      control.engine.provider = { name: 'fake', search: async () => [place], reverse: async () => [] }
-      control.engine.offline = null
+      // A live provider cannot come from markup: the page hands it over.
+      control.sync({ provider: { name: 'fake', search: async () => [place], reverse: async () => [] }, offline: null })
     })
     root.addEventListener('turnbyturn:ready', (e: any) => { nav = e.detail.nav })
     for (const name of ['results', 'select'])
@@ -44,6 +43,40 @@ describe('search child', () => {
 
     unmount()
     expect(root.querySelector('.tsmap-search-input')).toBeNull()
+    root.remove()
+  })
+
+  test('follows its props after mount, and keeps the provider the page gave it', async () => {
+    const root = document.createElement('div')
+    document.body.appendChild(root)
+    const mapEl = document.createElement('div')
+    mapEl.style.width = '430px'
+    mapEl.style.height = '800px'
+    root.appendChild(mapEl)
+    const map = new TsMap(mapEl, { center: [37.79, -122.4], zoom: 15 })
+    root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="search" data-options='${JSON.stringify({ recents: false })}'></span>`)
+    const el = root.querySelector('[data-ts-map-child="search"]')!
+
+    const provider = { name: 'fake', search: async () => [place], reverse: async () => [] }
+    let control: any = null
+    const results: number[] = []
+    root.addEventListener('search:ready', (e: any) => {
+      control = e.detail.control
+      control.sync({ provider, offline: null })
+    })
+    root.addEventListener('search:results', (e: any) => results.push(e.detail.places.length))
+
+    const unmount = mountChildren(map, root)
+    const coffee = { id: 'coffee', label: 'Coffee', icon: 'cafe', kinds: ['cafe'], synonyms: [] }
+    el.setAttribute('data-options', JSON.stringify({ recents: false, query: 'ferry', position: 'topright', placeholder: 'Find a place', categories: [coffee] }))
+    await new Promise(r => setTimeout(r, 0))
+    const input = root.querySelector('.tsmap-top.tsmap-right .tsmap-search-input')
+    expect(input?.getAttribute('placeholder')).toBe('Find a place')
+    expect(control.options.categories).toEqual([coffee])
+    expect(control.engine.provider).toBe(provider)
+    expect(results).toEqual([1])
+
+    unmount()
     root.remove()
   })
 })

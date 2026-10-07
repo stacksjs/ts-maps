@@ -158,6 +158,19 @@ const RUNTIME_SCRIPT = [
   '    });',
   '  }',
   '  applyMarkers(initial.markers);',
+  // The controls below are built from the options that are set, then follow
+  // every option through `sync`, which takes a present key as the value to
+  // use and an undefined one as the default. JSON drops undefined, so the key
+  // is put back here: an option removed from the spec returns to its default.
+  '  function given(spec, keys) {',
+  '    const opts = {};',
+  '    keys.forEach(function (k) { if (spec[k] != null) opts[k] = spec[k]; });',
+  '    return opts;',
+  '  }',
+  '  function follow(spec, keys, target) {',
+  '    keys.forEach(function (k) { target[k] = spec[k] == null ? undefined : spec[k]; });',
+  '    return target;',
+  '  }',
   // Territories and the run trail are drawn by the same layers the other
   // bindings use; only the way they are configured differs, because a store
   // cannot cross the bridge and its geometry can.
@@ -198,17 +211,15 @@ const RUNTIME_SCRIPT = [
   '  }',
   // Navigation is the same TurnByTurn the other bindings use. Its events come
   // back over the bridge as plain data, since dates and live objects do not.
+  // `directions`, a provider object, cannot cross; the default is used.
+  '  const NAV_KEYS = ["profile", "units", "voice", "simulate", "alternatives", "destinationName"];',
   '  let nav = null;',
   '  function applyTurnByTurn(spec) {',
   '    const ns = window.tsMaps || window;',
   '    if (!spec) { if (nav) { nav.stop(); nav = null; } return; }',
   '    if (!ns.TurnByTurn) return;',
   '    if (!nav) {',
-  '      const opts = {};',
-  '      ["profile", "units", "voice", "simulate", "alternatives", "destinationName"].forEach(function (k) {',
-  '        if (spec[k] != null) opts[k] = spec[k];',
-  '      });',
-  '      try { nav = new ns.TurnByTurn(map, opts); }',
+  '      try { nav = new ns.TurnByTurn(map, given(spec, NAV_KEYS)); }',
   '      catch (e) { fail((e && e.message) || e); return; }',
   '      Object.keys(ns.TURN_BY_TURN_EVENTS || {}).forEach(function (type) {',
   '        nav.on(type, function (e) {',
@@ -216,31 +227,32 @@ const RUNTIME_SCRIPT = [
   '        });',
   '      });',
   '    }',
-  '    nav.sync({ from: spec.from, to: spec.to, active: !!spec.active });',
+  '    nav.sync(follow(spec, NAV_KEYS, { from: spec.from, to: spec.to, active: !!spec.active }));',
   '  }',
   // Offline maps are the same control the other bindings use; its events
-  // come back over the bridge as plain data.
+  // come back over the bridge as plain data. `maps` and `geocoder` cannot
+  // cross; the page's own are used.
+  '  const OFFLINE_KEYS = ["position", "resources", "showStatus", "title"];',
   '  let offline = null;',
   '  function applyOfflineMaps(spec) {',
   '    const ns = window.tsMaps || window;',
   '    if (!spec) { if (offline) { offline.remove(); offline = null; } return; }',
   '    if (!ns.OfflineMapsControl) return;',
   '    if (!offline) {',
-  '      const opts = {};',
-  '      ["position", "resources", "showStatus", "title"].forEach(function (k) {',
-  '        if (spec[k] != null) opts[k] = spec[k];',
-  '      });',
-  '      try { offline = new ns.OfflineMapsControl(opts); offline.addTo(map); }',
+  '      try { offline = new ns.OfflineMapsControl(given(spec, OFFLINE_KEYS)); offline.addTo(map); }',
   '      catch (e) { fail((e && e.message) || e); return; }',
   '      offline.listen(function (type, e) {',
   '        send({ type: "offlineMaps", id: `om${Date.now()}`, payload: { type: type, data: ns.OfflineMapsControl.plainEvent(type, e) } });',
   '      });',
   '    }',
-  '    offline.sync({ open: spec.open, onlyOffline: spec.onlyOffline });',
+  '    offline.sync(follow(spec, OFFLINE_KEYS, { open: spec.open, onlyOffline: spec.onlyOffline }));',
   '  }',
   // Search is the same control the other bindings use. Directions previews on
   // the navigation above when there is one, reached lazily so it can be set
-  // up in either order; the event reaches the app regardless.
+  // up in either order; the event reaches the app regardless. `provider`,
+  // `offline`, `location`, `origin` and `onDirections` cannot cross; the
+  // defaults are used.
+  '  const SEARCH_KEYS = ["position", "placeholder", "categories", "recents", "units", "language"];',
   '  let search = null;',
   '  const searchNav = {',
   '    get options() { return nav ? nav.options : {}; },',
@@ -251,17 +263,14 @@ const RUNTIME_SCRIPT = [
   '    if (!spec) { if (search) { search.remove(); search = null; } return; }',
   '    if (!ns.SearchControl) return;',
   '    if (!search) {',
-  '      const opts = { turnByTurn: searchNav };',
-  '      ["position", "placeholder", "recents", "units", "language"].forEach(function (k) {',
-  '        if (spec[k] != null) opts[k] = spec[k];',
-  '      });',
+  '      const opts = Object.assign(given(spec, SEARCH_KEYS), { turnByTurn: searchNav });',
   '      try { search = new ns.SearchControl(opts); search.addTo(map); }',
   '      catch (e) { fail((e && e.message) || e); return; }',
   '      search.listen(function (type, e) {',
   '        send({ type: "search", id: `sr${Date.now()}`, payload: { type: type, data: ns.SearchControl.plainEvent(type, e) } });',
   '      });',
   '    }',
-  '    search.sync({ query: spec.query });',
+  '    search.sync(follow(spec, SEARCH_KEYS, { query: spec.query == null ? undefined : spec.query }));',
   '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',

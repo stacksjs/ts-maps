@@ -136,6 +136,8 @@ export function MapView(props: MapViewProps): ReactElement {
   }, [runTrail, post])
 
   // Compared by value: a spec written inline is a new object every render.
+  // The whole spec goes across, options too — the WebView hands every one to
+  // the control's `sync`, so nothing in it is read only at mount.
   const turnByTurnKey = JSON.stringify(turnByTurn ?? null)
   useEffect(() => {
     if (!readyRef.current)

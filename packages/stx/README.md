@@ -182,7 +182,9 @@ So children here render inert markup carrying `data-` attributes, and `<Map>`
 walks its subtree once on mount and builds what it finds. Two consequences:
 
 - **Children are read at mount.** Markers added to the DOM later are not picked
-  up; add those through the map itself.
+  up; add those through the map itself. `<TurnByTurn>`, `<Search>` and
+  `<OfflineMaps>` do follow their props after that: change a child's
+  `data-options` and its control's `sync` brings it into line.
 - **Nesting is the wiring.** There is no context to thread and no ids to match.
 
 Two further stx behaviours the components work around, noted here because they

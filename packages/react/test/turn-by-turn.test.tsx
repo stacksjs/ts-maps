@@ -86,4 +86,22 @@ describe('@ts-maps/react TurnByTurn', () => {
     act(() => root.unmount())
     host.remove()
   })
+
+  test('follows profile and directions after mount', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const asked: string[] = []
+    const a = { name: 'a', getDirections: async (_: unknown, o: any) => { asked.push(`a:${o.profile}`); return [route] } }
+    const b = { name: 'b', getDirections: async (_: unknown, o: any) => { asked.push(`b:${o.profile}`); return [route] } }
+    render(host, root, { directions: a, from: P(0, 0), to: P(5, 3) })
+    await settle()
+    render(host, root, { directions: a, from: P(0, 0), to: P(5, 3), profile: 'walking' })
+    await settle()
+    render(host, root, { directions: b, from: P(0, 0), to: P(5, 3), profile: 'walking' })
+    await settle()
+    expect(asked).toEqual(['a:driving', 'a:walking', 'b:walking'])
+    act(() => root.unmount())
+    host.remove()
+  })
 })

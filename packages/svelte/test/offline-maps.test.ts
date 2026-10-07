@@ -42,4 +42,30 @@ describe('@ts-maps/svelte OfflineMaps', () => {
     expect(el.querySelector('.tsmap-offline-button')).toBeNull()
     el.remove()
   })
+
+  test('follows maps and position after mount', async () => {
+    const WithOfflineMaps = (await import('./fixtures/WithOfflineMaps.svelte')).default
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const first = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const second = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const events: Array<[string, unknown]> = []
+    const app = mount(WithOfflineMaps, { target: el, props: { maps: first, resources: ['https://tiles.test/tiles.json'], events } }) as any
+
+    await settle()
+    app.setMaps(second)
+    app.setPosition('bottomleft')
+    await settle()
+    expect(app.getControl().maps).toBe(second)
+    expect(el.querySelector('.tsmap-bottom.tsmap-left .tsmap-offline-button')).not.toBeNull()
+
+    // Events come from the manager shown now, not the one shown at mount.
+    first.fire('progress', { from: 'first' })
+    second.fire('progress', { from: 'second' })
+    expect(events.filter(([type]) => type === 'progress')).toEqual([['progress', 'second']])
+
+    unmount(app)
+    flushSync()
+    el.remove()
+  })
 })

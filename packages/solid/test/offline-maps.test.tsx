@@ -53,4 +53,56 @@ describe('@ts-maps/solid OfflineMaps', () => {
     expect(el.querySelector('.tsmap-offline-button')).toBeNull()
     el.remove()
   })
+
+  test('follows maps and position after mount, and leaves a closed panel closed', async () => {
+    const el = document.createElement('div')
+    el.style.width = '430px'
+    el.style.height = '800px'
+    document.body.appendChild(el)
+    const first = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const second = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const [maps, setMaps] = createSignal(first)
+    const [position, setPosition] = createSignal<'topright' | 'bottomleft'>('topright')
+    const [title, setTitle] = createSignal('Offline Maps')
+    const progress: string[] = []
+    let control: any
+    const dispose = render(() => (
+      <Map class="map" center={[37.78, -122.42]} zoom={15}>
+        <OfflineMaps
+          maps={maps()}
+          position={position()}
+          title={title()}
+          open
+          onlyOffline
+          resources={['https://tiles.test/tiles.json']}
+          onReady={(c) => { control = c }}
+          onProgress={e => progress.push(e.from)}
+        />
+      </Map>
+    ), el)
+
+    await settle()
+    expect(first.onlyOffline).toBe(true)
+    setMaps(second)
+    setPosition('bottomleft')
+    await settle()
+    expect(control.maps).toBe(second)
+    expect(second.onlyOffline).toBe(true)
+    expect(el.querySelector('.tsmap-bottom.tsmap-left .tsmap-offline-button')).not.toBeNull()
+
+    // Events come from the manager shown now, not the one shown at mount.
+    first.fire('progress', { from: 'first' })
+    second.fire('progress', { from: 'second' })
+    expect(progress).toEqual(['second'])
+
+    // Closed from inside the control, it stays closed when another prop changes.
+    control.close()
+    setTitle('Downloads')
+    await settle()
+    expect(el.querySelector('.tsmap-offline-button')?.getAttribute('title')).toBe('Downloads')
+    expect(el.querySelector('.tsmap-offline-card')).toBeNull()
+
+    dispose()
+    el.remove()
+  })
 })

@@ -1,4 +1,4 @@
-import type { SearchControlOptions } from 'ts-maps'
+import type { SearchControlOptions, SearchTarget } from 'ts-maps'
 import type { PropType } from 'vue'
 import type { ControlPosition } from './controls'
 import { SEARCH_EVENTS, SearchControl } from 'ts-maps'
@@ -16,8 +16,8 @@ import { useMap } from './useMap'
  * </TsMap>
  * ```
  *
- * Options are read when the map arrives; `query` and `turnByTurn` are
- * followed as they change. Events carry the core names — `results`,
+ * Every prop is followed as it changes: a new `provider` is asked from the
+ * next query on, new `categories` redraw Find Nearby in place. Events carry the core names — `results`,
  * `select`, `directions`, `clear` — and `ready` hands over the control.
  */
 export const Search = defineComponent({
@@ -43,25 +43,26 @@ export const Search = defineComponent({
     const mapRef = useMap()
     let search: SearchControl | null = null
     let unlisten: (() => void) | null = null
+    const target = (): SearchTarget => ({
+      position: props.position,
+      placeholder: props.placeholder,
+      provider: props.provider,
+      offline: props.offline,
+      categories: props.categories,
+      recents: props.recents,
+      units: props.units,
+      location: props.location,
+      turnByTurn: props.turnByTurn,
+      origin: props.origin,
+      language: props.language,
+    })
 
     const stop = watch(
       mapRef,
       (map) => {
         if (!map || search)
           return
-        search = new SearchControl({
-          position: props.position,
-          placeholder: props.placeholder,
-          provider: props.provider,
-          offline: props.offline,
-          categories: props.categories,
-          recents: props.recents,
-          units: props.units,
-          location: props.location,
-          turnByTurn: props.turnByTurn,
-          origin: props.origin,
-          language: props.language,
-        })
+        search = new SearchControl(target())
         search.addTo(map)
         unlisten = search.listen((type, e) => emit(type, e))
         emit('ready', search)
@@ -70,11 +71,27 @@ export const Search = defineComponent({
       { immediate: true },
     )
 
+    // Every option is followed; the control does nothing for one that has not
+    // changed. A `TurnByTurn` usually arrives after mount, from its own
+    // `ready`. Categories are compared by value, so an inline list is not a
+    // change on every render.
+    watch(
+      [
+        () => props.position,
+        () => props.placeholder,
+        () => props.provider,
+        () => props.offline,
+        () => JSON.stringify(props.categories?.map(c => [c.id, c.label, c.icon]) ?? null),
+        () => props.recents,
+        () => props.units,
+        () => props.location,
+        () => props.turnByTurn,
+        () => props.origin,
+        () => props.language,
+      ],
+      () => search?.sync(target()),
+    )
     watch(() => props.query, query => search?.sync({ query }))
-    watch(() => props.turnByTurn, (nav) => {
-      if (search)
-        search.options.turnByTurn = nav
-    })
 
     expose({ get control() { return search } })
 

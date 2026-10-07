@@ -67,4 +67,16 @@ describe('@ts-maps/react Search', () => {
     })
     expect(previews).toEqual([place.center])
   })
+
+  test('follows provider, categories and position after mount', async () => {
+    const { host, render } = mount()
+    let control: any
+    render({ onReady: (c: any) => (control = c) })
+    const other = { name: 'other', search: async () => [], reverse: async () => [] }
+    const coffee = { id: 'coffee', label: 'Coffee', icon: 'cafe', kinds: ['cafe'], synonyms: [] }
+    render({ onReady: (c: any) => (control = c), provider: other, categories: [coffee], position: 'topright' })
+    expect(control.engine.provider).toBe(other)
+    expect(control.options.categories).toEqual([coffee])
+    expect(host.querySelector('.tsmap-top.tsmap-right .tsmap-search-input')).not.toBeNull()
+  })
 })

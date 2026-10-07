@@ -157,12 +157,15 @@ in Vue, and a bubbling `turnbyturn:arrive` DOM event in stx. A `ready` event
 (`onReady`, `@ready`, `turnbyturn:ready`) hands over the underlying
 `TurnByTurn`, for `selectRoute`, `recenter` and feeding positions with
 `update`. The other options — `profile`, `units`, `voice`, `simulate`,
-`alternatives`, `destinationName`, `directions` — are read once, when the
-component mounts.
+`alternatives`, `destinationName`, `directions` — are followed as they change
+too. Another `profile` or `directions` fetches a showing preview again; during
+guidance it applies from the next reroute rather than pulling the route from
+under the driver. `units` and `destinationName` redraw the cards in place.
 
 On React Native it is a prop of `MapView`, carried over the bridge like
-`markers`, with every event arriving at one `onTurnByTurn({ type, data })` as
-plain data:
+`markers` and followed as it changes, options included, with every event
+arriving at one `onTurnByTurn({ type, data })` as plain data. Only plain data
+crosses the bridge, so `directions` is the WebView's default:
 
 ```tsx
 <MapView
@@ -208,7 +211,8 @@ React, Solid and Svelte, `@complete` in Vue, and a bubbling
 `offlinemaps:complete` DOM event in stx. `ready` hands over the control, whose
 `maps` is the manager for downloading, listing and deleting from code. The other
 options — `position`, `maps`, `geocoder`, `resources`, `showStatus`, `title` —
-are read once, when the component mounts.
+are followed as they change. A new `maps` moves the list and every event onto
+that manager; a new `position` moves the button.
 
 On React Native it is a prop of `MapView`, with every event arriving at one
 `onOfflineMaps({ type, data })`. The manager is reached through `api.call`, whose
@@ -261,8 +265,9 @@ The events are the same everywhere. `results` carries
 Svelte, `@select` in Vue, and a bubbling `search:select` DOM event in stx.
 `ready` hands over the control, for `search`, `searchCategory`, `select` and
 `cancel`. The other options — `position`, `placeholder`, `provider`, `offline`,
-`categories`, `recents`, `units`, `location`, `origin`, `language` — are read
-once, when the component mounts. In stx, a `<Search>` and a `<TurnByTurn>` in
+`categories`, `recents`, `units`, `location`, `origin`, `language` — are
+followed as they change: a new `provider` is asked from the next query on, and
+new `categories` redraw Find Nearby in place. In stx, a `<Search>` and a `<TurnByTurn>` in
 the same map are linked automatically.
 
 On React Native it is a prop of `MapView`, with every event arriving at one
@@ -317,7 +322,10 @@ from your layout. Two rules are worth knowing up front:
   once per *definition* rather than per use, so a marker cannot build itself;
   instead each child renders inert markup and `<Map>` walks its subtree and
   builds what it finds. Markers added to the DOM later are not picked up — add
-  those through the map.
+  those through the map. `<OfflineMaps>`, `<Search>` and `<TurnByTurn>` keep
+  following their props after that: a change to the markup is handed to the
+  control. Live objects such as `maps` or `provider` cannot be written in
+  markup; pass them to the control's `sync` from its `ready` event.
 
 Reach the map with `findMap(el)`, and subscribe with `onMapEvent(el, type, fn)`.
 Marker taps arrive as a bubbling `marker:click` DOM event, since a callback

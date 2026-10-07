@@ -1,7 +1,7 @@
 import type { JSX } from 'solid-js'
 import type { OfflineMapsControlOptions, OfflineMaps as TsOfflineMapsManager } from 'ts-maps'
 import type { ControlPosition } from './controls'
-import { createEffect, onCleanup } from 'solid-js'
+import { createEffect, createSignal, onCleanup, untrack } from 'solid-js'
 import { OFFLINE_MAPS_EVENTS, OfflineMapsControl } from 'ts-maps'
 import { useMap } from './context'
 
@@ -44,35 +44,58 @@ export interface OfflineMapsProps {
  * </Map>
  * ```
  *
- * Options are read when the map arrives; `open` and `onlyOffline` are
- * followed as they change.
+ * Every prop is followed as it changes: a new `maps` moves the panel and its
+ * events onto that manager, a new `position` moves the button.
  */
 export function OfflineMaps(props: OfflineMapsProps): JSX.Element {
   let offline: OfflineMapsControl | null = null
   let unlisten: (() => void) | null = null
+  const [control, setControl] = createSignal<OfflineMapsControl | null>(null)
 
-  // One effect for both: the map arrives through a signal, and the followed
-  // props are read here too, so a change to either brings the control into
-  // line.
+  // An effect rather than onMount: the map arrives through a signal. The
+  // options are read untracked here; the effects below follow them.
   createEffect(() => {
     const map = useMap()
-    const target = { open: props.open, onlyOffline: props.onlyOffline }
-    if (!map)
+    if (!map || offline)
       return
-    if (!offline) {
-      offline = new OfflineMapsControl({
-        position: props.position,
-        maps: props.maps,
-        geocoder: props.geocoder,
-        resources: props.resources,
-        showStatus: props.showStatus,
-        title: props.title,
-      })
-      offline.addTo(map)
-      unlisten = offline.listen((type, e) => (props as any)[OFFLINE_MAPS_EVENTS[type]]?.(e))
-      props.onReady?.(offline)
+    offline = untrack(() => new OfflineMapsControl({
+      position: props.position,
+      maps: props.maps,
+      geocoder: props.geocoder,
+      resources: props.resources,
+      showStatus: props.showStatus,
+      title: props.title,
+    }))
+    offline.addTo(map)
+    unlisten = offline.listen((type, e) => (props as any)[OFFLINE_MAPS_EVENTS[type]]?.(e))
+    props.onReady?.(offline)
+    setControl(offline)
+  })
+
+  // Every option is followed; the control does nothing for one that has not
+  // changed.
+  createEffect(() => {
+    const target = {
+      position: props.position,
+      maps: props.maps,
+      geocoder: props.geocoder,
+      resources: props.resources,
+      showStatus: props.showStatus,
+      title: props.title,
     }
-    offline.sync(target)
+    control()?.sync(target)
+  })
+
+  // `open` and `onlyOffline` each on their own: the panel closes, and the
+  // mode switches, from inside the control too, and another prop changing
+  // should not undo that. A new `maps` is put into the mode asked for.
+  createEffect(() => {
+    const target = { open: props.open }
+    control()?.sync(target)
+  })
+  createEffect(() => {
+    const target = { maps: props.maps, onlyOffline: props.onlyOffline }
+    control()?.sync(target)
   })
 
   onCleanup(() => {

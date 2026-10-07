@@ -9,6 +9,7 @@ import { DivIcon } from '../layer/marker/DivIcon'
 import { Marker } from '../layer/marker/Marker'
 import { categoriesMatching, categoryForQuery, kindLabel, SEARCH_CATEGORIES } from '../search/categories'
 import { describePlace, distanceMeters, SearchEngine, SearchHistory } from '../search/SearchEngine'
+import { PhotonGeocoder } from '../services/providers/Photon'
 import { formatDistance, prefersImperial } from '../services/instructions'
 import { POI_CATEGORIES } from '../symbols/poiIcons'
 import { Control } from './Control'
@@ -72,13 +73,26 @@ export const SEARCH_EVENTS: {
 
 export type SearchEvent = keyof typeof SEARCH_EVENTS
 
-/** What `sync` brings search into line with. Left out is left alone. */
-export interface SearchTarget {
+/**
+ * What `sync` brings search into line with: `query`, left alone when
+ * undefined, and the options, followed when their key is present, undefined
+ * meaning the default. A binding passes every prop; code of your own passes
+ * what it changes.
+ */
+export interface SearchTarget extends SearchControlOptions {
   /**
    * Search for this, as though typed and Search pressed — a category's name
    * runs the category. An empty string clears the search.
    */
   query?: string
+}
+
+function sameCategories(a: SearchCategory[] | undefined, b: SearchCategory[] | undefined): boolean {
+  if (a === b)
+    return true
+  if (!a || !b || a.length !== b.length)
+    return false
+  return a.every((c, i) => c.id === b[i]!.id && c.label === b[i]!.label && c.icon === b[i]!.icon)
 }
 
 const CLASS = 'tsmap-search'
@@ -192,6 +206,8 @@ export class SearchControl extends Control {
   }
 
   onRemove(map: any): void {
+    // A control moved with setPosition is added again with a fresh field.
+    this._view = 'idle'
     this._abort?.abort()
     clearTimeout(this._timer)
     this._clearPins()
@@ -273,6 +289,7 @@ export class SearchControl extends Control {
    * searched once.
    */
   sync(target: SearchTarget): this {
+    this._syncOptions(target)
     if (target.query === undefined || target.query === this._synced)
       return this
     this._synced = target.query
@@ -281,6 +298,63 @@ export class SearchControl extends Control {
     else
       this.cancel()
     return this
+  }
+
+  /** Ask another online geocoder from the next query on; `null` for none. */
+  setProvider(provider: GeocoderProvider | null | undefined): this {
+    if (provider === this.options.provider)
+      return this
+    this.options.provider = provider
+    if (this.engine)
+      this.engine.provider = provider === undefined ? new PhotonGeocoder() : provider
+    return this
+  }
+
+  /** Search other downloaded maps from the next query on; `null` for none. */
+  setOffline(offline: OfflineMaps | null | undefined): this {
+    this.options.offline = offline
+    if (this.engine)
+      this.engine.offline = offline
+    return this
+  }
+
+  _syncOptions(target: SearchTarget): void {
+    const has = (key: keyof SearchTarget): boolean => key in target
+    if (has('provider'))
+      this.setProvider(target.provider)
+    if (has('offline') && target.offline !== this.options.offline)
+      this.setOffline(target.offline)
+    if (has('language') && target.language !== this.options.language) {
+      this.options.language = target.language
+      if (this.engine)
+        this.engine.language = target.language
+    }
+    // Followed as they are, read when next used.
+    for (const key of ['location', 'turnByTurn', 'origin', 'onDirections'] as const) {
+      if (has(key))
+        (this.options as any)[key] = target[key]
+    }
+    if (has('placeholder') && target.placeholder !== this.options.placeholder) {
+      this.options.placeholder = target.placeholder
+      this._input?.setAttribute('placeholder', target.placeholder ?? 'Search Maps')
+    }
+    let redraw = false
+    if (has('categories') && !sameCategories(target.categories, this.options.categories)) {
+      this.options.categories = target.categories
+      redraw = true
+    }
+    if (has('recents') && target.recents !== this.options.recents) {
+      this.options.recents = target.recents
+      redraw = true
+    }
+    if (has('units') && target.units !== this.options.units) {
+      this.options.units = target.units
+      redraw = true
+    }
+    if (redraw && this._map && (this._view === 'home' || this._view === 'place' || (this._view === 'results' && this._results.length)))
+      this._show(this._view)
+    if (has('position') && (target.position ?? 'topleft') !== this.options.position)
+      this.setPosition(target.position ?? 'topleft')
   }
 
   /**

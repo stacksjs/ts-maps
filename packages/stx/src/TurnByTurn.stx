@@ -9,16 +9,18 @@
  * ```
  *
  * `from` and `to` preview the routes, and `active` starts guidance straight
- * away. Events cannot be props here — stx passes props as data — so each one
- * is a DOM event bubbling from the map: `turnbyturn:preview`,
- * `turnbyturn:progress`, `turnbyturn:arrive`, and the rest of the names the
- * other bindings use, with the core event as `detail`. `turnbyturn:ready`
- * hands the page the `TurnByTurn` itself, for starting, stopping and
- * `sync({ from, to, active })` later:
+ * away. Every prop is followed after mount: a changed `data-options` goes to
+ * `sync`, so another `profile` fetches a showing preview again. Events cannot
+ * be props here — stx passes props as data — so each one is a DOM event
+ * bubbling from the map: `turnbyturn:preview`, `turnbyturn:progress`,
+ * `turnbyturn:arrive`, and the rest of the names the other bindings use, with
+ * the core event as `detail`. `turnbyturn:ready` hands the page the
+ * `TurnByTurn` itself, for starting, stopping and `sync` later — and for
+ * `directions`, a live provider markup cannot carry:
  *
  * ```js
  * container.addEventListener('turnbyturn:ready', e => { nav = e.detail.nav })
- * go.onclick = () => nav.sync({ from, to, active: true })
+ * go.onclick = () => nav.sync({ from, to, active: true, directions })
  * ```
  */
 export const optionsJson = JSON.stringify({

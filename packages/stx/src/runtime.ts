@@ -223,6 +223,37 @@ export function attachBasemap(map: TsMap, props: MapProps, env: Pick<ResolveTile
 
 type Removable = { remove: () => unknown }
 
+/**
+ * The props `<TurnByTurn>`, `<Search>` and `<OfflineMaps>` render. Live
+ * objects — a manager, a provider, a callback — cannot come from markup, so
+ * they are not here, and what the page hands the control itself is never
+ * reset by the markup.
+ */
+const MARKUP_PROPS = {
+  'turn-by-turn': ['from', 'to', 'active', 'profile', 'units', 'voice', 'simulate', 'alternatives', 'destinationName'],
+  'search': ['query', 'position', 'placeholder', 'categories', 'recents', 'units', 'language'],
+  'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title'],
+} as const
+
+/**
+ * Hand `apply` the props `el` renders, now and whenever its `data-options`
+ * changes, for a control's `sync` to follow. Every key is present, undefined
+ * for a prop not passed, so one that goes away goes back to its default.
+ * Returns the way to stop.
+ */
+function followProps(el: Element, keys: readonly string[], apply: (props: Record<string, any>) => unknown): () => void {
+  const read = (): Record<string, any> => {
+    const raw = readJson<Record<string, unknown>>(el, 'data-options', {})
+    return Object.fromEntries(keys.map(key => [key, raw[key]]))
+  }
+  apply(read())
+  if (typeof MutationObserver === 'undefined')
+    return () => {}
+  const observer = new MutationObserver(() => apply(read()))
+  observer.observe(el, { attributes: true, attributeFilter: ['data-options'] })
+  return () => observer.disconnect()
+}
+
 /** Build the popup declared by a `<template data-ts-map-child="popup">`. */
 function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, lat?: number, lng?: number } {
   const options = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
@@ -243,7 +274,8 @@ function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, la
  * Build every child declared in `root`, and return a teardown for all of them.
  *
  * Children are read once, at mount. A page that adds markers later should do
- * so through the map itself — see `findMap`.
+ * so through the map itself — see `findMap`. `<TurnByTurn>`, `<Search>` and
+ * `<OfflineMaps>` go on following their `data-options` after that.
  */
 export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   const created: Removable[] = []
@@ -318,6 +350,7 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
         }
 
         case 'turn-by-turn': {
+          // eslint-disable-next-line no-unused-vars
           const { from, to, active, ...options } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
           nav = new TurnByTurn(map, options)
           const current = nav
@@ -329,12 +362,18 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
             })
           }
           root.dispatchEvent(new CustomEvent('turnbyturn:ready', { bubbles: true, detail: { nav: current } }))
-          current.sync({ from: from as any, to: to as any, active: !!active })
-          created.push({ remove: () => current.stop() })
+          const unfollow = followProps(el, MARKUP_PROPS['turn-by-turn'], props => current.sync(props))
+          created.push({
+            remove: () => {
+              unfollow()
+              current.stop()
+            },
+          })
           break
         }
 
         case 'search': {
+          // eslint-disable-next-line no-unused-vars
           const { query, ...options } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
           const search = new SearchControl(options)
           search.addTo(map)
@@ -343,9 +382,10 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
             root.dispatchEvent(new CustomEvent(`search:${event}`, { bubbles: true, detail }))
           })
           root.dispatchEvent(new CustomEvent('search:ready', { bubbles: true, detail: { control: search } }))
-          search.sync({ query: query as string | undefined })
+          const unfollow = followProps(el, MARKUP_PROPS.search, props => search.sync(props))
           created.push({
             remove: () => {
+              unfollow()
               unlisten()
               search.remove()
             },
@@ -354,6 +394,7 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
         }
 
         case 'offline-maps': {
+          // eslint-disable-next-line no-unused-vars
           const { open, onlyOffline, ...options } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
           const offline = new OfflineMapsControl(options)
           offline.addTo(map)
@@ -363,9 +404,10 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
             root.dispatchEvent(new CustomEvent(`offlinemaps:${event}`, { bubbles: true, detail }))
           })
           root.dispatchEvent(new CustomEvent('offlinemaps:ready', { bubbles: true, detail: { control: offline } }))
-          offline.sync({ open: open as boolean | undefined, onlyOffline: onlyOffline as boolean | undefined })
+          const unfollow = followProps(el, MARKUP_PROPS['offline-maps'], props => offline.sync(props))
           created.push({
             remove: () => {
+              unfollow()
               unlisten()
               offline.remove()
             },
@@ -465,8 +507,10 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   }
 
   if (nav) {
-    for (const search of searches)
-      search.options.turnByTurn ??= nav
+    for (const search of searches) {
+      if (!search.options.turnByTurn)
+        search.sync({ turnByTurn: nav })
+    }
   }
 
   return () => {

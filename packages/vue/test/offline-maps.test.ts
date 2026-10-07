@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { MemoryOfflineStore, OfflineMaps as Manager } from 'ts-maps'
-import { createApp, h, nextTick, ref } from 'vue'
+import { createApp, h, nextTick, ref, shallowRef } from 'vue'
 import { Map } from '../src/Map'
 import { OfflineMaps } from '../src/OfflineMaps'
 
@@ -55,6 +55,43 @@ describe('@ts-maps/vue OfflineMaps', () => {
 
     app.unmount()
     expect(host.querySelector('.tsmap-offline-button')).toBeNull()
+    host.remove()
+  })
+  test('follows maps and position after mount', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const first = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const second = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const maps = shallowRef(first)
+    const position = ref<string | undefined>(undefined)
+    const progress: string[] = []
+    let control: any
+    const app = createApp({
+      render: () => h(Map as any, { containerClass: 'ts-map-host', center: [37.78, -122.42], zoom: 15 }, () => [
+        h(OfflineMaps as any, {
+          maps: maps.value,
+          position: position.value,
+          resources: ['https://tiles.test/tiles.json'],
+          onProgress: (e: any) => progress.push(e.from),
+          onReady: (c: any) => (control = c),
+        }),
+      ]),
+    })
+    app.mount(host)
+    await settle()
+
+    maps.value = second
+    position.value = 'bottomleft'
+    await settle()
+    expect(control.maps).toBe(second)
+    expect(host.querySelector('.tsmap-bottom.tsmap-left .tsmap-offline-button')).not.toBeNull()
+
+    // Events come from the manager shown now, not the one shown at mount.
+    first.fire('progress', { from: 'first' })
+    second.fire('progress', { from: 'second' })
+    expect(progress).toEqual(['second'])
+
+    app.unmount()
     host.remove()
   })
 })

@@ -54,8 +54,8 @@ export interface SearchProps extends SearchEventProps {
  * </Map>
  * ```
  *
- * Options are read when the component mounts; `query` is followed as it
- * changes.
+ * Every prop is followed as it changes: a new `provider` is asked from the
+ * next query on, new `categories` redraw Find Nearby in place.
  */
 export function Search(props: SearchProps): null {
   const map = useMap()
@@ -77,13 +77,18 @@ export function Search(props: SearchProps): null {
     }
   }, [map])
 
-  // A `TurnByTurn` usually arrives after the first render, from its own onReady.
-  const { query, turnByTurn } = props
+  // Every option is followed; the control does nothing for one that has not
+  // changed. A `TurnByTurn` usually arrives after the first render, from its
+  // own onReady. Categories are compared by value, so an inline list is not
+  // a change on every render.
+  const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language } = props
+  const categoriesKey = JSON.stringify(categories?.map(c => [c.id, c.label, c.icon]) ?? null)
   useEffect(() => {
-    if (controlRef.current)
-      controlRef.current.options.turnByTurn = turnByTurn
-  }, [map, turnByTurn])
+    controlRef.current?.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, position, placeholder, provider, offline, categoriesKey, recents, units, location, turnByTurn, origin, language])
 
+  const { query } = props
   useEffect(() => {
     controlRef.current?.sync({ query })
   }, [map, query])

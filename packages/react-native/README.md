@@ -34,20 +34,25 @@ export default function Screen() {
 
 ## Props
 
-| Prop        | Type                                                                          | Notes                                         |
-| ----------- | ----------------------------------------------------------------------------- | --------------------------------------------- |
-| `runtime`   | `{ source: 'cdn', url } \| { source: 'inline', bundledSource }`               | Required — how ts-maps reaches the WebView    |
-| `style`     | `ViewStyle`                                                                   | Container style                               |
-| `center`    | `[number, number]`                                                            | `[lng, lat]`                                  |
-| `zoom`      | `number`                                                                      | Initial zoom                                  |
-| `bearing`   | `number`                                                                      | Initial bearing (degrees)                     |
-| `pitch`     | `number`                                                                      | Initial pitch (degrees)                       |
-| `styleSpec` | `unknown`                                                                     | Object passed to `TsMap.setStyle`             |
-| `onLoad`    | `() => void`                                                                  | Fires when the inner map emits `load`         |
-| `onMove`    | `(e: { center, zoom, bearing, pitch }) => void`                               | Camera changes                                |
-| `onClick`   | `(e: { lngLat, point }) => void`                                              | Map click                                     |
-| `onError`   | `(e: { message }) => void`                                                    | Errors from inside the WebView                |
-| `onReady`   | `(api: { call(method, ...args): Promise<unknown> }) => void`                  | Escape hatch for imperative `TsMap` methods   |
+| Prop          | Type                                                            | Notes                                       |
+| ------------- | --------------------------------------------------------------- | ------------------------------------------- |
+| `runtime`     | `{ source: 'cdn', url } \| { source: 'inline', bundledSource }` | Required — how ts-maps reaches the WebView  |
+| `style`       | `ViewStyle`                                                     | Container style                             |
+| `center`      | `[number, number]`                                              | `[lng, lat]`                                |
+| `zoom`        | `number`                                                        | Initial zoom                                |
+| `bearing`     | `number`                                                        | Initial bearing (degrees)                   |
+| `pitch`       | `number`                                                        | Initial pitch (degrees)                     |
+| `styleSpec`   | `unknown`                                                       | Object passed to `TsMap.setStyle`           |
+| `turnByTurn`  | `TurnByTurnSpec`                                                | Navigation — live, options included         |
+| `offlineMaps` | `OfflineMapsSpec`                                               | Offline maps — live, options included       |
+| `search`      | `SearchSpec`                                                    | Search — live, options included             |
+| `onLoad`      | `() => void`                                                    | Fires when the inner map emits `load`       |
+| `onMove`      | `(e: { center, zoom, bearing, pitch }) => void`                 | Camera changes                              |
+| `onClick`     | `(e: { lngLat, point }) => void`                                | Map click                                   |
+| `onError`     | `(e: { message }) => void`                                      | Errors from inside the WebView              |
+| `onReady`     | `(api: { call(method, ...args): Promise<unknown> }) => void`    | Escape hatch for imperative `TsMap` methods |
+
+`turnByTurn`, `offlineMaps` and `search` are live: change any field, options included, and the map follows over the bridge without reloading the WebView; a field removed returns to its default. Only data crosses the bridge, so the options the other bindings take as objects or functions — `directions` for navigation, `maps` and `geocoder` for offline maps, `provider`, `offline`, `location`, `origin` and `onDirections` for search — are not available here, and the WebView's defaults are used. `controls` is read when the map is built.
 
 ## Bundling the runtime
 

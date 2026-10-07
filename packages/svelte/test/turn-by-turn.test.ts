@@ -45,4 +45,25 @@ describe('@ts-maps/svelte TurnByTurn', () => {
     expect(el.querySelector('.tsmap-nav-preview')).toBeNull()
     el.remove()
   })
+
+  test('follows profile and directions after mount', async () => {
+    const WithTurnByTurn = (await import('./fixtures/WithTurnByTurn.svelte')).default
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const asked: string[] = []
+    const a = { name: 'a', getDirections: async (_: unknown, o: any) => { asked.push(`a:${o.profile}`); return [route] } }
+    const b = { name: 'b', getDirections: async (_: unknown, o: any) => { asked.push(`b:${o.profile}`); return [route] } }
+    const app = mount(WithTurnByTurn, { target: el, props: { directions: a, from: P(0, 0), to: P(5, 3) } }) as any
+
+    await settle()
+    app.setProfile('walking')
+    await settle()
+    app.setDirections(b)
+    await settle()
+    expect(asked).toEqual(['a:driving', 'a:walking', 'b:walking'])
+
+    unmount(app)
+    flushSync()
+    el.remove()
+  })
 })

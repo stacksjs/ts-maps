@@ -9,9 +9,9 @@
    * ```
    *
    * Setting `from` and `to` previews the routes; `active` starts guidance.
-   * Options are read when the component mounts; `from`, `to` and `active`
-   * are followed as they change. Events are callback props with the same
-   * names the other bindings use — `onPreview`, `onProgress`, `onArrive`, …
+   * Every prop is followed as it changes. Events are callback props with the
+   * same names the other bindings use — `onPreview`, `onProgress`,
+   * `onArrive`, …
    */
   import type { LatLngInput, TurnByTurnOptions } from 'ts-maps'
   import { onDestroy, onMount } from 'svelte'
@@ -58,7 +58,9 @@
     onReady?.(nav)
   })
 
-  $: if (nav) nav.sync({ from, to, active })
+  // Every option is followed: another `profile` or `directions` fetches a
+  // showing preview again, `units` redraw the cards in place.
+  $: if (nav) nav.sync({ from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions })
 
   onDestroy(() => {
     nav?.stop()

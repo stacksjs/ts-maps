@@ -62,11 +62,18 @@ export const OFFLINE_MAPS_EVENTS: {
 
 export type OfflineMapsEvent = keyof typeof OFFLINE_MAPS_EVENTS
 
-/** What `sync` brings the control into line with. Either left out is left alone. */
-export interface OfflineMapsTarget {
+/**
+ * What `sync` brings the control into line with: its state, `open` and
+ * `onlyOffline`, which are left alone when undefined, and its options, which
+ * are followed when their key is present, undefined meaning the default.
+ * A binding passes every prop; code of your own passes what it changes.
+ */
+export interface OfflineMapsTarget extends Omit<OfflineMapsControlOptions, 'maps' | 'geocoder'> {
   /** The panel is showing: the list, or the area picker. */
   open?: boolean
   onlyOffline?: boolean
+  maps?: OfflineMaps | null
+  geocoder?: GeocoderProvider | null
 }
 
 const CLASS = 'tsmap-offline'
@@ -113,8 +120,10 @@ export class OfflineMapsControl extends Control {
   declare _nameEdited?: boolean
   declare _offline?: boolean
   declare _unsubscribe?: () => void
-  declare _listeners?: Set<(type: OfflineMapsEvent, event: any) => void>
+  declare _unhookMaps?: () => void
+  declare _listeners?: Map<(type: OfflineMapsEvent, event: any) => void, Array<[string, (e: any) => void]>>
   declare _wasOpen?: boolean
+  declare _synced: { open?: boolean, onlyOffline?: boolean }
 
   initialize(options: OfflineMapsControlOptions = {}): void {
     // An option passed as undefined — as bindings pass every prop — means
@@ -122,6 +131,7 @@ export class OfflineMapsControl extends Control {
     const given = Object.fromEntries(Object.entries(options).filter(([, v]) => v !== undefined))
     super.initialize({ position: 'topright', showStatus: true, ...given })
     this.maps = options.maps ?? offlineMaps()
+    this._synced = {}
   }
 
   onAdd(map: any): HTMLElement {
@@ -137,8 +147,7 @@ export class OfflineMapsControl extends Control {
     DomEvent.on(link, 'click', () => (this._card ? this.close() : this.open()))
     this._button = link
 
-    const refresh = (): void => this._refresh()
-    this.maps.on('change progress modechange', refresh)
+    this._hookMaps()
     const connection = (): void => this._updateStatus()
     if (typeof window !== 'undefined') {
       window.addEventListener('online', connection)
@@ -146,19 +155,27 @@ export class OfflineMapsControl extends Control {
     }
     map.on('moveend', connection)
     this._unsubscribe = () => {
-      this.maps.off('change progress modechange', refresh)
       if (typeof window !== 'undefined') {
         window.removeEventListener('online', connection)
         window.removeEventListener('offline', connection)
       }
       map.off('moveend', connection)
     }
-    this.maps.ready().then(connection, () => {})
     connection()
     return container
   }
 
+  _hookMaps(): void {
+    const maps = this.maps
+    const refresh = (): void => this._refresh()
+    maps.on('change progress modechange', refresh)
+    this._unhookMaps = () => maps.off('change progress modechange', refresh)
+    maps.ready().then(() => this.maps === maps && this._refresh(), () => {})
+  }
+
   onRemove(): void {
+    this._unhookMaps?.()
+    this._unhookMaps = undefined
     this._unsubscribe?.()
     this._endSelection()
     this.close()
@@ -176,30 +193,91 @@ export class OfflineMapsControl extends Control {
    * and closing — as `(type, event)`. Returns the way to stop.
    */
   listen(fn: (type: OfflineMapsEvent, event: any) => void): () => void {
-    this._listeners ??= new Set()
-    this._listeners.add(fn)
+    this._listeners ??= new Map()
     const forward: Array<[string, (e: any) => void]> = (['change', 'progress', 'complete', 'error', 'delete', 'modechange'] as const)
       .map(type => [type, (e: any) => fn(type, e)])
+    this._listeners.set(fn, forward)
     for (const [type, handler] of forward)
       this.maps.on(type, handler)
     return () => {
-      this._listeners?.delete(fn)
-      for (const [type, handler] of forward)
+      // Off whichever manager the control shows by then, not the one it
+      // showed when this began: `setMaps` moves the handlers across.
+      for (const [type, handler] of this._listeners?.get(fn) ?? [])
         this.maps.off(type, handler)
+      this._listeners?.delete(fn)
     }
   }
 
   /**
+   * Show another manager: its maps in the list, its events to listeners.
+   * Listeners hear a `change` with its regions, so a binding's view follows.
+   */
+  setMaps(maps: OfflineMaps): this {
+    if (maps === this.maps)
+      return this
+    const old = this.maps
+    for (const forward of this._listeners?.values() ?? []) {
+      for (const [type, handler] of forward) {
+        old.off(type, handler)
+        maps.on(type, handler)
+      }
+    }
+    this._unhookMaps?.()
+    this.maps = maps
+    // A mode a binding declared holds for whichever manager is shown.
+    if (this._synced.onlyOffline !== undefined)
+      maps.onlyOffline = this._synced.onlyOffline
+    if (this._map) {
+      this._hookMaps()
+      this._refresh()
+    }
+    for (const fn of this._listeners?.keys() ?? [])
+      fn('change', { regions: maps.regions })
+    return this
+  }
+
+  /**
    * Bring the control into line with a declarative description of it — what
-   * the framework bindings call as their props change.
+   * the framework bindings call as their props change. Unchanged values cost
+   * nothing, so it can be called on every render.
    */
   sync(target: OfflineMapsTarget): this {
-    if (target.onlyOffline !== undefined)
+    if ('maps' in target)
+      this.setMaps(target.maps ?? offlineMaps())
+    if ('geocoder' in target)
+      this.options.geocoder = target.geocoder ?? undefined
+    if ('resources' in target)
+      this.options.resources = target.resources
+    if ('title' in target && (target.title ?? 'Offline Maps') !== (this.options.title ?? 'Offline Maps')) {
+      this.options.title = target.title
+      const title = target.title ?? 'Offline Maps'
+      this._button?.setAttribute('title', title)
+      this._button?.setAttribute('aria-label', title)
+    }
+    if ('showStatus' in target && (target.showStatus ?? true) !== (this.options.showStatus ?? true)) {
+      this.options.showStatus = target.showStatus ?? true
+      if (this.options.showStatus === false) {
+        this._pill?.remove()
+        this._pill = undefined
+      }
+      this._updateStatus()
+    }
+    if ('position' in target && (target.position ?? 'topright') !== this.options.position)
+      this.setPosition(target.position ?? 'topright')
+    // State is followed when it changes, not on every call: a panel the user
+    // closed from inside stays closed when some other prop changes, until
+    // `open` itself does.
+    if (target.onlyOffline !== undefined && target.onlyOffline !== this._synced.onlyOffline) {
+      this._synced.onlyOffline = target.onlyOffline
       this.maps.onlyOffline = !!target.onlyOffline
-    if (target.open === true && !this.isOpen)
-      this.open()
-    else if (target.open === false && this.isOpen)
-      this.close()
+    }
+    if (target.open !== undefined && target.open !== this._synced.open) {
+      this._synced.open = target.open
+      if (target.open && !this.isOpen)
+        this.open()
+      else if (!target.open && this.isOpen)
+        this.close()
+    }
     return this
   }
 
@@ -234,7 +312,7 @@ export class OfflineMapsControl extends Control {
     if (this._wasOpen === open)
       return
     this._wasOpen = open
-    for (const fn of this._listeners ?? [])
+    for (const fn of this._listeners?.keys() ?? [])
       fn('openchange', { open })
   }
 

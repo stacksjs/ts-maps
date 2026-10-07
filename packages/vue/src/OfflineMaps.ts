@@ -1,4 +1,4 @@
-import type { OfflineMapsControlOptions, OfflineMaps as TsOfflineMapsManager } from 'ts-maps'
+import type { OfflineMapsControlOptions, OfflineMapsTarget, OfflineMaps as TsOfflineMapsManager } from 'ts-maps'
 import type { PropType } from 'vue'
 import type { ControlPosition } from './controls'
 import { OFFLINE_MAPS_EVENTS, OfflineMapsControl } from 'ts-maps'
@@ -16,9 +16,9 @@ import { useMap } from './useMap'
  * </TsMap>
  * ```
  *
- * Options are read when the map arrives; `open` and `onlyOffline` are
- * followed as they change, and both work with `v-model`. Events carry the
- * core names — `change`, `progress`, `complete`, `error`, `delete`,
+ * Every prop is followed as it changes: a new `maps` moves the panel and its
+ * events onto that manager, a new `position` moves the button. `open` and
+ * `onlyOffline` work with `v-model`. Events carry the core names — `change`, `progress`, `complete`, `error`, `delete`,
  * `modechange`, `openchange` — and `ready` hands over the underlying
  * control, whose `maps` is the manager.
  */
@@ -41,6 +41,16 @@ export const OfflineMaps = defineComponent({
     const mapRef = useMap()
     let offline: OfflineMapsControl | null = null
     let unlisten: (() => void) | null = null
+    const target = (): OfflineMapsTarget => ({
+      open: props.open,
+      onlyOffline: props.onlyOffline,
+      position: props.position,
+      maps: props.maps,
+      geocoder: props.geocoder,
+      resources: props.resources,
+      showStatus: props.showStatus,
+      title: props.title,
+    })
 
     const stop = watch(
       mapRef,
@@ -64,14 +74,26 @@ export const OfflineMaps = defineComponent({
             emit('update:onlyOffline', e.onlyOffline)
         })
         emit('ready', offline)
-        offline.sync({ open: props.open, onlyOffline: props.onlyOffline })
+        offline.sync(target())
       },
       { immediate: true },
     )
 
+    // Every option is followed; the control does nothing for one that has not
+    // changed. `resources` is compared by value, so an inline array is not a
+    // change on every render.
     watch(
-      () => [props.open, props.onlyOffline],
-      () => offline?.sync({ open: props.open, onlyOffline: props.onlyOffline }),
+      [
+        () => props.open,
+        () => props.onlyOffline,
+        () => props.position,
+        () => props.maps,
+        () => props.geocoder,
+        () => JSON.stringify(props.resources ?? null),
+        () => props.showStatus,
+        () => props.title,
+      ],
+      () => offline?.sync(target()),
     )
 
     expose({ get control() { return offline } })

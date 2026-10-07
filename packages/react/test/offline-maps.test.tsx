@@ -70,4 +70,23 @@ describe('@ts-maps/react OfflineMaps', () => {
     act(() => roots[0]!.root.render(createElement(Map, { center: [37.78, -122.42], zoom: 15 })))
     expect(host.querySelector('.tsmap-offline-button')).toBeNull()
   })
+
+  test('follows maps and position after mount', () => {
+    const first = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const second = new Manager({ store: new MemoryOfflineStore(), fetch: png })
+    const { host, render } = mount()
+    let control: any
+    const progress: string[] = []
+    const handlers = { onReady: (c: any) => (control = c), onProgress: (e: any) => progress.push(e.from) }
+
+    render({ ...handlers, maps: first, resources: ['https://tiles.test/tiles.json'] })
+    render({ ...handlers, maps: second, resources: ['https://tiles.test/tiles.json'], position: 'bottomleft' })
+    expect(control.maps).toBe(second)
+    expect(host.querySelector('.tsmap-bottom.tsmap-left .tsmap-offline-button')).not.toBeNull()
+
+    // Events come from the manager shown now, not the one shown at mount.
+    first.fire('progress', { from: 'first' })
+    second.fire('progress', { from: 'second' })
+    expect(progress).toEqual(['second'])
+  })
 })

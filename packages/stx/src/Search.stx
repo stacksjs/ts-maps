@@ -11,22 +11,25 @@
  * ```
  *
  * `query` searches straight away. With a `<TurnByTurn>` in the same map,
- * Directions on a place's card previews the route on it. Events cannot be
- * props here — stx passes props as data — so each one is a DOM event
- * bubbling from the map: `search:results`, `search:select`,
- * `search:directions` and `search:clear`, with the core event as `detail`.
- * `search:ready` hands the page the control itself, for `search`,
- * `select` and `sync({ query })` later — and for a provider, which as a live
- * object cannot come from markup:
+ * Directions on a place's card previews the route on it. Every prop is
+ * followed after mount: a changed `data-options` goes to the control's
+ * `sync`. Events cannot be props here — stx passes props as data — so each
+ * one is a DOM event bubbling from the map: `search:results`,
+ * `search:select`, `search:directions` and `search:clear`, with the core
+ * event as `detail`. `search:ready` hands the page the control itself, for
+ * `search`, `select` and `sync` later — and for the live options markup
+ * cannot carry, `provider`, `offline`, `location` and `origin`:
  *
  * ```js
  * container.addEventListener('search:ready', e => { search = e.detail.control })
+ * useMine.onclick = () => search.sync({ provider: myGeocoder })
  * ```
  */
 export const optionsJson = JSON.stringify({
   query: $props.query,
   position: $props.position,
   placeholder: $props.placeholder,
+  categories: $props.categories,
   recents: $props.recents,
   units: $props.units,
   language: $props.language,

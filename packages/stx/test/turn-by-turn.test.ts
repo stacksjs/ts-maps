@@ -25,8 +25,8 @@ describe('turn-by-turn child', () => {
     root.appendChild(mapEl)
     const map = new TsMap(mapEl, { center: P(2, 0), zoom: 15 })
 
-    // The provider is a live object markup cannot carry: the page swaps it in
-    // on `turnbyturn:ready`, before the first routes are fetched.
+    // The provider is a live object markup cannot carry: the page hands it
+    // over on `turnbyturn:ready`, before the first routes are fetched.
     const options = JSON.stringify({ from: P(0, 0), to: P(5, 3), voice: false })
     root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="turn-by-turn" data-options='${options}'></span>`)
 
@@ -34,7 +34,7 @@ describe('turn-by-turn child', () => {
     const seen: string[] = []
     root.addEventListener('turnbyturn:ready', (e: any) => {
       nav = e.detail.nav
-      nav.options.directions = { name: 'fake', getDirections: async () => [route] }
+      nav.sync({ directions: { name: 'fake', getDirections: async () => [route] } })
     })
     for (const name of ['preview', 'start', 'progress'])
       root.addEventListener(`turnbyturn:${name}`, () => seen.push(name))
@@ -51,6 +51,44 @@ describe('turn-by-turn child', () => {
 
     unmount()
     expect(root.querySelector('.tsmap-nav-banner')).toBeNull()
+    root.remove()
+  })
+
+  test('follows its props after mount, and keeps the provider the page gave it', async () => {
+    const root = document.createElement('div')
+    document.body.appendChild(root)
+    const mapEl = document.createElement('div')
+    mapEl.style.width = '430px'
+    mapEl.style.height = '800px'
+    root.appendChild(mapEl)
+    const map = new TsMap(mapEl, { center: P(2, 0), zoom: 15 })
+    const trip = { from: P(0, 0), to: P(5, 3), voice: false }
+    root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="turn-by-turn" data-options='${JSON.stringify(trip)}'></span>`)
+    const el = root.querySelector('[data-ts-map-child="turn-by-turn"]')!
+
+    const asked: string[] = []
+    const a = { name: 'a', getDirections: async (_: unknown, o: any) => { asked.push(`a:${o.profile}`); return [route] } }
+    const b = { name: 'b', getDirections: async (_: unknown, o: any) => { asked.push(`b:${o.profile}`); return [route] } }
+    let nav: any = null
+    root.addEventListener('turnbyturn:ready', (e: any) => {
+      nav = e.detail.nav
+      nav.sync({ directions: a })
+    })
+    const settle = (): Promise<void> => new Promise(r => setTimeout(r, 0))
+
+    const unmount = mountChildren(map, root)
+    await settle()
+    el.setAttribute('data-options', JSON.stringify({ ...trip, profile: 'walking' }))
+    await settle()
+    await nav.sync({ from: trip.from, to: trip.to, directions: b })
+    // Markup that does not mention the provider leaves the page's in place.
+    el.setAttribute('data-options', JSON.stringify({ ...trip, profile: 'walking', destinationName: 'Market Street' }))
+    await settle()
+    expect(asked).toEqual(['a:driving', 'a:walking', 'b:walking'])
+    expect(nav.options.directions).toBe(b)
+    expect(nav.options.destinationName).toBe('Market Street')
+
+    unmount()
     root.remove()
   })
 })

@@ -1,4 +1,5 @@
 import type { ViewStyle } from 'react-native'
+import type { SearchCategory } from 'ts-maps'
 
 /**
  * How the ts-maps runtime is delivered to the WebView.
@@ -106,8 +107,10 @@ export interface TerritorySpec {
  * `<TurnByTurn>` is in the other bindings, carried as data because a
  * component cannot cross the WebView bridge.
  *
- * Live: changing `from`, `to` or `active` updates the navigation over the
- * bridge. Options are read when it is first set.
+ * Live: changing any of it updates the navigation over the bridge — a new
+ * `profile` fetches a showing preview again. An option removed returns to its
+ * default. `directions`, the routing provider the other bindings take, is an
+ * object and cannot cross the bridge, so the default OSRM server is used.
  */
 export interface TurnByTurnSpec {
   /** Where the trip starts, `[lat, lng]`. */
@@ -142,11 +145,12 @@ export interface TurnByTurnBridgeEvent {
  * downloaded maps, the area picker and the offline pill all run inside the
  * WebView, and downloads are kept in its IndexedDB.
  *
- * Live: changing `open` or `onlyOffline` updates the control over the bridge.
- * The other options are read when it is first set. Anything else —
- * downloading an area from code, listing what is downloaded — goes through
- * `api.call('offline.download', { bounds, name })`, `api.call('offline.list')`
- * and the rest of `map.offline`.
+ * Live: changing any of it updates the control over the bridge, and an option
+ * removed returns to its default. `maps` and `geocoder`, which the other
+ * bindings take, are objects and cannot cross the bridge, so the WebView's own
+ * are used. Anything else — downloading an area from code, listing what is
+ * downloaded — goes through `api.call('offline.download', { bounds, name })`,
+ * `api.call('offline.list')` and the rest of `map.offline`.
  */
 export interface OfflineMapsSpec {
   /** Show the panel — the list of downloaded maps. */
@@ -180,14 +184,19 @@ export interface OfflineMapsBridgeEvent {
  * a place's card previews the route there; either way a `directions` event
  * reaches `onSearch`, for the app to act on.
  *
- * Live: changing `query` searches over the bridge. The other options are read
- * when it is first set.
+ * Live: changing `query` searches over the bridge, and changing an option
+ * updates the control; an option removed returns to its default. `provider`,
+ * `offline`, `location`, `origin` and `onDirections`, which the other bindings
+ * take, are objects or functions and cannot cross the bridge, so the defaults
+ * are used — `onSearch`'s `directions` event stands in for `onDirections`.
  */
 export interface SearchSpec {
   /** Search for this; a category's name runs the category. Empty clears. */
   query?: string
   position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
   placeholder?: string
+  /** Find Nearby buttons. Default the first eight of `SEARCH_CATEGORIES`. */
+  categories?: SearchCategory[]
   /** Keep Recents. Default true. */
   recents?: boolean
   units?: 'metric' | 'imperial'
@@ -254,13 +263,13 @@ export interface MapViewProps {
    */
   runTrail?: number[][]
 
-  /** Turn-by-turn navigation. Live, like `markers`. */
+  /** Turn-by-turn navigation. Live, like `markers`, options included. */
   turnByTurn?: TurnByTurnSpec
 
-  /** Offline maps: download areas to use with no connection. Live, like `markers`. */
+  /** Offline maps: download areas to use with no connection. Live, like `markers`, options included. */
   offlineMaps?: OfflineMapsSpec
 
-  /** Search: places, addresses and kinds of place. Live, like `markers`. */
+  /** Search: places, addresses and kinds of place. Live, like `markers`, options included. */
   search?: SearchSpec
 
   onLoad?: () => void

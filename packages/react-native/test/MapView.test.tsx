@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { buildHtml, decode, encode, MapView, nextId } from '../src'
@@ -16,6 +16,34 @@ function getInstances(): WebViewInstance[] {
 function lastInstance(): WebViewInstance {
   const all = getInstances()
   return all[all.length - 1]
+}
+
+// Runs the document's inline script as the WebView would. Its message
+// listeners are taken away after the test, so one test's map does not answer
+// the next one's envelopes.
+const stopScripts: Array<() => void> = []
+afterEach(() => {
+  stopScripts.splice(0).forEach(stop => stop())
+})
+function runScript(script: string): void {
+  const added: Array<[EventTarget, string, EventListenerOrEventListenerObject]> = []
+  const targets: EventTarget[] = [window, document]
+  const originals = targets.map(t => t.addEventListener)
+  targets.forEach((t, i) => {
+    t.addEventListener = function (this: EventTarget, type: string, fn: any, opts?: any) {
+      if (type === 'message')
+        added.push([t, type, fn])
+      return originals[i]!.call(this, type, fn, opts)
+    } as EventTarget['addEventListener']
+  })
+  try {
+    // eslint-disable-next-line no-new-func
+    new Function(script)()
+  }
+  finally {
+    targets.forEach((t, i) => { t.addEventListener = originals[i]! })
+    stopScripts.push(() => added.forEach(([t, type, fn]) => t.removeEventListener(type, fn)))
+  }
 }
 
 describe('bridge envelope', () => {
@@ -414,8 +442,7 @@ describe('offline maps over the bridge', () => {
     const w = window as any
     w.tsMaps = tsMaps
     w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
-    // eslint-disable-next-line no-new-func
-    new Function(script)()
+    runScript(script)
 
     expect(page.querySelector('.tsmap-offline-button')).not.toBeNull()
     expect(page.querySelector('.tsmap-offline-card')).not.toBeNull()
@@ -535,8 +562,7 @@ describe('search over the bridge', () => {
       features: [{ geometry: { type: 'Point', coordinates: [-122.3937, 37.7955] }, properties: { name: 'Ferry Building', osm_key: 'tourism', osm_value: 'attraction', city: 'San Francisco' } }],
     }))) as any
     try {
-      // eslint-disable-next-line no-new-func
-      new Function(script)()
+      runScript(script)
       expect(page.querySelector('.tsmap-search-input')).not.toBeNull()
 
       window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setSearch', id: 's1', payload: { search: { query: 'ferry building' } } }) }))
@@ -552,6 +578,157 @@ describe('search over the bridge', () => {
 
       window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setSearch', id: 's2', payload: { search: null } }) }))
       expect(page.querySelector('.tsmap-search-input')).toBeNull()
+    }
+    finally {
+      globalThis.fetch = original
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+})
+
+describe('options after mount', () => {
+  test('a changed option is sent over the bridge, not only the trip, the panel and the query', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+    const render = (props: Record<string, unknown>): Promise<void> => act(async () => {
+      root.render(createElement(MapView, { runtime, ...props }))
+    })
+
+    await render({ turnByTurn: { profile: 'driving' }, offlineMaps: { title: 'Offline' }, search: { placeholder: 'Search' } })
+    const sent: any[] = []
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+
+    await render({
+      turnByTurn: { profile: 'walking', units: 'imperial' },
+      offlineMaps: { title: 'Saved maps', position: 'bottomleft', showStatus: false },
+      search: { placeholder: 'Where to?', units: 'metric', categories: [{ id: 'cafe', label: 'Cafes', icon: 'cafe', kinds: ['cafe'], synonyms: [] }] },
+    })
+    expect(sent.find(e => e.type === 'setTurnByTurn')?.payload.turnByTurn).toEqual({ profile: 'walking', units: 'imperial' })
+    expect(sent.find(e => e.type === 'setOfflineMaps')?.payload.offlineMaps).toEqual({ title: 'Saved maps', position: 'bottomleft', showStatus: false })
+    expect(sent.find(e => e.type === 'setSearch')?.payload.search.placeholder).toBe('Where to?')
+    expect(sent.find(e => e.type === 'setSearch')?.payload.search.categories[0].id).toBe('cafe')
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView script follows options into the controls, and a removed one returns to its default', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.78, -122.42], zoom: 14, offlineMaps: { title: 'Downloads' }, search: { placeholder: 'Find a place', recents: false } },
+    })
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: () => {} }
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    try {
+      runScript(script)
+      const button = (): HTMLElement | null => page.querySelector('.tsmap-offline-button')
+      const input = (): HTMLInputElement | null => page.querySelector('.tsmap-search-input')
+      expect(button()?.getAttribute('title')).toBe('Downloads')
+      expect(input()?.getAttribute('placeholder')).toBe('Find a place')
+
+      deliver({ type: 'setOfflineMaps', id: 's1', payload: { offlineMaps: { title: 'Saved maps', position: 'bottomleft' } } })
+      deliver({ type: 'setSearch', id: 's2', payload: { search: { placeholder: 'Where to?', recents: false } } })
+      expect(button()?.getAttribute('title')).toBe('Saved maps')
+      expect(page.querySelector('.tsmap-bottom.tsmap-left .tsmap-offline-button')).not.toBeNull()
+      expect(input()?.getAttribute('placeholder')).toBe('Where to?')
+
+      // JSON drops a removed field; the script puts the key back, so the
+      // control returns to the default rather than keeping the last value.
+      deliver({ type: 'setOfflineMaps', id: 's3', payload: { offlineMaps: {} } })
+      deliver({ type: 'setSearch', id: 's4', payload: { search: { recents: false } } })
+      expect(button()?.getAttribute('title')).toBe('Offline Maps')
+      expect(page.querySelector('.tsmap-top.tsmap-right .tsmap-offline-button')).not.toBeNull()
+      expect(input()?.getAttribute('placeholder')).toBe('Search Maps')
+
+      deliver({ type: 'setOfflineMaps', id: 's5', payload: { offlineMaps: null } })
+      deliver({ type: 'setSearch', id: 's6', payload: { search: null } })
+    }
+    finally {
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+
+  test('the WebView script fetches a showing preview again for another profile', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.79, -122.4], zoom: 15, turnByTurn: { from: [37.7955, -122.3937], to: [37.8029, -122.4484], voice: false } },
+    })
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    // OSRM, answering with one straight route.
+    const asked: string[] = []
+    const line = [[-122.3937, 37.7955], [-122.4484, 37.8029]]
+    const original = globalThis.fetch
+    globalThis.fetch = (async (input: unknown) => {
+      asked.push(String(input))
+      return new Response(JSON.stringify({
+        code: 'Ok',
+        routes: [{
+          distance: 5000,
+          duration: 600,
+          geometry: { type: 'LineString', coordinates: line },
+          legs: [{ distance: 5000, duration: 600, steps: [
+            { distance: 5000, duration: 600, geometry: { type: 'LineString', coordinates: line }, name: 'Embarcadero', maneuver: { type: 'depart' } },
+            { distance: 0, duration: 0, geometry: { type: 'LineString', coordinates: [line[1], line[1]] }, name: '', maneuver: { type: 'arrive' } },
+          ] }],
+        }],
+      }))
+    }) as any
+    const previews = (): number => posted.filter(e => e.type === 'turnByTurn' && e.payload.type === 'preview').length
+    try {
+      runScript(script)
+      await new Promise(r => setTimeout(r, 30))
+      expect(asked.some(u => u.includes('/route/v1/driving/'))).toBe(true)
+      expect(previews()).toBe(1)
+
+      const trip = { from: [37.7955, -122.3937], to: [37.8029, -122.4484], voice: false }
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setTurnByTurn', id: 't1', payload: { turnByTurn: { ...trip, profile: 'walking' } } }) }))
+      await new Promise(r => setTimeout(r, 30))
+      expect(asked.some(u => u.includes('/route/v1/foot/'))).toBe(true)
+      expect(previews()).toBe(2)
+
+      // The same options again are a no-op.
+      const before = asked.length
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setTurnByTurn', id: 't2', payload: { turnByTurn: { ...trip, profile: 'walking' } } }) }))
+      await new Promise(r => setTimeout(r, 30))
+      expect(asked.length).toBe(before)
+
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setTurnByTurn', id: 't3', payload: { turnByTurn: null } }) }))
     }
     finally {
       globalThis.fetch = original

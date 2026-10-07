@@ -54,8 +54,8 @@ export interface OfflineMapsProps extends OfflineMapsEventProps {
  * </Map>
  * ```
  *
- * Options are read when the component mounts; `open` and `onlyOffline` are
- * followed as they change.
+ * Every prop is followed as it changes: a new `maps` moves the panel and its
+ * events onto that manager, a new `position` moves the button.
  */
 export function OfflineMaps(props: OfflineMapsProps): null {
   const map = useMap()
@@ -77,10 +77,15 @@ export function OfflineMaps(props: OfflineMapsProps): null {
     }
   }, [map])
 
-  const { open, onlyOffline } = props
+  // Every option is followed; the control does nothing for one that has not
+  // changed. Arrays are compared by value, so an inline `resources={[…]}`
+  // is not a change on every render.
+  const { open, onlyOffline, position, maps, geocoder, resources, showStatus, title } = props
+  const resourcesKey = JSON.stringify(resources ?? null)
   useEffect(() => {
-    controlRef.current?.sync({ open, onlyOffline })
-  }, [map, open, onlyOffline])
+    controlRef.current?.sync({ open, onlyOffline, position, maps, geocoder, resources, showStatus, title })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, open, onlyOffline, position, maps, geocoder, resourcesKey, showStatus, title])
 
   return null
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createApp, h, nextTick, ref } from 'vue'
+import { createApp, h, nextTick, ref, shallowRef } from 'vue'
 import { Map } from '../src/Map'
 import { TurnByTurn } from '../src/TurnByTurn'
 
@@ -59,6 +59,30 @@ describe('@ts-maps/vue TurnByTurn', () => {
 
     app.unmount()
     expect(host.querySelector('.tsmap-nav-preview')).toBeNull()
+    host.remove()
+  })
+  test('follows profile and directions after mount', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const asked: string[] = []
+    const a = { name: 'a', getDirections: async (_: unknown, o: any) => { asked.push(`a:${o.profile}`); return [route] } }
+    const b = { name: 'b', getDirections: async (_: unknown, o: any) => { asked.push(`b:${o.profile}`); return [route] } }
+    const provider = shallowRef(a)
+    const profile = ref<string | undefined>(undefined)
+    const app = createApp({
+      render: () => h(Map as any, { containerClass: 'ts-map-host', center: P(2, 0), zoom: 15 }, () => [
+        h(TurnByTurn as any, { from: P(0, 0), to: P(5, 3), directions: provider.value, profile: profile.value, voice: false }),
+      ]),
+    })
+    app.mount(host)
+    await settle()
+    profile.value = 'walking'
+    await settle()
+    provider.value = b
+    await settle()
+    expect(asked).toEqual(['a:driving', 'a:walking', 'b:walking'])
+
+    app.unmount()
     host.remove()
   })
 })

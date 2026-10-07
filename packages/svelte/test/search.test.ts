@@ -36,4 +36,27 @@ describe('@ts-maps/svelte Search', () => {
     expect(el.querySelector('.tsmap-search-input')).toBeNull()
     el.remove()
   })
+
+  test('follows provider, categories and position after mount', async () => {
+    const WithSearch = (await import('./fixtures/WithSearch.svelte')).default
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = mount(WithSearch, { target: el, props: { provider, events: [] } }) as any
+
+    await settle()
+    const other = { name: 'other', search: async () => [], reverse: async () => [] }
+    const coffee = { id: 'coffee', label: 'Coffee', icon: 'cafe', kinds: ['cafe'], synonyms: [] }
+    app.setProvider(other)
+    app.setCategories([coffee])
+    app.setPosition('topright')
+    await settle()
+    const control = app.getControl()
+    expect(control.engine.provider).toBe(other)
+    expect(control.options.categories).toEqual([coffee])
+    expect(el.querySelector('.tsmap-top.tsmap-right .tsmap-search-input')).not.toBeNull()
+
+    unmount(app)
+    flushSync()
+    el.remove()
+  })
 })

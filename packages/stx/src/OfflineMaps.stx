@@ -11,16 +11,18 @@
  * ```
  *
  * `open` shows the list straight away, and `onlyOffline` keeps map data off
- * the network. Events cannot be props here — stx passes props as data — so
- * each one is a DOM event bubbling from the map: `offlinemaps:change`,
- * `offlinemaps:progress`, `offlinemaps:complete`, and the rest of the names
- * the other bindings use, with the core event as `detail`.
- * `offlinemaps:ready` hands the page the control itself, whose `maps` is the
- * manager, and whose `sync({ open, onlyOffline })` changes either later:
+ * the network. Every prop is followed after mount: a changed `data-options`
+ * goes to the control's `sync`. Events cannot be props here — stx passes
+ * props as data — so each one is a DOM event bubbling from the map:
+ * `offlinemaps:change`, `offlinemaps:progress`, `offlinemaps:complete`, and
+ * the rest of the names the other bindings use, with the core event as
+ * `detail`. `offlinemaps:ready` hands the page the control itself, whose
+ * `sync` changes any option later — and takes the live ones markup cannot
+ * carry, `maps` and `geocoder`. A new `maps` brings its events with it:
  *
  * ```js
  * container.addEventListener('offlinemaps:ready', e => { offline = e.detail.control })
- * button.onclick = () => offline.sync({ open: true })
+ * button.onclick = () => offline.sync({ open: true, maps: myManager })
  * ```
  */
 export const optionsJson = JSON.stringify({

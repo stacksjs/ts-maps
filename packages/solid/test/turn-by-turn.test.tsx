@@ -56,4 +56,35 @@ describe('@ts-maps/solid TurnByTurn', () => {
     expect(el.querySelector('.tsmap-nav-preview')).toBeNull()
     el.remove()
   })
+
+  test('follows profile and directions after mount', async () => {
+    const el = document.createElement('div')
+    el.style.width = '430px'
+    el.style.height = '800px'
+    document.body.appendChild(el)
+    const asked: string[] = []
+    const a = { name: 'a', getDirections: async (_: unknown, o: any) => { asked.push(`a:${o.profile}`); return [route] } }
+    const b = { name: 'b', getDirections: async (_: unknown, o: any) => { asked.push(`b:${o.profile}`); return [route] } }
+    const [profile, setProfile] = createSignal<'driving' | 'walking'>('driving')
+    const [provider, setProvider] = createSignal(a)
+    const [units, setUnits] = createSignal<'metric' | 'imperial'>('metric')
+    const dispose = render(() => (
+      <Map class="map" center={P(2, 0)} zoom={15}>
+        <TurnByTurn from={P(0, 0)} to={P(5, 3)} profile={profile()} directions={provider()} units={units()} voice={false} />
+      </Map>
+    ), el)
+
+    await settle()
+    setProfile('walking')
+    await settle()
+    setProvider(b)
+    await settle()
+    // Units redraw in place; the trip is not fetched again.
+    setUnits('imperial')
+    await settle()
+    expect(asked).toEqual(['a:driving', 'a:walking', 'b:walking'])
+
+    dispose()
+    el.remove()
+  })
 })

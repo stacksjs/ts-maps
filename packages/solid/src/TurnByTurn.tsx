@@ -43,29 +43,41 @@ export interface TurnByTurnProps {
  * ```
  *
  * Setting `from` and `to` previews the routes; `active` starts guidance.
- * Options are read when the map arrives; `from`, `to` and `active` are
- * followed as they change.
+ * Every prop is followed as it changes.
  */
 export function TurnByTurn(props: TurnByTurnProps): JSX.Element {
   let nav: TsTurnByTurn | null = null
 
-  // One effect for both: the map arrives through a signal, and the trip
-  // props are read here too, so a change to either brings the navigation into
-  // line — whichever comes first.
+  // One effect for both: the map arrives through a signal, and every prop is
+  // read here too, so a change to either brings the navigation into line —
+  // whichever comes first. Another `profile` or `directions` fetches a
+  // showing preview again; places are compared by value, so an unchanged
+  // trip is not fetched again when another prop changes.
   createEffect(() => {
     const map = useMap()
-    const target = { from: props.from, to: props.to, active: props.active }
+    const target = {
+      from: props.from,
+      to: props.to,
+      active: props.active,
+      profile: props.profile,
+      units: props.units,
+      voice: props.voice,
+      simulate: props.simulate,
+      alternatives: props.alternatives,
+      destinationName: props.destinationName,
+      directions: props.directions,
+    }
     if (!map)
       return
     if (!nav) {
       nav = new TsTurnByTurn(map, {
-        profile: props.profile,
-        units: props.units,
-        voice: props.voice,
-        simulate: props.simulate,
-        alternatives: props.alternatives,
-        destinationName: props.destinationName,
-        directions: props.directions,
+        profile: target.profile,
+        units: target.units,
+        voice: target.voice,
+        simulate: target.simulate,
+        alternatives: target.alternatives,
+        destinationName: target.destinationName,
+        directions: target.directions,
       })
       for (const [event, prop] of Object.entries(TURN_BY_TURN_EVENTS))
         nav.on(event, (e: any) => (props as any)[prop]?.(e))

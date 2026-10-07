@@ -1,7 +1,7 @@
 import type { JSX } from 'solid-js'
 import type { SearchControlOptions } from 'ts-maps'
 import type { ControlPosition } from './controls'
-import { createEffect, onCleanup } from 'solid-js'
+import { createEffect, createSignal, onCleanup, untrack } from 'solid-js'
 import { SEARCH_EVENTS, SearchControl } from 'ts-maps'
 import { useMap } from './context'
 
@@ -42,39 +42,62 @@ export interface SearchProps {
  * </Map>
  * ```
  *
- * Options are read when the map arrives; `query` and `turnByTurn` are
- * followed as they change.
+ * Every prop is followed as it changes: a new `provider` is asked from the
+ * next query on, new `categories` redraw Find Nearby in place.
  */
 export function Search(props: SearchProps): JSX.Element {
   let search: SearchControl | null = null
   let unlisten: (() => void) | null = null
+  const [control, setControl] = createSignal<SearchControl | null>(null)
 
+  // An effect rather than onMount: the map arrives through a signal. The
+  // options are read untracked here; the effects below follow them.
   createEffect(() => {
     const map = useMap()
-    const query = props.query
-    const turnByTurn = props.turnByTurn
-    if (!map)
+    if (!map || search)
       return
-    if (!search) {
-      search = new SearchControl({
-        position: props.position,
-        placeholder: props.placeholder,
-        provider: props.provider,
-        offline: props.offline,
-        categories: props.categories,
-        recents: props.recents,
-        units: props.units,
-        location: props.location,
-        turnByTurn,
-        origin: props.origin,
-        language: props.language,
-      })
-      search.addTo(map)
-      unlisten = search.listen((type, e) => (props as any)[SEARCH_EVENTS[type]]?.(e))
-      props.onReady?.(search)
+    search = untrack(() => new SearchControl({
+      position: props.position,
+      placeholder: props.placeholder,
+      provider: props.provider,
+      offline: props.offline,
+      categories: props.categories,
+      recents: props.recents,
+      units: props.units,
+      location: props.location,
+      turnByTurn: props.turnByTurn,
+      origin: props.origin,
+      language: props.language,
+    }))
+    search.addTo(map)
+    unlisten = search.listen((type, e) => (props as any)[SEARCH_EVENTS[type]]?.(e))
+    props.onReady?.(search)
+    setControl(search)
+  })
+
+  // Every option is followed; the control does nothing for one that has not
+  // changed. A `TurnByTurn` usually arrives after mount, from its own onReady.
+  createEffect(() => {
+    const target = {
+      position: props.position,
+      placeholder: props.placeholder,
+      provider: props.provider,
+      offline: props.offline,
+      categories: props.categories,
+      recents: props.recents,
+      units: props.units,
+      location: props.location,
+      turnByTurn: props.turnByTurn,
+      origin: props.origin,
+      language: props.language,
     }
-    search.options.turnByTurn = turnByTurn
-    search.sync({ query })
+    control()?.sync(target)
+  })
+
+  // `query` on its own, so another prop changing does not search again.
+  createEffect(() => {
+    const target = { query: props.query }
+    control()?.sync(target)
   })
 
   onCleanup(() => {

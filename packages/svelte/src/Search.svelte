@@ -9,10 +9,10 @@
    * </Map>
    * ```
    *
-   * Options are read when the component mounts; `query` and `turnByTurn`
-   * are followed as they change. Events are callback props with the same
-   * names the other bindings use — `onResults`, `onSelect`, `onDirections`,
-   * `onClear`.
+   * Every prop is followed as it changes: a new `provider` is asked from the
+   * next query on, new `categories` redraw Find Nearby in place. Events are
+   * callback props with the same names the other bindings use — `onResults`,
+   * `onSelect`, `onDirections`, `onClear`.
    */
   import type { SearchControlOptions } from 'ts-maps'
   import { onDestroy, onMount } from 'svelte'
@@ -57,7 +57,11 @@
     onReady?.(search)
   })
 
-  $: if (search) search.options.turnByTurn = turnByTurn
+  // Every option is followed; the control does nothing for one that has not
+  // changed. A `TurnByTurn` usually arrives after mount, from its own
+  // onReady. The query is followed on its own, so another option does not
+  // search again.
+  $: if (search) search.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language })
   $: if (search) search.sync({ query })
 
   onDestroy(() => {

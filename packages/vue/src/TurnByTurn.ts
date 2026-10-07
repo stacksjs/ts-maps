@@ -1,4 +1,4 @@
-import type { LatLngInput, TurnByTurnOptions } from 'ts-maps'
+import type { LatLngInput, TurnByTurnOptions, TurnByTurnTarget } from 'ts-maps'
 import type { PropType } from 'vue'
 import { TURN_BY_TURN_EVENTS, TurnByTurn as TsTurnByTurn } from 'ts-maps'
 import { defineComponent, onBeforeUnmount, watch } from 'vue'
@@ -14,10 +14,10 @@ import { useMap } from './useMap'
  * ```
  *
  * Setting `from` and `to` previews the routes; `active` starts guidance.
- * Options are read when the map arrives; `from`, `to` and `active` are
- * followed as they change. Events carry the core names — `preview`,
- * `routeselect`, `start`, `progress`, `instruction`, `reroute`, `arrive`,
- * `end`, `error` — and `ready` hands over the underlying `TurnByTurn`.
+ * Every prop is followed as it changes. Events carry the core names —
+ * `preview`, `routeselect`, `start`, `progress`, `instruction`, `reroute`,
+ * `arrive`, `end`, `error` — and `ready` hands over the underlying
+ * `TurnByTurn`.
  */
 export const TurnByTurn = defineComponent({
   name: 'TsTurnByTurn',
@@ -39,32 +39,48 @@ export const TurnByTurn = defineComponent({
   setup(props, { emit, expose }) {
     const mapRef = useMap()
     let nav: TsTurnByTurn | null = null
+    const options = (): TurnByTurnOptions => ({
+      profile: props.profile,
+      units: props.units,
+      voice: props.voice,
+      simulate: props.simulate,
+      alternatives: props.alternatives,
+      destinationName: props.destinationName,
+      directions: props.directions,
+    })
+    const target = (): TurnByTurnTarget => ({ from: props.from, to: props.to, active: props.active, ...options() })
 
     const stop = watch(
       mapRef,
       (map) => {
         if (!map || nav)
           return
-        nav = new TsTurnByTurn(map, {
-          profile: props.profile,
-          units: props.units,
-          voice: props.voice,
-          simulate: props.simulate,
-          alternatives: props.alternatives,
-          destinationName: props.destinationName,
-          directions: props.directions,
-        })
+        nav = new TsTurnByTurn(map, options())
         for (const event of Object.keys(TURN_BY_TURN_EVENTS))
           nav.on(event, (e: any) => emit(event, e))
         emit('ready', nav)
-        nav.sync({ from: props.from, to: props.to, active: props.active })
+        nav.sync(target())
       },
       { immediate: true },
     )
 
+    // Every option is followed: another `profile` or `directions` fetches a
+    // showing preview again, `units` redraw the cards in place. Places and
+    // `simulate` are compared by value, so inline literals are not a change.
     watch(
-      () => [JSON.stringify(props.from ?? null), JSON.stringify(props.to ?? null), props.active],
-      () => nav?.sync({ from: props.from, to: props.to, active: props.active }),
+      [
+        () => JSON.stringify(props.from ?? null),
+        () => JSON.stringify(props.to ?? null),
+        () => props.active,
+        () => props.profile,
+        () => props.units,
+        () => props.voice,
+        () => JSON.stringify(props.simulate ?? null),
+        () => props.alternatives,
+        () => props.destinationName,
+        () => props.directions,
+      ],
+      () => nav?.sync(target()),
     )
 
     expose({ get nav() { return nav } })

@@ -51,8 +51,7 @@ export interface TurnByTurnProps extends TurnByTurnEventProps {
  * ```
  *
  * Setting `from` and `to` previews the routes; `active` starts guidance.
- * Options are read when the component mounts; `from`, `to` and `active` are
- * followed as they change.
+ * Every prop is followed as it changes.
  */
 export function TurnByTurn(props: TurnByTurnProps): null {
   const map = useMap()
@@ -75,13 +74,17 @@ export function TurnByTurn(props: TurnByTurnProps): null {
     }
   }, [map])
 
-  const { from, to, active } = props
+  // Every option is followed: another `profile` or `directions` fetches a
+  // showing preview again, `units` redraw the cards in place. Places and
+  // `simulate` are compared by value, so inline literals are not a change.
+  const { from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions } = props
   const fromKey = JSON.stringify(from ?? null)
   const toKey = JSON.stringify(to ?? null)
+  const simulateKey = JSON.stringify(simulate ?? null)
   useEffect(() => {
-    navRef.current?.sync({ from, to, active })
+    navRef.current?.sync({ from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, fromKey, toKey, active])
+  }, [map, fromKey, toKey, active, profile, units, voice, simulateKey, alternatives, destinationName, directions])
 
   return null
 }
