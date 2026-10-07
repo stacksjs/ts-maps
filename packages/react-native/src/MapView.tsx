@@ -243,7 +243,7 @@ export function MapView(props: MapViewProps): ReactElement {
         // The WebView's offline maps, read from and written to the app's storage.
         case 'store': {
           const { op, key, value } = env.payload ?? {}
-          const done = Promise.resolve().then(() => {
+          const done = Promise.resolve().then((): Promise<string | null | undefined | void> => {
             if (!offlineStore)
               throw new Error('no offlineStore was given to MapView')
             if (op === 'get')
