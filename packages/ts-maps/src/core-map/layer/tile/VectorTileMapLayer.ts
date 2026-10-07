@@ -39,6 +39,11 @@ import type { BuildingDraw, BuildingFootprint, BuildingMesh } from '../../render
 import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../renderer/webgl/BuildingOverlay'
 import type { Occluder, OcclusionSource } from '../../symbols/BuildingOcclusion'
 import { occluded, OccluderIndex } from '../../symbols/BuildingOcclusion'
+import { roofOf } from '../../renderer/webgl/roofs'
+import { insideRing, landmarkDraws, replacedPoints } from '../../landmarks/Landmark'
+import { isSceneHost, sceneBusy, sceneOf } from '../../landmarks/scene'
+import type { TreeFeature } from '../../landmarks/trees'
+import { buildTreeMesh, plantTrees, treeKind } from '../../landmarks/trees'
 import { activeOfflineMaps } from '../../offline/OfflineMaps'
 import type { PMTilesTileJSON } from '../../pmtiles/protocol'
 import { isPMTilesUrl, pmtilesSourceUrl, pmtilesTileJSON, pmtilesTileUrl, readPMTilesTile } from '../../pmtiles/protocol'
@@ -308,6 +313,11 @@ interface DecodedTileEntry {
  */
 let decodePool: WorkerPool | null = null
 
+/** A shown tile's key, for its trees. */
+function treeKey(coords: { x: number, y: number, z: number }): string {
+  return `${coords.z}/${coords.x}/${coords.y}`
+}
+
 function sharedDecodePool(size?: number): WorkerPool {
   if (!decodePool) {
     const cores = typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency ?? 4) : 4
@@ -355,6 +365,8 @@ export class VectorTileMapLayer extends GridLayer {
    * build — and draw — the same buildings a dozen times.
    */
   declare _buildingMeshes?: Map<string, { version: number, meshes: Array<{ layer: string, mesh: BuildingMesh }>, occluders: OccluderIndex }>
+  /** Each source tile's trees, built when they are first shown. */
+  declare _treeMeshes?: Map<string, { version: number, mesh: BuildingMesh }>
   /** This frame's buildings and camera, for hiding the labels behind them. */
   declare _occlusion?: { sources: OcclusionSource[], camera: { x: number, y: number }, rise: number } | null
   /** Occlusion answers by label, kept while the camera has not moved. */
@@ -969,6 +981,16 @@ export class VectorTileMapLayer extends GridLayer {
       resize: follow,
       load: settle,
       viewreset: follow,
+      // Landmarks and trees: their own draws need a frame; a landmark taking
+      // its building's place, or trees turned on, need the meshes again.
+      scene3dchange: ((e: { rebuild?: boolean }) => {
+        if (!isSceneHost(this._map, this))
+          return
+        if (e?.rebuild)
+          this._invalidateLabels()
+        else
+          this._refreshSymbols()
+      }) as () => void,
     }
     for (const [event, fn] of Object.entries(this._symbolHandlers))
       this._map.on(event, fn)
@@ -1124,7 +1146,8 @@ export class VectorTileMapLayer extends GridLayer {
   _buildingsActive(): boolean {
     if (this._buildingOverlay === undefined) {
       const pane = this._map?.getPane?.('buildingPane') ?? null
-      if (!pane || !this._styleLayers.some(l => l.type === 'fill-extrusion'))
+      const scene = sceneBusy(this._map) && isSceneHost(this._map, this)
+      if (!pane || !(scene || this._styleLayers.some(l => l.type === 'fill-extrusion')))
         return false
       const overlay = new BuildingOverlay(pane)
       this._buildingOverlay = overlay.active ? overlay : null
@@ -1159,6 +1182,10 @@ export class VectorTileMapLayer extends GridLayer {
       const size = this.getTileSize().x
       const sourceId = this._sourceId ?? ''
       const lookup = this._featureStateLookup
+      const map = this._map
+      // Landmarks standing in for a building take its place.
+      const replaced = map && isSceneHost(map, this) ? replacedPoints(map, sceneOf(map).landmarks, source, size) : []
+      const mpp = this._metresPerPixel(source, size)
 
       for (const styleLayer of layers) {
         const mvtLayer = tile.layers[styleLayer.sourceLayer]
@@ -1183,7 +1210,10 @@ export class VectorTileMapLayer extends GridLayer {
             continue
           const color = parseCssColor((resolve(paint?.['fill-extrusion-color']) as string | undefined) ?? '#000', 1)
           const rings = feature.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x * scale, y: pt.y * scale })))
-          footprints.push({ rings, height, base, color: [color[0], color[1], color[2], color[3]] })
+          if (replaced.length && rings[0] && replaced.some(([x, y]) => insideRing(rings[0]!, x, y)))
+            continue
+          const roof = roofOf(feature.properties as Record<string, unknown>)
+          footprints.push({ rings, height, base, color: [color[0], color[1], color[2], color[3]], ...(roof ? { roof } : {}) })
 
           // The outer ring stands in for the building when hiding labels;
           // a courtyard is too small to see a street name through.
@@ -1207,12 +1237,68 @@ export class VectorTileMapLayer extends GridLayer {
         }
 
         if (footprints.length)
-          meshes.push({ layer: styleLayer.id, mesh: buildBuildingMesh(footprints, size) })
+          meshes.push({ layer: styleLayer.id, mesh: buildBuildingMesh(footprints, size, mpp) })
       }
     }
 
     this._buildingMeshes.set(key, { version: this._labelVersion, meshes, occluders: new OccluderIndex(occluders, this.getTileSize().x) })
     return meshes
+  }
+
+  /** Metres to a pixel of a source tile, at its middle. */
+  _metresPerPixel(tile: { x: number, y: number, z: number }, size: number): number {
+    const map = this._map
+    const lat = map ? map.unproject([(tile.x + 0.5) * size, (tile.y + 0.5) * size], tile.z).lat : 0
+    const world = map?.options?.crs?.scale ? map.options.crs.scale(tile.z) : 256 * 2 ** tile.z
+    return (40075016.686 * Math.cos((lat * Math.PI) / 180)) / world
+  }
+
+  /**
+   * The trees for the tile `entry` shows, planted in the woods of its source
+   * tile. Planted per shown tile rather than per source tile: overzoomed, a
+   * source tile is a square kilometre or more, and the trees in the quarter
+   * of it on screen would be thinned for all the forest off it.
+   */
+  _treesFor(entry: DecodedTileEntry): { version: number, mesh: BuildingMesh } | undefined {
+    const map = this._map
+    const options = map ? sceneOf(map).trees?.options : undefined
+    const tile = entry.tile
+    if (!options || !tile)
+      return undefined
+    const key = treeKey(entry.coords)
+    this._treeMeshes ??= new Map()
+    const cached = this._treeMeshes.get(key)
+    if (cached && cached.version === this._labelVersion)
+      return cached
+    if (cached)
+      this._buildingOverlay?.release(cached)
+
+    const sub = this._subTile(entry.coords)
+    const size = this.getTileSize().x
+    const match = options.match ?? treeKind
+    const features: TreeFeature[] = []
+    // Source pixels to the shown tile's: x·f − sx·size.
+    const { f, sx, sy } = sub
+    for (const name of Object.keys(tile.layers)) {
+      const layer = tile.layers[name]!
+      const scale = (size / (layer.extent || 4096)) * f
+      for (let i = 0; i < layer.length; i++) {
+        const feature = layer.feature(i)
+        if (feature.type === 2)
+          continue
+        const kind = match(name, feature.properties as Record<string, unknown>)
+        if (!kind || (kind === 'wood' && feature.type !== 3) || (kind === 'tree' && feature.type !== 1))
+          continue
+        features.push({ kind, geometry: feature.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x * scale - sx * size, y: pt.y * scale - sy * size }))) })
+      }
+    }
+    const mpp = this._metresPerPixel(sub, size)
+    const shown = { ...entry.coords, size, mpp: mpp / f }
+    // Drawn with the source tile's matrix, so back into its pixels.
+    const planted = plantTrees(features, shown, options).map(t => ({ x: (t.x + sx * size) / f, y: (t.y + sy * size) / f, seed: t.seed }))
+    const built = { version: this._labelVersion, mesh: buildTreeMesh(planted, { x: sub.x, y: sub.y, z: sub.z, size, mpp }, options) }
+    this._treeMeshes.set(key, built)
+    return built
   }
 
   /**
@@ -1258,7 +1344,10 @@ export class VectorTileMapLayer extends GridLayer {
       !(l.minzoom !== undefined && mapZoom < l.minzoom)
       && !(l.maxzoom !== undefined && mapZoom > l.maxzoom),
     )
-    if (!active.length) {
+    // Landmarks and trees, where this layer is the one drawing them.
+    const scene = isSceneHost(map, this) ? sceneOf(map) : undefined
+    const treeOpacity = scene?.trees ? scene.trees.visibility(mapZoom, map._pitch ?? 0) : 0
+    if (!active.length && !scene?.landmarks.size && !treeOpacity) {
       overlay.clear()
       return false
     }
@@ -1282,11 +1371,21 @@ export class VectorTileMapLayer extends GridLayer {
     let pending = false
     const draws: BuildingDraw[] = []
     const fogEnd = h * 10
+    // Trees stop short of the haze: past a few camera heights each is a
+    // pixel or two, and a tile of them is thousands of triangles.
+    const treeEnd = h * 4
     const occlusionSources: OcclusionSource[] = []
     const meshes = this._buildingMeshes ??= new Map()
     const drawn = new Set<string>()
     const ready = (e: DecodedTileEntry): boolean => meshes.get(this._sourceKey(e.coords))?.version === this._labelVersion
-    for (const entry of this._labelEntries(ready)) {
+    const entries = this._labelEntries(ready)
+    // The shown tiles of each source tile, for their trees.
+    const shown = new Map<string, DecodedTileEntry[]>()
+    for (const entry of entries) {
+      const key = this._sourceKey(entry.coords)
+      shown.set(key, [...(shown.get(key) ?? []), entry])
+    }
+    for (const entry of entries) {
       // Once per source tile, however many grid tiles show part of it.
       const key = this._sourceKey(entry.coords)
       if (drawn.has(key))
@@ -1306,12 +1405,15 @@ export class VectorTileMapLayer extends GridLayer {
       if (nearest > fogEnd)
         continue
 
-      if (!ready(entry) && now() - started > 6) {
+      const wantsTrees = treeOpacity > 0 && nearest < treeEnd
+      const treesReady = !wantsTrees || shown.get(key)!.every(e => this._treeMeshes?.get(treeKey(e.coords))?.version === this._labelVersion)
+      if ((!ready(entry) || !treesReady) && now() - started > 6) {
         pending = true
         continue
       }
       const tileMeshes = this._buildingsFor(entry, all)
-      if (!tileMeshes.length)
+      const treeMeshes = wantsTrees ? shown.get(key)!.map(e => this._treesFor(e)).filter(t => !!t?.mesh.count) as Array<{ version: number, mesh: BuildingMesh }> : []
+      if (!tileMeshes.length && !treeMeshes.length)
         continue
 
       // Pixels per metre where this tile is: Mercator stretches the ground
@@ -1328,11 +1430,19 @@ export class VectorTileMapLayer extends GridLayer {
         if (layerOpacity >= 0.5)
           solid = true
       }
+      for (const trees of treeMeshes)
+        draws.push({ key: trees, mesh: trees.mesh, matrix, heightScale, opacity: treeOpacity })
       // Buildings only hide what is behind them once they are mostly there;
       // while they fade in with the zoom, labels stay.
       const cached = meshes.get(key)
       if (solid && cached)
         occlusionSources.push({ index: cached.occluders, scale: k, origin: [x * tileSize * k - origin.x, y * tileSize * k - origin.y], pxPerMetre: heightScale })
+    }
+
+    if (scene?.landmarks.size) {
+      const standing = landmarkDraws(map, scene.landmarks, camera, fogEnd)
+      draws.push(...standing.draws)
+      occlusionSources.push(...standing.occlusion)
     }
 
     // Lit from the north-west, as maps traditionally are; distant buildings
@@ -1363,6 +1473,13 @@ export class VectorTileMapLayer extends GridLayer {
       for (const item of cached.meshes)
         overlay.release(item)
       meshes.delete(key)
+    }
+    const heldTrees = new Set([...this._decodedTiles.values()].map(e => treeKey(e.coords)))
+    for (const [key, cached] of this._treeMeshes ?? []) {
+      if (heldTrees.has(key))
+        continue
+      overlay.release(cached)
+      this._treeMeshes!.delete(key)
     }
     return pending
   }

@@ -216,6 +216,31 @@ Events bubble as DOM events: `indoor:load` (`{ venue }`), `indoor:levelchange`
 container.addEventListener('indoor:levelchange', e => console.log('now on', e.detail.name))
 ```
 
+### `<Landmark>` and `<Trees>`
+
+```stx
+<Map :center="[37.7952, -122.4028]" :zoom="17" :pitch="60">
+  <Landmark model="/models/transamerica.glb" :position="[37.7952, -122.4028]" :rotation="45" />
+  <Trees :spacing="12" />
+</Map>
+```
+
+A landmark is a glTF model standing where a building is, after Apple Maps:
+drawn with the buildings, hiding the labels behind it, and by default leaving
+out the extruded building it stands on. `model` is the model's URL, or a
+glTF's JSON with its buffers inline. `position`, `rotation`, `scale`,
+`altitude` and `opacity` are followed after mount; a changed `model`,
+`replace` or `minZoom` makes it again. `<Trees>` plants low-poly trees in the
+basemap's woods and parks as the map tilts, one set per map, following
+`spacing`, `maxPerTile`, `minZoom`, `minPitch`, `colors` and `height`.
+Neither has events of its own: `landmark:ready` and `trees:ready` hand over
+the instance, for `ready()`, the setters, or a `match` function, which
+markup cannot carry:
+
+```ts
+container.addEventListener('trees:ready', e => e.detail.trees.setOptions({ match: myMatch }))
+```
+
 ### Without the components
 
 `@ts-maps/stx/route` is the same logic as plain functions that take the

@@ -48,6 +48,8 @@ export default function Screen() {
 | `search`      | `SearchSpec`                                                    | Search — live, options included             |
 | `mapType`     | `MapTypeSpec`                                                   | Map type picker — live, options included    |
 | `indoor`      | `IndoorSpec`                                                    | Indoor map — live, options included         |
+| `landmarks`   | `LandmarkSpec[]`                                                | glTF landmarks — live, options included     |
+| `trees`       | `boolean \| TreesSpec`                                          | Trees in woods and parks — live             |
 | `onLoad`      | `() => void`                                                    | Fires when the inner map emits `load`       |
 | `onMove`      | `(e: { center, zoom, bearing, pitch }) => void`                 | Camera changes                              |
 | `onClick`     | `(e: { lngLat, point }) => void`                                | Map click                                   |
@@ -84,6 +86,17 @@ For a Traffic switch on the card, `trafficProvider` (`'mapbox'` or `'tomtom'`) a
   search={{}}
   indoor={{ venue: 'https://example.org/imdf/sfo.zip', level }}
   onIndoor={e => e.type === 'levelchange' && setLevel(e.data.level as number)}
+/>
+```
+
+`landmarks` stands glTF models where buildings are, after Apple Maps: drawn with the buildings, hiding the labels behind them, and by default leaving out the extruded building each stands on. `model` is a `.glb` or `.gltf` URL, loaded inside the WebView, and `position` is `[lat, lng]`. Landmarks are matched across updates by `id`, or by index without one: a changed `position`, `rotation`, `scale`, `altitude` or `opacity` moves one, and a changed `model`, `replace` or `minZoom` makes it again. `trees` plants low-poly trees in the basemap's woods and parks as the map tilts — `true` for the defaults, or `spacing`, `maxPerTile`, `minZoom`, `minPitch`, `colors` and `height`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  pitch={60}
+  landmarks={[{ id: 'transamerica', model: 'https://example.org/models/transamerica.glb', position: [37.7952, -122.4028], rotation: 45 }]}
+  trees
 />
 ```
 

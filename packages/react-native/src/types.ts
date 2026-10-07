@@ -309,6 +309,57 @@ export interface IndoorBridgeEvent {
   data: Record<string, unknown>
 }
 
+/**
+ * A glTF model standing where a building is, after Apple Maps' landmarks —
+ * the same thing `<Landmark>` is in the other bindings, carried as data. The
+ * WebView loads the model at `model` and draws it with the buildings, hiding
+ * the labels behind it.
+ *
+ * Live: changing `position`, `rotation`, `scale`, `altitude` or `opacity`
+ * moves the landmark; changing `model`, `replace` or `minZoom` makes it
+ * again. Landmarks are matched across updates by `id`, or by index without
+ * one. A model's bytes, which the other bindings also take, do not cross the
+ * bridge well, so it is a URL here.
+ */
+export interface LandmarkSpec {
+  id?: string
+  /** A `.glb` or `.gltf` URL. */
+  model: string
+  /** Where the model's origin stands: [lat, lng]. */
+  position: [number, number]
+  /** Metres above the ground. Default 0. */
+  altitude?: number
+  /** Degrees clockwise. A glTF model faces south at 0. */
+  rotation?: number
+  /** Default 1: glTF is in metres. */
+  scale?: number
+  /** Leave out the extruded building under it. Default true. */
+  replace?: boolean
+  /** Hidden zoomed out further than this. Default 15. */
+  minZoom?: number
+  opacity?: number
+}
+
+/**
+ * Trees in the basemap's woods and parks, after Apple Maps — the same thing
+ * `<Trees>` is in the other bindings, carried as data. `match`, a function,
+ * cannot cross the bridge, so the default one is used. Live.
+ */
+export interface TreesSpec {
+  /** Metres between trees in a wood. Default 9. */
+  spacing?: number
+  /** Most trees a tile plants. Default 3000. */
+  maxPerTile?: number
+  /** Default 15. */
+  minZoom?: number
+  /** Degrees of tilt before trees appear. Default 20. */
+  minPitch?: number
+  /** Crown colours, picked between per tree. */
+  colors?: string[]
+  /** Metres. Default [7, 14]. */
+  height?: [number, number]
+}
+
 export interface MapViewProps {
   style?: ViewStyle
 
@@ -374,6 +425,12 @@ export interface MapViewProps {
   /** An indoor map: a venue's floor plan, a level at a time. Live, like `markers`, options included. */
   indoor?: IndoorSpec
 
+  /** glTF models standing where buildings are. Live, like `markers`, options included. */
+  landmarks?: LandmarkSpec[]
+
+  /** Trees in the basemap's woods and parks: `true` for the defaults. Live, options included. */
+  trees?: boolean | TreesSpec
+
   onLoad?: () => void
   // eslint-disable-next-line no-unused-vars
   onMove?: (e: MapMoveEvent) => void
@@ -432,6 +489,8 @@ export type BridgeEnvelope =
   | { type: 'mapType', id: string, payload: MapTypeBridgeEvent }
   | { type: 'setIndoor', id: string, payload: { indoor: IndoorSpec | null } }
   | { type: 'indoor', id: string, payload: IndoorBridgeEvent }
+  | { type: 'setLandmarks', id: string, payload: { landmarks: LandmarkSpec[] | null } }
+  | { type: 'setTrees', id: string, payload: { trees: boolean | TreesSpec | null } }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }

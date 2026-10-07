@@ -1,6 +1,6 @@
-import type { IndoorMapOptions, MapTypeControlOptions, MapTypeOption, MapTypesOptions, TsMap } from 'ts-maps'
+import type { IndoorMapOptions, LandmarkOptions, MapTypeControlOptions, MapTypeOption, MapTypesOptions, TsMap } from 'ts-maps'
 import type { PageTheme, ResolveTileJsonOptions, RouteLatLng, RouteMarker, RouteOptions } from './route'
-import { CircleMarker, control, divIcon, IndoorMap, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import { CircleMarker, control, divIcon, IndoorMap, Landmark, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, Trees, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 import { basemapStyle, drawRoute, pageTheme, refitOnResize, resolveTileJson, watchPageTheme } from './route'
 
 /**
@@ -245,8 +245,8 @@ function trafficFrom(props: Record<string, any>): TrafficLayer | undefined {
 }
 
 /**
- * The props `<TurnByTurn>`, `<Search>`, `<OfflineMaps>`, `<MapType>` and
- * `<IndoorMap>` render. Live objects — a manager, a provider, a callback — cannot come from
+ * The props `<TurnByTurn>`, `<Search>`, `<OfflineMaps>`, `<MapType>`,
+ * `<IndoorMap>`, `<Landmark>` and `<Trees>` render. Live objects — a manager, a provider, a callback — cannot come from
  * markup, so they are not here, and what the page hands the control itself is
  * never reset by the markup.
  */
@@ -256,6 +256,8 @@ const MARKUP_PROPS = {
   'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title'],
   'map-type': ['value', 'open', 'position', 'showTraffic', ...MAP_TYPES_PROPS, ...TRAFFIC_PROPS],
   'indoor-map': ['venue', 'level', 'position', 'minZoom', 'language'],
+  'landmark': ['model', 'position', 'altitude', 'rotation', 'scale', 'replace', 'minZoom', 'opacity'],
+  'trees': ['spacing', 'maxPerTile', 'minZoom', 'minPitch', 'colors', 'height'],
 } as const
 
 /**
@@ -298,8 +300,8 @@ function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, la
  *
  * Children are read once, at mount. A page that adds markers later should do
  * so through the map itself — see `findMap`. `<TurnByTurn>`, `<Search>`,
- * `<OfflineMaps>`, `<MapType>` and `<IndoorMap>` go on following their
- * `data-options` after that.
+ * `<OfflineMaps>`, `<MapType>`, `<IndoorMap>`, `<Landmark>` and `<Trees>` go
+ * on following their `data-options` after that.
  */
 export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   const created: Removable[] = []
@@ -550,6 +552,60 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
             remove: () => {
               unfollow()
               teardown()
+            },
+          })
+          break
+        }
+
+        case 'landmark': {
+          // The model is a URL or a glTF's JSON: markup carries data, not
+          // bytes. A new model, `replace` or `minZoom` makes the landmark
+          // again; the rest goes to its `sync`.
+          let landmark: Landmark | null = null
+          let built: string | undefined
+          const unfollow = followProps(el, MARKUP_PROPS.landmark, (props) => {
+            const key = JSON.stringify([props.model, props.replace, props.minZoom])
+            if (key === built && landmark) {
+              landmark.sync({ position: props.position, rotation: props.rotation, scale: props.scale, altitude: props.altitude, opacity: props.opacity })
+              return
+            }
+            built = key
+            landmark?.remove()
+            landmark = null
+            if (!props.model || props.position == null) {
+              console.warn('[ts-maps] <Landmark> needs a `model` and a `position`; ignoring')
+              return
+            }
+            landmark = new Landmark(definedOnly(props) as unknown as LandmarkOptions).addTo(map)
+            root.dispatchEvent(new CustomEvent('landmark:ready', { bubbles: true, detail: { landmark } }))
+          })
+          created.push({
+            remove: () => {
+              unfollow()
+              landmark?.remove()
+            },
+          })
+          break
+        }
+
+        case 'trees': {
+          // `match` is a function, which markup cannot carry: it is not among
+          // the props followed, so one the page hands `setOptions` stays.
+          let applied = ''
+          const trees = new Trees()
+          const unfollow = followProps(el, MARKUP_PROPS.trees, (props) => {
+            const key = JSON.stringify(props)
+            if (key === applied)
+              return
+            applied = key
+            trees.setOptions(props)
+          })
+          trees.addTo(map)
+          root.dispatchEvent(new CustomEvent('trees:ready', { bubbles: true, detail: { trees } }))
+          created.push({
+            remove: () => {
+              unfollow()
+              trees.remove()
             },
           })
           break

@@ -1,4 +1,6 @@
+import type { Roof } from './roofs'
 import { earcut } from '../../geometry/earcut'
+import { writePitchedBuilding } from './roofs'
 
 /**
  * 3D buildings, drawn the way Apple Maps draws them: real boxes seen through
@@ -27,6 +29,8 @@ export interface BuildingFootprint {
   base: number
   /** 0–1 components. */
   color: [number, number, number, number]
+  /** A pitched roof, from `roof:shape`; left out, the roof is flat. */
+  roof?: Roof
 }
 
 /**
@@ -74,7 +78,7 @@ export function readBuildingVertex(mesh: BuildingMesh, i: number): { x: number, 
  * tile edge is cut there, and the cut would otherwise show as a wall standing
  * in the middle of the building, drawn over its neighbour tile's half.
  */
-export function buildBuildingMesh(buildings: BuildingFootprint[], tileSize: number): BuildingMesh {
+export function buildBuildingMesh(buildings: BuildingFootprint[], tileSize: number, metresPerPixel: number = 1): BuildingMesh {
   // Written straight into the packed layout, growing as needed: a dense
   // downtown tile is a couple of hundred thousand vertices, and going through
   // an array of numbers first more than doubled the time to build it.
@@ -111,6 +115,14 @@ export function buildBuildingMesh(buildings: BuildingFootprint[], tileSize: numb
         polygons.push([ring])
       else
         polygons[polygons.length - 1]!.push(ring)
+    }
+
+    // A pitched roof is set out on the whole footprint: one ring, no
+    // courtyard, not cut by the tile edge (each half would get its own ridge).
+    const only = polygons.length === 1 && polygons[0]!.length === 1 ? polygons[0]![0]! : undefined
+    if (building.roof && only && only.every(p => p.x > 0 && p.y > 0 && p.x < tileSize && p.y < tileSize)
+      && writePitchedBuilding(out, only, building.roof, top, bottom, metresPerPixel)) {
+      continue
     }
 
     for (const polygon of polygons) {
@@ -156,7 +168,7 @@ export function buildBuildingMesh(buildings: BuildingFootprint[], tileSize: numb
 }
 
 /** Appends vertices in `BUILDING_STRIDE` layout, doubling its buffer when full. */
-class MeshWriter {
+export class MeshWriter {
   count = 0
   buffer: ArrayBuffer
   f32: Float32Array
@@ -200,10 +212,44 @@ class MeshWriter {
     this.count++
   }
 
+  /**
+   * A triangle at any slope (a pitched roof, a tree, a model), lit by its
+   * own normal: the cross of its sides, counter-clockwise seen from outside.
+   * x and y are pixels, `mpp` metres to a pixel, h metres. `upward` turns
+   * the normal to face the sky whichever way the corners run.
+   */
+  face(a: Vec3, b: Vec3, c: Vec3, mpp: number, upward: boolean = false): void {
+    // East, north, up, in metres: pixels run south.
+    const ux = (b[0] - a[0]) * mpp
+    const uy = -(b[1] - a[1]) * mpp
+    const uz = b[2] - a[2]
+    const vx = (c[0] - a[0]) * mpp
+    const vy = -(c[1] - a[1]) * mpp
+    const vz = c[2] - a[2]
+    let nx = uy * vz - uz * vy
+    let ny = uz * vx - ux * vz
+    const nz = ux * vy - uy * vx
+    const length = Math.hypot(nx, ny, nz)
+    if (!length)
+      return
+    if (upward && nz < 0) {
+      nx = -nx
+      ny = -ny
+    }
+    const ex = Math.round((nx / length) * 127)
+    const sy = Math.round((-ny / length) * 127)
+    this.vertex(a[0], a[1], a[2], ex, sy, 255)
+    this.vertex(b[0], b[1], b[2], ex, sy, 255)
+    this.vertex(c[0], c[1], c[2], ex, sy, 255)
+  }
+
   finish(): BuildingMesh {
     return { data: this.buffer.slice(0, this.count * BUILDING_STRIDE), count: this.count }
   }
 }
+
+/** x, y in pixels, h in metres. */
+export type Vec3 = [number, number, number]
 
 function ringArea(ring: Array<{ x: number, y: number }>): number {
   let sum = 0
@@ -328,12 +374,15 @@ void main() {
   // Roofs are lifted a little above the base colour; walls are shaded by
   // how squarely they face the light, and darken towards their foot, which
   // is what makes a block of similar buildings read as separate boxes.
-  vec3 rgb = a_color.rgb;
+  // The normal is the level part of the surface's own: whole for a wall,
+  // nothing for a flat roof, and in between for a pitched roof, a tree or a
+  // landmark's model, which take some of each.
+  float level = dot(a_normal, a_normal);
+  float up = sqrt(clamp(1.0 - level, 0.0, 1.0));
+  vec3 roof = mix(a_color.rgb, vec3(1.0), 0.18);
+  float wall = level > 0.0001 ? (0.66 + 0.24 * (0.5 + 0.5 * dot(normalize(a_normal), u_light))) * mix(0.84, 1.0, a_t) : 1.0;
+  vec3 rgb = mix(a_color.rgb * wall, roof, up);
   float shade = 1.0;
-  if (dot(a_normal, a_normal) < 0.25)
-    rgb = mix(rgb, vec3(1.0), 0.18);
-  else
-    shade = (0.66 + 0.24 * (0.5 + 0.5 * dot(normalize(a_normal), u_light))) * mix(0.84, 1.0, a_t);
   // Distant buildings fade into the haze at the horizon.
   float fog = 1.0 - smoothstep(u_fog.x, u_fog.y, clip.w);
   float alpha = a_color.a * u_opacity * fog;

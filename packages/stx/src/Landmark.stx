@@ -1,0 +1,36 @@
+<script server>
+/**
+ * A glTF model standing where a building is, after Apple Maps' landmarks:
+ * drawn with the buildings, hiding the labels behind it, and by default
+ * leaving out the extruded building it stands on.
+ *
+ * ```stx
+ * <Map :center="[37.7952, -122.4028]" :zoom="17" :pitch="60">
+ *   <Landmark model="/models/transamerica.glb" :position="[37.7952, -122.4028]" :rotation="45" />
+ * </Map>
+ * ```
+ *
+ * `model` is the model's URL, or a glTF's JSON with its buffers inline. Every
+ * prop is followed after mount: a changed `position`, `rotation`, `scale`,
+ * `altitude` or `opacity` goes to the landmark's `sync`, and a changed
+ * `model`, `replace` or `minZoom` makes the landmark again. `landmark:ready`
+ * is a DOM event bubbling from the map that hands the page the landmark
+ * itself, for `ready()` and the setters.
+ */
+export const optionsJson = JSON.stringify({
+  model: $props.model,
+  position: $props.position,
+  altitude: $props.altitude,
+  rotation: $props.rotation,
+  scale: $props.scale,
+  replace: $props.replace,
+  minZoom: $props.minZoom,
+  opacity: $props.opacity,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="landmark"
+  data-options="{{ optionsJson }}"
+></span>

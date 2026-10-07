@@ -98,6 +98,8 @@ describe('component registration', () => {
       'TsMapsOfflineMaps',
       'TsMapsMapType',
       'TsMapsIndoorMap',
+      'TsMapsLandmark',
+      'TsMapsTrees',
       'TsMapsSearch',
       'TsMapsZoomControl',
       'TsMapsNavigationControl',

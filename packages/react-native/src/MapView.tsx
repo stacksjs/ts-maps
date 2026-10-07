@@ -43,6 +43,8 @@ export function MapView(props: MapViewProps): ReactElement {
     search,
     mapType,
     indoor,
+    landmarks,
+    trees,
     onLoad,
     onMove,
     onClick,
@@ -61,7 +63,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, landmarks, trees } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,6 +183,22 @@ export function MapView(props: MapViewProps): ReactElement {
     post({ type: 'setIndoor', id: nextId(), payload: { indoor: indoor ?? null } })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indoorKey, post])
+
+  const landmarksKey = JSON.stringify(landmarks ?? null)
+  useEffect(() => {
+    if (!readyRef.current)
+      return
+    post({ type: 'setLandmarks', id: nextId(), payload: { landmarks: landmarks ?? null } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landmarksKey, post])
+
+  const treesKey = JSON.stringify(trees ?? null)
+  useEffect(() => {
+    if (!readyRef.current)
+      return
+    post({ type: 'setTrees', id: nextId(), payload: { trees: trees ?? null } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [treesKey, post])
 
   const handleMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {

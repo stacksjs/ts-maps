@@ -1,4 +1,4 @@
-import type { ControlSpec, IndoorSpec, MapRuntime, MapTypeSpec, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TurnByTurnSpec } from './types'
+import type { ControlSpec, IndoorSpec, LandmarkSpec, MapRuntime, MapTypeSpec, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TreesSpec, TurnByTurnSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -18,6 +18,8 @@ export interface BuildHtmlOptions {
     search?: SearchSpec
     mapType?: MapTypeSpec
     indoor?: IndoorSpec
+    landmarks?: LandmarkSpec[]
+    trees?: boolean | TreesSpec
   }
 }
 
@@ -376,6 +378,51 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    indoor.sync(follow(spec, ["level", "position"], {}));',
   '  }',
+  // Landmarks and trees are the same ones the other bindings use, a model
+  // loaded here from its URL. A landmark is matched across updates by `id`,
+  // or by index without one: a new `model`, `replace` or `minZoom` makes it
+  // again, and the rest goes to its `sync`.
+  '  const LANDMARK_KEYS = ["altitude", "rotation", "scale", "replace", "minZoom", "opacity"];',
+  '  let landmarks = [];',
+  '  function applyLandmarks(list) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!ns.Landmark) return;',
+  '    const specs = Array.isArray(list) ? list.filter(function (l) { return l && l.model && l.position; }) : [];',
+  '    const keyOf = function (l, i) { return l.id != null ? `id:${l.id}` : `at:${i}`; };',
+  '    const was = {};',
+  '    landmarks.forEach(function (item) { was[item.key] = item; });',
+  '    landmarks = specs.map(function (spec, i) {',
+  '      const key = keyOf(spec, i);',
+  '      const build = JSON.stringify([spec.model, spec.replace, spec.minZoom]);',
+  '      const item = was[key];',
+  '      if (item && item.build === build) {',
+  '        delete was[key];',
+  '        item.landmark.sync({ position: spec.position, rotation: spec.rotation, scale: spec.scale, altitude: spec.altitude, opacity: spec.opacity });',
+  '        return item;',
+  '      }',
+  '      let made;',
+  '      try { made = new ns.Landmark(Object.assign(given(spec, LANDMARK_KEYS), { model: spec.model, position: spec.position })); made.addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); return null; }',
+  '      made.ready().then(null, function (e) {',
+  '        if (made._map) fail((e && e.message) || e);',
+  '      });',
+  '      return { key: key, build: build, landmark: made };',
+  '    }).filter(Boolean);',
+  '    Object.keys(was).forEach(function (key) { was[key].landmark.remove(); });',
+  '  }',
+  '  const TREES_KEYS = ["spacing", "maxPerTile", "minZoom", "minPitch", "colors", "height"];',
+  '  let trees = null;',
+  '  function applyTrees(spec) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!spec) { if (trees) { trees.remove(); trees = null; } return; }',
+  '    if (!ns.Trees) return;',
+  '    const opts = follow(spec === true ? {} : spec, TREES_KEYS, {});',
+  '    if (!trees) {',
+  '      try { trees = new ns.Trees(given(opts, TREES_KEYS)); trees.addTo(map); }',
+  '      catch (e) { trees = null; fail((e && e.message) || e); }',
+  '    }',
+  '    else trees.setOptions(opts);',
+  '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
   '  applyTurnByTurn(initial.turnByTurn);',
@@ -383,6 +430,8 @@ const RUNTIME_SCRIPT = [
   '  applySearch(initial.search);',
   '  applyMapType(initial.mapType);',
   '  applyIndoor(initial.indoor);',
+  '  applyLandmarks(initial.landmarks);',
+  '  applyTrees(initial.trees);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
@@ -440,6 +489,12 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setIndoor") {',
   '      applyIndoor(env.payload && env.payload.indoor);',
+  '    }',
+  '    else if (env.type === "setLandmarks") {',
+  '      applyLandmarks(env.payload && env.payload.landmarks);',
+  '    }',
+  '    else if (env.type === "setTrees") {',
+  '      applyTrees(env.payload && env.payload.trees);',
   '    }',
   '  }',
   '  function onMessage(data) {',

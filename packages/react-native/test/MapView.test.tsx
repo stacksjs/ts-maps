@@ -743,6 +743,124 @@ describe('indoor maps over the bridge', () => {
   })
 })
 
+describe('landmarks and trees over the bridge', () => {
+  // A 10 m wedge as glTF, its buffer inline, served at a URL.
+  const positions = new Float32Array([-1, 0, 0, 1, 0, 0, 0, 10, 0])
+  const gltf = {
+    asset: { version: '2.0' },
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0 }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
+    accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3' }],
+    bufferViews: [{ buffer: 0, byteLength: positions.byteLength }],
+    buffers: [{ byteLength: positions.byteLength, uri: `data:application/octet-stream;base64,${Buffer.from(positions.buffer).toString('base64')}` }],
+  }
+  const model = 'https://models.test/wedge.gltf'
+  const AT: [number, number] = [37.7952, -122.4028]
+
+  test('changed specs are sent over the bridge', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+    const render = (props: Record<string, unknown>): Promise<void> => act(async () => {
+      root.render(createElement(MapView, { runtime, ...props }))
+    })
+
+    await render({ landmarks: [{ model, position: AT }], trees: true })
+    const sent: any[] = []
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+
+    await render({ landmarks: [{ model, position: AT }], trees: true })
+    expect(sent.filter(e => e.type === 'setLandmarks' || e.type === 'setTrees').length).toBe(0)
+    await render({ landmarks: [{ model, position: AT, rotation: 45 }], trees: { spacing: 12 } })
+    const landmarks = sent.filter(e => e.type === 'setLandmarks')
+    expect(landmarks.length).toBe(1)
+    expect(landmarks[0].payload.landmarks).toEqual([{ model, position: AT, rotation: 45 }])
+    const trees = sent.filter(e => e.type === 'setTrees')
+    expect(trees.length).toBe(1)
+    expect(trees[0].payload.trees).toEqual({ spacing: 12 })
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView script loads the landmark, follows its props, and plants trees', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: AT, zoom: 17, landmarks: [{ id: 'tower', model, position: AT }], trees: { spacing: 12 } },
+    })
+    expect(html).toContain('applyLandmarks(initial.landmarks)')
+    expect(html).toContain('applyTrees(initial.trees)')
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    const original = globalThis.fetch
+    globalThis.fetch = (async (url: string) => String(url) === model ? new Response(JSON.stringify(gltf)) : new Response('', { status: 404 })) as any
+    try {
+      runScript(script)
+      const map = w.__tsMapsBridge__.map
+      const scene = map._scene3d
+      expect(scene.landmarks.size).toBe(1)
+      const [first] = [...scene.landmarks] as any[]
+      await first.ready()
+      expect(first.model.count).toBe(3)
+      expect(first.options.replace).toBe(true)
+      expect(scene.trees.options.spacing).toBe(12)
+
+      deliver({ type: 'setLandmarks', id: 'm1', payload: { landmarks: [{ id: 'tower', model, position: AT, rotation: 45 }] } })
+      expect([...scene.landmarks]).toEqual([first])
+      expect(first.options.rotation).toBe(45)
+
+      // A new `replace` makes the landmark again.
+      deliver({ type: 'setLandmarks', id: 'm2', payload: { landmarks: [{ id: 'tower', model, position: AT, rotation: 45, replace: false }] } })
+      const [second] = [...scene.landmarks] as any[]
+      expect(scene.landmarks.size).toBe(1)
+      expect(second).not.toBe(first)
+      expect(second.options).toMatchObject({ replace: false, rotation: 45 })
+
+      const trees = scene.trees
+      deliver({ type: 'setTrees', id: 't1', payload: { trees: true } })
+      expect(scene.trees).toBe(trees)
+      expect(trees.options.spacing).toBeUndefined()
+
+      deliver({ type: 'setLandmarks', id: 'm3', payload: { landmarks: null } })
+      deliver({ type: 'setTrees', id: 't2', payload: { trees: null } })
+      expect(scene.landmarks.size).toBe(0)
+      expect(scene.trees).toBeUndefined()
+      expect(posted.filter(e => e.type === 'error')).toEqual([])
+    }
+    finally {
+      globalThis.fetch = original
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+})
+
 describe('search over the bridge', () => {
   test('the document carries the spec and accepts updates', () => {
     const html = buildHtml({

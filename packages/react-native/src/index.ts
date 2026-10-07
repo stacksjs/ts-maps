@@ -7,6 +7,7 @@ export type {
   ControlSpec,
   IndoorBridgeEvent,
   IndoorSpec,
+  LandmarkSpec,
   MapApi,
   MapClickEvent,
   MapErrorEvent,
@@ -21,6 +22,7 @@ export type {
   OfflineMapsSpec,
   SearchBridgeEvent,
   SearchSpec,
+  TreesSpec,
   TurnByTurnBridgeEvent,
   TurnByTurnSpec,
 } from './types'

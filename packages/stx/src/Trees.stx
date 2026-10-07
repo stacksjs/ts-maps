@@ -1,0 +1,30 @@
+<script server>
+/**
+ * Trees, standing in the woods and parks the basemap already has, after
+ * Apple Maps: low-poly trees that come in as the map tilts. One per map.
+ *
+ * ```stx
+ * <Map :center="[37.7694, -122.4862]" :zoom="16" :pitch="60">
+ *   <Trees :spacing="12" />
+ * </Map>
+ * ```
+ *
+ * `spacing`, `maxPerTile`, `minZoom`, `minPitch`, `colors` and `height` are
+ * followed after mount. `match` is a function, which markup cannot carry:
+ * pass it to `setOptions` on the trees `trees:ready` hands the page.
+ */
+export const optionsJson = JSON.stringify({
+  spacing: $props.spacing,
+  maxPerTile: $props.maxPerTile,
+  minZoom: $props.minZoom,
+  minPitch: $props.minPitch,
+  colors: $props.colors,
+  height: $props.height,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="trees"
+  data-options="{{ optionsJson }}"
+></span>

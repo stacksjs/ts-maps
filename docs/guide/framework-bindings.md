@@ -16,6 +16,8 @@ sketched in one framework reads the same in another.
 | `Search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `search` prop |
 | `MapType` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `mapType` prop |
 | `IndoorMap` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `indoor` prop |
+| `Landmark` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `landmarks` prop |
+| `Trees` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `trees` prop |
 | Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
 | Event subscription | `useMapEvent` | `useMapEvent` | `useMapEvent` | `useMapEvent` | `onMapEvent` | auto-imported | ✅ |
 
@@ -402,6 +404,56 @@ the WebView, linked to its `search`, with every event arriving at one
 />
 ```
 
+## Landmarks and trees
+
+`Landmark` stands a glTF model where a building is, after Apple Maps'
+landmarks: drawn with the buildings, hiding the labels behind it, and by
+default leaving out the extruded building it stands on (`replace`). `model`
+is a `.glb` or `.gltf` URL, a `.glb`'s bytes, or a parsed glTF, and is read
+when the landmark is made, with `replace` and `minZoom` (default 15); a new
+one makes it again, so keep its identity stable across renders. `position`,
+`rotation` (degrees clockwise), `scale`, `altitude` and `opacity` are
+followed as they change. `Trees` plants low-poly trees in the basemap's woods
+and parks as the map tilts, one set per map, following `spacing`,
+`maxPerTile`, `minZoom`, `minPitch`, `colors`, `height` and `match`. Both need
+a vector basemap and WebGL; see [3D](../concepts/3d.md#landmarks).
+
+```tsx
+// React and Solid
+<Map center={[37.7952, -122.4028]} zoom={17} pitch={60}>
+  <Landmark model="/models/transamerica.glb" position={[37.7952, -122.4028]} rotation={45} />
+  <Trees spacing={12} />
+</Map>
+```
+
+```vue
+<!-- Vue, and Nuxt as <TsMapsLandmark> and <TsMapsTrees> -->
+<TsLandmark model="/models/transamerica.glb" :position="[37.7952, -122.4028]" :rotation="45" />
+<TsTrees :spacing="12" />
+```
+
+```svelte
+<Landmark model="/models/transamerica.glb" position={[37.7952, -122.4028]} rotation={45} />
+<Trees spacing={12} />
+```
+
+Neither has events of its own. `onReady` (`ready` in Vue) hands over the
+landmark, for `ready()` and the setters, or the trees, for `setOptions`.
+
+stx's `<Landmark>` takes the model's URL, or a glTF's JSON, as `model`, and
+hands the instances over as bubbling `landmark:ready` and `trees:ready` DOM
+events; `match` cannot be written in markup. React Native loads each model
+inside the WebView from its URL, matching landmarks across updates by `id`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  pitch={60}
+  landmarks={[{ id: 'transamerica', model: 'https://example.org/models/transamerica.glb', position: [37.7952, -122.4028], rotation: 45 }]}
+  trees
+/>
+```
+
 ## Subscribing to events
 
 `useMapEvent` binds a handler for the lifetime of the calling component, in
@@ -442,7 +494,7 @@ from your layout. Two rules are worth knowing up front:
   instead each child renders inert markup and `<Map>` walks its subtree and
   builds what it finds. Markers added to the DOM later are not picked up — add
   those through the map. `<OfflineMaps>`, `<Search>`, `<TurnByTurn>`,
-  `<MapType>` and `<IndoorMap>` keep following their props after that: a change to the markup is handed to the
+  `<MapType>`, `<IndoorMap>`, `<Landmark>` and `<Trees>` keep following their props after that: a change to the markup is handed to the
   control. Live objects such as `maps` or `provider` cannot be written in
   markup; pass them to the control's `sync` from its `ready` event.
 
