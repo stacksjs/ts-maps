@@ -1,5 +1,23 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.22...v0.3.23)
+
+## 🚀 Features
+
+- **stx**: a route map in a few lines - tiles that fall back, a route that redraws ([c97614c](https://github.com/stacksjs/ts-maps/commit/c97614c)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧪 Tests
+
+- **worker**: type the tile tier's mocked origin ([48fd96f](https://github.com/stacksjs/ts-maps/commit/48fd96f)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.3.23 ([db922c4](https://github.com/stacksjs/ts-maps/commit/db922c4)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.21...v0.3.22)
 
 ## 🚀 Features
