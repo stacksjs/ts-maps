@@ -1,4 +1,4 @@
-import type { ControlSpec, MapRuntime, MapTypeSpec, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TurnByTurnSpec } from './types'
+import type { ControlSpec, IndoorSpec, MapRuntime, MapTypeSpec, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TurnByTurnSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -17,6 +17,7 @@ export interface BuildHtmlOptions {
     offlineMaps?: OfflineMapsSpec
     search?: SearchSpec
     mapType?: MapTypeSpec
+    indoor?: IndoorSpec
   }
 }
 
@@ -269,7 +270,7 @@ const RUNTIME_SCRIPT = [
   '  };',
   '  function applySearch(spec) {',
   '    const ns = window.tsMaps || window;',
-  '    if (!spec) { if (search) { search.remove(); search = null; } return; }',
+  '    if (!spec) { if (search) { unlinkIndoor(); search.remove(); search = null; } return; }',
   '    if (!ns.SearchControl) return;',
   '    if (!search) {',
   '      const opts = Object.assign(given(spec, SEARCH_KEYS), { turnByTurn: searchNav });',
@@ -278,6 +279,7 @@ const RUNTIME_SCRIPT = [
   '      search.listen(function (type, e) {',
   '        send({ type: "search", id: `sr${Date.now()}`, payload: { type: type, data: ns.SearchControl.plainEvent(type, e) } });',
   '      });',
+  '      linkIndoor();',
   '    }',
   '    search.sync(follow(spec, SEARCH_KEYS, { query: spec.query == null ? undefined : spec.query }));',
   '  }',
@@ -328,12 +330,59 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    picker.sync(follow(spec, ["position", "value", "open", "showTraffic"], { types: pickerTypes.types }));',
   '  }',
+  // The indoor map is the same control the other bindings use, its venue
+  // loaded here from a URL. Its places are found by the search above, whichever
+  // is set up first. A new venue, `minZoom` or `language` loads it again;
+  // `level` and `position` are followed by the control. A venue is reduced to
+  // its id, name and levels to cross the bridge.
+  '  const INDOOR_KEYS = ["level", "position", "minZoom", "language"];',
+  '  let indoor = null;',
+  '  let indoorKey = null;',
+  '  let indoorLevel;',
+  '  let indoorUnlink = null;',
+  '  function unlinkIndoor() {',
+  '    if (indoorUnlink) { indoorUnlink(); indoorUnlink = null; }',
+  '  }',
+  '  function linkIndoor() {',
+  '    unlinkIndoor();',
+  '    if (indoor && search) indoorUnlink = indoor.connect(search);',
+  '  }',
+  '  function plainIndoor(type, e) {',
+  '    if (type !== "load") return e;',
+  '    return { venue: { id: e.venue.id, name: e.venue.name, levels: e.venue.levels } };',
+  '  }',
+  '  function applyIndoor(spec) {',
+  '    const ns = window.tsMaps || window;',
+  '    const key = spec && spec.venue ? JSON.stringify([spec.venue, spec.minZoom, spec.language]) : null;',
+  '    if (indoor && key !== indoorKey) { unlinkIndoor(); indoor.remove(); indoor = null; indoorKey = null; }',
+  '    if (!key || !ns.IndoorMap) return;',
+  '    indoorLevel = spec.level == null ? undefined : spec.level;',
+  '    if (!indoor) {',
+  '      let made;',
+  '      try { made = new ns.IndoorMap(Object.assign(given(spec, INDOOR_KEYS), { venue: spec.venue })); made.addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '      indoor = made;',
+  '      indoorKey = key;',
+  '      made.listen(function (type, e) {',
+  '        send({ type: "indoor", id: `in${Date.now()}`, payload: { type: type, data: plainIndoor(type, e) } });',
+  '      });',
+  // A level asked for while the venue was loading is shown once it has.
+  '      made.ready().then(function () {',
+  '        if (indoor === made) made.sync({ level: indoorLevel });',
+  '      }, function (e) {',
+  '        if (indoor === made) fail((e && e.message) || e);',
+  '      });',
+  '      linkIndoor();',
+  '    }',
+  '    indoor.sync(follow(spec, ["level", "position"], {}));',
+  '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
   '  applyTurnByTurn(initial.turnByTurn);',
   '  applyOfflineMaps(initial.offlineMaps);',
   '  applySearch(initial.search);',
   '  applyMapType(initial.mapType);',
+  '  applyIndoor(initial.indoor);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
@@ -388,6 +437,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setMapType") {',
   '      applyMapType(env.payload && env.payload.mapType);',
+  '    }',
+  '    else if (env.type === "setIndoor") {',
+  '      applyIndoor(env.payload && env.payload.indoor);',
   '    }',
   '  }',
   '  function onMessage(data) {',

@@ -31,3 +31,4 @@ export { TurnByTurn, type TurnByTurnEventProps, type TurnByTurnProps } from './T
 export { OfflineMaps, type OfflineMapsEventProps, type OfflineMapsProps } from './OfflineMaps'
 export { MapType, type MapTypeEventProps, type MapTypeProps } from './MapType'
 export { Search, type SearchEventProps, type SearchProps } from './Search'
+export { IndoorMap, type IndoorMapEventProps, type IndoorMapProps } from './IndoorMap'

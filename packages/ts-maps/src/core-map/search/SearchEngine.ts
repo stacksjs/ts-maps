@@ -57,6 +57,15 @@ export interface SearchQueryOptions {
   online?: boolean
 }
 
+/**
+ * Places search can find that are not in the tiles: the shops and gates of
+ * an indoor map, a page's own points. Asked on every query; return those
+ * whose names might match, and search scores them like the map's own.
+ */
+export interface LocalPlaceSource {
+  places: (query: string) => Array<Omit<SearchPlace, 'source' | 'distance'>>
+}
+
 export interface SearchEngineOptions {
   /** The map whose tiles are searched. */
   map?: any
@@ -295,6 +304,8 @@ export class SearchEngine {
   offline?: OfflineMaps | null
   language?: string
   schema?: TileSchema
+  /** Places from elsewhere, searched with the map's. See `addSource`. */
+  sources: LocalPlaceSource[] = []
 
   constructor(options: SearchEngineOptions = {}) {
     this.map = options.map
@@ -333,6 +344,14 @@ export class SearchEngine {
     return !maps?.onlyOffline
   }
 
+  /** Search these places too. Returns the way to stop. */
+  addSource(source: LocalPlaceSource): () => void {
+    this.sources.push(source)
+    return () => {
+      this.sources = this.sources.filter(s => s !== source)
+    }
+  }
+
   /** Places on the map and in downloaded maps whose names match: instant, no network. */
   async local(query: string, options: SearchQueryOptions = {}): Promise<SearchPlace[]> {
     const near = this._near(options)
@@ -356,6 +375,13 @@ export class SearchEngine {
         source: 'map',
         rank: prominence(f.kind, f.rank, f.layer),
       }, match, near))
+    }
+    for (const source of this.sources) {
+      for (const place of source.places(query)) {
+        const match = matchScore(place.name, query)
+        if (match > 0)
+          out.push(this._score({ ...place, source: 'map' }, match, near))
+      }
     }
     const maps = await this._offline()
     for (const p of (await maps?.places()) ?? []) {

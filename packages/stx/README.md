@@ -194,6 +194,28 @@ switch reports `maptype:trafficchange` (`{ traffic }`):
 <MapType tiles="{{ tileUrl }}" trafficProvider="tomtom" trafficKey="{{ tomtomKey }}" :incidents="true" :showTraffic="true" />
 ```
 
+### `<IndoorMap>`
+
+```stx
+<Map center="[37.6155, -122.3866]" zoom="17">
+  <Search />
+  <IndoorMap venue="/imdf/sfo.zip" :level="1" />
+</Map>
+```
+
+A venue's IMDF floor plan, a level at a time, with Apple's level picker.
+`venue` is the archive's URL — a `.zip`, or a folder of its files. With a
+`<Search>` in the same map, the venue's shops and gates are found there, and
+choosing one goes to its level. `level` and `position` are followed after
+mount; a changed `venue`, `minZoom` or `language` loads the venue again.
+Events bubble as DOM events: `indoor:load` (`{ venue }`), `indoor:levelchange`
+(`{ level, name }`) and `indoor:visibilitychange` (`{ visible }`), and
+`indoor:ready` hands over the control, for `setLevel`, `search` and `levels`:
+
+```ts
+container.addEventListener('indoor:levelchange', e => console.log('now on', e.detail.name))
+```
+
 ### Without the components
 
 `@ts-maps/stx/route` is the same logic as plain functions that take the

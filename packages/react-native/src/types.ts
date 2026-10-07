@@ -274,6 +274,41 @@ export interface SearchBridgeEvent {
   data: Record<string, unknown>
 }
 
+/**
+ * An indoor map, after Apple Maps — the same thing `<IndoorMap>` is in the
+ * other bindings, carried as data. The WebView loads the IMDF archive at
+ * `venue` and draws its floor plan one level at a time, with the level picker
+ * beside the map. With `search` set too, the venue's shops and gates are found
+ * there, and choosing one goes to its level.
+ *
+ * Live: changing `level` shows that level and `position` moves the picker;
+ * changing `venue`, `minZoom` or `language` loads the venue again. A venue's
+ * bytes or files, which the other bindings also take, do not cross the bridge
+ * well, so it is a URL here.
+ */
+export interface IndoorSpec {
+  /** The IMDF archive: a `.zip` URL, or a folder URL of its files. */
+  venue: string
+  /** The level showing, by ordinal. Default the ground floor. */
+  level?: number
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
+  /** Zoom below which the plan and the picker are hidden. Default 16. */
+  minZoom?: number
+  /** The language names are read in. Default English. */
+  language?: string
+}
+
+/**
+ * One indoor map event from the map. `type` is the event's name in the other
+ * bindings' terms, and `data` its content as plain data: `{ venue: { id,
+ * name, levels } }` for `load`, `{ level, name }` for `levelchange`, and `{
+ * visible }` for `visibilitychange`.
+ */
+export interface IndoorBridgeEvent {
+  type: 'load' | 'levelchange' | 'visibilitychange'
+  data: Record<string, unknown>
+}
+
 export interface MapViewProps {
   style?: ViewStyle
 
@@ -336,6 +371,9 @@ export interface MapViewProps {
   /** The map type picker: Explore, Driving and Satellite. Live, like `markers`, options included. */
   mapType?: MapTypeSpec
 
+  /** An indoor map: a venue's floor plan, a level at a time. Live, like `markers`, options included. */
+  indoor?: IndoorSpec
+
   onLoad?: () => void
   // eslint-disable-next-line no-unused-vars
   onMove?: (e: MapMoveEvent) => void
@@ -363,6 +401,10 @@ export interface MapViewProps {
   // eslint-disable-next-line no-unused-vars
   onMapType?: (e: MapTypeBridgeEvent) => void
 
+  /** Every indoor map event, as `{ type, data }`. */
+  // eslint-disable-next-line no-unused-vars
+  onIndoor?: (e: IndoorBridgeEvent) => void
+
   // eslint-disable-next-line no-unused-vars
   onReady?: (api: MapApi) => void
 }
@@ -388,6 +430,8 @@ export type BridgeEnvelope =
   | { type: 'search', id: string, payload: SearchBridgeEvent }
   | { type: 'setMapType', id: string, payload: { mapType: MapTypeSpec | null } }
   | { type: 'mapType', id: string, payload: MapTypeBridgeEvent }
+  | { type: 'setIndoor', id: string, payload: { indoor: IndoorSpec | null } }
+  | { type: 'indoor', id: string, payload: IndoorBridgeEvent }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }

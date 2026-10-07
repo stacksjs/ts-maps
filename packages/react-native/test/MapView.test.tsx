@@ -620,6 +620,129 @@ describe('map type over the bridge', () => {
   })
 })
 
+describe('indoor maps over the bridge', () => {
+  // A two-level terminal in IMDF, served as a folder of its files: a venue,
+  // its levels, and a gate on the upper one.
+  const X = -122.3866
+  const Y = 37.6155
+  const square = (x: number, y: number, size = 0.002): number[][][] => [[[x, y], [x + size, y], [x + size, y + size], [x, y + size], [x, y]]]
+  const feature = (id: string, type: string, geometry: any, properties: Record<string, any>) => ({ type: 'Feature', id, feature_type: type, geometry, properties })
+  const files: Record<string, unknown> = {
+    venue: { features: [feature('v', 'venue', { type: 'Polygon', coordinates: square(X, Y) }, { name: { en: 'SFO Terminal 2' }, category: 'airport' })] },
+    level: { features: [
+      feature('l0', 'level', { type: 'Polygon', coordinates: square(X, Y) }, { ordinal: 0, name: { en: 'Arrivals' }, short_name: { en: '1' } }),
+      feature('l1', 'level', { type: 'Polygon', coordinates: square(X, Y) }, { ordinal: 1, name: { en: 'Departures' }, short_name: { en: '2' } }),
+    ] },
+    unit: { features: [feature('u-gate', 'unit', { type: 'Polygon', coordinates: square(X + 0.001, Y + 0.001, 0.0004) }, { level_id: 'l1', category: 'room' })] },
+    anchor: { features: [feature('an-gate', 'anchor', { type: 'Point', coordinates: [X + 0.0012, Y + 0.0012] }, { unit_id: 'u-gate' })] },
+    occupant: { features: [feature('oc-gate', 'occupant', null, { anchor_id: 'an-gate', category: 'gate', name: { en: 'Gate D12' } })] },
+  }
+  const venue = 'https://venues.test/sfo/'
+
+  test('a changed spec is sent over the bridge, and events reach onIndoor', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+    const events: any[] = []
+    const render = (indoor: Record<string, unknown>): Promise<void> => act(async () => {
+      root.render(createElement(MapView, { runtime, indoor: indoor as any, onIndoor: (e) => { events.push(e) } }))
+    })
+
+    await render({ venue, level: 0 })
+    const sent: any[] = []
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+
+    await render({ venue, level: 0 })
+    expect(sent.filter(e => e.type === 'setIndoor').length).toBe(0)
+    await render({ venue, level: 1 })
+    const updates = sent.filter(e => e.type === 'setIndoor')
+    expect(updates.length).toBe(1)
+    expect(updates[0].payload.indoor).toEqual({ venue, level: 1 })
+
+    const payload = { type: 'levelchange', data: { level: 1, name: 'Departures' } }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'indoor', id: 'in1', payload }) } })
+    })
+    expect(events).toEqual([payload])
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView script loads the venue, follows level, reports plain events, and links to search', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [Y + 0.001, X + 0.001], zoom: 17, search: { recents: false }, indoor: { venue, level: 0 } },
+    })
+    expect(html).toContain('applyIndoor(initial.indoor)')
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    const indoorEvents = (type: string): unknown[] => posted.filter(e => e.type === 'indoor' && e.payload.type === type).map(e => e.payload.data)
+    // The venue's files; anything else, Photon included, is not found.
+    const original = globalThis.fetch
+    globalThis.fetch = (async (url: string) => {
+      const name = /^https:\/\/venues\.test\/sfo\/(\w+)\.geojson$/.exec(String(url))?.[1]
+      return name && files[name] ? new Response(JSON.stringify(files[name])) : new Response('', { status: 404 })
+    }) as any
+    try {
+      runScript(script)
+      await new Promise(r => setTimeout(r, 30))
+      // The venue, reduced to plain data.
+      const [load] = indoorEvents('load') as any[]
+      expect(load.venue.name).toBe('SFO Terminal 2')
+      expect(load.venue.levels.map((l: any) => l.ordinal)).toEqual([0, 1])
+      expect(Object.keys(load.venue).sort()).toEqual(['id', 'levels', 'name'])
+      expect([...page.querySelectorAll('.tsmap-indoor-level')].map(b => b.textContent)).toEqual(['2', '1'])
+
+      deliver({ type: 'setIndoor', id: 'i1', payload: { indoor: { venue, level: 1 } } })
+      expect(indoorEvents('levelchange')).toEqual([{ level: 1, name: 'Departures' }])
+      ;(page.querySelector('[data-level="0"]') as HTMLElement).click()
+      expect(indoorEvents('levelchange')).toEqual([{ level: 1, name: 'Departures' }, { level: 0, name: 'Arrivals' }])
+
+      // The gate is found by the WebView's search, and choosing it goes to its level.
+      deliver({ type: 'setSearch', id: 's1', payload: { search: { recents: false, query: 'Gate D12' } } })
+      await new Promise(r => setTimeout(r, 30))
+      const results = posted.find(e => e.type === 'search' && e.payload.type === 'results')
+      expect(results?.payload.data.places[0].name).toBe('Gate D12')
+      page.querySelector<HTMLElement>('.tsmap-search-row')!.click()
+      expect(indoorEvents('levelchange').at(-1)).toEqual({ level: 1, name: 'Departures' })
+
+      deliver({ type: 'setIndoor', id: 'i2', payload: { indoor: null } })
+      expect(page.querySelector('.tsmap-indoor-control')).toBeNull()
+    }
+    finally {
+      globalThis.fetch = original
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+})
+
 describe('search over the bridge', () => {
   test('the document carries the spec and accepts updates', () => {
     const html = buildHtml({

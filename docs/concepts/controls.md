@@ -311,6 +311,27 @@ tile URLs, its layer, and an expression reading its congestion into `low`,
 map type picker carries it from one map type to the next. Both services need
 their own key; neither has a keyless tier.
 
+## Indoor maps
+
+Inside an airport or a mall, as Apple Maps shows them: the floor plan over
+the basemap, one level at a time, a level picker beside the map, and the
+shops and gates in search.
+
+```ts
+const terminal = await indoorMap({ venue: '/imdf/terminal-2.zip' }).addTo(map).ready()
+terminal.connect(search) // "Gate D12" finds the gate, and goes to its level
+terminal.setLevel(1)
+```
+
+The venue is IMDF, Apple's Indoor Mapping Data Format: a `.zip` URL, a URL
+of a folder of its `.geojson` files, the zip's bytes, or the files already
+parsed. Its units are filled by category (walkways white, restrooms blue,
+food and shops warm), doors are gaps in the walls, and names come in at a
+zoom closer. The plan and the picker appear from zoom 16 (`minZoom`) when
+the venue is in view; `language` picks which of IMDF's names to show.
+`listen` hears `load`, `levelchange` (`{ level, name }`) and
+`visibilitychange`. Every framework binding has it as `<IndoorMap>`.
+
 ## Fullscreen
 
 ```ts

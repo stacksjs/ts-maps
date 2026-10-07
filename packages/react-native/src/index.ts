@@ -5,6 +5,8 @@ export type {
   TerritorySpec,
   BridgeEnvelope,
   ControlSpec,
+  IndoorBridgeEvent,
+  IndoorSpec,
   MapApi,
   MapClickEvent,
   MapErrorEvent,

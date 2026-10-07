@@ -47,6 +47,7 @@ export default function Screen() {
 | `offlineMaps` | `OfflineMapsSpec`                                               | Offline maps — live, options included       |
 | `search`      | `SearchSpec`                                                    | Search — live, options included             |
 | `mapType`     | `MapTypeSpec`                                                   | Map type picker — live, options included    |
+| `indoor`      | `IndoorSpec`                                                    | Indoor map — live, options included         |
 | `onLoad`      | `() => void`                                                    | Fires when the inner map emits `load`       |
 | `onMove`      | `(e: { center, zoom, bearing, pitch }) => void`                 | Camera changes                              |
 | `onClick`     | `(e: { lngLat, point }) => void`                                | Map click                                   |
@@ -72,6 +73,17 @@ For a Traffic switch on the card, `trafficProvider` (`'mapbox'` or `'tomtom'`) a
   runtime={runtime}
   mapType={{ tiles, trafficProvider: 'tomtom', trafficKey: tomtomKey, showTraffic: traffic }}
   onMapType={e => e.type === 'trafficchange' && setTraffic(e.data.traffic as boolean)}
+/>
+```
+
+`indoor` draws a venue's IMDF floor plan a level at a time, with the level picker beside the map. `venue` is the archive's URL — a `.zip`, or a folder of its files — loaded inside the WebView; a changed `venue`, `minZoom` or `language` loads it again, and `level` and `position` are followed as they change. With `search` set too, the venue's shops and gates are found there, and choosing one goes to its level. `onIndoor` receives `{ type: 'load', data: { venue: { id, name, levels } } }`, `{ type: 'levelchange', data: { level, name } }` and `{ type: 'visibilitychange', data: { visible } }`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  search={{}}
+  indoor={{ venue: 'https://example.org/imdf/sfo.zip', level }}
+  onIndoor={e => e.type === 'levelchange' && setLevel(e.data.level as number)}
 />
 ```
 

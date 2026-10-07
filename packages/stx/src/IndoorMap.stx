@@ -1,0 +1,43 @@
+<script server>
+/**
+ * An indoor map, after Apple Maps: zoomed in on an airport or a mall, its
+ * IMDF floor plan is drawn over the map one level at a time, with a level
+ * picker beside it.
+ *
+ * ```stx
+ * <Map center="[37.6155, -122.3866]" zoom="17">
+ *   <Search />
+ *   <IndoorMap venue="/imdf/sfo.zip" :level="1" />
+ * </Map>
+ * ```
+ *
+ * `venue` is the IMDF archive's URL: a `.zip`, or a folder of its files.
+ * With a `<Search>` in the same map, the venue's shops and gates are found by
+ * it, and choosing one goes to its level. Every prop is followed after
+ * mount: a changed `level` or `position` goes to the control's `sync`, and a
+ * changed `venue`, `minZoom` or `language` makes the control again. Events
+ * cannot be props here — stx passes props as data — so each one is a DOM
+ * event bubbling from the map: `indoor:load` (`{ venue }`),
+ * `indoor:levelchange` (`{ level, name }`) and `indoor:visibilitychange`
+ * (`{ visible }`). `indoor:ready` hands the page the control itself, for
+ * `setLevel`, `search` and `levels`:
+ *
+ * ```js
+ * container.addEventListener('indoor:ready', e => { indoor = e.detail.control })
+ * upstairs.onclick = () => indoor.setLevel(1)
+ * ```
+ */
+export const optionsJson = JSON.stringify({
+  venue: $props.venue,
+  level: $props.level,
+  position: $props.position,
+  minZoom: $props.minZoom,
+  language: $props.language,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="indoor-map"
+  data-options="{{ optionsJson }}"
+></span>

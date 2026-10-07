@@ -1,6 +1,6 @@
-import type { MapTypeControlOptions, MapTypeOption, MapTypesOptions, TsMap } from 'ts-maps'
+import type { IndoorMapOptions, MapTypeControlOptions, MapTypeOption, MapTypesOptions, TsMap } from 'ts-maps'
 import type { PageTheme, ResolveTileJsonOptions, RouteLatLng, RouteMarker, RouteOptions } from './route'
-import { CircleMarker, control, divIcon, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import { CircleMarker, control, divIcon, IndoorMap, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 import { basemapStyle, drawRoute, pageTheme, refitOnResize, resolveTileJson, watchPageTheme } from './route'
 
 /**
@@ -245,8 +245,8 @@ function trafficFrom(props: Record<string, any>): TrafficLayer | undefined {
 }
 
 /**
- * The props `<TurnByTurn>`, `<Search>`, `<OfflineMaps>` and `<MapType>`
- * render. Live objects — a manager, a provider, a callback — cannot come from
+ * The props `<TurnByTurn>`, `<Search>`, `<OfflineMaps>`, `<MapType>` and
+ * `<IndoorMap>` render. Live objects — a manager, a provider, a callback — cannot come from
  * markup, so they are not here, and what the page hands the control itself is
  * never reset by the markup.
  */
@@ -255,6 +255,7 @@ const MARKUP_PROPS = {
   'search': ['query', 'position', 'placeholder', 'categories', 'recents', 'units', 'language', 'showSaved'],
   'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title'],
   'map-type': ['value', 'open', 'position', 'showTraffic', ...MAP_TYPES_PROPS, ...TRAFFIC_PROPS],
+  'indoor-map': ['venue', 'level', 'position', 'minZoom', 'language'],
 } as const
 
 /**
@@ -297,8 +298,8 @@ function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, la
  *
  * Children are read once, at mount. A page that adds markers later should do
  * so through the map itself — see `findMap`. `<TurnByTurn>`, `<Search>`,
- * `<OfflineMaps>` and `<MapType>` go on following their `data-options` after
- * that.
+ * `<OfflineMaps>`, `<MapType>` and `<IndoorMap>` go on following their
+ * `data-options` after that.
  */
 export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   const created: Removable[] = []
@@ -307,6 +308,9 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   // of the two is written first.
   let nav: TurnByTurn | undefined
   const searches: SearchControl[] = []
+  // An indoor map's places are found by every search in the map, whichever
+  // is written first: each one links itself again once all are built.
+  const indoorLinks: Array<() => void> = []
 
   const ensureStyle = (): void => {
     // A source or layer needs a style to live in; starting an empty one means
@@ -487,6 +491,70 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           break
         }
 
+        case 'indoor-map': {
+          // The venue is a URL: markup carries data, not an archive's bytes or
+          // a loaded venue. A new venue, `minZoom` or `language` makes the
+          // control again, and the searches are connected to the new one.
+          let indoor: IndoorMap | null = null
+          let built: string | undefined
+          let latest: Record<string, any> = {}
+          let unlisten = (): void => {}
+          let unlinks: Array<() => void> = []
+          const link = (): void => {
+            unlinks.forEach(stop => stop())
+            unlinks = indoor ? searches.map(search => indoor!.connect(search)) : []
+          }
+          const teardown = (): void => {
+            unlinks.forEach(stop => stop())
+            unlinks = []
+            unlisten()
+            unlisten = () => {}
+            indoor?.remove()
+            indoor = null
+          }
+          const build = (props: Record<string, any>): void => {
+            teardown()
+            if (!props.venue) {
+              console.warn('[ts-maps] <IndoorMap> needs a `venue` url; ignoring')
+              return
+            }
+            const made = new IndoorMap(definedOnly({ venue: props.venue, level: props.level, position: props.position, minZoom: props.minZoom, language: props.language }) as unknown as IndoorMapOptions)
+            indoor = made
+            made.addTo(map)
+            // Every event, as a DOM event: stx props are data, so a callback
+            // cannot be one. The names are the core ones, prefixed.
+            unlisten = made.listen((event, detail) => {
+              root.dispatchEvent(new CustomEvent(`indoor:${event}`, { bubbles: true, detail }))
+            })
+            root.dispatchEvent(new CustomEvent('indoor:ready', { bubbles: true, detail: { control: made } }))
+            link()
+            // A level asked for while the venue was loading is shown once it has.
+            made.ready().then(() => {
+              if (indoor === made)
+                made.sync({ level: latest.level })
+            }, () => {})
+          }
+          const unfollow = followProps(el, MARKUP_PROPS['indoor-map'], (props) => {
+            latest = props
+            const key = JSON.stringify([props.venue, props.minZoom, props.language])
+            if (key !== built) {
+              built = key
+              build(props)
+            }
+            else {
+              indoor?.sync({ level: props.level, position: props.position })
+            }
+          })
+          indoorLinks.push(link)
+          created.push({
+            remove: () => {
+              unfollow()
+              teardown()
+            },
+          })
+          break
+        }
+
         case 'control': {
           const type = el.getAttribute('data-type') ?? ''
           const factory = (control as unknown as Record<string, (o?: unknown) => any>)[type]
@@ -584,6 +652,8 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
         search.sync({ turnByTurn: nav })
     }
   }
+  for (const link of indoorLinks)
+    link()
 
   return () => {
     // Reverse order: layers come off before the sources they read from.

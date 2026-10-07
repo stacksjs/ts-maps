@@ -15,6 +15,7 @@ sketched in one framework reads the same in another.
 | `OfflineMaps` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `offlineMaps` prop |
 | `Search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `search` prop |
 | `MapType` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `mapType` prop |
+| `IndoorMap` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `indoor` prop |
 | Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
 | Event subscription | `useMapEvent` | `useMapEvent` | `useMapEvent` | `useMapEvent` | `onMapEvent` | auto-imported | ✅ |
 
@@ -350,6 +351,57 @@ WebView, with every event arriving at one `onMapType({ type, data })`:
 />
 ```
 
+## Indoor maps
+
+`IndoorMap` draws a venue's floor plan, after Apple Maps: zoomed in on an
+airport or a mall, its [IMDF](https://docs.ogc.org/cs/20-094/index.html)
+archive is drawn over the map one level at a time, with a level picker beside
+it. `venue` is the archive — a `.zip` URL, a folder URL, its bytes, its files,
+or a venue already loaded with `loadIMDF` — and is read when the control is
+made, with `minZoom` (default 16) and `language`; a new one makes the control
+again, so keep its identity stable across renders. `level` (an ordinal, 0 the
+ground floor) and `position` are followed as they change. Given a `search` —
+the control from `<Search>`'s `ready` — the venue's shops and gates are found
+there, and choosing one goes to its level.
+
+```tsx
+// React and Solid
+<Map center={[37.6155, -122.3866]} zoom={17}>
+  <Search onReady={setSearch} />
+  <IndoorMap venue="/imdf/sfo.zip" search={search} level={level} onLevelChange={e => setLevel(e.level)} />
+</Map>
+```
+
+```vue
+<!-- Vue, and Nuxt as <TsMapsIndoorMap> -->
+<TsIndoorMap venue="/imdf/sfo.zip" :search="search" v-model:level="level" />
+```
+
+```svelte
+<IndoorMap venue="/imdf/sfo.zip" {search} bind:level />
+```
+
+The events are the same everywhere — `load` (`{ venue }`), `levelchange`
+(`{ level, name }`) when the picker or a search changes the level, and
+`visibilitychange` (`{ visible }`) as the venue comes into view close enough
+to see inside — as `onLevelChange` props in React, Solid and Svelte,
+`@levelchange` in Vue, and a bubbling `indoor:levelchange` DOM event in stx.
+`ready` hands over the control, for `setLevel`, `search` and `levels`.
+
+stx's `<IndoorMap>` takes the archive's URL as `venue`, and is linked to a
+`<Search>` in the same map without being told. React Native loads it inside
+the WebView, linked to its `search`, with every event arriving at one
+`onIndoor({ type, data })` — the venue reduced to `{ id, name, levels }`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  search={{}}
+  indoor={{ venue: 'https://example.org/imdf/sfo.zip', level }}
+  onIndoor={e => e.type === 'levelchange' && setLevel(e.data.level as number)}
+/>
+```
+
 ## Subscribing to events
 
 `useMapEvent` binds a handler for the lifetime of the calling component, in
@@ -389,8 +441,8 @@ from your layout. Two rules are worth knowing up front:
   once per *definition* rather than per use, so a marker cannot build itself;
   instead each child renders inert markup and `<Map>` walks its subtree and
   builds what it finds. Markers added to the DOM later are not picked up — add
-  those through the map. `<OfflineMaps>`, `<Search>`, `<TurnByTurn>` and
-  `<MapType>` keep following their props after that: a change to the markup is handed to the
+  those through the map. `<OfflineMaps>`, `<Search>`, `<TurnByTurn>`,
+  `<MapType>` and `<IndoorMap>` keep following their props after that: a change to the markup is handed to the
   control. Live objects such as `maps` or `provider` cannot be written in
   markup; pass them to the control's `sync` from its `ready` event.
 
