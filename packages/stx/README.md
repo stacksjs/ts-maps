@@ -145,6 +145,31 @@ container.addEventListener('route:ready', (e) => {
 })
 ```
 
+### `<MapType>`
+
+```stx
+<Map center="[37.78, -122.42]" zoom="13">
+  <MapType tiles="{{ tileUrl }}" value="explore" />
+</Map>
+```
+
+Apple's map type picker: Explore, Driving and Satellite. A style cannot be
+written in markup, so `<MapType>` takes the plain options of `mapTypes()` —
+`tiles`, `imagery`, `imageryAttribution`, `attribution`, `maxzoom`, `theme`,
+`labels` — and builds the types in the browser. `value` shows a type and
+`open` shows the card. A choice arrives as a bubbling `maptype:change` DOM
+event (`{ value }`), the card opening or closing as `maptype:openchange`
+(`{ open }`), and `maptype:ready` hands over the control, for `select`.
+
+For a Traffic switch on the card, `trafficProvider` (`mapbox` or `tomtom`) and
+`trafficKey` build the traffic layer in the browser — with TomTom, `incidents`
+adds its incidents with the same key. `showTraffic` turns it on or off, and the
+switch reports `maptype:trafficchange` (`{ traffic }`):
+
+```stx
+<MapType tiles="{{ tileUrl }}" trafficProvider="tomtom" trafficKey="{{ tomtomKey }}" :incidents="true" :showTraffic="true" />
+```
+
 ### Without the components
 
 `@ts-maps/stx/route` is the same logic as plain functions that take the
@@ -182,9 +207,9 @@ So children here render inert markup carrying `data-` attributes, and `<Map>`
 walks its subtree once on mount and builds what it finds. Two consequences:
 
 - **Children are read at mount.** Markers added to the DOM later are not picked
-  up; add those through the map itself. `<TurnByTurn>`, `<Search>` and
-  `<OfflineMaps>` do follow their props after that: change a child's
-  `data-options` and its control's `sync` brings it into line.
+  up; add those through the map itself. `<TurnByTurn>`, `<Search>`,
+  `<OfflineMaps>` and `<MapType>` do follow their props after that: change a
+  child's `data-options` and its control's `sync` brings it into line.
 - **Nesting is the wiring.** There is no context to thread and no ids to match.
 
 Two further stx behaviours the components work around, noted here because they

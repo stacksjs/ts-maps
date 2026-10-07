@@ -19,6 +19,8 @@ export * from './layer/index'
 export * from './map/index'
 export * from './storage/index'
 export * from './offline/index'
+export { CONGESTION_COLORS, TomTomIncidents, TrafficLayer, trafficLayer, trafficSources } from './traffic/TrafficLayer'
+export type { Congestion, IncidentProvider, TomTomIncidentsOptions, TrafficIncident, TrafficLayerOptions, TrafficSourceSpec } from './traffic/TrafficLayer'
 export * from './search/index'
 // Decode a vector tile by hand — `new VectorTile(new Pbf(bytes))` — e.g. to
 // check an archive read with `ts-maps/pmtiles` before publishing it.
@@ -69,7 +71,7 @@ export { WebGLTileRenderer, WebGLUnsupportedError } from './renderer/webgl/index
 export type { CircleOptions as WebGLCircleOptions, GLContextOptions, LineOptions as WebGLLineOptions, Mat4 } from './renderer/webgl/index'
 
 // Shorthand factory helpers (similar to upstream's function-style API).
-import { AttributionControl, Control, FullscreenControl, GeocoderControl, LayersControl, LocateControl, NavigationControl, OfflineMapsControl, ScaleControl, SearchControl, ZoomControl } from './control/index'
+import { AttributionControl, Control, FullscreenControl, GeocoderControl, LayersControl, LocateControl, MapTypeControl, NavigationControl, OfflineMapsControl, ScaleControl, SearchControl, ZoomControl } from './control/index'
 import { Browser, Class, Evented, Handler, Util } from './core/index'
 import { Animation, Draggable, PosAnimation } from './dom/index'
 import { CRS, EPSG3395, EPSG3857, EPSG4326, LatLng, LatLngBounds, Projection, SimpleCRS, toLatLng, toLatLngBounds } from './geo/index'
@@ -115,7 +117,7 @@ export type { ResolvedTileJSON, ResolveTileJSONOptions } from './styles/tilejson
 // ts-maps as one browser chunk can draw a share card's map with what it has.
 export { mercatorX, mercatorY, renderStaticMap, staticMapSvg, staticMapView, staticMapZoom } from './static/index'
 export type { StaticMap, StaticMapOptions, StaticMapView } from './static/index'
-export { formatDuration, TURN_BY_TURN_EVENTS, TurnByTurn, turnByTurn } from './navigation/TurnByTurn'
+export { formatDuration, trafficNote, TURN_BY_TURN_EVENTS, TurnByTurn, turnByTurn } from './navigation/TurnByTurn'
 export type { LatLngInput, TurnByTurnEvent, TurnByTurnOptions, TurnByTurnTarget } from './navigation/TurnByTurn'
 
 // Factory helper: turns a constructor into a callable function.
@@ -161,6 +163,7 @@ export const control: Factory < ConstructorParameters < typeof Control>, Control
   fullscreen: Factory < ConstructorParameters < typeof FullscreenControl>, FullscreenControl>
   offlineMaps: Factory < ConstructorParameters < typeof OfflineMapsControl>, OfflineMapsControl>
   search: Factory < ConstructorParameters < typeof SearchControl>, SearchControl>
+  mapType: Factory < ConstructorParameters < typeof MapTypeControl>, MapTypeControl>
 } = Object.assign(factory(Control), {
   zoom: factory(ZoomControl),
   layers: factory(LayersControl),
@@ -172,6 +175,7 @@ export const control: Factory < ConstructorParameters < typeof Control>, Control
   fullscreen: factory(FullscreenControl),
   offlineMaps: factory(OfflineMapsControl),
   search: factory(SearchControl),
+  mapType: factory(MapTypeControl),
 })
 
 // Default namespace object grouping all public exports.

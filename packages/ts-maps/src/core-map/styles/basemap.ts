@@ -53,6 +53,12 @@ export interface BasemapStyleOptions {
    * what a "download for offline" stored. See `offlineCache` on a source.
    */
   offlineCache?: boolean
+  /**
+   * What the map is for. `'driving'` is Apple's Driving map: roads wider and
+   * stronger, major roads in amber, and only the places a driver stops at.
+   * Default `'explore'`.
+   */
+  emphasis?: 'explore' | 'driving'
 }
 
 export interface BasemapFonts {
@@ -426,11 +432,43 @@ function applyFonts(style: StyleSpec, fonts: BasemapFonts): StyleSpec {
   return style
 }
 
+/** A zoom ramp with every output scaled by `k`: `interpolate` must stay the top of a zoom expression. */
+function scaleRamp(value: unknown, k: number): unknown {
+  if (!Array.isArray(value) || value[0] !== 'interpolate')
+    return typeof value === 'number' ? value * k : value
+  return value.map((v, i) => i >= 3 && (i - 3) % 2 === 1 && typeof v === 'number' ? v * k : v)
+}
+
+/** Where a driver stops: fuel, charging, parking, a quick bite. */
+const DRIVING_POIS = ['fuel', 'charging_station', 'parking', 'car_wash', 'car_repair', 'fast_food', 'toilets']
+
+/** The Driving map: roads up, everything a driver does not stop for down. */
+function applyDriving(style: StyleSpec, palette: Palette): StyleSpec {
+  const dark = isDark(palette)
+  for (const layer of style.layers as any[]) {
+    if (layer.id === 'road-major' || layer.id === 'road-minor' || layer.id === 'road-casing') {
+      layer.paint['line-width'] = scaleRamp(layer.paint['line-width'], layer.id === 'road-minor' ? 1.25 : 1.45)
+      if (layer.id === 'road-major')
+        layer.paint['line-color'] = dark ? '#8c6d2f' : '#f6c55d'
+    }
+    else if (layer.id === 'poi') {
+      layer.minzoom = 16
+      layer.filter = ['all', layer.filter, ['in', ['coalesce', ['get', 'subclass'], ['get', 'class']], ['literal', DRIVING_POIS]]]
+    }
+    else if (layer.id === 'building') {
+      layer.paint['fill-extrusion-opacity'] = ['interpolate', ['linear'], ['zoom'], 14, 0, 15, 0.6]
+    }
+  }
+  return style
+}
+
 function build(base: Palette, options: BasemapStyleOptions, name: string): StyleSpec {
   const palette: Palette = { ...base, ...options.palette }
   if (options.mode === 'raster')
     return rasterStyle(palette, options, name)
-  const style = vectorStyle(palette, options, name)
+  let style = vectorStyle(palette, options, name)
+  if (options.emphasis === 'driving')
+    style = applyDriving(style, palette)
   return options.fonts ? applyFonts(style, options.fonts) : style
 }
 

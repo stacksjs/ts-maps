@@ -10,6 +10,8 @@ export type {
   MapErrorEvent,
   MapMoveEvent,
   MapRuntime,
+  MapTypeBridgeEvent,
+  MapTypeSpec,
   MapViewProps,
   MarkerPressEvent,
   MarkerSpec,

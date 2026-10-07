@@ -108,6 +108,18 @@ styles.light({ tiles, fonts: { regular: ['Geist Medium'], semibold: ['Geist Semi
 cache, so a page that saved an area with `saveOfflineRegion` draws it with no
 connection.
 
+### Satellite, hybrid and Driving
+
+Apple's other map types are built the same way:
+
+```ts
+styles.satellite()                       // imagery alone
+styles.hybrid({ tiles })                 // imagery, with the basemap's roads and names over it
+styles.light({ tiles, emphasis: 'driving' }) // roads first: wider, major ones in amber, only the places a driver stops at
+```
+
+Imagery comes from a raster tile service. Esri World Imagery is the default because it needs no key; check its terms for your use, or pass your own with its credit: `styles.hybrid({ tiles, imagery: 'https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=…', imageryAttribution: '© MapTiler © Maxar' })`. A downloaded map keeps the imagery too, since it is a tile layer like any other.
+
 ### Points of interest
 
 The built-in styles show points of interest the way Apple Maps does: a round

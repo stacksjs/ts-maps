@@ -472,6 +472,154 @@ describe('offline maps over the bridge', () => {
   })
 })
 
+describe('map type over the bridge', () => {
+  const plain = { tiles: 'https://tiles.test/{z}/{x}/{y}.pbf', imagery: 'https://imagery.test/{z}/{y}/{x}.jpg' }
+
+  test('a changed spec is sent over the bridge, and events reach onMapType', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const runtime = { source: 'cdn' as const, url: 'https://unpkg.com/ts-maps' }
+    const events: any[] = []
+    const render = (mapType: Record<string, unknown>): Promise<void> => act(async () => {
+      root.render(createElement(MapView, { runtime, mapType: mapType as any, onMapType: (e) => { events.push(e) } }))
+    })
+
+    await render({ ...plain, value: 'explore' })
+    const sent: any[] = []
+    const instances = getInstances()
+    const listen = (i: WebViewInstance): void => {
+      i.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    }
+    instances.forEach(listen)
+    const push = instances.push.bind(instances)
+    instances.push = (...items: WebViewInstance[]) => {
+      items.forEach(listen)
+      return push(...items)
+    }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'load', id: 'l1' }) } })
+    })
+
+    await render({ ...plain, value: 'explore' })
+    expect(sent.filter(e => e.type === 'setMapType').length).toBe(0)
+    await render({ ...plain, value: 'driving', open: true })
+    const updates = sent.filter(e => e.type === 'setMapType')
+    expect(updates.length).toBe(1)
+    expect(updates[0].payload.mapType).toEqual({ ...plain, value: 'driving', open: true })
+
+    const payload = { type: 'change', data: { value: 'satellite' } }
+    await act(async () => {
+      lastInstance().onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'mapType', id: 'mt1', payload }) } })
+    })
+    expect(events).toEqual([payload])
+
+    instances.push = push
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView script builds the types and the control, follows value and open, and reports a choice', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.78, -122.42], zoom: 13, mapType: { ...plain, value: 'explore' } },
+    })
+    expect(html).toContain('applyMapType(initial.mapType)')
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    const changes = (): unknown[] => posted.filter(e => e.type === 'mapType' && e.payload.type === 'change').map(e => e.payload.data.value)
+    try {
+      runScript(script)
+      expect(page.querySelector('.tsmap-maptype-button')).not.toBeNull()
+
+      deliver({ type: 'setMapType', id: 's1', payload: { mapType: { ...plain, value: 'driving', open: true } } })
+      expect(page.querySelector('.tsmap-maptype-card')).not.toBeNull()
+      expect(changes()).toEqual(['driving'])
+      ;(page.querySelector('[data-type="satellite"]') as HTMLElement).click()
+      expect(changes()).toEqual(['driving', 'satellite'])
+
+      deliver({ type: 'setMapType', id: 's2', payload: { mapType: { ...plain, value: 'driving', open: false, position: 'bottomleft' } } })
+      expect(page.querySelector('.tsmap-maptype-card')).toBeNull()
+      expect(page.querySelector('.tsmap-bottom.tsmap-left .tsmap-maptype-button')).not.toBeNull()
+      expect(posted.some(e => e.type === 'mapType' && e.payload.type === 'openchange' && e.payload.data.open === false)).toBe(true)
+
+      deliver({ type: 'setMapType', id: 's3', payload: { mapType: null } })
+      expect(page.querySelector('.tsmap-maptype-button')).toBeNull()
+    }
+    finally {
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+
+  test('the WebView script builds traffic from a provider and key, follows showTraffic, and reports the switch', async () => {
+    const tsMaps = await import('ts-maps')
+    const spec = { ...plain, value: 'explore', trafficProvider: 'mapbox' as const, trafficKey: 'pk.test' }
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.78, -122.42], zoom: 13, mapType: spec },
+    })
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    // Whether the style has the traffic layer, asked over the bridge.
+    let calls = 0
+    const hasTraffic = async (): Promise<boolean> => {
+      const id = `c${++calls}`
+      deliver({ type: 'call', id, payload: { method: 'getStyle' } })
+      await new Promise(r => setTimeout(r, 0))
+      const reply = posted.find(e => e.type === 'call:result' && e.id === id)
+      return reply.result.layers.some((l: any) => l.id === 'ts-maps-traffic')
+    }
+    try {
+      runScript(script)
+      deliver({ type: 'setMapType', id: 't1', payload: { mapType: { ...spec, open: true } } })
+      expect(page.querySelector('[data-setting="traffic"]')).not.toBeNull()
+      expect(await hasTraffic()).toBe(false)
+
+      deliver({ type: 'setMapType', id: 't2', payload: { mapType: { ...spec, open: true, showTraffic: true } } })
+      expect(await hasTraffic()).toBe(true)
+
+      deliver({ type: 'setMapType', id: 't3', payload: { mapType: { ...spec, open: true, showTraffic: false } } })
+      expect(await hasTraffic()).toBe(false)
+
+      const toggle = page.querySelector<HTMLInputElement>('[data-setting="traffic"]')!
+      toggle.checked = true
+      toggle.dispatchEvent(new Event('change'))
+      expect(await hasTraffic()).toBe(true)
+      expect(posted.filter(e => e.type === 'mapType' && e.payload.type === 'trafficchange').map(e => e.payload.data)).toEqual([{ traffic: true }])
+
+      deliver({ type: 'setMapType', id: 't4', payload: { mapType: null } })
+      expect(page.querySelector('.tsmap-maptype-button')).toBeNull()
+      expect(await hasTraffic()).toBe(false)
+    }
+    finally {
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
+})
+
 describe('search over the bridge', () => {
   test('the document carries the spec and accepts updates', () => {
     const html = buildHtml({

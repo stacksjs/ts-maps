@@ -1665,6 +1665,186 @@ a.tsmap-control-locate-denied::after {
   box-sizing: border-box;
 }
 
+/* Traffic (see traffic/TrafficLayer): incident markers and their card, and
+ * what traffic does to a route in the preview. */
+.tsmap-traffic-incident-icon {
+  background: none;
+  border: 0;
+}
+
+.tsmap-traffic-incident {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ff9500;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+  color: #fff;
+  font: 700 13px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  cursor: pointer;
+
+  &.tsmap-traffic-accident,
+  &.tsmap-traffic-closure {
+    background: #ff3b30;
+  }
+}
+
+.tsmap-traffic-card-title {
+  font-weight: 600;
+}
+
+.tsmap-traffic-card-road,
+.tsmap-traffic-card-until {
+  color: var(--tsmap-fg-muted);
+}
+
+.tsmap-traffic-card-delay {
+  color: #ff3b30;
+  font-weight: 600;
+}
+
+.tsmap-nav-traffic {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.tsmap-nav-traffic-light {
+    color: #248a3d;
+  }
+
+  &.tsmap-nav-traffic-moderate {
+    color: #c93400;
+  }
+
+  &.tsmap-nav-traffic-heavy {
+    color: #d70015;
+  }
+}
+
+.tsmap-maptype-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tsmap-nav-option-bg);
+  font-weight: 600;
+}
+
+/* The map type picker, after Apple Maps (see control/MapTypeControl): a card
+ * of map types, each a swatch of what it looks like. */
+.tsmap-maptype-button {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: var(--tsmap-fg-muted);
+}
+
+.tsmap-maptype-card {
+  position: absolute;
+  z-index: 1000;
+  left: 12px;
+  right: 12px;
+  bottom: 28px;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 14px 16px 16px;
+  border-radius: 18px;
+  background: var(--tsmap-nav-card-bg);
+  color: var(--tsmap-nav-card-fg);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 22%);
+  font: 15px -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  box-sizing: border-box;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+
+  & button {
+    font: inherit;
+    cursor: pointer;
+    border: 0;
+    background: none;
+    color: inherit;
+  }
+}
+
+.tsmap-maptype-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tsmap-maptype-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tsmap-maptype-card .tsmap-maptype-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--tsmap-nav-option-bg);
+  color: var(--tsmap-nav-card-muted);
+  font-size: 13px;
+}
+
+.tsmap-maptype-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.tsmap-maptype-card .tsmap-maptype-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tsmap-maptype-swatch {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 3px solid transparent;
+  border-radius: 12px;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #f5f3ee 0 45%, #a9d3f5 45% 60%, #d4ebc4 60%);
+}
+
+.tsmap-maptype-swatch-driving {
+  background:
+    linear-gradient(90deg, transparent 46%, #f6c55d 46% 54%, transparent 54%),
+    linear-gradient(0deg, transparent 46%, #fff 46% 54%, transparent 54%),
+    #ece8df;
+}
+
+.tsmap-maptype-swatch-satellite,
+.tsmap-maptype-swatch-hybrid {
+  background: radial-gradient(circle at 30% 30%, #6d7f4e, #3d4a2e 55%, #1f2a33);
+}
+
+.tsmap-maptype-swatch-transit {
+  background:
+    linear-gradient(45deg, transparent 46%, #e5383b 46% 52%, transparent 52%),
+    linear-gradient(-45deg, transparent 46%, #0a84ff 46% 52%, transparent 52%),
+    #f2f2f2;
+}
+
+.tsmap-maptype-active .tsmap-maptype-swatch {
+  border-color: var(--tsmap-accent);
+}
+
+.tsmap-maptype-active .tsmap-maptype-label {
+  color: var(--tsmap-accent);
+}
+
 /* Offline Maps, after Apple Maps (see control/OfflineMapsControl). The card
  * shares the navigation card's look; the area picker dims the map around a
  * rounded frame with a handle at each corner. */

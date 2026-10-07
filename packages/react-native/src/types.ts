@@ -178,6 +178,55 @@ export interface OfflineMapsBridgeEvent {
 }
 
 /**
+ * The map type picker, after Apple Maps — the same thing `<MapType>` is in the
+ * other bindings, carried as data. A style cannot cross the bridge, so the
+ * WebView builds Explore, Driving and Satellite with `mapTypes()` from the
+ * plain options here, and the button and card run inside it.
+ *
+ * Live: changing `value` shows that type, `open` shows or hides the card and
+ * `showTraffic` turns traffic on or off, each only when it changes; changing
+ * a `mapTypes()` option builds the types again, changing the traffic provider
+ * or key builds the traffic layer again, and `position` moves the button.
+ */
+export interface MapTypeSpec {
+  /** The type showing: `'explore'`, `'driving'` or `'satellite'`. */
+  value?: string
+  /** Show the card of map types. */
+  open?: boolean
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
+  /** Vector tile URL template(s) for Explore and Driving. */
+  tiles: string | string[]
+  /** Imagery tile URL template(s) for Satellite. Default Esri World Imagery. */
+  imagery?: string | string[]
+  /** The imagery's credit. */
+  imageryAttribution?: string
+  attribution?: string
+  maxzoom?: number
+  /** The light or dark basemap for Explore and Driving. Default light. */
+  theme?: 'light' | 'dark'
+  /** Satellite with labels on. Default true. */
+  labels?: boolean
+  /** Where traffic comes from, for a Traffic switch on the card. With `trafficKey`. */
+  trafficProvider?: 'mapbox' | 'tomtom'
+  /** The traffic provider's key: a Mapbox access token, or a TomTom API key. */
+  trafficKey?: string
+  /** With TomTom, show its incidents too, with the same key. */
+  incidents?: boolean
+  /** Show traffic. */
+  showTraffic?: boolean
+}
+
+/**
+ * One map type event from the map: `{ value }` for `change`, when a type is
+ * chosen, `{ open }` for `openchange`, and `{ traffic }` for
+ * `trafficchange`, when the card's Traffic switch is turned.
+ */
+export interface MapTypeBridgeEvent {
+  type: 'change' | 'openchange' | 'trafficchange'
+  data: Record<string, unknown>
+}
+
+/**
  * Search on the map, after Apple Maps — the same thing `<Search>` is in the
  * other bindings, carried as data. The field, suggestions, pins and place
  * cards all run inside the WebView. With `turnByTurn` set too, Directions on
@@ -276,6 +325,9 @@ export interface MapViewProps {
   /** Search: places, addresses and kinds of place. Live, like `markers`, options included. */
   search?: SearchSpec
 
+  /** The map type picker: Explore, Driving and Satellite. Live, like `markers`, options included. */
+  mapType?: MapTypeSpec
+
   onLoad?: () => void
   // eslint-disable-next-line no-unused-vars
   onMove?: (e: MapMoveEvent) => void
@@ -298,6 +350,10 @@ export interface MapViewProps {
   /** Every search event, as `{ type, data }`. */
   // eslint-disable-next-line no-unused-vars
   onSearch?: (e: SearchBridgeEvent) => void
+
+  /** Every map type event, as `{ type, data }`. */
+  // eslint-disable-next-line no-unused-vars
+  onMapType?: (e: MapTypeBridgeEvent) => void
 
   // eslint-disable-next-line no-unused-vars
   onReady?: (api: MapApi) => void
@@ -322,6 +378,8 @@ export type BridgeEnvelope =
   | { type: 'offlineMaps', id: string, payload: OfflineMapsBridgeEvent }
   | { type: 'setSearch', id: string, payload: { search: SearchSpec | null } }
   | { type: 'search', id: string, payload: SearchBridgeEvent }
+  | { type: 'setMapType', id: string, payload: { mapType: MapTypeSpec | null } }
+  | { type: 'mapType', id: string, payload: MapTypeBridgeEvent }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }

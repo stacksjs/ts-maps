@@ -212,6 +212,48 @@ highlighted), Escape clears. A result with a bounding box fits those bounds;
 one without uses `zoom`. The map fires `geocoderesults`, `geocodeselect` and
 `geocodeerror`.
 
+## Map type
+
+The map type picker, as in Apple Maps: a card of Explore, Driving and
+Satellite that sets the map's style.
+
+```ts
+control.mapType({ types: mapTypes({ tiles, imagery }) }).addTo(map)
+```
+
+`mapTypes()` builds the three from one vector source and one imagery source
+(see [Satellite, hybrid and Driving](./styles-and-theming.md#satellite-hybrid-and-driving));
+pass `labels: false` for imagery without names, or any list of
+`{ id, label, style, theme }` of your own. Choosing one keeps the camera, the
+markers and the routes, which are not part of a style, and carries over the
+layers the page added to the style itself: those drawing a GeoJSON, image,
+video or canvas source, or added since the picker last set a style (`keep`
+decides otherwise). Satellite turns the chrome dark, as Apple does.
+
+`picker.select('satellite')` chooses from code; `listen` hears `change`
+(`{ value }`) and `openchange`. Every framework binding has it as `<MapType>`.
+
+### Traffic
+
+Roads coloured by how freely traffic moves, green, yellow, red and dark red
+as Apple's are, and the incidents slowing it, each with a card:
+
+```ts
+const traffic = trafficLayer({
+  source: trafficSources.tomtom(key),            // or trafficSources.mapbox(token)
+  incidents: new TomTomIncidents({ key }),
+})
+traffic.addTo(map)
+control.mapType({ types: mapTypes({ tiles, imagery }), traffic }).addTo(map) // a Traffic switch in the card
+```
+
+Flow is drawn under the labels and fetched again every two minutes
+(`refresh`). Any vector traffic service works as a `TrafficSourceSpec`: its
+tile URLs, its layer, and an expression reading its congestion into `low`,
+`moderate`, `heavy`, `severe` or `closed`. The layer is an overlay, so the
+map type picker carries it from one map type to the next. Both services need
+their own key; neither has a keyless tier.
+
 ## Fullscreen
 
 ```ts

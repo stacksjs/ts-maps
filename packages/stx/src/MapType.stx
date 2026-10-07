@@ -1,0 +1,56 @@
+<script server>
+/**
+ * The map type picker, after Apple Maps: a card of map types, Explore,
+ * Driving and Satellite, that sets the map's style and keeps the layers the
+ * page added to it.
+ *
+ * ```stx
+ * <Map center="[37.78, -122.42]" zoom="13">
+ *   <MapType tiles="https://tiles.example.org/{z}/{x}/{y}.pbf" value="explore" />
+ * </Map>
+ * ```
+ *
+ * A style is not data markup can carry, so the types are built in the
+ * browser with `mapTypes()` from its plain options: `tiles`, `imagery`,
+ * `imageryAttribution`, `attribution`, `maxzoom`, `theme` and `labels`.
+ * `value` shows a type and `open` shows the card. A traffic layer is not data
+ * either, so `trafficProvider` (`'mapbox'` or `'tomtom'`) and `trafficKey`
+ * build one in the browser, for a Traffic switch on the card — with TomTom,
+ * `incidents` adds its incidents with the same key — and `showTraffic` turns
+ * it.
+ * Every prop is followed after mount: a changed `data-options` goes to the
+ * control's `sync`. Events cannot be props here — stx passes props as data —
+ * so each one is a DOM event bubbling from the map: `maptype:change`
+ * (`{ value }`), `maptype:openchange` (`{ open }`) and `maptype:trafficchange`
+ * (`{ traffic }`). `maptype:ready` hands the page the
+ * control itself, for `select`, and for types of its own through `sync`:
+ *
+ * ```js
+ * container.addEventListener('maptype:ready', e => { picker = e.detail.control })
+ * satellite.onclick = () => picker.select('satellite')
+ * ```
+ */
+export const optionsJson = JSON.stringify({
+  value: $props.value,
+  open: $props.open,
+  position: $props.position,
+  title: $props.title,
+  tiles: $props.tiles,
+  imagery: $props.imagery,
+  imageryAttribution: $props.imageryAttribution,
+  attribution: $props.attribution,
+  maxzoom: $props.maxzoom,
+  theme: $props.theme,
+  labels: $props.labels,
+  trafficProvider: $props.trafficProvider,
+  trafficKey: $props.trafficKey,
+  incidents: $props.incidents,
+  showTraffic: $props.showTraffic,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="map-type"
+  data-options="{{ optionsJson }}"
+></span>

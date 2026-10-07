@@ -9,7 +9,7 @@
  * `?theme=dark`, `?lat=…&lng=…&zoom=…` override the starting view.
  */
 
-import { control, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, mapTypes, styles, TsMap } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
@@ -31,7 +31,11 @@ control.navigation().addTo(map)
 control.scale({ transient: true }).addTo(map)
 
 // Tile URLs carry the build they come from; the current one is in the TileJSON.
-void loadBasemap(map, theme)
+// With them, Apple's map types: Explore, Driving, and Satellite with names.
+void loadBasemap(map, theme).then((vector) => {
+  if (vector)
+    control.mapType({ types: mapTypes({ ...vector, theme }) }).addTo(map)
+})
 
 const scope = globalThis as unknown as { demo: unknown }
 scope.demo = { map, styles }

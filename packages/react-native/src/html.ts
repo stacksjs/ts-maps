@@ -1,4 +1,4 @@
-import type { ControlSpec, MapRuntime, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TurnByTurnSpec } from './types'
+import type { ControlSpec, MapRuntime, MapTypeSpec, MarkerSpec, OfflineMapsSpec, SearchSpec, TerritorySpec, TurnByTurnSpec } from './types'
 
 export interface BuildHtmlOptions {
   runtime: MapRuntime
@@ -16,6 +16,7 @@ export interface BuildHtmlOptions {
     turnByTurn?: TurnByTurnSpec
     offlineMaps?: OfflineMapsSpec
     search?: SearchSpec
+    mapType?: MapTypeSpec
   }
 }
 
@@ -272,11 +273,59 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    search.sync(follow(spec, SEARCH_KEYS, { query: spec.query == null ? undefined : spec.query }));',
   '  }',
+  // The map type picker is the same control the other bindings use. A style
+  // cannot cross the bridge, so the types are built here with `mapTypes()`
+  // from the spec's plain options, and built again only when those change.
+  // A traffic layer cannot cross it either: it is built here from the
+  // provider and its key, and built again when those change. `value`, `open`
+  // and `showTraffic` are followed by the control only when they change.
+  '  const MAP_TYPES_KEYS = ["tiles", "imagery", "imageryAttribution", "attribution", "maxzoom", "theme", "labels"];',
+  '  const TRAFFIC_KEYS = ["trafficProvider", "trafficKey", "incidents"];',
+  '  let picker = null;',
+  '  let pickerTypes = null;',
+  '  let pickerTraffic = null;',
+  '  function trafficFrom(ns, spec) {',
+  '    const provider = spec.trafficProvider;',
+  '    if (!spec.trafficKey || !ns.TrafficLayer || !ns.trafficSources || (provider !== "mapbox" && provider !== "tomtom")) return undefined;',
+  '    const opts = { source: ns.trafficSources[provider](spec.trafficKey) };',
+  '    if (spec.incidents && provider === "tomtom" && ns.TomTomIncidents) opts.incidents = new ns.TomTomIncidents({ key: spec.trafficKey });',
+  '    return new ns.TrafficLayer(opts);',
+  '  }',
+  '  function applyMapType(spec) {',
+  '    const ns = window.tsMaps || window;',
+  '    if (!spec) {',
+  '      if (picker) { picker.remove(); if (picker.options.traffic) picker.options.traffic.remove(); picker = null; pickerTypes = null; pickerTraffic = null; }',
+  '      return;',
+  '    }',
+  '    if (!ns.MapTypeControl || !ns.mapTypes) return;',
+  '    const plain = given(spec, MAP_TYPES_KEYS);',
+  '    const key = JSON.stringify(plain);',
+  '    if (!pickerTypes || pickerTypes.key !== key) pickerTypes = { key: key, types: ns.mapTypes(plain) };',
+  '    const trafficKey = JSON.stringify(given(spec, TRAFFIC_KEYS));',
+  '    if (picker && pickerTraffic !== trafficKey) {',
+  '      const was = picker.options.traffic;',
+  '      const on = !!(was && was.active);',
+  '      if (was) was.remove();',
+  '      picker.options.traffic = trafficFrom(ns, spec);',
+  '      if (on && picker.options.traffic) picker.options.traffic.addTo(map);',
+  '    }',
+  '    pickerTraffic = trafficKey;',
+  '    if (!picker) {',
+  '      const opts = Object.assign(given(spec, ["value", "position"]), { types: pickerTypes.types, traffic: trafficFrom(ns, spec) });',
+  '      try { picker = new ns.MapTypeControl(opts); picker.addTo(map); }',
+  '      catch (e) { fail((e && e.message) || e); return; }',
+  '      picker.listen(function (type, e) {',
+  '        send({ type: "mapType", id: `mt${Date.now()}`, payload: { type: type, data: e } });',
+  '      });',
+  '    }',
+  '    picker.sync(follow(spec, ["position", "value", "open", "showTraffic"], { types: pickerTypes.types }));',
+  '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
   '  applyTurnByTurn(initial.turnByTurn);',
   '  applyOfflineMaps(initial.offlineMaps);',
   '  applySearch(initial.search);',
+  '  applyMapType(initial.mapType);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
   '    if (env.type === "call") {',
@@ -328,6 +377,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setSearch") {',
   '      applySearch(env.payload && env.payload.search);',
+  '    }',
+  '    else if (env.type === "setMapType") {',
+  '      applyMapType(env.payload && env.payload.mapType);',
   '    }',
   '  }',
   '  function onMessage(data) {',

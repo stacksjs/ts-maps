@@ -106,6 +106,21 @@ const routes = await d.getDirections([
 // routes[0] = { distance, duration, geometry: LatLng[], legs, steps }
 ```
 
+### In traffic
+
+Where a provider knows today's traffic, routes say so: `duration` is the time
+in traffic, `typicalDuration` the time on a clear road, and `traffic` is true.
+The turn-by-turn preview shows the difference, "4 min delay", orange as it
+grows and red when it is heavy, or "Light traffic".
+
+```ts
+new MapboxDirections({ accessToken, traffic: true }) // the driving-traffic profile
+new GoogleDirections({ apiKey, traffic: true })      // leaving now, duration_in_traffic
+```
+
+OSRM and Valhalla's public servers have no live traffic; a Valhalla of your
+own with a traffic feed answers in traffic without being asked.
+
 ## Turn-by-turn navigation
 
 `turnByTurn(map)` is navigation after Apple Maps: route options, then guidance

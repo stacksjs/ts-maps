@@ -165,6 +165,8 @@ interface MapboxDirectionsLeg {
 interface MapboxDirectionsRoute {
   distance: number
   duration: number
+  /** With `driving-traffic`: the trip with no traffic. */
+  duration_typical?: number
   geometry: { type: 'LineString', coordinates: [number, number][] }
   legs?: MapboxDirectionsLeg[]
 }
@@ -206,13 +208,15 @@ function mbStepToStep(s: MapboxDirectionsStep): RouteStep {
   return out
 }
 
-function mbRouteToRoute(r: MapboxDirectionsRoute): Route {
+function mbRouteToRoute(r: MapboxDirectionsRoute, traffic: boolean): Route {
   const steps = (r.legs ?? []).flatMap(l => (l.steps ?? []).map(mbStepToStep))
   return {
     distance: r.distance,
     duration: r.duration,
     geometry: coords(r.geometry?.coordinates ?? []),
     steps,
+    ...(traffic ? { traffic: true } : {}),
+    ...(typeof r.duration_typical === 'number' ? { typicalDuration: r.duration_typical } : {}),
   }
 }
 
@@ -220,16 +224,23 @@ export class MapboxDirections implements DirectionsProvider {
   name: string = 'mapbox'
   private accessToken: string
   private baseUrl: string
+  private traffic: boolean
 
-  constructor(opts: MapboxOptions) {
+  /**
+   * `traffic: true` drives with Mapbox's `driving-traffic` profile: times in
+   * today's traffic, and the delay against a clear road.
+   */
+  constructor(opts: MapboxOptions & { traffic?: boolean }) {
     this.accessToken = requireToken(opts.accessToken)
     this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE).replace(/\/$/, '')
+    this.traffic = opts.traffic ?? false
   }
 
   async getDirections(waypoints: LatLngLike[], opts?: DirectionsOptions): Promise<Route[]> {
     if (waypoints.length < 2)
       throw new Error('Mapbox directions requires at least two waypoints')
-    const profile = profileMap[opts?.profile ?? 'driving']
+    const traffic = this.traffic && (opts?.profile ?? 'driving') === 'driving'
+    const profile = traffic ? 'mapbox/driving-traffic' : profileMap[opts?.profile ?? 'driving']
     const coordStr = waypoints.map(w => `${w.lng},${w.lat}`).join(';')
     const params = new URLSearchParams()
     params.set('access_token', this.accessToken)
@@ -243,7 +254,7 @@ export class MapboxDirections implements DirectionsProvider {
     const raw = (await fetchJson(url, opts?.signal)) as MapboxDirectionsResponse
     if (raw.code !== 'Ok')
       throw new Error(`Mapbox directions error: ${raw.code}${raw.message ? ` — ${raw.message}` : ''}`)
-    return (raw.routes ?? []).map(mbRouteToRoute)
+    return (raw.routes ?? []).map(r => mbRouteToRoute(r, traffic))
   }
 }
 

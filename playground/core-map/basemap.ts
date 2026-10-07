@@ -25,11 +25,19 @@ function networkFirst(url: string | URL | Request, init?: RequestInit): Promise<
   return fetch(url, init).catch(() => offlineFetch(String(url), init))
 }
 
-/** Resolves the tiles and sets the light or dark basemap on `map`. */
-export async function loadBasemap(map: TsMap, theme: 'light' | 'dark'): Promise<void> {
+/**
+ * Resolves the tiles and sets the light or dark basemap on `map`. Resolves
+ * to the vector tiles found, for building other styles from, or undefined
+ * when only the raster fallback answered.
+ */
+export async function loadBasemap(map: TsMap, theme: 'light' | 'dark'): Promise<{ tiles: string, maxzoom: number, attribution: string } | undefined> {
   const build = theme === 'dark' ? styles.dark : styles.light
   const found = await resolveTileJSON(TILEJSON_SOURCES, { fetch: networkFirst as typeof fetch })
-  map.setStyle(found
-    ? build({ tiles: found.tiles, maxzoom: found.maxzoom ?? 14, attribution: found.attribution ?? '© OpenMapTiles © OpenStreetMap contributors' })
-    : build({ tiles: RASTER[theme], mode: 'raster', attribution: '© OpenStreetMap contributors © CARTO' }))
+  if (!found) {
+    map.setStyle(build({ tiles: RASTER[theme], mode: 'raster', attribution: '© OpenStreetMap contributors © CARTO' }))
+    return undefined
+  }
+  const vector = { tiles: found.tiles, maxzoom: found.maxzoom ?? 14, attribution: found.attribution ?? '© OpenMapTiles © OpenStreetMap contributors' }
+  map.setStyle(build(vector))
+  return vector
 }

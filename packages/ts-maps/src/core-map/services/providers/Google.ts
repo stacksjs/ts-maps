@@ -184,6 +184,8 @@ interface GoogleDirectionsStep {
 interface GoogleDirectionsLeg {
   distance?: { value?: number }
   duration?: { value?: number }
+  /** With a departure time: the leg in today's traffic. */
+  duration_in_traffic?: { value?: number }
   steps?: GoogleDirectionsStep[]
 }
 
@@ -220,6 +222,11 @@ function routeToRoute(r: GoogleDirectionsRoute): Route {
   const distance = legs.reduce((sum, l) => sum + (l.distance?.value ?? 0), 0)
   const duration = legs.reduce((sum, l) => sum + (l.duration?.value ?? 0), 0)
   const geometry = r.overview_polyline ? decodePolyline(r.overview_polyline.points) : steps.flatMap(s => s.geometry)
+  // In traffic where Google says, against its time on a typical day.
+  if (legs.length && legs.every(l => typeof l.duration_in_traffic?.value === 'number')) {
+    const inTraffic = legs.reduce((sum, l) => sum + l.duration_in_traffic!.value!, 0)
+    return { distance, duration: inTraffic, typicalDuration: duration, traffic: true, geometry, steps }
+  }
   return { distance, duration, geometry, steps }
 }
 
@@ -227,10 +234,13 @@ export class GoogleDirections implements DirectionsProvider {
   name: string = 'google'
   private apiKey: string
   private baseUrl: string
+  private traffic: boolean
 
-  constructor(opts: GoogleOptions) {
+  /** `traffic: true` asks for driving times leaving now, in today's traffic. */
+  constructor(opts: GoogleOptions & { traffic?: boolean }) {
     this.apiKey = requireKey(opts.apiKey)
     this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE).replace(/\/$/, '')
+    this.traffic = opts.traffic ?? false
   }
 
   async getDirections(waypoints: LatLngLike[], opts?: DirectionsOptions): Promise<Route[]> {
@@ -251,6 +261,8 @@ export class GoogleDirections implements DirectionsProvider {
       params.set('alternatives', 'true')
     if (opts?.language)
       params.set('language', opts.language)
+    if (this.traffic && (opts?.profile ?? 'driving') === 'driving')
+      params.set('departure_time', 'now')
     const url = `${this.baseUrl}/directions/json?${params.toString()}`
     const raw = (await fetchJson(url, opts?.signal)) as GoogleDirectionsResponse
     if (raw.status !== 'OK' && raw.status !== 'ZERO_RESULTS')

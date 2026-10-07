@@ -66,7 +66,12 @@ export interface RouteStep {
 
 export interface Route {
   distance: number // meters
-  duration: number // seconds
+  /** Seconds, in today's traffic where the provider knows it (`traffic` is then true). */
+  duration: number
+  /** Seconds the trip takes with no traffic, where the provider says: `duration` less this is the delay. */
+  typicalDuration?: number
+  /** Whether `duration` counts live traffic. */
+  traffic?: boolean
   geometry: LatLngLike[] // full polyline
   steps: RouteStep[]
   legs?: Route[] // when there are via points

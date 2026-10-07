@@ -14,6 +14,7 @@ sketched in one framework reads the same in another.
 | `TurnByTurn` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `turnByTurn` prop |
 | `OfflineMaps` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `offlineMaps` prop |
 | `Search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `search` prop |
+| `MapType` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `mapType` prop |
 | Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
 | Event subscription | `useMapEvent` | `useMapEvent` | `useMapEvent` | `useMapEvent` | `onMapEvent` | auto-imported | ✅ |
 
@@ -284,6 +285,67 @@ either way:
 />
 ```
 
+## Map type
+
+`MapType` adds Apple Maps' map type picker (see
+[the map type control](../concepts/controls.md#map-type)): a button opening a
+card of Explore, Driving and Satellite. Choosing one sets the map's style and
+keeps the layers the page added to it. `types` says what to offer —
+`mapTypes({ tiles, imagery })` builds Apple's three from one basemap source and
+one imagery source. Two props are followed as they change — `value` shows a
+type, and `open` shows the card — and both report back when the card changes
+them.
+
+```tsx
+// React and Solid
+const types = useMemo(() => mapTypes({ tiles, imagery }), [tiles])
+<Map center={[37.78, -122.42]} zoom={13}>
+  <MapType types={types} value={type} onChange={e => setType(e.value)} />
+</Map>
+```
+
+```vue
+<!-- Vue, and Nuxt as <TsMapsMapType> -->
+<TsMapType :types="types" v-model:value="type" v-model:open="picking" />
+```
+
+```svelte
+<MapType {types} bind:value={type} bind:open={picking} />
+```
+
+The events are the same everywhere — `change` (`{ value }`) when a type is
+chosen, `openchange` (`{ open }`), and `trafficchange` (`{ traffic }`) when the
+card's Traffic switch is turned — as `onChange` props in React, Solid and
+Svelte, `@change` in Vue, and a bubbling `maptype:change` DOM event in stx.
+`ready` hands over the control, for `select`. `types` and `position` are
+followed as they change too.
+
+Given a `traffic` layer, the card has a Traffic switch (see
+[traffic](../concepts/controls.md#traffic)), and `showTraffic` turns it on or
+off — followed as it changes, and bindable as `v-model:showTraffic` in Vue and
+`bind:showTraffic` in Svelte:
+
+```tsx
+const traffic = useMemo(() => trafficLayer({ source: trafficSources.tomtom(key), incidents: new TomTomIncidents({ key }) }), [key])
+<MapType types={types} traffic={traffic} showTraffic={on} onTrafficChange={e => setOn(e.traffic)} />
+```
+
+A style cannot be written in markup, so stx's `<MapType>` takes the plain
+options of `mapTypes()` — `tiles`, `imagery`, `imageryAttribution`,
+`attribution`, `maxzoom`, `theme`, `labels` — and builds the types in the
+browser. A traffic layer cannot be written in markup either, so it takes
+`trafficProvider` (`mapbox` or `tomtom`), `trafficKey`, and with TomTom
+`incidents`, alongside `showTraffic`. React Native does the same inside the
+WebView, with every event arriving at one `onMapType({ type, data })`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  mapType={{ tiles, value: type, trafficProvider: 'tomtom', trafficKey: key, showTraffic: on }}
+  onMapType={e => e.type === 'change' && setType(e.data.value)}
+/>
+```
+
 ## Subscribing to events
 
 `useMapEvent` binds a handler for the lifetime of the calling component, in
@@ -323,8 +385,8 @@ from your layout. Two rules are worth knowing up front:
   once per *definition* rather than per use, so a marker cannot build itself;
   instead each child renders inert markup and `<Map>` walks its subtree and
   builds what it finds. Markers added to the DOM later are not picked up — add
-  those through the map. `<OfflineMaps>`, `<Search>` and `<TurnByTurn>` keep
-  following their props after that: a change to the markup is handed to the
+  those through the map. `<OfflineMaps>`, `<Search>`, `<TurnByTurn>` and
+  `<MapType>` keep following their props after that: a change to the markup is handed to the
   control. Live objects such as `maps` or `provider` cannot be written in
   markup; pass them to the control's `sync` from its `ready` event.
 

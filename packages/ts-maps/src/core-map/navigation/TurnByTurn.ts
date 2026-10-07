@@ -118,6 +118,21 @@ function samePlace(a: LatLngLike | null, b: LatLngLike | null): boolean {
   return a === b || (!!a && !!b && a.lat === b.lat && a.lng === b.lng)
 }
 
+/**
+ * How traffic changes a route, as Apple says it: "4 min delay" in orange or
+ * red as it grows, or that the traffic is light. Nothing where the provider
+ * does not count traffic.
+ */
+export function trafficNote(route: Route): string {
+  if (!route.traffic || route.typicalDuration === undefined)
+    return ''
+  const delay = route.duration - route.typicalDuration
+  if (delay < 60)
+    return '<span class="tsmap-nav-traffic tsmap-nav-traffic-light">Light traffic</span>'
+  const heavy = delay >= Math.max(600, route.typicalDuration * 0.25)
+  return `<span class="tsmap-nav-traffic tsmap-nav-traffic-${heavy ? 'heavy' : 'moderate'}">${formatDuration(delay)} delay</span>`
+}
+
 const BLUE = '#0a84ff'
 const BLUE_CASING = '#0060df'
 const GREY = '#a8b3c4'
@@ -708,6 +723,7 @@ export class TurnByTurn extends Evented {
       <button class="tsmap-nav-option${i === this.selected ? ' tsmap-selected' : ''}" data-index="${i}">
         <span class="tsmap-nav-option-time">${formatDuration(route.duration)}</span>
         <span class="tsmap-nav-option-detail">${formatDistance(route.distance, this.options.units)}${i === 0 ? ' · Fastest' : ''}</span>
+        ${trafficNote(route)}
       </button>`).join('')
     card.innerHTML = `
       <div class="tsmap-nav-card-head"><span class="tsmap-nav-card-title">${title}</span><button class="tsmap-nav-close" aria-label="Close">✕</button></div>

@@ -1,6 +1,6 @@
-import type { TsMap } from 'ts-maps'
+import type { MapTypeControlOptions, MapTypeOption, MapTypesOptions, TsMap } from 'ts-maps'
 import type { PageTheme, ResolveTileJsonOptions, RouteLatLng, RouteMarker, RouteOptions } from './route'
-import { CircleMarker, control, divIcon, marker as makeMarker, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import { CircleMarker, control, divIcon, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 import { basemapStyle, drawRoute, pageTheme, refitOnResize, resolveTileJson, watchPageTheme } from './route'
 
 /**
@@ -223,16 +223,38 @@ export function attachBasemap(map: TsMap, props: MapProps, env: Pick<ResolveTile
 
 type Removable = { remove: () => unknown }
 
+/** What `<MapType>` builds its types from with `mapTypes()`: plain data, unlike the types themselves. */
+const MAP_TYPES_PROPS = ['tiles', 'imagery', 'imageryAttribution', 'attribution', 'maxzoom', 'theme', 'labels'] as const
+
+/** What `<MapType>` builds its traffic layer from: a provider and its key. */
+const TRAFFIC_PROPS = ['trafficProvider', 'trafficKey', 'incidents'] as const
+
 /**
- * The props `<TurnByTurn>`, `<Search>` and `<OfflineMaps>` render. Live
- * objects — a manager, a provider, a callback — cannot come from markup, so
- * they are not here, and what the page hands the control itself is never
- * reset by the markup.
+ * The traffic layer plain options describe: `trafficProvider` (`'mapbox'`
+ * or `'tomtom'`) and `trafficKey` for flow, and with TomTom, `incidents` for
+ * its incidents with the same key. None without a provider and a key.
+ */
+function trafficFrom(props: Record<string, any>): TrafficLayer | undefined {
+  const { trafficProvider: provider, trafficKey: key, incidents } = props
+  if (!key || (provider !== 'mapbox' && provider !== 'tomtom'))
+    return undefined
+  return new TrafficLayer({
+    source: trafficSources[provider as 'mapbox' | 'tomtom'](key),
+    ...(incidents && provider === 'tomtom' ? { incidents: new TomTomIncidents({ key }) } : {}),
+  })
+}
+
+/**
+ * The props `<TurnByTurn>`, `<Search>`, `<OfflineMaps>` and `<MapType>`
+ * render. Live objects — a manager, a provider, a callback — cannot come from
+ * markup, so they are not here, and what the page hands the control itself is
+ * never reset by the markup.
  */
 const MARKUP_PROPS = {
   'turn-by-turn': ['from', 'to', 'active', 'profile', 'units', 'voice', 'simulate', 'alternatives', 'destinationName'],
   'search': ['query', 'position', 'placeholder', 'categories', 'recents', 'units', 'language'],
   'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title'],
+  'map-type': ['value', 'open', 'position', 'showTraffic', ...MAP_TYPES_PROPS, ...TRAFFIC_PROPS],
 } as const
 
 /**
@@ -274,8 +296,9 @@ function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, la
  * Build every child declared in `root`, and return a teardown for all of them.
  *
  * Children are read once, at mount. A page that adds markers later should do
- * so through the map itself — see `findMap`. `<TurnByTurn>`, `<Search>` and
- * `<OfflineMaps>` go on following their `data-options` after that.
+ * so through the map itself — see `findMap`. `<TurnByTurn>`, `<Search>`,
+ * `<OfflineMaps>` and `<MapType>` go on following their `data-options` after
+ * that.
  */
 export function mountChildren(map: TsMap, root: HTMLElement): () => void {
   const created: Removable[] = []
@@ -410,6 +433,55 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
               unfollow()
               unlisten()
               offline.remove()
+            },
+          })
+          break
+        }
+
+        case 'map-type': {
+          // A style is not data markup can carry, so the types are built here
+          // from the plain options of `mapTypes()`, and built again only when
+          // those change.
+          const typesFrom = (props: Record<string, any>): { key: string, types: MapTypeOption[] } => {
+            const given = definedOnly(Object.fromEntries(MAP_TYPES_PROPS.map(key => [key, props[key]])))
+            return { key: JSON.stringify(given), types: mapTypes(given as unknown as MapTypesOptions) }
+          }
+          const raw = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {}))
+          let built = typesFrom(raw)
+          // A traffic layer is a live object too: built here from a provider
+          // and its key, and built again when those change.
+          const trafficKeyOf = (props: Record<string, any>): string => JSON.stringify(TRAFFIC_PROPS.map(key => props[key] ?? null))
+          let trafficKey = trafficKeyOf(raw)
+          const picker = new MapTypeControl(definedOnly({ types: built.types, value: raw.value, position: raw.position, title: raw.title, traffic: trafficFrom(raw) }) as MapTypeControlOptions)
+          picker.addTo(map)
+          // Every event, as a DOM event: stx props are data, so a callback
+          // cannot be one. The names are the core ones, prefixed.
+          const unlisten = picker.listen((event, detail) => {
+            root.dispatchEvent(new CustomEvent(`maptype:${event}`, { bubbles: true, detail }))
+          })
+          root.dispatchEvent(new CustomEvent('maptype:ready', { bubbles: true, detail: { control: picker } }))
+          const unfollow = followProps(el, MARKUP_PROPS['map-type'], (props) => {
+            const next = typesFrom(props)
+            if (next.key !== built.key)
+              built = next
+            if (trafficKeyOf(props) !== trafficKey) {
+              trafficKey = trafficKeyOf(props)
+              const was = picker.options.traffic
+              const on = !!was?.active
+              was?.remove()
+              const traffic = trafficFrom(props)
+              picker.options.traffic = traffic
+              if (on)
+                traffic?.addTo(map)
+            }
+            picker.sync({ types: built.types, value: props.value, open: props.open, position: props.position, showTraffic: props.showTraffic })
+          })
+          created.push({
+            remove: () => {
+              unfollow()
+              unlisten()
+              picker.remove()
+              picker.options.traffic?.remove()
             },
           })
           break

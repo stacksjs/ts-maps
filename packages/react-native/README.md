@@ -46,6 +46,7 @@ export default function Screen() {
 | `turnByTurn`  | `TurnByTurnSpec`                                                | Navigation — live, options included         |
 | `offlineMaps` | `OfflineMapsSpec`                                               | Offline maps — live, options included       |
 | `search`      | `SearchSpec`                                                    | Search — live, options included             |
+| `mapType`     | `MapTypeSpec`                                                   | Map type picker — live, options included    |
 | `onLoad`      | `() => void`                                                    | Fires when the inner map emits `load`       |
 | `onMove`      | `(e: { center, zoom, bearing, pitch }) => void`                 | Camera changes                              |
 | `onClick`     | `(e: { lngLat, point }) => void`                                | Map click                                   |
@@ -53,6 +54,26 @@ export default function Screen() {
 | `onReady`     | `(api: { call(method, ...args): Promise<unknown> }) => void`    | Escape hatch for imperative `TsMap` methods |
 
 `turnByTurn`, `offlineMaps` and `search` are live: change any field, options included, and the map follows over the bridge without reloading the WebView; a field removed returns to its default. Only data crosses the bridge, so the options the other bindings take as objects or functions — `directions` for navigation, `maps` and `geocoder` for offline maps, `provider`, `offline`, `location`, `origin`, `onDirections`, `details` and `shareUrl` for search — are not available here, and the WebView's defaults are used. Search's events, a chosen place's `details` among them, reach `onSearch` as plain data. `controls` is read when the map is built.
+
+`mapType` is Apple's map type picker — Explore, Driving and Satellite. A style cannot cross the bridge, so it takes the plain options of `mapTypes()` — `tiles`, `imagery`, `imageryAttribution`, `attribution`, `maxzoom`, `theme`, `labels` — and the WebView builds the types, building them again when one changes. `value` and `open` are followed as they change, and `onMapType` receives `{ type: 'change', data: { value } }` and `{ type: 'openchange', data: { open } }`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  mapType={{ tiles, value: type }}
+  onMapType={e => e.type === 'change' && setType(e.data.value as string)}
+/>
+```
+
+For a Traffic switch on the card, `trafficProvider` (`'mapbox'` or `'tomtom'`) and `trafficKey` build the traffic layer inside the WebView — with TomTom, `incidents: true` adds its incidents with the same key. `showTraffic` turns it on or off, and the switch reaches `onMapType` as `{ type: 'trafficchange', data: { traffic } }`:
+
+```tsx
+<MapView
+  runtime={runtime}
+  mapType={{ tiles, trafficProvider: 'tomtom', trafficKey: tomtomKey, showTraffic: traffic }}
+  onMapType={e => e.type === 'trafficchange' && setTraffic(e.data.traffic as boolean)}
+/>
+```
 
 ## Bundling the runtime
 
