@@ -1,7 +1,7 @@
 export { extractTile, labelGlyphRanges, mergePlaces } from './extract'
 export type { ExtractLayers } from './extract'
 export { activeOfflineMaps, offlineFetch, OfflineMaps, offlineMaps, offlineMapsNow, setOfflineMaps } from './OfflineMaps'
-export type { OfflineDownloadOptions, OfflineEstimate, OfflineMapsOptions } from './OfflineMaps'
+export type { AutoUpdateOptions, OfflineDownloadOptions, OfflineEstimate, OfflineMapsOptions, OfflineStorage } from './OfflineMaps'
 export { IndexedDBOfflineStore, MemoryOfflineStore } from './OfflineStore'
 export type { OfflineGlyphs, OfflineIndex, OfflinePlace, OfflinePlan, OfflineRegionRecord, OfflineRoad, OfflineStore, StoredTile, TileRefs } from './OfflineStore'
 export { glyphUrls, labelKeys, LATIN_GLYPH_RANGES, planArea } from './plan'

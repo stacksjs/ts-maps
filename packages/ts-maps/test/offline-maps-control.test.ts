@@ -224,10 +224,44 @@ describe('for the framework bindings', () => {
     const modes: boolean[] = []
     offline.listen((type, e) => type === 'modechange' && modes.push(e.onlyOffline))
     offline.open()
-    const toggle = map.getContainer().querySelector<HTMLInputElement>('.tsmap-offline-switch')!
+    const toggle = map.getContainer().querySelector<HTMLInputElement>('[data-setting="onlyOffline"]')!
     toggle.checked = true
     toggle.dispatchEvent(new Event('change'))
     expect(modes).toEqual([true])
+  })
+
+  test('Automatic Updates is a switch in the panel', async () => {
+    const maps = new OfflineMaps({ store: new MemoryOfflineStore(), fetch: tileServer().fetch, autoUpdate: false })
+    const map = makeMap()
+    control.offlineMaps({ maps }).addTo(map).open()
+    const toggle = map.getContainer().querySelector<HTMLInputElement>('[data-setting="autoUpdate"]')!
+    expect(toggle.checked).toBe(false)
+    toggle.checked = true
+    toggle.dispatchEvent(new Event('change'))
+    expect(maps.autoUpdate).toBe(true)
+    try {
+      localStorage.removeItem('ts-maps-offline-auto-update')
+    }
+    catch {}
+  })
+
+  test('the area picker warns when the estimate is more than the space free', async () => {
+    const real = navigator.storage
+    Object.defineProperty(navigator, 'storage', { configurable: true, value: { estimate: async () => ({ usage: 999_000, quota: 1_000_000 }) } })
+    try {
+      const maps = new OfflineMaps({ store: new MemoryOfflineStore(), fetch: tileServer().fetch })
+      const map = makeMap()
+      const offline = control.offlineMaps({ maps }).addTo(map)
+      offline.selectArea()
+      const estimate = map.getContainer().querySelector('.tsmap-offline-estimate')!
+      await until(() => estimate.textContent!.includes('free on this device'))
+      expect(estimate.textContent).toContain('Only 1 KB free on this device')
+      // A warning: the estimate may be wrong, and the download says if it runs out.
+      expect(map.getContainer().querySelector<HTMLButtonElement>('.tsmap-offline-download')!.disabled).toBe(false)
+    }
+    finally {
+      Object.defineProperty(navigator, 'storage', { configurable: true, value: real })
+    }
   })
 
   test('events reduce to plain data', () => {

@@ -58,7 +58,23 @@ await map.offline.usage()         // { bytes, entries } on this device
 - **Without a map.** Download from URL templates by passing `sources: [{ url, type, tileSize, maxZoom }]`.
 - **Size limit.** An area over `maxTiles` (150,000 by default) is refused; `estimate()` reports it as `tooLarge`.
 
-Downloads are kept in IndexedDB and survive a reload. A download interrupted by a reload comes back paused. Tiles that two areas share are stored once, and deleting one area keeps whatever the other still needs. Events on the manager: `change`, `progress`, `complete`, `error` and `delete`.
+Downloads are kept in IndexedDB and survive a reload. A download interrupted by a reload comes back paused. Tiles that two areas share are stored once, and deleting one area keeps whatever the other still needs. Events on the manager: `change`, `progress`, `complete`, `error`, `delete`, `settingchange` and `persist`.
+
+### Keeping them fresh, and the space they take
+
+Apple keeps downloaded maps up to date and says when storage runs low. So do these, when asked:
+
+```ts
+setOfflineMaps(new OfflineMaps({
+  autoUpdate: { maxAge: 30 * 24 * 60 * 60 * 1000 }, // or true
+  autoResume: true,
+}))
+```
+
+- **Automatic updates.** With `autoUpdate`, once the manager is ready and online, maps older than `maxAge` (30 days by default) are fetched again, one at a time, oldest first. It waits for a connection the browser does not report as cellular or data-saving, unless `unmeteredOnly: false`. The panel has an **Automatic Updates** switch, as Apple's does; what it is set to is remembered on the device. `updateStale()` runs the same check from code.
+- **Interrupted downloads.** A download a reload stopped comes back paused, and one running when the connection drops is paused rather than failing tile by tile. With `autoResume`, both carry on as soon as the page is ready and online. A download the user paused stays paused.
+- **Persistent storage.** On the first download the manager asks the browser to keep the maps under storage pressure (`navigator.storage.persist()`); `persist: false` leaves that to you. When the browser has not agreed, the panel says the maps may be removed if space runs low.
+- **Quota.** `storage()` says how much the origin uses, may use and has free, and whether it is persisted. The area picker warns when an estimate is more than the space free, and a download that does run out stops with the error "Not enough storage on this device" rather than failing every tile after.
 
 ### How the map uses them
 

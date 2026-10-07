@@ -1,4 +1,4 @@
-import type { OfflineMaps } from '../offline/OfflineMaps'
+import type { OfflineMaps, OfflineStorage } from '../offline/OfflineMaps'
 import type { OfflineRegionRecord } from '../offline/OfflineStore'
 import type { GeocoderProvider } from '../services/types'
 import * as DomEvent from '../dom/DomEvent'
@@ -124,6 +124,7 @@ export class OfflineMapsControl extends Control {
   declare _listeners?: Map<(type: OfflineMapsEvent, event: any) => void, Array<[string, (e: any) => void]>>
   declare _wasOpen?: boolean
   declare _synced: { open?: boolean, onlyOffline?: boolean }
+  declare _storageInfo?: OfflineStorage | null
 
   initialize(options: OfflineMapsControlOptions = {}): void {
     // An option passed as undefined — as bindings pass every prop — means
@@ -168,8 +169,16 @@ export class OfflineMapsControl extends Control {
   _hookMaps(): void {
     const maps = this.maps
     const refresh = (): void => this._refresh()
-    maps.on('change progress modechange', refresh)
-    this._unhookMaps = () => maps.off('change progress modechange', refresh)
+    maps.on('change progress modechange settingchange', refresh)
+    const persisted = (): void => {
+      this._storageInfo = undefined
+      this._refresh()
+    }
+    maps.on('persist', persisted)
+    this._unhookMaps = () => {
+      maps.off('change progress modechange settingchange', refresh)
+      maps.off('persist', persisted)
+    }
     maps.ready().then(() => this.maps === maps && this._refresh(), () => {})
   }
 
@@ -319,6 +328,8 @@ export class OfflineMapsControl extends Control {
   /** Show the list of downloaded maps. */
   open(): this {
     this._endSelection()
+    // Read again each time: downloads since change what is used and free.
+    this._storageInfo = undefined
     this._card?.remove()
     this._card = this._panel(`${CLASS}-card`)
     this._button?.classList.add(`${CLASS}-button-active`)
@@ -448,8 +459,9 @@ export class OfflineMapsControl extends Control {
       <div class="${CLASS}-head"><span class="${CLASS}-title">Offline Maps</span><button class="${CLASS}-close" aria-label="Close">✕</button></div>
       <button class="${CLASS}-new">${ICON}<span>Download New Map</span></button>
       ${regions.length ? `<div class="${CLASS}-section">Downloaded Maps</div><div class="${CLASS}-list">${rows}</div>` : `<div class="${CLASS}-empty">Download maps to use them without a connection — the map, search and directions all keep working.</div>`}
-      <label class="${CLASS}-setting"><span>Only Use Offline Maps</span><input type="checkbox" class="${CLASS}-switch"${this.maps.onlyOffline ? ' checked' : ''}></label>
-      ${regions.length ? `<div class="${CLASS}-usage">${formatBytes(used)} used on this device</div>` : ''}`
+      <label class="${CLASS}-setting"><span>Automatic Updates</span><input type="checkbox" class="${CLASS}-switch" data-setting="autoUpdate"${this.maps.autoUpdate ? ' checked' : ''}></label>
+      <label class="${CLASS}-setting"><span>Only Use Offline Maps</span><input type="checkbox" class="${CLASS}-switch" data-setting="onlyOffline"${this.maps.onlyOffline ? ' checked' : ''}></label>
+      ${regions.length ? `<div class="${CLASS}-usage">${formatBytes(used)} used on this device${this._storageNote()}</div>` : ''}`
     // Progress updates many times a second; leave the DOM alone when nothing
     // visible changed, so a button is never replaced under a pointer.
     if (card.dataset.html === html)
@@ -459,14 +471,32 @@ export class OfflineMapsControl extends Control {
 
     card.querySelector(`.${CLASS}-close`)?.addEventListener('click', () => this.close())
     card.querySelector(`.${CLASS}-new`)?.addEventListener('click', () => this.selectArea())
-    card.querySelector<HTMLInputElement>(`.${CLASS}-switch`)?.addEventListener('change', (e) => {
+    card.querySelector<HTMLInputElement>(`[data-setting="onlyOffline"]`)?.addEventListener('change', (e) => {
       this.maps.onlyOffline = (e.currentTarget as HTMLInputElement).checked
       this._updateStatus()
       this._map?.fire('offline:mode', { onlyOffline: this.maps.onlyOffline })
     })
+    card.querySelector<HTMLInputElement>(`[data-setting="autoUpdate"]`)?.addEventListener('change', (e) => {
+      this.maps.autoUpdate = (e.currentTarget as HTMLInputElement).checked
+    })
     card.querySelectorAll<HTMLElement>('[data-action]').forEach((button) => {
       button.addEventListener('click', () => this._act(button.dataset.action!, button.dataset.id!))
     })
+  }
+
+  /**
+   * Whether the browser will keep the maps, read once the panel opens. Said
+   * only when it will not, since that is the case to act on.
+   */
+  _storageNote(): string {
+    if (this._storageInfo === undefined) {
+      this._storageInfo = null
+      this.maps.storage().then((info) => {
+        this._storageInfo = info ?? null
+        this._renderList()
+      }, () => {})
+    }
+    return this._storageInfo?.persisted === false ? ' · The browser may remove them if space runs low' : ''
   }
 
   _row(region: OfflineRegionRecord): string {
@@ -642,9 +672,22 @@ export class OfflineMapsControl extends Control {
         button.disabled = true
       }
       else {
-        el.innerHTML = `Estimated size: <strong>${formatBytes(estimate.bytes)}</strong>`
+        const free = this._storageInfo?.free
+        // An estimate, so a warning rather than a refusal: the download says
+        // plainly if it does run out.
+        el.innerHTML = free !== undefined && free < estimate.bytes
+          ? `Estimated size: <strong>${formatBytes(estimate.bytes)}</strong> · <span class="${CLASS}-error">Only ${formatBytes(free)} free on this device</span>`
+          : `Estimated size: <strong>${formatBytes(estimate.bytes)}</strong>`
         button.disabled = false
       }
+    }
+    if (this._storageInfo === undefined) {
+      this._storageInfo = null
+      this.maps.storage().then((info) => {
+        this._storageInfo = info ?? null
+        if (this._select)
+          render(this.maps.quickEstimate(area))
+      }, () => {})
     }
     render(this.maps.quickEstimate(area))
     if (sample) {

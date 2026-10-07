@@ -35,6 +35,43 @@ export interface OfflineMapsOptions {
   maxTiles?: number
   /** Swapped out in tests. */
   fetch?: (url: string, init?: RequestInit) => Promise<Response>
+  /**
+   * Keep downloaded maps up to date, as Apple's "Automatic Updates": once
+   * ready and online, maps older than `maxAge` are fetched again, one at a
+   * time, and only on an unmetered connection where the browser can tell.
+   * `true` is a 30-day `maxAge`. The panel's switch sets it too, and that is
+   * remembered on the device. Default off.
+   */
+  autoUpdate?: boolean | AutoUpdateOptions
+  /**
+   * Pick up downloads a reload or a lost connection interrupted, as soon as
+   * the page is ready and online, rather than leaving them paused for the
+   * user to resume. A download the user paused stays paused. Default false.
+   */
+  autoResume?: boolean
+  /**
+   * Ask the browser to keep downloads when storage runs low
+   * (`navigator.storage.persist()`), on the first download. Default true.
+   */
+  persist?: boolean
+}
+
+export interface AutoUpdateOptions {
+  /** Refresh a map older than this, in milliseconds. Default 30 days. */
+  maxAge?: number
+  /** Only on a connection the browser does not report as metered or data-saving. Default true. */
+  unmeteredOnly?: boolean
+}
+
+export interface OfflineStorage {
+  /** Bytes the origin uses, everything included. */
+  usage: number
+  /** Bytes the browser lets it use. */
+  quota: number
+  /** `quota - usage`. */
+  free: number
+  /** Whether the browser has agreed to keep it under storage pressure. */
+  persisted?: boolean
 }
 
 export interface OfflineDownloadOptions extends OfflineArea {
@@ -55,6 +92,40 @@ interface Job {
   stop: false | 'pause' | 'cancel'
   abort: AbortController
   promise: Promise<OfflineRegionRecord>
+  /** Paused by the connection dropping rather than by the user. */
+  interrupted?: boolean
+  /** Stopped because storage ran out. */
+  quota?: boolean
+}
+
+const DAY = 24 * 60 * 60 * 1000
+const AUTO_UPDATE_KEY = 'ts-maps-offline-auto-update'
+
+function isQuotaError(err: unknown): boolean {
+  const name = (err as Error)?.name
+  return name === 'QuotaExceededError' || name === 'NS_ERROR_DOM_QUOTA_REACHED'
+}
+
+function online(): boolean {
+  return typeof navigator === 'undefined' || navigator.onLine !== false
+}
+
+/** Whether the connection is one to spend data on: not cellular, not data saver. */
+function unmetered(): boolean {
+  const connection = typeof navigator === 'undefined' ? undefined : (navigator as any).connection
+  if (!connection)
+    return true
+  return !connection.saveData && connection.type !== 'cellular' && !/^(?:slow-)?2g$/.test(connection.effectiveType ?? '')
+}
+
+function savedAutoUpdate(): boolean | undefined {
+  try {
+    const saved = globalThis.localStorage?.getItem(AUTO_UPDATE_KEY)
+    return saved === null || saved === undefined ? undefined : saved === '1'
+  }
+  catch {
+    return undefined
+  }
 }
 
 /** A typical vector or image tile, before this device has measured any. */
@@ -94,12 +165,22 @@ export class OfflineMaps extends Evented {
   _graphs: Map<string, Promise<RoadGraph>> = new Map()
   _geocoder?: OfflineGeocoder
   _directions?: OfflineDirections
+  _autoUpdate: AutoUpdateOptions | false
+  autoResume: boolean
+  persist: boolean
+  _persistAsked = false
+  _updating: Promise<void> | null = null
+  _unwatch?: () => void
 
   constructor(options: OfflineMapsOptions = {}) {
     super()
     this.store = options.store ?? (IndexedDBOfflineStore.available() ? new IndexedDBOfflineStore() : new MemoryOfflineStore())
     this.concurrency = Math.max(1, options.concurrency ?? 6)
     this.maxTiles = options.maxTiles ?? 150_000
+    const auto = options.autoUpdate ?? savedAutoUpdate() ?? false
+    this._autoUpdate = auto === false ? false : auto === true ? {} : auto
+    this.autoResume = options.autoResume ?? false
+    this.persist = options.persist ?? true
     // `pmtiles://` tiles are read from their archive (through this same fetch)
     // and stored under their own URL, which is what the map looks up offline.
     this._fetch = withPMTiles(options.fetch)
@@ -120,15 +201,35 @@ export class OfflineMaps extends Evented {
     this.fire('modechange', { onlyOffline: value })
   }
 
+  /** Whether downloaded maps are kept up to date. Setting it is remembered on this device. */
+  get autoUpdate(): boolean {
+    return this._autoUpdate !== false
+  }
+
+  set autoUpdate(value: boolean) {
+    if (value === this.autoUpdate)
+      return
+    this._autoUpdate = value ? {} : false
+    try {
+      globalThis.localStorage?.setItem(AUTO_UPDATE_KEY, value ? '1' : '0')
+    }
+    catch {}
+    this.fire('settingchange', { autoUpdate: value })
+    if (value)
+      void this.updateStale()
+  }
+
   /**
    * Load the list of downloaded maps. Downloads a reload interrupted come
-   * back paused, to be resumed.
+   * back paused, to be resumed — by `autoResume`, once online, or by the
+   * user. With `autoUpdate`, maps past their age are refreshed after.
    */
   ready(): Promise<void> {
     this._ready ??= (async () => {
       for (const region of await this.store.listRegions()) {
         if (region.status === 'downloading' && !this._jobs.has(region.id)) {
           region.status = 'paused'
+          region.interrupted = true
           await this.store.putRegion(region)
         }
         this._regions.set(region.id, region)
@@ -136,8 +237,118 @@ export class OfflineMaps extends Evented {
           this._learn(region.bytes, region.downloaded)
       }
       this._loaded = true
+      this._watchConnection()
+      this._whenOnline()
     })()
     return this._ready
+  }
+
+  /**
+   * Follow the connection: a download running when it drops is paused as
+   * interrupted rather than failing tile by tile, and when it comes back
+   * `autoResume` and `autoUpdate` pick up where they were.
+   */
+  _watchConnection(): void {
+    if (this._unwatch || typeof window === 'undefined' || typeof window.addEventListener !== 'function')
+      return
+    const lost = (): void => {
+      for (const job of this._jobs.values()) {
+        if (!job.stop) {
+          job.interrupted = true
+          job.stop = 'pause'
+          job.abort.abort()
+        }
+      }
+    }
+    const back = (): void => this._whenOnline()
+    window.addEventListener('offline', lost)
+    window.addEventListener('online', back)
+    this._unwatch = () => {
+      window.removeEventListener('offline', lost)
+      window.removeEventListener('online', back)
+    }
+  }
+
+  /** Stop following the connection. For a manager that is being thrown away. */
+  dispose(): void {
+    this._unwatch?.()
+    this._unwatch = undefined
+  }
+
+  _whenOnline(): void {
+    if (!online())
+      return
+    if (this.autoResume) {
+      for (const region of this._regions.values()) {
+        if (region.interrupted && (region.status === 'paused' || region.status === 'error') && !this._jobs.has(region.id))
+          this.resume(region.id).catch(() => {})
+      }
+    }
+    if (this.autoUpdate)
+      void this.updateStale()
+  }
+
+  /**
+   * Refresh downloaded maps older than `autoUpdate`'s `maxAge`, one at a
+   * time, oldest first. Skipped offline and, unless told otherwise, on a
+   * metered connection. Runs once at a time; a second call joins the first.
+   */
+  updateStale(): Promise<void> {
+    this._updating ??= (async () => {
+      try {
+        await this.ready()
+        const auto = this._autoUpdate
+        if (!auto || !online() || (auto.unmeteredOnly !== false && !unmetered()))
+          return
+        const oldest = Date.now() - (auto.maxAge ?? 30 * DAY)
+        const stale = [...this._regions.values()]
+          .filter(r => r.status === 'complete' && r.updatedAt < oldest)
+          .sort((a, b) => a.updatedAt - b.updatedAt)
+        for (const region of stale) {
+          if (!this._autoUpdate || !online() || this._jobs.has(region.id))
+            continue
+          await this.update(region.id).catch(() => {})
+        }
+      }
+      finally {
+        this._updating = null
+      }
+    })()
+    return this._updating
+  }
+
+  /**
+   * How much storage the origin uses and may use, and whether the browser
+   * keeps it under pressure. Undefined where the browser does not say.
+   */
+  async storage(): Promise<OfflineStorage | undefined> {
+    const storage = typeof navigator === 'undefined' ? undefined : navigator.storage
+    if (typeof storage?.estimate !== 'function')
+      return undefined
+    try {
+      const { usage = 0, quota = 0 } = await storage.estimate()
+      const persisted = typeof storage.persisted === 'function' ? await storage.persisted() : undefined
+      return { usage, quota, free: Math.max(0, quota - usage), ...(persisted === undefined ? {} : { persisted }) }
+    }
+    catch {
+      return undefined
+    }
+  }
+
+  /** Ask the browser to keep downloads under storage pressure. Whether it agreed. */
+  async persistStorage(): Promise<boolean> {
+    this._persistAsked = true
+    const storage = typeof navigator === 'undefined' ? undefined : navigator.storage
+    if (typeof storage?.persist !== 'function')
+      return false
+    try {
+      const granted = await storage.persist()
+      this.fire('persist', { persisted: granted })
+      return granted
+    }
+    catch {
+      return false
+    }
   }
 
   /** Downloaded maps, newest first, as of the last `ready()`. */
@@ -283,6 +494,10 @@ export class OfflineMaps extends Evented {
     await this.store.putPlan(region.id, plan)
     await this._save(region)
     this._changed()
+    // The first download is the moment to ask: a browser grants persistence
+    // more readily to a site the user is visibly saving data for.
+    if (this.persist && !this._persistAsked)
+      void this.persistStorage()
     return this._start(region, plan, false)
   }
 
@@ -314,9 +529,17 @@ export class OfflineMaps extends Evented {
   /** Stop a download, keeping what it has so far. */
   async pause(id: string): Promise<OfflineRegionRecord | undefined> {
     const job = this._jobs.get(id)
-    if (!job)
+    if (!job) {
+      // Paused by hand: no longer something `autoResume` should pick up.
+      const region = this._regions.get(id)
+      if (region?.interrupted) {
+        delete region.interrupted
+        await this._save(region)
+      }
       return this.get(id)
+    }
     job.stop = 'pause'
+    job.interrupted = false
     job.abort.abort()
     return job.promise
   }
@@ -506,6 +729,7 @@ export class OfflineMaps extends Evented {
     region.downloaded = 0
     region.bytes = 0
     delete region.error
+    delete region.interrupted
     await this._save(region)
     this._changed()
 
@@ -544,6 +768,13 @@ export class OfflineMaps extends Evented {
         catch (err) {
           if (job.stop)
             return
+          if (isQuotaError(err)) {
+            // Every tile after this one would fail the same way.
+            job.quota = true
+            job.stop = 'pause'
+            job.abort.abort()
+            return
+          }
           if ((err as Error)?.name !== 'AbortError')
             failed++
         }
@@ -555,12 +786,21 @@ export class OfflineMaps extends Evented {
     if (job.stop === 'cancel')
       return { ...region }
 
-    if (job.stop === 'pause') {
+    if (job.quota) {
+      region.status = 'error'
+      region.error = 'Not enough storage on this device. Delete a map, or choose a smaller area.'
+    }
+    else if (job.stop === 'pause') {
       region.status = 'paused'
+      if (job.interrupted)
+        region.interrupted = true
     }
     else if (failed) {
       region.status = 'error'
       region.error = `${failed} of ${region.tiles} tiles could not be downloaded`
+      // Failed for want of a connection: `autoResume` tries again when it returns.
+      if (!online())
+        region.interrupted = true
     }
     else {
       await this.store.putIndex(region.id, await this._buildIndex(plan))

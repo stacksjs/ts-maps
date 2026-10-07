@@ -42,6 +42,11 @@ export interface OfflineRegionRecord {
   createdAt: number
   updatedAt: number
   error?: string
+  /**
+   * Stopped by a reload or a lost connection, not by the user: what
+   * `autoResume` picks up again.
+   */
+  interrupted?: boolean
 }
 
 /** Every URL a region stores, kept so it can be resumed, updated or deleted without the map that drew it. */

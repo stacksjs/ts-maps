@@ -4,10 +4,14 @@ import { validateStyle } from '../src/core-map/style-spec/validate'
 
 const TILES = 'https://example.test/tiles/{z}/{x}/{y}.pbf'
 
-/** Let a fetch chain (fetch → json → apply) settle. */
+/**
+ * Let a fetch chain (fetch → json → apply) settle. A turn of the event loop,
+ * not a count of microtasks: with a page-wide offline manager around (another
+ * test file may have made one) the fetch checks downloads first, which takes
+ * more of them.
+ */
 async function flush(): Promise<void> {
-  for (let i = 0; i < 10; i++)
-    await Promise.resolve()
+  await new Promise(resolve => setTimeout(resolve, 0))
 }
 
 function makeMap(options: Record<string, unknown> = {}): TsMap {
