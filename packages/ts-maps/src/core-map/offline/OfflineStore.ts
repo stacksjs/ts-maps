@@ -54,6 +54,8 @@ export interface OfflinePlan {
    * in. Ranges past the Latin ones are added once the tiles are read.
    */
   glyphs?: OfflineGlyphs
+  /** The terrain (DEM) tiles among `urls`, measured apart since they are larger. */
+  terrain?: string[]
 }
 
 export interface OfflineGlyphs {

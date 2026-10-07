@@ -54,6 +54,13 @@ export interface OfflineArea {
    * area's names turn out to need. Only for a style with a `glyphs` server.
    */
   glyphRanges?: number[]
+  /**
+   * Deepest zoom of terrain (DEM) tiles to keep, when the map has terrain on.
+   * A DEM tile is several times a vector tile, and past this the map draws
+   * terrain from the deepest one kept, as it does past the DEM's own top
+   * zoom. Default 12.
+   */
+  terrainMaxZoom?: number
 }
 
 export interface PlannedArea {
@@ -63,7 +70,7 @@ export interface PlannedArea {
   sources: string[]
   /** Tiles and resources together. */
   count: number
-  kinds: { vector: number, raster: number, resource: number }
+  kinds: { vector: number, raster: number, resource: number, terrain: number }
   /** The style's glyph server, when it has one. */
   glyphs?: OfflineGlyphs
   /** Builds the full URL list, which for a large area is worth not doing twice. */
@@ -71,6 +78,7 @@ export interface PlannedArea {
 }
 
 const RASTER_DEFAULT_MAX = 16
+const TERRAIN_DEFAULT_MAX = 12
 
 export function normalizeBounds(b: OfflineBounds): [number, number, number, number] {
   let out: [number, number, number, number]
@@ -130,7 +138,7 @@ function rangeCount(r: { x0: number, x1: number, y0: number, y1: number }): numb
 }
 
 interface TileJob {
-  kind: 'vector' | 'raster'
+  kind: 'vector' | 'raster' | 'terrain'
   template: string
   /** Grid zooms to walk, and how many tiles across each grid is. */
   zooms: Array<{ z: number, gridZ: number, mapZ: number }>
@@ -288,6 +296,32 @@ function styleResources(map: any, glyphs: OfflineGlyphs | undefined): string[] {
   return out
 }
 
+/**
+ * The DEM tiles terrain will ask for, when the map has it on: the raster-dem
+ * source `setTerrain` names, which no tile layer draws. Terrain asks for them
+ * where the vector tiles it lies under are, on their 512px grid, so a DEM
+ * tile at grid zoom `z` serves map zoom `z + 1`.
+ */
+function terrainJob(map: any, minZoom: number, maxZoom: number, cap: number): TileJob | undefined {
+  const terrain = map?._terrain
+  const spec = terrain ? map._style?.spec?.sources?.[terrain.source] : undefined
+  const template = Array.isArray(spec?.tiles) ? spec.tiles[0] : undefined
+  if (spec?.type !== 'raster-dem' || typeof template !== 'string')
+    return undefined
+  const shift = 1
+  const top = Math.min(spec.maxzoom ?? 22, cap, Math.floor(maxZoom) - shift)
+  const zooms: Array<{ z: number, gridZ: number, mapZ: number }> = []
+  for (let z = Math.max(spec.minzoom ?? 0, Math.floor(minZoom) - shift, 0); z <= top; z++)
+    zooms.push({ z, gridZ: z, mapZ: z + shift })
+  return {
+    kind: 'terrain',
+    template,
+    zooms,
+    url: (x, y, z) => fill(template, x, y, z),
+    server: (x, y, z) => ({ x, y, z }),
+  }
+}
+
 function tileLayersOf(map: any): any[] {
   const out: any[] = []
   if (typeof map?.eachLayer === 'function')
@@ -324,7 +358,7 @@ export function planArea(area: OfflineArea): PlannedArea {
   const archives = jobs.filter(job => isPMTilesUrl(job.template)).map(job => pmtilesSourceUrl(job.template))
   const glyphs = area.map ? styleGlyphs(area.map._style?.spec, area.glyphRanges) : undefined
   const resources = [...new Set([...(area.map ? styleResources(area.map, glyphs) : []), ...archives, ...(area.resources ?? [])])]
-  const kinds = { vector: 0, raster: 0, resource: resources.length }
+  const kinds = { vector: 0, raster: 0, resource: resources.length, terrain: 0 }
   let top = minZoom
   for (const job of jobs) {
     for (const { gridZ, mapZ } of job.zooms) {
@@ -332,18 +366,27 @@ export function planArea(area: OfflineArea): PlannedArea {
       top = Math.max(top, mapZ)
     }
   }
+  // Terrain is planned last, to the zooms the rest of the area goes to.
+  const dem = area.map ? terrainJob(area.map, minZoom, maxZoom ?? top, area.terrainMaxZoom ?? TERRAIN_DEFAULT_MAX) : undefined
+  if (dem && !seen.has(dem.template)) {
+    seen.add(dem.template)
+    jobs.push(dem)
+    for (const { gridZ } of dem.zooms)
+      kinds.terrain += rangeCount(tileRange(bounds, gridZ))
+  }
 
   return {
     bounds,
     minZoom,
     maxZoom: maxZoom ?? top,
     sources: jobs.map(j => j.template),
-    count: kinds.vector + kinds.raster + kinds.resource,
+    count: kinds.vector + kinds.raster + kinds.resource + kinds.terrain,
     kinds,
     ...(glyphs ? { glyphs } : {}),
     build: () => {
       const urls = new Set<string>(resources)
       const index: OfflinePlan['index'] = []
+      const terrain: string[] = []
       for (const job of jobs) {
         for (const { z, gridZ } of job.zooms) {
           const r = tileRange(bounds, gridZ)
@@ -355,11 +398,13 @@ export function planArea(area: OfflineArea): PlannedArea {
               urls.add(url)
               if (z === job.indexAt)
                 index.push({ url, ...job.server(x, y, z) })
+              if (job.kind === 'terrain')
+                terrain.push(url)
             }
           }
         }
       }
-      return { urls: [...urls], index, ...(glyphs ? { glyphs } : {}) }
+      return { urls: [...urls], index, ...(glyphs ? { glyphs } : {}), ...(terrain.length ? { terrain } : {}) }
     },
   }
 }

@@ -1963,8 +1963,13 @@ export class VectorTileMapLayer extends GridLayer {
     if (glRenderer && this._map) {
       const proj = ortho(0, size, size, 0, -1, 1)
       const map = this._map as any
-      if (typeof map._drawTerrainForTile === 'function')
-        map._drawTerrainForTile(glRenderer, coords, size, proj)
+      // The tile's place on the globe: GridLayer indexes 512px tiles over a
+      // grid one zoom shallower than `coords.z`, and the DEM is asked for by
+      // where it is, not by the map's zoom.
+      if (typeof map._drawTerrainForTile === 'function') {
+        const tileZ = coords.z + Math.round(Math.log2(256 / this.getTileSize().x))
+        map._drawTerrainForTile(glRenderer, { x: coords.x, y: coords.y, z: tileZ }, size, proj)
+      }
       if (typeof map._invokeCustomLayerRender === 'function')
         map._invokeCustomLayerRender(glRenderer.ctx.gl, proj)
     }

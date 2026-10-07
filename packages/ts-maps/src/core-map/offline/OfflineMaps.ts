@@ -59,6 +59,8 @@ interface Job {
 
 /** A typical vector or image tile, before this device has measured any. */
 const TYPICAL_TILE_BYTES = 32_000
+/** A typical terrain (DEM) tile: a lossless PNG or WebP of encoded heights. */
+const TYPICAL_DEM_BYTES = 100_000
 
 function regionId(): string {
   return `region-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
@@ -87,6 +89,7 @@ export class OfflineMaps extends Evented {
   _jobs: Map<string, Job> = new Map()
   /** Bytes and tiles measured so far, for estimates. */
   _measured: { bytes: number, tiles: number } = { bytes: 0, tiles: 0 }
+  _measuredTerrain: { bytes: number, tiles: number } = { bytes: 0, tiles: 0 }
   _places: Promise<OfflinePlace[]> | null = null
   _graphs: Map<string, Promise<RoadGraph>> = new Map()
   _geocoder?: OfflineGeocoder
@@ -177,13 +180,13 @@ export class OfflineMaps extends Evented {
     const tooLarge = planned.count > this.maxTiles
     if (!tooLarge && options.sample !== false && this._measured.tiles < 8)
       await this._sample(planned)
-    return { tiles: planned.count, bytes: Math.round(planned.count * this._averageTile()), tooLarge }
+    return { tiles: planned.count, bytes: this._bytesFor(planned), tooLarge }
   }
 
   /** The same estimate, from what has been measured already: for updating as a selection is dragged. */
   quickEstimate(area: OfflineArea): OfflineEstimate {
     const planned = this.plan(area)
-    return { tiles: planned.count, bytes: Math.round(planned.count * this._averageTile()), tooLarge: planned.count > this.maxTiles }
+    return { tiles: planned.count, bytes: this._bytesFor(planned), tooLarge: planned.count > this.maxTiles }
   }
 
   /**
@@ -208,6 +211,12 @@ export class OfflineMaps extends Evented {
     return this._measured.tiles ? this._measured.bytes / this._measured.tiles : TYPICAL_TILE_BYTES
   }
 
+  _bytesFor(planned: PlannedArea): number {
+    const dem = planned.kinds.terrain
+    const demAverage = this._measuredTerrain.tiles ? this._measuredTerrain.bytes / this._measuredTerrain.tiles : TYPICAL_DEM_BYTES
+    return Math.round((planned.count - dem) * this._averageTile() + dem * demAverage)
+  }
+
   _learn(bytes: number, tiles: number): void {
     if (tiles > 0 && bytes > 0) {
       this._measured.bytes += bytes
@@ -216,7 +225,9 @@ export class OfflineMaps extends Evented {
   }
 
   async _sample(planned: PlannedArea): Promise<void> {
-    const { urls } = planned.build()
+    const plan = planned.build()
+    const terrain = new Set(plan.terrain)
+    const urls = plan.urls.filter(url => !terrain.has(url))
     // The deepest zooms are most of any area, so sample from there.
     const from = Math.floor(urls.length * 0.4)
     const picks = new Set<string>()
@@ -500,6 +511,8 @@ export class OfflineMaps extends Evented {
 
     let cursor = 0
     let failed = 0
+    const terrain = new Set(plan.terrain)
+    const dem = { bytes: 0, tiles: 0 }
     let lastFire = 0
     let lastSave = 0
     const progress = async (): Promise<void> => {
@@ -523,6 +536,10 @@ export class OfflineMaps extends Evented {
           const bytes = await this._fetchInto(url, region.id, refresh, job.abort.signal)
           region.bytes += bytes
           region.downloaded++
+          if (terrain.has(url)) {
+            dem.bytes += bytes
+            dem.tiles++
+          }
         }
         catch (err) {
           if (job.stop)
@@ -559,7 +576,11 @@ export class OfflineMaps extends Evented {
       }
       else {
         region.status = 'complete'
-        this._learn(region.bytes, region.downloaded)
+        this._learn(region.bytes - dem.bytes, region.downloaded - dem.tiles)
+        if (dem.tiles) {
+          this._measuredTerrain.bytes += dem.bytes
+          this._measuredTerrain.tiles += dem.tiles
+        }
       }
     }
     region.updatedAt = Date.now()

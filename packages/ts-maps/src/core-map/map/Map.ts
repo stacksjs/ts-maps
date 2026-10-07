@@ -4150,16 +4150,34 @@ export class TsMap extends Evented {
     if (!template || typeof template !== 'string')
       return
 
-    const url = template
-      .replace(/\{z\}/g, String(coord.z))
-      .replace(/\{x\}/g, String(coord.x))
-      .replace(/\{y\}/g, String(coord.y))
+    const urlFor = (z: number, x: number, y: number): string => template
+      .replace(/\{z\}/g, String(z))
+      .replace(/\{x\}/g, String(x))
+      .replace(/\{y\}/g, String(y))
+    const url = urlFor(coord.z, coord.x, coord.y)
 
     if (!this._terrainFetchInFlight)
       this._terrainFetchInFlight = new globalThis.Map()
     if (this._terrainFetchInFlight.has(url))
       return
-    const promise = fetchDemTile(url, this._terrainSource.demSize)
+    const demSize = this._terrainSource.demSize
+    // Past the DEM's top zoom, and wherever a tile is missing (offline, with
+    // only the shallower zooms downloaded), a part of the nearest ancestor
+    // stands in, as the vector tiles above it overzoom.
+    const top = Math.min(coord.z, Number.isFinite(spec.maxzoom) ? spec.maxzoom : 22)
+    const bottom = Math.max(Number.isFinite(spec.minzoom) ? spec.minzoom : 0, top - 6)
+    const load = async (): Promise<Uint8Array | null> => {
+      for (let z = top; z >= bottom; z--) {
+        const f = 2 ** (coord.z - z)
+        const x = Math.floor(coord.x / f)
+        const y = Math.floor(coord.y / f)
+        const pixels = await fetchDemTile(urlFor(z, x, y), demSize, f > 1 ? { f, sx: coord.x - x * f, sy: coord.y - y * f } : undefined)
+        if (pixels)
+          return pixels
+      }
+      return null
+    }
+    const promise = load()
       .then((pixels) => {
         if (pixels && this._terrainSource && this._terrain)
           this._terrainSource.addTilePixels(coord, pixels)
@@ -4280,7 +4298,8 @@ export function createMap(id: string | HTMLElement, options?: MapOptions): TsMap
 }
 
 // ---------------------------------------------------------------------------
-// DEM tile fetch helper. Downloads a raster-dem tile, renders it into an
+// DEM tile fetch helper. Downloads a raster-dem tile, renders it (or, with
+// `crop`, the `sx, sy` square of an `f`-by-`f` grid over it) into an
 // off-screen canvas at `demSize × demSize`, and returns the RGBA pixel
 // buffer for the caller to decode through the active elevation encoding.
 //
@@ -4290,7 +4309,7 @@ export function createMap(id: string | HTMLElement, options?: MapOptions): TsMap
 // `addTerrainTile()` population.
 // ---------------------------------------------------------------------------
 
-async function fetchDemTile(url: string, demSize: number): Promise<Uint8Array | null> {
+async function fetchDemTile(url: string, demSize: number, crop?: { f: number, sx: number, sy: number }): Promise<Uint8Array | null> {
   if (typeof fetch !== 'function' || typeof Image !== 'function' || typeof document?.createElement !== 'function')
     return null
   try {
@@ -4311,7 +4330,17 @@ async function fetchDemTile(url: string, demSize: number): Promise<Uint8Array | 
     const ctx = canvas.getContext('2d')
     if (!ctx)
       return null
-    ctx.drawImage(img, 0, 0, demSize, demSize)
+    if (crop) {
+      // A part of an ancestor, scaled up. Nearest-neighbour: the RGB encodes
+      // elevation, and blending two encoded pixels is not their average height.
+      ctx.imageSmoothingEnabled = false
+      const w = img.width / crop.f
+      const h = img.height / crop.f
+      ctx.drawImage(img, crop.sx * w, crop.sy * h, w, h, 0, 0, demSize, demSize)
+    }
+    else {
+      ctx.drawImage(img, 0, 0, demSize, demSize)
+    }
     const data = ctx.getImageData(0, 0, demSize, demSize).data
     return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
   }
