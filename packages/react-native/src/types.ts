@@ -235,11 +235,13 @@ export interface MapTypeBridgeEvent {
  *
  * Live: changing `query` searches over the bridge, and changing an option
  * updates the control; an option removed returns to its default. `provider`,
- * `offline`, `location`, `origin`, `onDirections`, `details` and `shareUrl`,
- * which the other bindings take, are objects or functions and cannot cross the
- * bridge, so the defaults are used — `onSearch`'s `directions` event stands in
- * for `onDirections`, and a chosen place's hours, phone and website still come
- * from OpenStreetMap and arrive as its `details` event.
+ * `offline`, `location`, `origin`, `onDirections`, `details`, `shareUrl` and
+ * `saved`, which the other bindings take, are objects or functions and cannot
+ * cross the bridge, so the defaults are used — `onSearch`'s `directions` event
+ * stands in for `onDirections`, a chosen place's hours, phone and website
+ * still come from OpenStreetMap and arrive as its `details` event, and Save
+ * keeps Favorites in the WebView's own `localStorage`, reporting `save` and
+ * `unsave`.
  */
 export interface SearchSpec {
   /** Search for this; a category's name runs the category. Empty clears. */
@@ -252,17 +254,19 @@ export interface SearchSpec {
   recents?: boolean
   units?: 'metric' | 'imperial'
   language?: string
+  /** Favorites as stars on the map. Default true. */
+  showSaved?: boolean
 }
 
 /**
  * One search event from the map. `type` is the event's name in the other
  * bindings' terms, and `data` its content as plain data: `{ query, category,
- * places }` for `results`, `{ place }` for `select` and `directions`, and
- * `{ place, details }` for `details`, once a chosen place's hours, phone and
- * website arrive.
+ * places }` for `results`, `{ place }` for `select`, `directions`, `save` and
+ * `unsave` (Save on a place's card), and `{ place, details }` for `details`,
+ * once a chosen place's hours, phone and website arrive.
  */
 export interface SearchBridgeEvent {
-  type: 'results' | 'select' | 'details' | 'directions' | 'clear'
+  type: 'results' | 'select' | 'details' | 'directions' | 'save' | 'unsave' | 'clear'
   data: Record<string, unknown>
 }
 

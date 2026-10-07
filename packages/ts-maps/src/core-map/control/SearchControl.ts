@@ -2,6 +2,7 @@ import type { OfflineMaps } from '../offline/OfflineMaps'
 import type { TileSchema } from '../offline/schema'
 import type { SearchCategory } from '../search/categories'
 import type { PlaceDetails, PlaceDetailsProvider } from '../search/details'
+import type { Guide, SavedPlace, SavedPlaces } from '../search/saved'
 import type { SearchHistoryEntry, SearchPlace } from '../search/SearchEngine'
 import type { DistanceUnits } from '../services/instructions'
 import type { GeocoderProvider, LatLngLike } from '../services/types'
@@ -12,6 +13,7 @@ import { Marker } from '../layer/marker/Marker'
 import { categoriesMatching, categoryForQuery, kindLabel, SEARCH_CATEGORIES } from '../search/categories'
 import { describeOpening, openingStatus, OverpassPlaceDetails } from '../search/details'
 import { clusterPins, PIN_CLUSTER_RADIUS } from '../search/pins'
+import { savedPlaces } from '../search/saved'
 import { describePlace, distanceMeters, SearchEngine, SearchHistory } from '../search/SearchEngine'
 import { PhotonGeocoder } from '../services/providers/Photon'
 import { formatDistance, prefersImperial } from '../services/instructions'
@@ -66,25 +68,34 @@ export interface SearchControlOptions {
   details?: PlaceDetailsProvider | null
   /** The link Share sends. Default the place on openstreetmap.org. */
   shareUrl?: (place: SearchPlace) => string
+  /** Favorites and Guides: Save on the card, and both in Find Nearby's view. Default the page's; `null` for none. */
+  saved?: SavedPlaces | null
+  /** Show favorites on the map as stars. Default true. */
+  showSaved?: boolean
 }
 
 /**
  * Every event search reports, with the callback-prop name bindings would give
  * it. `results` carries `{ query?, category?, places }`; `select` and
  * `directions` `{ place }`; `details` `{ place, details }`, once a chosen
- * place's hours, phone and website arrive; `clear` nothing.
+ * place's hours, phone and website arrive; `save` and `unsave` `{ place }`
+ * when Save on the card adds it to Favorites or takes it out; `clear` nothing.
  */
 export const SEARCH_EVENTS: {
   readonly results: 'onResults'
   readonly select: 'onSelect'
   readonly details: 'onDetails'
   readonly directions: 'onDirections'
+  readonly save: 'onSave'
+  readonly unsave: 'onUnsave'
   readonly clear: 'onClear'
 } = {
   results: 'onResults',
   select: 'onSelect',
   details: 'onDetails',
   directions: 'onDirections',
+  save: 'onSave',
+  unsave: 'onUnsave',
   clear: 'onClear',
 }
 
@@ -119,6 +130,8 @@ type Row
     | { type: 'category', category: SearchCategory }
     | { type: 'place', place: SearchPlace }
     | { type: 'recent', entry: SearchHistoryEntry }
+    | { type: 'saved', place: SavedPlace }
+    | { type: 'guide', guide: Guide }
 
 type View = 'idle' | 'home' | 'suggest' | 'results' | 'place'
 
@@ -133,6 +146,9 @@ export function badge(icon: string, size: number = 30): string {
 }
 
 const MAGNIFIER = `<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M10.5 4a6.5 6.5 0 1 1 0 13a6.5 6.5 0 1 1 0-13Z M15.3 15.3 20 20"/></svg>`
+const STAR = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="m12 3.4 2.6 5.5 6 .7-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.2 6-.7Z"/></svg>`
+const STAR_OUTLINE = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="m12 3.4 2.6 5.5 6 .7-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6-4.4-4.2 6-.7Z"/></svg>`
+const BOOK = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M5 4.5h10.5a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2Zm0 13.5a2 2 0 0 1 2-2h10.5"/></svg>`
 const CLOCK = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 3.5a8.5 8.5 0 1 1 0 17a8.5 8.5 0 1 1 0-17Z M12 7.5V12l3 2"/></svg>`
 const PHONE = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.6 3.5c.5-.4 1.2-.3 1.6.2l2 2.7c.4.5.3 1.2-.1 1.6l-1.3 1.2a11.4 11.4 0 0 0 5.9 5.9l1.2-1.3c.4-.4 1.1-.5 1.6-.1l2.7 2c.5.4.6 1.1.2 1.6l-1.3 1.8c-.6.8-1.6 1.2-2.6.9C10.3 18.7 5.3 13.7 3.9 7.5c-.3-1 .1-2 .9-2.6Z"/></svg>`
 const GLOBE = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 1 0 0-17Zm-8.5 8.5h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5Z"/></svg>`
@@ -168,6 +184,9 @@ export class SearchControl extends Control {
   declare _pinned: SearchPlace[]
   /** Details fetched for places, by id; null where there were none. */
   declare _details: Map<string, PlaceDetails | null>
+  /** Favorites drawn on the map as stars, by place id. */
+  declare _stars: Map<string, Marker>
+  declare _unsave?: () => void
   declare _detailsAbort?: AbortController
   declare _selectedId?: string
   /** The clusters drawn now, so a zoom that changes none redraws nothing. */
@@ -189,10 +208,12 @@ export class SearchControl extends Control {
     this._pins = new Map()
     this._pinned = []
     this._details = new Map()
+    this._stars = new Map()
   }
 
   onAdd(map: any): HTMLElement {
     this.engine = new SearchEngine({ map, provider: this.options.provider, offline: this.options.offline, language: this.options.language, schema: this.options.schema })
+    this._hookSaved()
     const container = DomUtil.create('div', CLASS)
     container.innerHTML = `
       <div class="${CLASS}-field">
@@ -242,6 +263,9 @@ export class SearchControl extends Control {
     this._abort?.abort()
     clearTimeout(this._timer)
     this._clearPins()
+    this._clearStars()
+    this._unsave?.()
+    this._unsave = undefined
     this._areaButton?.remove()
     map.off('moveend', this._onMoveEnd, this)
     map.off('zoomend', this._layoutPins, this)
@@ -333,6 +357,90 @@ export class SearchControl extends Control {
       this._emit('details', { place, details })
     }
     return details
+  }
+
+  /** The favorites and guides Save adds to: the one given, or the page's. */
+  get saved(): SavedPlaces | null {
+    if (this.options.saved === undefined)
+      this.options.saved = savedPlaces()
+    return this.options.saved
+  }
+
+  /** Follow the saved places: their stars, and the views that list them. */
+  _hookSaved(): void {
+    this._unsave?.()
+    this._unsave = undefined
+    const saved = this.saved
+    if (!saved)
+      return
+    const changed = (): void => {
+      if (!this._map)
+        return
+      this._drawStars()
+      if (this._view === 'home')
+        this._show('home')
+      else if (this._view === 'place')
+        this._renderPlace()
+    }
+    saved.on('change', changed)
+    this._unsave = () => saved.off('change', changed)
+    saved.ready().then(changed, () => {})
+  }
+
+  /** Add a place to Favorites, or take it out. Whether it is one now. */
+  async toggleSaved(place: SearchPlace): Promise<boolean> {
+    const saved = this.saved
+    if (!saved)
+      return false
+    const now = await saved.toggleFavorite(place)
+    this._emit(now ? 'save' : 'unsave', { place })
+    return now
+  }
+
+  /** Show a guide's places as results, as tapping it under Guides does. */
+  async showGuide(id: string): Promise<SearchPlace[]> {
+    const saved = this.saved
+    if (!saved)
+      return []
+    await saved.ready()
+    const guide = saved.guides.find(g => g.id === id)
+    if (!guide)
+      return []
+    const near = this._near()
+    const places = saved.guidePlaces(id).map(p => this._fromSaved(p, near))
+    this._input!.value = guide.name
+    this._showResults(places, { query: guide.name })
+    return places
+  }
+
+  _fromSaved(place: SavedPlace, near: LatLngLike): SearchPlace {
+    return { ...place, source: 'map', rank: 5, distance: distanceMeters(near, place.center) }
+  }
+
+  /** Favorites on the map, as stars: not where a result's pin already is. */
+  _drawStars(): void {
+    this._clearStars()
+    const saved = this.saved
+    if (!saved || !this._map || this.options.showSaved === false)
+      return
+    for (const place of saved.favorites) {
+      if (this._pinned.some(p => p.id === place.id))
+        continue
+      const marker = new Marker([place.center.lat, place.center.lng], {
+        icon: new DivIcon({ className: `${CLASS}-pin-icon`, html: `<div class="${CLASS}-star">${STAR}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }),
+        title: place.name,
+        zIndexOffset: 200,
+      })
+      marker.on('click', () => this.select(this._fromSaved(place, this._near())))
+      marker.addTo(this._map)
+      this._stars.set(place.id, marker)
+    }
+  }
+
+  _clearStars(): void {
+    for (const star of this._stars.values())
+      star.remove()
+    this._stars.clear()
   }
 
   /** Share a place: the system share sheet where there is one, the clipboard where not. */
@@ -434,6 +542,15 @@ export class SearchControl extends Control {
       if (has(key))
         (this.options as any)[key] = target[key]
     }
+    if (has('saved') && target.saved !== this.options.saved) {
+      this.options.saved = target.saved
+      if (this._map)
+        this._hookSaved()
+    }
+    if (has('showSaved') && target.showSaved !== this.options.showSaved) {
+      this.options.showSaved = target.showSaved
+      this._drawStars()
+    }
     if (has('placeholder') && target.placeholder !== this.options.placeholder) {
       this.options.placeholder = target.placeholder
       this._input?.setAttribute('placeholder', target.placeholder ?? 'Search Maps')
@@ -474,6 +591,8 @@ export class SearchControl extends Control {
         }
       case 'select':
       case 'directions':
+      case 'save':
+      case 'unsave':
         return { place: plain(event?.place) }
       case 'details':
         return { place: plain(event?.place), details: event?.details ? JSON.parse(JSON.stringify(event.details)) : undefined }
@@ -612,6 +731,14 @@ export class SearchControl extends Control {
         }
         this.select(row.place)
         break
+      case 'saved':
+        this._clearPins()
+        this._results = []
+        this.select(this._fromSaved(row.place, this._near()))
+        break
+      case 'guide':
+        void this.showGuide(row.guide.id)
+        break
       case 'recent':
         if (row.entry.place) {
           this._clearPins()
@@ -639,6 +766,10 @@ export class SearchControl extends Control {
     }
     if (action === 'directions' && this._place) {
       this._directions(this._place)
+      return
+    }
+    if (action === 'save' && this._place) {
+      void this.toggleSaved(this._place)
       return
     }
     if (action === 'share' && this._place) {
@@ -708,15 +839,23 @@ export class SearchControl extends Control {
   _renderHome(): void {
     const categories = this.options.categories ?? SEARCH_CATEGORIES.slice(0, 8)
     const recents = this.options.recents === false ? [] : this.history.list()
+    // Favorites above Recents, and Guides between, as Apple's search shows them.
+    const favorites = this.saved?.favorites ?? []
+    const guides = this.saved?.guides ?? []
     this._rows = [
       ...categories.map(category => ({ type: 'category' as const, category })),
+      ...favorites.map(place => ({ type: 'saved' as const, place })),
+      ...guides.map(guide => ({ type: 'guide' as const, guide })),
       ...recents.map(entry => ({ type: 'recent' as const, entry })),
     ]
     const units = this._units()
     const chips = categories.map((category, i) => `
       <button class="${CLASS}-chip" type="button" data-row="${i}">${badge(category.icon, 40)}<span>${escape(category.label)}</span></button>`).join('')
+    const favoriteChips = favorites.map((place, j) => `
+      <button class="${CLASS}-chip" type="button" data-row="${categories.length + j}">${badge(place.icon, 40)}<span>${escape(place.name)}</span></button>`).join('')
+    const guideRows = guides.map((guide, j) => this._rowHtml(categories.length + favorites.length + j, `<span class="${CLASS}-glyph">${BOOK}</span>`, escape(guide.name), `${guide.places.length} ${guide.places.length === 1 ? 'place' : 'places'}`)).join('')
     const recentRows = recents.map((entry, j) => {
-      const i = categories.length + j
+      const i = categories.length + favorites.length + guides.length + j
       if (entry.place) {
         const d = distanceMeters(this._near(), entry.place.center)
         return this._rowHtml(i, badge(entry.place.icon), escape(entry.place.name), escape(describePlace({ ...entry.place, distance: d }, m => formatDistance(m, units))))
@@ -726,6 +865,8 @@ export class SearchControl extends Control {
     this._body!.innerHTML = `
       <div class="${CLASS}-section"><span>Find Nearby</span></div>
       <div class="${CLASS}-chips">${chips}</div>
+      ${favorites.length ? `<div class="${CLASS}-section"><span>Favorites</span></div><div class="${CLASS}-chips">${favoriteChips}</div>` : ''}
+      ${guides.length ? `<div class="${CLASS}-section"><span>Guides</span></div><div class="${CLASS}-rows">${guideRows}</div>` : ''}
       ${recents.length ? `<div class="${CLASS}-section"><span>Recents</span><button type="button" class="${CLASS}-link" data-action="clear-recents">Clear</button></div><div class="${CLASS}-rows">${recentRows}</div>` : ''}`
   }
 
@@ -798,7 +939,9 @@ export class SearchControl extends Control {
     const hours = status ? `<div class="${CLASS}-place-hours ${CLASS}-${status.open ? 'open' : 'closed'}">${escape(describeOpening(status, new Date(), this.options.language))}</div>` : ''
     const website = details?.website && /^https?:\/\//i.test(details.website) ? details.website : details?.website ? `https://${details.website}` : undefined
     const phone = details?.phone?.replace(/[^\d+]/g, '')
+    const isSaved = !!this.saved?.isFavorite(place.id)
     const actions = [
+      this.saved ? `<button type="button" class="${CLASS}-action${isSaved ? ` ${CLASS}-saved` : ''}" data-action="save" aria-pressed="${isSaved}">${isSaved ? STAR : STAR_OUTLINE}<span>${isSaved ? 'Saved' : 'Save'}</span></button>` : '',
       phone ? `<a class="${CLASS}-action" href="tel:${escape(phone)}">${PHONE}<span>Call</span></a>` : '',
       website ? `<a class="${CLASS}-action" href="${escape(website)}" target="_blank" rel="noopener noreferrer">${GLOBE}<span>Website</span></a>` : '',
       `<button type="button" class="${CLASS}-action" data-action="share">${SHARE}<span>Share</span></button>`,
@@ -862,6 +1005,7 @@ export class SearchControl extends Control {
       return
     this._removePins()
     this._pinLayout = layout
+    this._drawStars()
     for (const cluster of clusters) {
       const members = cluster.ids.map(id => byId.get(id)!)
       if (members.length === 1)
@@ -932,6 +1076,9 @@ export class SearchControl extends Control {
     this._removePins()
     this._pinned = []
     this._selectedId = undefined
+    // Stars hidden under results' pins come back.
+    if (this._map)
+      this._drawStars()
   }
 
   _clearResults(): void {

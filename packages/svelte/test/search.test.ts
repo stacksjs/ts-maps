@@ -81,4 +81,25 @@ describe('@ts-maps/svelte Search', () => {
     flushSync()
     el.remove()
   })
+
+  test('Save on the card reports onSave, into the store given', async () => {
+    const WithSearch = (await import('./fixtures/WithSearch.svelte')).default
+    const { MemorySavedPlaces, SavedPlaces } = await import('ts-maps')
+    const saved = new SavedPlaces({ backend: new MemorySavedPlaces() })
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const events: Array<[string, unknown]> = []
+    const app = mount(WithSearch, { target: el, props: { provider, saved, events } }) as any
+
+    await settle()
+    app.getControl().select({ id: 'p', name: 'Ferry Building', center: place.center, kind: 'attraction', icon: 'attraction', source: 'online', rank: 5 })
+    el.querySelector<HTMLElement>('[data-action="save"]')!.click()
+    await settle()
+    expect(events).toContainEqual(['save', 'Ferry Building'])
+    expect(saved.isFavorite('p')).toBe(true)
+
+    unmount(app)
+    flushSync()
+    el.remove()
+  })
 })

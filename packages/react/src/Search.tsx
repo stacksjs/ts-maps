@@ -12,6 +12,10 @@ export interface SearchEventProps {
   onSelect?: (e: any) => void
   /** A chosen place's hours, phone and website arrived: `{ place, details }`. */
   onDetails?: (e: any) => void
+  /** Save on a place's card added it to Favorites: `{ place }`. */
+  onSave?: (e: any) => void
+  /** Save on a place's card took it out of Favorites: `{ place }`. */
+  onUnsave?: (e: any) => void
   /** Directions was pressed on a place's card: `{ place }`. */
   onDirections?: (e: any) => void
   /** The search was closed. */
@@ -44,6 +48,10 @@ export interface SearchProps extends SearchEventProps {
   details?: SearchControlOptions['details']
   /** The link Share sends. Default the place on openstreetmap.org. */
   shareUrl?: SearchControlOptions['shareUrl']
+  /** Where Save keeps Favorites and Guides. Default the page's `savedPlaces()`; `null` for none. */
+  saved?: SearchControlOptions['saved']
+  /** Favorites as stars on the map. Default true. */
+  showSaved?: boolean
   /** The underlying control, for `search`, `searchCategory`, `select` and `cancel`. */
   // eslint-disable-next-line no-unused-vars
   onReady?: (control: SearchControl) => void
@@ -70,8 +78,8 @@ export function Search(props: SearchProps): null {
   latest.current = props
 
   useEffect(() => {
-    const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl } = latest.current
-    const search = new SearchControl({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl })
+    const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved } = latest.current
+    const search = new SearchControl({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved })
     search.addTo(map)
     const stop = search.listen((type, e) => (latest.current as any)[SEARCH_EVENTS[type]]?.(e))
     controlRef.current = search
@@ -87,12 +95,12 @@ export function Search(props: SearchProps): null {
   // changed. A `TurnByTurn` usually arrives after the first render, from its
   // own onReady. Categories are compared by value, so an inline list is not
   // a change on every render.
-  const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl } = props
+  const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved } = props
   const categoriesKey = JSON.stringify(categories?.map(c => [c.id, c.label, c.icon]) ?? null)
   useEffect(() => {
-    controlRef.current?.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl })
+    controlRef.current?.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, position, placeholder, provider, offline, categoriesKey, recents, units, location, turnByTurn, origin, language, details, shareUrl])
+  }, [map, position, placeholder, provider, offline, categoriesKey, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved])
 
   const { query } = props
   useEffect(() => {

@@ -7,6 +7,8 @@
   export let provider: any
   // None unless a test gives one, so choosing a place does not ask Overpass.
   export let details: any = null
+  // The page's own store unless a test gives one.
+  export let saved: any = undefined
   export let events: Array<[string, unknown]> = []
   export let control: any = null
   let query: string | undefined
@@ -40,6 +42,7 @@
     {categories}
     {position}
     {details}
+    {saved}
     offline={null}
     recents={false}
     {query}
@@ -47,5 +50,7 @@
     onResults={(e) => events.push(['results', e.places.map((p) => p.name)])}
     onSelect={(e) => events.push(['select', e.place.name])}
     onDetails={(e) => events.push(['details', e.details])}
+    onSave={(e) => events.push(['save', e.place.name])}
+    onUnsave={(e) => events.push(['unsave', e.place.name])}
   />
 </Map>

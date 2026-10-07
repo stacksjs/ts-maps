@@ -6,3 +6,5 @@ export { describeOpening, detailsFromTags, openingStatus, osmRef, OverpassPlaceD
 export type { OpeningStatus, OverpassPlaceDetailsOptions, PlaceDetails, PlaceDetailsProvider } from './details'
 export { clusterPins, PIN_CLUSTER_RADIUS } from './pins'
 export type { PinCluster, PinPoint } from './pins'
+export { LocalStorageSavedPlaces, MemorySavedPlaces, SavedPlaces, savedPlaces, setSavedPlaces } from './saved'
+export type { Guide, SavedData, SavedPlace, SavedPlacesBackend, SavedPlacesOptions } from './saved'

@@ -18,7 +18,10 @@ import { useMap } from './useMap'
  *
  * Every prop is followed as it changes: a new `provider` is asked from the
  * next query on, new `categories` redraw Find Nearby in place. Events carry the core names — `results`,
- * `select`, `details`, `directions`, `clear` — and `ready` hands over the control.
+ * `select`, `details`, `directions`, `save`, `unsave`, `clear` — and `ready`
+ * hands over the control. `saved` is where Save keeps Favorites (default the
+ * page's `savedPlaces()`, `null` for none); `show-saved` puts them on the map
+ * as stars.
  */
 export const Search = defineComponent({
   name: 'TsSearch',
@@ -39,6 +42,8 @@ export const Search = defineComponent({
     language: { type: String, default: undefined },
     details: { type: Object as PropType<SearchControlOptions['details']>, default: undefined },
     shareUrl: { type: Function as PropType<SearchControlOptions['shareUrl']>, default: undefined },
+    saved: { type: Object as PropType<SearchControlOptions['saved']>, default: undefined },
+    showSaved: { type: Boolean, default: undefined },
   },
   emits: [...Object.keys(SEARCH_EVENTS), 'ready'],
   setup(props, { emit, expose }) {
@@ -59,6 +64,8 @@ export const Search = defineComponent({
       language: props.language,
       details: props.details,
       shareUrl: props.shareUrl,
+      saved: props.saved,
+      showSaved: props.showSaved,
     })
 
     const stop = watch(
@@ -94,6 +101,8 @@ export const Search = defineComponent({
         () => props.language,
         () => props.details,
         () => props.shareUrl,
+        () => props.saved,
+        () => props.showSaved,
       ],
       () => search?.sync(target()),
     )

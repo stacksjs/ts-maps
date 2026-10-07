@@ -90,4 +90,18 @@ describe('@ts-maps/react Search', () => {
     await settle()
     expect(got[0]?.details.phone).toBe('+1 415 555 0100')
   })
+
+  test('Save on the card reports onSave, into the store given', async () => {
+    const { host, render } = mount()
+    const { MemorySavedPlaces, SavedPlaces } = await import('ts-maps')
+    const saved = new SavedPlaces({ backend: new MemorySavedPlaces() })
+    let control: any
+    const got: string[] = []
+    render({ saved, onReady: (c: any) => (control = c), onSave: (e: any) => got.push(e.place.name) })
+    control.select({ id: 'p', name: 'Ferry Building', center: place.center, kind: 'attraction', icon: 'attraction', source: 'online', rank: 5 })
+    host.querySelector<HTMLElement>('[data-action="save"]')!.click()
+    await settle()
+    expect(got).toEqual(['Ferry Building'])
+    expect(saved.isFavorite('p')).toBe(true)
+  })
 })

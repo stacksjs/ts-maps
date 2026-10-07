@@ -251,9 +251,9 @@ const RUNTIME_SCRIPT = [
   // Search is the same control the other bindings use. Directions previews on
   // the navigation above when there is one, reached lazily so it can be set
   // up in either order; the event reaches the app regardless. `provider`,
-  // `offline`, `location`, `origin` and `onDirections` cannot cross; the
-  // defaults are used.
-  '  const SEARCH_KEYS = ["position", "placeholder", "categories", "recents", "units", "language"];',
+  // `offline`, `location`, `origin`, `onDirections` and `saved` cannot cross;
+  // the defaults are used, Favorites kept in the WebView's `localStorage`.
+  '  const SEARCH_KEYS = ["position", "placeholder", "categories", "recents", "units", "language", "showSaved"];',
   '  let search = null;',
   '  const searchNav = {',
   '    get options() { return nav ? nav.options : {}; },',

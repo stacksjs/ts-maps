@@ -145,6 +145,30 @@ container.addEventListener('route:ready', (e) => {
 })
 ```
 
+### `<Search>`
+
+```stx
+<Map center="[37.79, -122.41]" zoom="15">
+  <TurnByTurn />
+  <Search query="coffee" :showSaved="true" />
+</Map>
+```
+
+Apple Maps–style search, linked to a `<TurnByTurn>` in the same map for
+Directions. `query`, `position`, `placeholder`, `categories`, `recents`,
+`units`, `language` and `showSaved` (Favorites as stars on the map) are
+followed after mount. Events bubble as DOM events with the core event as
+`detail`: `search:results`, `search:select`, `search:details`,
+`search:directions`, `search:save` and `search:unsave` (Save on a place's
+card, `{ place }`) and `search:clear`. Live options — `provider`, `details`,
+`saved` (where Save keeps Favorites; default the page's `savedPlaces()`) and
+the like — go to the control `search:ready` hands over:
+
+```ts
+container.addEventListener('search:ready', e => e.detail.control.sync({ saved: myStore }))
+container.addEventListener('search:save', e => console.log('saved', e.detail.place.name))
+```
+
 ### `<MapType>`
 
 ```stx

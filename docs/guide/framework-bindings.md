@@ -237,7 +237,7 @@ Downloads made in the WebView are kept in its IndexedDB.
 - "Search Maps", with Find Nearby and Recents;
 - suggestions from the map itself as you type;
 - a pin for every result;
-- a place card with Directions.
+- a place card with Directions and Save, Favorites shown as stars on the map.
 
 `query` is followed as it changes: set it and the map searches, and a category's
 name runs the category. Set it to `''` to clear. `turnByTurn` is followed too,
@@ -263,19 +263,23 @@ so Directions can use a `TurnByTurn` whose `ready` arrives after mount.
 The events are the same everywhere. `results` carries
 `{ query, category, places }`, `select` and `directions` carry `{ place }`,
 `details` carries `{ place, details }` once a chosen place's hours, phone and
-website arrive, and `clear` carries nothing. They arrive as `onSelect` props in React, Solid and
+website arrive, `save` and `unsave` carry `{ place }` when Save on its card
+adds it to Favorites or takes it out, and `clear` carries nothing. They arrive as `onSelect` props in React, Solid and
 Svelte, `@select` in Vue, and a bubbling `search:select` DOM event in stx.
 `ready` hands over the control, for `search`, `searchCategory`, `select` and
 `cancel`. The other options — `position`, `placeholder`, `provider`, `offline`,
 `categories`, `recents`, `units`, `location`, `origin`, `language`, `details`,
-`shareUrl` — are followed as they change: a new `provider` is asked from the next query on, and
+`shareUrl`, `saved` (where Save keeps Favorites — default the page's
+`savedPlaces()`, `null` for none), `showSaved` — are followed as they change: a new `provider` is asked from the next query on, and
 new `categories` redraw Find Nearby in place. In stx, a `<Search>` and a `<TurnByTurn>` in
 the same map are linked automatically.
 
 On React Native it is a prop of `MapView`, with every event arriving at one
 `onSearch({ type, data })`. Directions previews the route on the map's
 `turnByTurn` when there is one, and the `directions` event reaches the app
-either way:
+either way. A store cannot cross the bridge, so `saved` is not there: Save
+keeps Favorites in the WebView's own storage, `showSaved` is followed, and
+`save` and `unsave` reach `onSearch` too:
 
 ```tsx
 <MapView

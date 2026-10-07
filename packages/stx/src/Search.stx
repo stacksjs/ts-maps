@@ -16,11 +16,14 @@
  * `sync`. Events cannot be props here — stx passes props as data — so each
  * one is a DOM event bubbling from the map: `search:results`,
  * `search:select`, `search:details` (a chosen place's hours, phone and
- * website, `{ place, details }`), `search:directions` and `search:clear`,
- * with the core event as `detail`. `search:ready` hands the page the control
- * itself, for `search`, `select` and `sync` later — and for the live options
- * markup cannot carry, `provider`, `offline`, `location`, `origin`, `details`
- * and `shareUrl`:
+ * website, `{ place, details }`), `search:directions`, `search:save` and
+ * `search:unsave` (Save on a place's card, `{ place }`) and `search:clear`,
+ * with the core event as `detail`. `:showSaved="false"` leaves Favorites'
+ * stars off the map. `search:ready` hands the page the control itself, for
+ * `search`, `select` and `sync` later — and for the live options markup
+ * cannot carry, `provider`, `offline`, `location`, `origin`, `details`,
+ * `shareUrl` and `saved` (where Save keeps Favorites; default the page's
+ * `savedPlaces()`):
  *
  * ```js
  * container.addEventListener('search:ready', e => { search = e.detail.control })
@@ -35,6 +38,7 @@ export const optionsJson = JSON.stringify({
   recents: $props.recents,
   units: $props.units,
   language: $props.language,
+  showSaved: $props.showSaved,
 })
 </script>
 

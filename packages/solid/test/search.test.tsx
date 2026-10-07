@@ -121,4 +121,38 @@ describe('@ts-maps/solid Search', () => {
     dispose()
     el.remove()
   })
+
+  test('Save on the card reports onSave, into the store given', async () => {
+    const { MemorySavedPlaces, SavedPlaces } = await import('ts-maps')
+    const saved = new SavedPlaces({ backend: new MemorySavedPlaces() })
+    const el = document.createElement('div')
+    el.style.width = '430px'
+    el.style.height = '800px'
+    document.body.appendChild(el)
+    const got: string[] = []
+    let control: any
+    const dispose = render(() => (
+      <Map class="map" center={[37.79, -122.4]} zoom={15}>
+        <Search
+          provider={provider}
+          offline={null}
+          recents={false}
+          details={null}
+          saved={saved}
+          onReady={(c) => { control = c }}
+          onSave={e => got.push(e.place.name)}
+        />
+      </Map>
+    ), el)
+
+    await settle()
+    control.select({ id: 'p', name: 'Ferry Building', center: place.center, kind: 'attraction', icon: 'attraction', source: 'online', rank: 5 })
+    el.querySelector<HTMLElement>('[data-action="save"]')!.click()
+    await settle()
+    expect(got).toEqual(['Ferry Building'])
+    expect(saved.isFavorite('p')).toBe(true)
+
+    dispose()
+    el.remove()
+  })
 })

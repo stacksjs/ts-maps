@@ -112,4 +112,36 @@ describe('@ts-maps/vue Search', () => {
     app.unmount()
     host.remove()
   })
+
+  test('Save on the card emits save, into the store given', async () => {
+    const { MemorySavedPlaces, SavedPlaces } = await import('ts-maps')
+    const saved = new SavedPlaces({ backend: new MemorySavedPlaces() })
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const got: string[] = []
+    let control: any
+    const app = createApp({
+      render: () => h(Map as any, { containerClass: 'ts-map-host', center: [37.79, -122.4], zoom: 15 }, () => [
+        h(Search as any, {
+          provider,
+          offline: null,
+          recents: false,
+          details: null,
+          saved,
+          onSave: (e: any) => got.push(e.place.name),
+          onReady: (c: any) => (control = c),
+        }),
+      ]),
+    })
+    app.mount(host)
+    await settle()
+    control.select({ id: 'p', name: 'Ferry Building', center: place.center, kind: 'attraction', icon: 'attraction', source: 'online', rank: 5 })
+    host.querySelector<HTMLElement>('[data-action="save"]')!.click()
+    await settle()
+    expect(got).toEqual(['Ferry Building'])
+    expect(saved.isFavorite('p')).toBe(true)
+
+    app.unmount()
+    host.remove()
+  })
 })

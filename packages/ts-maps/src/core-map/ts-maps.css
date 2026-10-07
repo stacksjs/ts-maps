@@ -2642,6 +2642,31 @@ a.tsmap-control-locate-denied::after {
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
+/* Favorites on the map: a small yellow star, below results' pins. */
+.tsmap-search-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ffcc00;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+  color: #fff;
+  cursor: pointer;
+
+  & svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+.tsmap-search .tsmap-search-action.tsmap-search-saved {
+  color: #d4a000;
+}
+
   padding: 9px 16px;
   border: 0;
   border-radius: 18px;

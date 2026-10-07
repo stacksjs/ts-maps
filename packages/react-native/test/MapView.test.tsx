@@ -739,6 +739,49 @@ describe('search over the bridge', () => {
       page.remove()
     }
   })
+
+  test('the WebView script follows showSaved, and Save reaches onSearch as plain data', async () => {
+    const tsMaps = await import('ts-maps')
+    // A store cannot cross the bridge: the WebView keeps the page's own.
+    const saved = new tsMaps.SavedPlaces({ backend: new tsMaps.MemorySavedPlaces() })
+    tsMaps.setSavedPlaces(saved)
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.79, -122.4], zoom: 15, search: { recents: false, showSaved: false } },
+    })
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    const posted: any[] = []
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = { postMessage: (raw: string) => posted.push(JSON.parse(raw)) }
+    const original = globalThis.fetch
+    globalThis.fetch = (async (url: string) => new Response(JSON.stringify(String(url).includes('overpass')
+      ? { elements: [] }
+      : { features: [{ geometry: { type: 'Point', coordinates: [-122.3937, 37.7955] }, properties: { name: 'Ferry Building', osm_key: 'tourism', osm_value: 'attraction', city: 'San Francisco' } }] }))) as any
+    try {
+      runScript(script)
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setSearch', id: 's1', payload: { search: { query: 'ferry building', recents: false, showSaved: false } } }) }))
+      await new Promise(r => setTimeout(r, 30))
+      page.querySelector<HTMLElement>('.tsmap-search-row')!.click()
+      page.querySelector<HTMLElement>('[data-action="save"]')!.click()
+      await new Promise(r => setTimeout(r, 30))
+      const save = posted.find(e => e.type === 'search' && e.payload.type === 'save')
+      expect(save?.payload.data.place.name).toBe('Ferry Building')
+      expect(saved.favorites.map(p => p.name)).toEqual(['Ferry Building'])
+      // Stars stay off the map while showSaved is false.
+      expect(page.querySelector('.tsmap-search-star')).toBeNull()
+    }
+    finally {
+      globalThis.fetch = original
+      tsMaps.setSavedPlaces(null)
+      delete w.tsMaps
+      delete w.ReactNativeWebView
+      page.remove()
+    }
+  })
 })
 
 describe('options after mount', () => {

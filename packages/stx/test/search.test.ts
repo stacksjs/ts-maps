@@ -83,4 +83,37 @@ describe('search child', () => {
     unmount()
     root.remove()
   })
+
+  test('Save on the card bubbles search:save, and showSaved comes from markup', async () => {
+    const { MemorySavedPlaces, SavedPlaces } = await import('ts-maps')
+    const saved = new SavedPlaces({ backend: new MemorySavedPlaces() })
+    const root = document.createElement('div')
+    document.body.appendChild(root)
+    const mapEl = document.createElement('div')
+    mapEl.style.width = '430px'
+    mapEl.style.height = '800px'
+    root.appendChild(mapEl)
+    const map = new TsMap(mapEl, { center: [37.79, -122.4], zoom: 15 })
+    root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="search" data-options='${JSON.stringify({ recents: false, showSaved: false })}'></span>`)
+
+    let control: any = null
+    const got: string[] = []
+    root.addEventListener('search:ready', (e: any) => {
+      control = e.detail.control
+      // A store is a live object: the page hands it over.
+      control.sync({ provider: null, offline: null, details: null, saved })
+    })
+    root.addEventListener('search:save', (e: any) => got.push(e.detail.place.name))
+
+    const unmount = mountChildren(map, root)
+    expect(control.options.showSaved).toBe(false)
+    control.select({ id: 'p', name: 'Ferry Building', center: place.center, kind: 'attraction', icon: 'attraction', source: 'online', rank: 5 })
+    root.querySelector<HTMLElement>('[data-action="save"]')!.click()
+    await new Promise(r => setTimeout(r, 0))
+    expect(got).toEqual(['Ferry Building'])
+    expect(saved.isFavorite('p')).toBe(true)
+
+    unmount()
+    root.remove()
+  })
 })

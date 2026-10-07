@@ -27,12 +27,20 @@ export interface SearchProps {
   details?: SearchControlOptions['details']
   /** The link Share sends. Default the place on openstreetmap.org. */
   shareUrl?: SearchControlOptions['shareUrl']
+  /** Where Save keeps Favorites and Guides. Default the page's `savedPlaces()`; `null` for none. */
+  saved?: SearchControlOptions['saved']
+  /** Favorites as stars on the map. Default true. */
+  showSaved?: boolean
   /** The underlying control, for `search`, `searchCategory`, `select` and `cancel`. */
   onReady?: (control: SearchControl) => void
   onResults?: (e: any) => void
   onSelect?: (e: any) => void
   /** A chosen place's hours, phone and website arrived: `{ place, details }`. */
   onDetails?: (e: any) => void
+  /** Save on a place's card added it to Favorites: `{ place }`. */
+  onSave?: (e: any) => void
+  /** Save on a place's card took it out of Favorites: `{ place }`. */
+  onUnsave?: (e: any) => void
   onDirections?: (e: any) => void
   onClear?: (e: any) => void
 }
@@ -76,6 +84,8 @@ export function Search(props: SearchProps): JSX.Element {
       language: props.language,
       details: props.details,
       shareUrl: props.shareUrl,
+      saved: props.saved,
+      showSaved: props.showSaved,
     }))
     search.addTo(map)
     unlisten = search.listen((type, e) => (props as any)[SEARCH_EVENTS[type]]?.(e))
@@ -100,6 +110,8 @@ export function Search(props: SearchProps): JSX.Element {
       language: props.language,
       details: props.details,
       shareUrl: props.shareUrl,
+      saved: props.saved,
+      showSaved: props.showSaved,
     }
     control()?.sync(target)
   })

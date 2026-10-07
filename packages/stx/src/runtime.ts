@@ -252,7 +252,7 @@ function trafficFrom(props: Record<string, any>): TrafficLayer | undefined {
  */
 const MARKUP_PROPS = {
   'turn-by-turn': ['from', 'to', 'active', 'profile', 'units', 'voice', 'simulate', 'alternatives', 'destinationName'],
-  'search': ['query', 'position', 'placeholder', 'categories', 'recents', 'units', 'language'],
+  'search': ['query', 'position', 'placeholder', 'categories', 'recents', 'units', 'language', 'showSaved'],
   'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title'],
   'map-type': ['value', 'open', 'position', 'showTraffic', ...MAP_TYPES_PROPS, ...TRAFFIC_PROPS],
 } as const

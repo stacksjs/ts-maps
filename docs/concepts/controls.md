@@ -92,6 +92,9 @@ control.search({ turnByTurn: nav }).addTo(map)
   "Closed · Opens tomorrow 8 AM", read from `opening_hours`), its phone and
   website, with **Call** and **Website** buttons. **Share** opens the system
   share sheet, or copies a link where there is none.
+- **Saving:** **Save** on a place's card adds it to Favorites. Favorites are
+  stars on the map and chips above Recents; **Guides**, named collections,
+  are listed between, and open as results. See below.
 - **Keyboard:** arrow keys move through the rows, Enter picks, and Escape goes
   back one step.
 
@@ -115,9 +118,39 @@ Answers come from three places at once, merged so the same café is one result:
 | `turnByTurn`, `origin`, `onDirections` | — | What Directions does. |
 | `details` | OpenStreetMap, through Overpass | A `PlaceDetailsProvider` for hours, phone and website, or `null`. None by default with `provider: null`. |
 | `shareUrl` | the place on openstreetmap.org | `(place) => string`: the link Share sends. |
+| `saved` | the page's `savedPlaces()` | Where Save keeps Favorites and Guides, or `null`. |
+| `showSaved` | `true` | Favorites as stars on the map. |
 
 Every framework binding has it as `<Search>`, with `query` followed as a prop —
 see [framework bindings](../guide/framework-bindings.md#search).
+
+### Favorites and Guides
+
+Saved places live in a `SavedPlaces` store: the page's own, in `localStorage`,
+unless `saved` names another (`null` turns saving off). Its backend is
+anything with `load()` and `save(data)`, so it can sync to a server:
+
+```ts
+import { SavedPlaces, setSavedPlaces } from 'ts-maps'
+
+setSavedPlaces(new SavedPlaces({
+  backend: {
+    load: () => fetch('/api/saved').then(r => r.json()),
+    save: data => fetch('/api/saved', { method: 'PUT', body: JSON.stringify(data) }).then(() => {}),
+  },
+}))
+
+const saved = savedPlaces()
+await saved.favorite(place)
+const guide = await saved.createGuide('Coffee to try', [place])
+const geojson = saved.toGeoJSON(guide.id)         // share it
+await saved.importGeoJSON(geojson, 'From a friend') // and take one in
+```
+
+Each place is kept once, however many guides it is in, and dropped when it
+is in none. `search.toggleSaved(place)` and `search.showGuide(id)` do what the
+card's Save and a tap on a guide do; `save` and `unsave` events say so.
+`showSaved: false` keeps the stars off the map.
 
 ### In production: rate limits and your own geocoder
 
@@ -176,7 +209,7 @@ for every query the first cannot answer.
 `search.search('coffee')`, `search.searchCategory(category)`,
 `search.select(place)` and `search.cancel()` drive it from code.
 `search.listen((type, e) => …)` hears `results`, `select`, `details` (with
-`{ place, details }`), `directions` and `clear`. The engine underneath is `SearchEngine`, with `suggest`, `search` and
+`{ place, details }`), `directions`, `save`, `unsave` and `clear`. The engine underneath is `SearchEngine`, with `suggest`, `search` and
 `nearby`. Use it on its own to build a search UI of your own.
 
 ## Geocoder
