@@ -112,6 +112,45 @@ Tiles are simplified when they are made, which drops junction vertices along str
 
 Search, reverse geocoding and routing read the OpenMapTiles schema used by the built-in styles.
 
+### Opening the page with no connection
+
+Downloaded maps keep the map, search and directions working with no connection. Opening the page with none also needs the page itself, its HTML, scripts and styles, and keeping those is a service worker's job, outside the library. `ts-maps/offline-sw` is one to build yours from:
+
+```ts
+// sw.ts, bundled for the browser into /sw.js
+import { offlineServiceWorker } from 'ts-maps/offline-sw'
+
+offlineServiceWorker({
+  shell: ['/', '/app.js', '/app.css', '/ts-maps.css'],
+  cache: 'my-app-shell-v3', // change it with each release
+})
+```
+
+```ts
+// in the page
+navigator.serviceWorker.register('/sw.js')
+```
+
+- **The app shell.** `shell` is cached on install. A navigation tries the network first, since HTML can carry a session, and falls back to the page cached for it, or to `fallback` (the first of `shell`). On activate, older caches named the same up to the last `-` are deleted. `runtime: true` (or a function choosing by URL) also caches same-origin files as they are fetched, which suits a build that splits its scripts into hashed chunks.
+- **Map data the library does not fetch itself.** The map reads downloaded tiles on its own, but an `<img>` in a popup or a raster drawn by hand does not. Those go to the network first, and to the downloaded maps when it fails. `maps: false` leaves them alone.
+- **Downloads in the background.** See below.
+
+Wildloop's worker is the same recipe written by hand: its shell is a static `/offline` page plus the ts-maps script and stylesheet, and it never caches HTML that might carry a session.
+
+### Downloading in the background
+
+A download made by the page stops when the tab closes or the device sleeps, and comes back paused (or, with `autoResume`, carries on when the page is next opened). With `background: true` it goes to [Background Fetch](https://developer.mozilla.org/docs/Web/API/Background_Fetch_API) instead, where the browser has it and a service worker built with `ts-maps/offline-sw` controls the page:
+
+```ts
+setOfflineMaps(new OfflineMaps({ background: true, autoResume: true }))
+```
+
+- The browser fetches the area's files whether the page is open or not, and shows its own progress. Files already downloaded for another area are not fetched again.
+- The worker stores them where the page reads them, indexes the area for search and routing, adds the glyphs its names need, and tells open pages, whose list updates. The browser's notification says when it is ready.
+- A page opened while one is running follows it, with its progress in the list, rather than calling it paused. Pausing from the list aborts it; resuming starts a new one for what is still missing.
+- Background Fetch counts bytes, not files, so progress is an estimate until the worker has stored them.
+- Without Background Fetch (Firefox and Safari today), without a service worker in control, or for a `pmtiles://` archive, which is read in ranges, the page downloads as before.
+
 ## Tile cache
 
 `TileCache` is a lower-level, promise-based key/value store of tile bytes keyed by URL, with optional TTL and LRU limits. It is in memory unless you give it a backend. `cachedFetch` reads through it: a hit returns immediately, and a miss goes to the network and is stored. If the network fails, it falls back to whatever the cache holds.
@@ -150,4 +189,4 @@ const decoded = await pool.run('decodeMvt', { bytes, extent: 4096 })
 
 ## Try it
 
-The playground's **14. Offline maps** page has the whole flow. Pick an area, download it, then either switch on "Only Use Offline Maps" or take the browser offline; the downloaded area keeps drawing. The older [offline example](../examples/11-offline.md) shows the lower-level `TileCache` and region prefetcher on their own.
+The playground's **14. Offline maps** page has the whole flow. Pick an area, download it, then either switch on "Only Use Offline Maps" or take the browser offline; the downloaded area keeps drawing. Its service worker (`playground/core-map/sw.ts`) keeps the page too, so after one visit it opens again with the network off, and its downloads go to Background Fetch where the browser has it. The older [offline example](../examples/11-offline.md) shows the lower-level `TileCache` and region prefetcher on their own.

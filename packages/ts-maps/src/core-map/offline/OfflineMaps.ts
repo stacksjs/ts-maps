@@ -20,6 +20,8 @@ import type { RouteOptions } from './router'
 import { Evented } from '../core/Events'
 import { pmtilesFetch, withPMTiles } from '../pmtiles/protocol'
 import { saveOfflineRegion } from '../storage/offlineRegion'
+import type { BackgroundFetchLike, OfflineChannelMessage } from './background'
+import { backgroundFetchRegistration, backgroundId, offlineChannel } from './background'
 import { extractTile, labelGlyphRanges, mergePlaces } from './extract'
 import { IndexedDBOfflineStore, MemoryOfflineStore } from './OfflineStore'
 import { glyphUrls, normalizeBounds, planArea } from './plan'
@@ -54,6 +56,13 @@ export interface OfflineMapsOptions {
    * (`navigator.storage.persist()`), on the first download. Default true.
    */
   persist?: boolean
+  /**
+   * Download with Background Fetch where the browser has it, so a download
+   * carries on with the tab closed or the device asleep and finishes by
+   * itself. Needs a service worker built with `ts-maps/offline-sw` in
+   * control of the page; without one, downloads stay in the page. Default false.
+   */
+  background?: boolean
 }
 
 export interface AutoUpdateOptions {
@@ -171,6 +180,10 @@ export class OfflineMaps extends Evented {
   _persistAsked = false
   _updating: Promise<void> | null = null
   _unwatch?: () => void
+  background: boolean
+  _channel?: BroadcastChannel
+  /** Background downloads this page follows, by region: called when the service worker says one ended. */
+  _waiting: Map<string, (region: OfflineRegionRecord | undefined) => void> = new Map()
 
   constructor(options: OfflineMapsOptions = {}) {
     super()
@@ -181,6 +194,7 @@ export class OfflineMaps extends Evented {
     this._autoUpdate = auto === false ? false : auto === true ? {} : auto
     this.autoResume = options.autoResume ?? false
     this.persist = options.persist ?? true
+    this.background = options.background ?? false
     // `pmtiles://` tiles are read from their archive (through this same fetch)
     // and stored under their own URL, which is what the map looks up offline.
     this._fetch = withPMTiles(options.fetch)
@@ -226,10 +240,20 @@ export class OfflineMaps extends Evented {
    */
   ready(): Promise<void> {
     this._ready ??= (async () => {
+      const manager = this.background ? await backgroundFetchRegistration() : undefined
       for (const region of await this.store.listRegions()) {
         if (region.status === 'downloading' && !this._jobs.has(region.id)) {
+          // Still downloading in the background, with the page closed or not:
+          // follow it from here, so the list shows its progress again.
+          const running = region.background && manager ? await manager.get(backgroundId(region.id)).catch(() => undefined) : undefined
+          if (running) {
+            this._regions.set(region.id, region)
+            this._follow(region, running)
+            continue
+          }
           region.status = 'paused'
           region.interrupted = true
+          delete region.background
           await this.store.putRegion(region)
         }
         this._regions.set(region.id, region)
@@ -238,6 +262,7 @@ export class OfflineMaps extends Evented {
       }
       this._loaded = true
       this._watchConnection()
+      this._listenToWorker()
       this._whenOnline()
     })()
     return this._ready
@@ -269,10 +294,210 @@ export class OfflineMaps extends Evented {
     }
   }
 
-  /** Stop following the connection. For a manager that is being thrown away. */
+  /** Stop following the connection and the service worker. For a manager that is being thrown away. */
   dispose(): void {
     this._unwatch?.()
     this._unwatch = undefined
+    this._channel?.close()
+    this._channel = undefined
+  }
+
+  // ---------- downloading in the background ----------
+
+  /**
+   * Hand a download to Background Fetch: what is already stored is counted,
+   * the rest is fetched by the browser and taken in by the service worker.
+   * Undefined when it cannot be — no Background Fetch, no service worker, a
+   * `pmtiles://` archive, which is read in ranges — and the page downloads.
+   */
+  async _runInBackground(region: OfflineRegionRecord, plan: OfflinePlan, refresh: boolean, job: Job): Promise<OfflineRegionRecord | undefined> {
+    const manager = await backgroundFetchRegistration()
+    if (!manager || !plan.urls.every(url => /^https?:\/\//.test(url)))
+      return undefined
+    region.status = 'downloading'
+    region.downloaded = 0
+    region.bytes = 0
+    delete region.error
+    delete region.interrupted
+    const missing: string[] = []
+    for (const url of plan.urls) {
+      const refs = await this.store.getRefs(url)
+      if (refs && !refresh) {
+        if (!refs.regions.includes(region.id))
+          await this.store.putRefs(url, { regions: [...refs.regions, region.id], bytes: refs.bytes })
+        region.downloaded++
+        region.bytes += refs.bytes
+      }
+      else {
+        missing.push(url)
+      }
+    }
+    if (!missing.length)
+      return this._finish(region, plan, refresh, job, 0)
+    let running: BackgroundFetchLike
+    try {
+      running = await manager.fetch(backgroundId(region.id), missing, {
+        title: region.name,
+        downloadTotal: Math.round(missing.length * this._averageTile()),
+      })
+    }
+    catch {
+      // Refused (no permission, a quota, the same id still running): the
+      // page downloads it itself.
+      return undefined
+    }
+    region.background = true
+    await this._save(region)
+    this._changed()
+    return this._follow(region, running, job)
+  }
+
+  /**
+   * Report a background download's progress, and resolve once the service
+   * worker says it has been taken in. Pausing aborts it.
+   */
+  _follow(region: OfflineRegionRecord, running: BackgroundFetchLike, job?: Job): Promise<OfflineRegionRecord> {
+    const base = { downloaded: region.downloaded, bytes: region.bytes }
+    const left = Math.max(0, region.tiles - region.downloaded)
+    const average = this._averageTile()
+    const progress = (): void => {
+      // Background Fetch counts bytes, not files: the count is an estimate
+      // until the worker has stored them.
+      region.bytes = base.bytes + running.downloaded
+      region.downloaded = base.downloaded + Math.min(left, Math.floor(running.downloaded / average))
+      this.fire('progress', { region: { ...region } })
+    }
+    running.addEventListener('progress', progress)
+    if (!job) {
+      job = { stop: false, abort: new AbortController(), promise: undefined as unknown as Promise<OfflineRegionRecord> }
+      this._jobs.set(region.id, job)
+    }
+    const own = job
+    const ended = new Promise<OfflineRegionRecord>((resolve) => {
+      this._waiting.set(region.id, (stored) => {
+        running.removeEventListener('progress', progress)
+        this._waiting.delete(region.id)
+        resolve(stored ? { ...stored } : { ...region })
+      })
+      own.abort.signal.addEventListener('abort', () => {
+        void running.abort().catch(() => false)
+        running.removeEventListener('progress', progress)
+        this._waiting.delete(region.id)
+        if (own.stop === 'cancel') {
+          resolve({ ...region })
+          return
+        }
+        region.status = 'paused'
+        if (own.interrupted)
+          region.interrupted = true
+        delete region.background
+        void this._save(region).then(() => {
+          this._changed()
+          resolve({ ...region })
+        })
+      }, { once: true })
+    })
+    if (!own.promise)
+      own.promise = ended.finally(() => this._jobs.delete(region.id))
+    return ended
+  }
+
+  /** Hear the service worker say a region changed in the store. */
+  _listenToWorker(): void {
+    if (this._channel)
+      return
+    this._channel = offlineChannel()
+    if (this._channel)
+      this._channel.onmessage = (e: MessageEvent<OfflineChannelMessage>) => {
+        if (e.data?.type === 'region' && typeof e.data.id === 'string')
+          void this._reload(e.data.id)
+      }
+  }
+
+  /**
+   * Tell other pages, and a page following a background download, that a
+   * region changed. Sent on the manager's own channel, which does not hear
+   * itself.
+   */
+  _broadcast(id: string): void {
+    this._channel?.postMessage({ type: 'region', id } satisfies OfflineChannelMessage)
+  }
+
+  /** Read a region back from the store after the service worker changed it. */
+  async _reload(id: string): Promise<void> {
+    const region = await this.store.getRegion(id)
+    // Another store's region: nothing here changed.
+    if (!region && !this._regions.has(id))
+      return
+    if (region)
+      this._regions.set(id, region)
+    else
+      this._regions.delete(id)
+    this._invalidate()
+    this._changed()
+    // `complete` and `error` are for the page that was following the
+    // download; other tabs just see the list change.
+    const waiting = this._waiting.get(id)
+    if (waiting && region && region.status !== 'downloading') {
+      waiting(region)
+      this._ended(region)
+    }
+  }
+
+  /**
+   * A background download stopped from outside the page — the browser's own
+   * download UI, say: paused, and not something `autoResume` should restart.
+   */
+  async stopped(id: string): Promise<void> {
+    await this.ready()
+    const region = this._regions.get(id)
+    if (!region || region.status !== 'downloading')
+      return
+    region.status = 'paused'
+    delete region.background
+    delete region.interrupted
+    await this._save(region)
+    this._changed()
+    this._broadcast(id)
+  }
+
+  /**
+   * Take in a background download's files, in a service worker: store each,
+   * then settle the region as a page's own download would be. What is missing
+   * leaves it in error, to be resumed. `ts-maps/offline-sw` calls this.
+   */
+  async ingest(id: string, files: Array<{ url: string, response: Promise<Response> | Response }>): Promise<OfflineRegionRecord | undefined> {
+    await this.ready()
+    const region = this._regions.get(id)
+    const plan = await this.store.getPlan(id)
+    if (!region || !plan)
+      return undefined
+    for (const file of files) {
+      try {
+        const response = await file.response
+        // A 404 or 204 is a tile with nothing in it, kept as empty; another
+        // failure is left out, and counted below.
+        if (!response.ok && response.status !== 404)
+          continue
+        const refs = await this.store.getRefs(file.url)
+        const data = response.ok && response.status !== 204 ? new Uint8Array(await response.arrayBuffer()) : new Uint8Array(0)
+        await this._keep(file.url, id, response, data, refs?.regions ?? [])
+      }
+      catch {}
+    }
+    // Counted from the store, not from what arrived: the files the page
+    // already held were never in the background download.
+    region.downloaded = 0
+    region.bytes = 0
+    for (const url of plan.urls) {
+      const refs = await this.store.getRefs(url)
+      if (refs?.regions.includes(id)) {
+        region.downloaded++
+        region.bytes += refs.bytes
+      }
+    }
+    const job: Job = { stop: false, abort: new AbortController(), promise: Promise.resolve(region) }
+    return this._finish(region, plan, false, job, plan.urls.length - region.downloaded)
   }
 
   _whenOnline(): void {
@@ -725,6 +950,11 @@ export class OfflineMaps extends Evented {
   }
 
   async _run(region: OfflineRegionRecord, plan: OfflinePlan, refresh: boolean, job: Job): Promise<OfflineRegionRecord> {
+    if (this.background) {
+      const handed = await this._runInBackground(region, plan, refresh, job)
+      if (handed)
+        return handed
+    }
     region.status = 'downloading'
     region.downloaded = 0
     region.bytes = 0
@@ -785,7 +1015,16 @@ export class OfflineMaps extends Evented {
 
     if (job.stop === 'cancel')
       return { ...region }
+    return this._finish(region, plan, refresh, job, failed, dem)
+  }
 
+  /**
+   * Settle a download whose files are in: index it, add the glyphs its names
+   * need, and say how it ended. Shared by the page's downloads and the ones
+   * a service worker takes in from Background Fetch.
+   */
+  async _finish(region: OfflineRegionRecord, plan: OfflinePlan, refresh: boolean, job: Job, failed: number, dem: { bytes: number, tiles: number } = { bytes: 0, tiles: 0 }): Promise<OfflineRegionRecord> {
+    delete region.background
     if (job.quota) {
       region.status = 'error'
       region.error = 'Not enough storage on this device. Delete a map, or choose a smaller area.'
@@ -827,11 +1066,16 @@ export class OfflineMaps extends Evented {
     await this._save(region)
     this._invalidate()
     this._changed()
+    this._ended(region)
+    this._broadcast(region.id)
+    return { ...region }
+  }
+
+  _ended(region: OfflineRegionRecord): void {
     if (region.status === 'complete')
       this.fire('complete', { region: { ...region } })
     else if (region.status === 'error')
       this.fire('error', { region: { ...region }, error: new Error(region.error) })
-    return { ...region }
   }
 
   /** Store one URL for a region, fetching it unless it is already held. Returns its size. */
@@ -880,6 +1124,11 @@ export class OfflineMaps extends Evented {
     else {
       data = new Uint8Array(await response.arrayBuffer())
     }
+    return this._keep(url, id, response, data, holders)
+  }
+
+  /** Store a fetched file for a region, alongside any other region that holds it. */
+  async _keep(url: string, id: string, response: Response, data: Uint8Array, holders: string[]): Promise<number> {
     const mime = response.headers.get('content-type') ?? 'application/octet-stream'
     await this.store.putTile(url, { data, mime })
     await this.store.putRefs(url, { regions: holders.includes(id) ? holders : [...holders, id], bytes: data.byteLength })

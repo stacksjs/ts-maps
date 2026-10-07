@@ -45,6 +45,18 @@ if (!result.success) {
   process.exit(1)
 }
 
+// The offline demo's service worker: one file, unsplit, since a worker
+// script cannot import chunks the way a module page does.
+const worker = join(SRC, 'sw.ts')
+if (existsSync(worker)) {
+  const built = await Bun.build({ entrypoints: [worker], outdir: OUT, target: 'browser', format: 'esm', minify: true, naming: '[name].js' })
+  if (!built.success) {
+    for (const log of built.logs)
+      console.error(log)
+    process.exit(1)
+  }
+}
+
 for (const page of pages) {
   const html = readFileSync(join(SRC, page), 'utf8')
     .replace(/(['"])(?:\.\.\/)+packages\/ts-maps\/src\/core-map\/ts-maps\.css\1/g, '$1./ts-maps.css$1')

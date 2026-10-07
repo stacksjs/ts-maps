@@ -126,6 +126,11 @@ const server = Bun.serve({
       const ext = extname(filePath)
       if ((ext === '.ts' || ext === '.tsx') && existsSync(filePath))
         return buildEntry(filePath)
+      // `sw.js` and the like: the built form of a `.ts` beside it, under the
+      // name the static build gives it.
+      const source = filePath.replace(/\.js$/, '.ts')
+      if (ext === '.js' && !existsSync(filePath) && existsSync(source))
+        return buildEntry(source)
 
       return serveStatic(filePath)
     }

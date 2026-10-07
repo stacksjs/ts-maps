@@ -5,13 +5,21 @@
  * drag the frame's corners or move the map beneath it, check the estimated
  * size, and download. Then turn on "Only Use Offline Maps", or switch the
  * browser offline, and the downloaded area keeps drawing — and search and
- * directions keep working from the downloaded tiles.
+ * directions keep working from the downloaded tiles. Reload with the network
+ * off and the page itself still opens, from its service worker (`sw.ts`).
  *
  * `?theme=dark`, `?select` to open the area picker straight away.
  */
 
-import { control, offlineMaps, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, OfflineMaps, offlineMaps, setOfflineMaps, TsMap } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap, TILEJSON_SOURCES } from './basemap'
+
+// The page and its downloads, ready for a reload with the network off: the
+// service worker keeps the page, and downloads carry on in the background,
+// resume when the connection returns, and are kept up to date.
+setOfflineMaps(new OfflineMaps({ background: true, autoResume: true }))
+if ('serviceWorker' in navigator)
+  navigator.serviceWorker.register('./sw.js').catch(() => {})
 
 const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches

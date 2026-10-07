@@ -86,6 +86,11 @@
       "bun": "./src/worker/index.ts",
       "import": "./dist/worker/index.js"
     },
+    "./offline-sw": {
+      "types": "./dist/offline-sw/index.d.ts",
+      "bun": "./src/offline-sw/index.ts",
+      "import": "./dist/offline-sw/index.js"
+    },
     "./styles.css": "./src/core-map/ts-maps.css",
     "./css": "./src/core-map/ts-maps.css"
   },

@@ -47,6 +47,8 @@ export interface OfflineRegionRecord {
    * `autoResume` picks up again.
    */
   interrupted?: boolean
+  /** Being downloaded by the browser with Background Fetch, not by a page. */
+  background?: boolean
 }
 
 /** Every URL a region stores, kept so it can be resumed, updated or deleted without the map that drew it. */
