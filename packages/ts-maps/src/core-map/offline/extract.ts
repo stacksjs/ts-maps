@@ -318,6 +318,8 @@ export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, 
     const oneway = schema.oneway(props)
     const ramp = schema.ramp(props)
     const level = schema.level(props)
+    const access = schema.access(props)
+    const service = schema.service(props)
     // A schema whose roads carry their names needs no matching.
     const own = schema.namedRoads ? nameOf(props) : undefined
     for (const line of g) {
@@ -347,6 +349,14 @@ export function extractTile(bytes: Uint8Array, x: number, y: number, z: number, 
             road.level = level
           if (names[start])
             road.name = names[start]
+          if (!access.car)
+            road.noCar = true
+          if (!access.foot)
+            road.noFoot = true
+          if (!access.bicycle)
+            road.noBike = true
+          if (service)
+            road.service = service
           roads.push(road)
           start = i
         }

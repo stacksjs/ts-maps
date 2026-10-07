@@ -23,6 +23,8 @@ export interface TileRefs {
   bytes: number
 }
 
+import type { TurnRestriction } from './router'
+
 export interface OfflineRegionRecord {
   id: string
   name: string
@@ -63,6 +65,8 @@ export interface OfflinePlan {
   glyphs?: OfflineGlyphs
   /** The terrain (DEM) tiles among `urls`, measured apart since they are larger. */
   terrain?: string[]
+  /** Turn restrictions to keep with the region's roads. */
+  restrictions?: TurnRestriction[]
 }
 
 export interface OfflineGlyphs {
@@ -99,11 +103,21 @@ export interface OfflineRoad {
   /** Above or below the ground: bridges 1 and up, tunnels -1 and down. Roads only meet at the same level. */
   level?: number
   name?: string
+  /** Closed to cars: `access=no` or private. */
+  noCar?: true
+  /** Closed to people on foot. */
+  noFoot?: true
+  /** Closed to bicycles. */
+  noBike?: true
+  /** What a service road is for: `driveway`, `parking_aisle`, `alley`… */
+  service?: string
 }
 
 export interface OfflineIndex {
   places: OfflinePlace[]
   roads: OfflineRoad[]
+  /** Turn restrictions downloaded with the region, which tiles do not carry. */
+  restrictions?: TurnRestriction[]
 }
 
 export interface OfflineStore {

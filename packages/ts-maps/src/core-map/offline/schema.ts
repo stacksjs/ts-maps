@@ -57,6 +57,34 @@ export interface TileSchema {
   level: (props: Props) => number
   /** The water feature's kind: `lake`, `river`, `sea`… */
   waterKind: (props: Props) => string
+  /** Who may use a road. Everyone, where the schema does not say. */
+  access: (props: Props) => RoadAccess
+  /** What a service road is for: `driveway`, `parking_aisle`, `alley`… */
+  service: (props: Props) => string | undefined
+}
+
+export interface RoadAccess {
+  car: boolean
+  foot: boolean
+  bicycle: boolean
+}
+
+const EVERYONE: RoadAccess = { car: true, foot: true, bicycle: true }
+const CLOSED = /^(?:no|private|customers|delivery|agricultural|forestry|military)$/
+
+/**
+ * OpenStreetMap's access tags, as tiles carry them: `access` for everyone,
+ * `foot` and `bicycle` overriding it for theirs. A pedestrian street closed
+ * to traffic is open on foot.
+ */
+function osmAccess(props: Props): RoadAccess {
+  const all = str(props.access)
+  const closed = all !== undefined && CLOSED.test(all)
+  const mode = (key: string): boolean => {
+    const value = str(props[key])
+    return value === undefined ? !closed : !CLOSED.test(value)
+  }
+  return { car: !closed && mode('motor_vehicle'), foot: mode('foot'), bicycle: mode('bicycle') }
 }
 
 const str = (v: unknown): string | undefined => typeof v === 'string' && v ? v : undefined
@@ -135,6 +163,8 @@ export const OPENMAPTILES: TileSchema = {
   ramp: p => yes(p.ramp),
   level: p => num(p.layer) || (p.brunnel === 'bridge' ? 1 : p.brunnel === 'tunnel' ? -1 : 0),
   waterKind: p => str(p.class) ?? 'water',
+  access: osmAccess,
+  service: p => str(p.service),
 }
 
 /** Protomaps' basemap schema (v4), as its PMTiles builds publish it. */
@@ -178,6 +208,8 @@ export const PROTOMAPS: TileSchema = {
   ramp: p => yes(p.is_link) || isLink(p.kind_detail),
   level: p => num(p.level) || (yes(p.is_bridge) ? 1 : yes(p.is_tunnel) ? -1 : 0),
   waterKind: p => str(p.kind) ?? 'water',
+  access: () => EVERYONE,
+  service: p => str(p.kind_detail) === 'service' ? str(p.service) : undefined,
 }
 
 /** The keys Shortbread files a POI under, most telling first. */
@@ -207,6 +239,8 @@ export const SHORTBREAD: TileSchema = {
   ramp: p => yes(p.link),
   level: p => num(p.layer) || (yes(p.bridge) ? 1 : yes(p.tunnel) ? -1 : 0),
   waterKind: p => str(p.kind) ?? 'water',
+  access: osmAccess,
+  service: p => str(p.service),
 }
 
 /** Mapbox Streets v8. */
@@ -241,6 +275,9 @@ export const MAPBOX_STREETS: TileSchema = {
   ramp: p => isLink(p.class),
   level: p => num(p.layer) || (p.structure === 'bridge' ? 1 : p.structure === 'tunnel' ? -1 : 0),
   waterKind: p => str(p.class) ?? 'water',
+  // `street_limited` is a street with access limits of some kind: not one to drive through.
+  access: p => p.class === 'street_limited' ? { car: false, foot: true, bicycle: true } : EVERYONE,
+  service: p => str(p.class) === 'service' ? str(p.type) : undefined,
 }
 
 export const TILE_SCHEMAS: readonly TileSchema[] = [OPENMAPTILES, PROTOMAPS, SHORTBREAD, MAPBOX_STREETS]

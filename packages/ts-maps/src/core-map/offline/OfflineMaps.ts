@@ -910,9 +910,12 @@ export class OfflineMaps extends Evented {
     if (!graph) {
       graph = (async () => {
         const roads = []
-        for (const index of await this._indexes())
+        const restrictions = []
+        for (const index of await this._indexes()) {
           roads.push(...index.roads)
-        return new RoadGraph(roads, { profile })
+          restrictions.push(...index.restrictions ?? [])
+        }
+        return new RoadGraph(roads, { profile, restrictions })
       })()
       this._graphs.set(profile, graph)
     }
@@ -1192,7 +1195,7 @@ export class OfflineMaps extends Evented {
       places.push(...index.places)
       roads.push(...index.roads)
     }
-    return { places: mergePlaces(places), roads }
+    return { places: mergePlaces(places), roads, ...(plan.restrictions?.length ? { restrictions: plan.restrictions } : {}) }
   }
 
   async _save(region: OfflineRegionRecord): Promise<void> {

@@ -35,11 +35,19 @@ const SPEEDS: Record<TransportProfile, Record<string, number>> = {
   walking: { primary: 5, secondary: 5, tertiary: 5, minor: 5, service: 5, track: 5, path: 5 },
 }
 
+/** Driveways and parking aisles are for reaching a door, not for going through. */
+const SERVICE_SPEEDS: Record<string, number> = { driveway: 10, parking_aisle: 8, drive_through: 8, alley: 12 }
+
 function speedFor(profile: TransportProfile, road: OfflineRoad): number {
   const table = SPEEDS[profile]
   const [kind, sub] = road.kind.split(':') as [string, string | undefined]
-  if (profile === 'driving' && road.ramp)
+  if ((profile === 'driving' && road.noCar) || (profile === 'walking' && road.noFoot) || (profile === 'cycling' && road.noBike))
+    return 0
+  // A ramp onto a road, not a kerb ramp on a footway.
+  if (profile === 'driving' && road.ramp && table[kind])
     return 50
+  if (profile === 'driving' && kind === 'service' && road.service && SERVICE_SPEEDS[road.service])
+    return SERVICE_SPEEDS[road.service]!
   if (kind === 'path') {
     // Paths are for people: cycleways for bikes, footways for walking.
     if (profile === 'cycling' && sub && sub !== 'cycleway' && sub !== 'path')
@@ -49,10 +57,56 @@ function speedFor(profile: TransportProfile, road: OfflineRoad): number {
   return table[kind] ?? 0
 }
 
-/** Seconds lost at each junction passed through. */
-const JUNCTION_DELAY: Record<TransportProfile, number> = { driving: 7, cycling: 3, walking: 1.5 }
+/** How major a road class is, for who gives way at a junction. */
+const CLASS_RANK: Record<string, number> = { motorway: 6, trunk: 5, primary: 4, secondary: 3, tertiary: 2, minor: 1 }
+
+function rankOf(road: OfflineRoad | undefined): number {
+  return road ? CLASS_RANK[road.kind.split(':')[0]!] ?? 0 : 0
+}
+
+/** Seconds to turn round on the spot: a last resort when driving, nothing much on foot. */
+const UTURN_COST: Record<TransportProfile, number> = { driving: 60, cycling: 15, walking: 3 }
+
+/**
+ * Seconds a turn costs at a junction, by its angle, with traffic on the
+ * right: crossing the oncoming lane to turn left waits for a gap, a right
+ * turn mostly does not.
+ */
+function turnCost(profile: TransportProfile, delta: number, drivingSide: 'right' | 'left'): number {
+  const a = Math.abs(delta)
+  if (a < 25)
+    return 0
+  if (profile === 'walking')
+    return 1
+  // Positive is clockwise: a right turn, which crosses traffic where it
+  // drives on the left.
+  const across = (delta > 0) === (drivingSide === 'left')
+  const sharpness = Math.min(1, (a - 25) / 140)
+  if (profile === 'cycling')
+    return across ? 3 + sharpness * 3 : 1 + sharpness * 2
+  return across ? 6 + sharpness * 8 : 2 + sharpness * 4
+}
+
+/**
+ * Seconds lost passing through a junction, from what meets there: next to
+ * nothing straight along the bigger road, a stop or a light crossing or
+ * joining a bigger one. Without it a drive across a city grid comes out at
+ * motorway pace.
+ */
+function junctionDelay(profile: TransportProfile, straight: boolean, own: number, others: number): number {
+  if (straight && own >= others)
+    return profile === 'driving' ? 1 : 0.5
+  if (profile === 'walking')
+    return others >= CLASS_RANK.secondary! ? 8 : 1.5
+  if (profile === 'cycling')
+    return 2 + others
+  return 4 + 1.5 * others
+}
 
 interface Edge {
+  /** Its index in `RoadGraph.edgeList`: a state of the search. */
+  id: number
+  from: number
   to: number
   /** Metres. */
   length: number
@@ -61,17 +115,44 @@ interface Edge {
   road: number
 }
 
+/**
+ * A turn the law forbids, or the only one it allows, at `via`: coming from
+ * the road towards `from`, turning onto the road towards `to`. `from` and
+ * `to` are points a little way along each road, so the roads are told apart
+ * by their direction from `via`. OpenMapTiles tiles do not carry these;
+ * `restrictionsFromOverpass` reads them from OpenStreetMap.
+ */
+export interface TurnRestriction {
+  type: 'no' | 'only'
+  from: LatLngLike
+  via: LatLngLike
+  to: LatLngLike
+}
+
 export interface RoadGraphOptions {
   profile?: TransportProfile
+  /** Turns forbidden, or the only ones allowed, at junctions. */
+  restrictions?: TurnRestriction[]
+  /** Which side traffic keeps to, for which turns cross it. Default `'right'`. */
+  drivingSide?: 'right' | 'left'
 }
 
 /** A searchable road network, built once per set of roads and profile. */
 export class RoadGraph {
   profile: TransportProfile
+  drivingSide: 'right' | 'left'
   lat: number[] = []
   lng: number[] = []
   edges: Edge[][] = []
+  /** Every directed edge, by id. */
+  edgeList: Edge[] = []
   roads: OfflineRoad[]
+  /** Distinct neighbours along roads, per node: 3 or more is a junction. */
+  _degree: number[] = []
+  /** The roads touching each node, either way. */
+  _touching: number[][] = []
+  /** Restricted turns, by `from,via` node: the forbidden next nodes, or the only one allowed. */
+  _restricted: Map<string, { no: Set<number>, only?: Set<number> }> = new Map()
   _keys: Map<string, number> = new Map()
   /** Nodes where a road was cut at a tile edge, bucketed for sewing. */
   _cuts: Map<string, number[]> = new Map()
@@ -84,35 +165,177 @@ export class RoadGraph {
 
   constructor(roads: OfflineRoad[], options: RoadGraphOptions = {}) {
     this.profile = options.profile ?? 'driving'
+    this.drivingSide = options.drivingSide ?? 'right'
     this.roads = roads
     this._findJunctions()
     for (let r = 0; r < roads.length; r++)
       this._addRoad(r)
     this._splits.clear()
-    this._junctionDelays()
+    this._findDegrees()
+    this._findIslands()
+    // Turn restrictions bind vehicles; on foot every corner can be turned.
+    if (this.profile !== 'walking') {
+      for (const restriction of options.restrictions ?? [])
+        this._restrict(restriction)
+    }
+  }
+
+  /** Nodes on a piece of network that reaches next to nothing: a plaza's paths, a car park cut off by the tile. */
+  _island: Uint8Array = new Uint8Array(0)
+
+  /**
+   * Find the pieces of network too small to route anywhere from, so a
+   * waypoint is not snapped onto one when a street is a few metres further.
+   */
+  _findIslands(): void {
+    const n = this.size
+    const parent = new Int32Array(n).map((_, i) => i)
+    const find = (i: number): number => {
+      while (parent[i] !== i) {
+        parent[i] = parent[parent[i]!]!
+        i = parent[i]!
+      }
+      return i
+    }
+    for (const edge of this.edgeList) {
+      const a = find(edge.from)
+      const b = find(edge.to)
+      if (a !== b)
+        parent[a] = b
+    }
+    const sizes = new Map<number, number>()
+    for (let i = 0; i < n; i++)
+      sizes.set(find(i), (sizes.get(find(i)) ?? 0) + 1)
+    const largest = Math.max(0, ...sizes.values())
+    const enough = Math.min(largest, 50)
+    this._island = new Uint8Array(n)
+    for (let i = 0; i < n; i++)
+      this._island[i] = sizes.get(find(i))! < enough ? 1 : 0
+  }
+
+  _findDegrees(): void {
+    const neighbours = this.edges.map(() => new Set<number>())
+    for (const edge of this.edgeList) {
+      if (edge.road < 0)
+        continue
+      neighbours[edge.from]!.add(edge.to)
+      neighbours[edge.to]!.add(edge.from)
+    }
+    this._degree = neighbours.map(set => set.size)
+  }
+
+  _addEdge(from: number, to: number, length: number, cost: number, road: number): void {
+    const edge: Edge = { id: this.edgeList.length, from, to, length, cost, road }
+    this.edgeList.push(edge)
+    this.edges[from]!.push(edge)
+    if (road >= 0) {
+      for (const node of [from, to]) {
+        const list = this._touching[node] ??= []
+        if (!list.includes(road))
+          list.push(road)
+      }
+    }
+  }
+
+  /** The node within a few metres of `p`, if there is one. */
+  _nodeNear(p: LatLngLike, within: number = 12): number | undefined {
+    let best: number | undefined
+    let bestD = within
+    const cx = Math.floor(p.lat * 200)
+    const cy = Math.floor(p.lng * 200)
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (const id of this._grid.get(`${cx + dx},${cy + dy}`) ?? []) {
+          const d = haversine(p.lat, p.lng, this.lat[id]!, this.lng[id]!)
+          if (d < bestD) {
+            bestD = d
+            best = id
+          }
+        }
+      }
+    }
+    return best
+  }
+
+  /** The neighbour of `via` along a road whose direction from it is closest to `towards`. */
+  _neighbourTowards(via: number, towards: LatLngLike): number | undefined {
+    const want = bearing(this.lat[via]!, this.lng[via]!, towards.lat, towards.lng)
+    let best: number | undefined
+    let bestDiff = 35
+    const consider = (other: number): void => {
+      const diff = Math.abs(((bearing(this.lat[via]!, this.lng[via]!, this.lat[other]!, this.lng[other]!) - want + 540) % 360) - 180)
+      if (diff < bestDiff) {
+        bestDiff = diff
+        best = other
+      }
+    }
+    for (const edge of this.edges[via]!) {
+      if (edge.road >= 0)
+        consider(edge.to)
+    }
+    // One-way streets arriving at `via` have no edge out of it.
+    for (const edge of this.edgeList) {
+      if (edge.to === via && edge.road >= 0)
+        consider(edge.from)
+    }
+    return best
+  }
+
+  _restrict(restriction: TurnRestriction): void {
+    const via = this._nodeNear(restriction.via)
+    if (via === undefined)
+      return
+    const from = this._neighbourTowards(via, restriction.from)
+    const to = this._neighbourTowards(via, restriction.to)
+    if (from === undefined || to === undefined)
+      return
+    const key = `${from},${via}`
+    const entry = this._restricted.get(key) ?? { no: new Set<number>() }
+    if (restriction.type === 'only')
+      (entry.only ??= new Set()).add(to)
+    else
+      entry.no.add(to)
+    this._restricted.set(key, entry)
   }
 
   /**
-   * Time lost at junctions: lights, stop signs, giving way. Without it a
-   * drive across a city grid comes out at motorway pace.
+   * Seconds to go on from `v` to `w`, having come from `u`: the turn, and
+   * the junction. Infinity where the turn is not allowed.
    */
-  _junctionDelays(): void {
-    const delay = JUNCTION_DELAY[this.profile]
-    const neighbours = this.edges.map(() => new Set<number>())
-    this.edges.forEach((list, from) => {
-      for (const edge of list) {
-        if (edge.road < 0)
-          continue
-        neighbours[from]!.add(edge.to)
-        neighbours[edge.to]!.add(from)
-      }
-    })
-    for (const list of this.edges) {
-      for (const edge of list) {
-        if (edge.road >= 0 && neighbours[edge.to]!.size >= 3)
-          edge.cost += delay
-      }
+  _transition(u: number, v: number, w: number, inRoad: number, outRoad: number): number {
+    // Back the way it came, even across a sewn tile edge: never free.
+    if (w === u)
+      return UTURN_COST[this.profile]
+    if (inRoad < 0 || outRoad < 0)
+      return 0
+    const rule = this._restricted.get(`${u},${v}`)
+    if (rule && (rule.no.has(w) || (rule.only && !rule.only.has(w))))
+      return Number.POSITIVE_INFINITY
+    const delta = ((bearing(this.lat[v]!, this.lng[v]!, this.lat[w]!, this.lng[w]!) - bearing(this.lat[u]!, this.lng[u]!, this.lat[v]!, this.lng[v]!) + 540) % 360) - 180
+    if (Math.abs(delta) >= 165)
+      return UTURN_COST[this.profile]
+    if ((this._degree[v] ?? 0) < 3)
+      return 0
+    const into = this.roads[inRoad]
+    const onto = this.roads[outRoad]
+    const keys = new Set([roadKey(into), roadKey(onto)])
+    let others = 0
+    for (const r of this._touching[v] ?? []) {
+      if (!keys.has(roadKey(this.roads[r])))
+        others = Math.max(others, rankOf(this.roads[r]))
     }
+    const straight = Math.abs(delta) < 25
+    return turnCost(this.profile, delta, this.drivingSide) + junctionDelay(this.profile, straight, Math.min(rankOf(into), rankOf(onto)), others)
+  }
+
+  /** `_transition` between nodes, for a path already found. */
+  transitionCost(u: number, v: number, w: number): number {
+    const into = this._edge(u, v)
+    const onto = this._edge(v, w)
+    if (!into || !onto)
+      return 0
+    const cost = this._transition(u, v, w, into.road, onto.road)
+    return Number.isFinite(cost) ? cost : 0
   }
 
   /**
@@ -290,8 +513,8 @@ export class RoadGraph {
           if (other === id || haversine(lat, lng, this.lat[other]!, this.lng[other]!) > 3)
             continue
           if (!this.edges[id]!.some(e => e.to === other)) {
-            this.edges[id]!.push({ to: other, length: 0, cost: 0, road: -1 })
-            this.edges[other]!.push({ to: id, length: 0, cost: 0, road: -1 })
+            this._addEdge(id, other, 0, 0, -1)
+            this._addEdge(other, id, 0, 0, -1)
           }
         }
       }
@@ -322,9 +545,9 @@ export class RoadGraph {
       const length = haversine(this.lat[prev]!, this.lng[prev]!, this.lat[next]!, this.lng[next]!)
       const cost = length / mps
       if (oneway !== -1)
-        this.edges[prev]!.push({ to: next, length, cost, road: r })
+        this._addEdge(prev, next, length, cost, r)
       if (oneway !== 1)
-        this.edges[next]!.push({ to: prev, length, cost, road: r })
+        this._addEdge(next, prev, length, cost, r)
       prev = next
     }
     for (let i = 2; i < c.length; i += 2) {
@@ -340,9 +563,14 @@ export class RoadGraph {
     this._sew(prev)
   }
 
-  /** The nearest point on the network to `p`, as the edge it lies on. */
+  /**
+   * The nearest point on the network to `p`, as the edge it lies on. An edge
+   * on an island of network is passed over for one connected to everything
+   * else a short walk further.
+   */
   snap(p: LatLngLike): { from: number, to: number, t: number, lat: number, lng: number, distance: number } | undefined {
     let best: { from: number, to: number, t: number, lat: number, lng: number, distance: number } | undefined
+    let island: typeof best
     const kx = Math.cos(p.lat * RAD)
     const cx = Math.floor(p.lat * 200)
     const cy = Math.floor(p.lng * 200)
@@ -367,13 +595,22 @@ export class RoadGraph {
               const lat = ay + vy * t
               const lng = (ax + vx * t) / kx
               const distance = haversine(p.lat, p.lng, lat, lng)
-              if (!best || distance < best.distance)
+              if (this._island[a]) {
+                if (!island || distance < island.distance)
+                  island = { from: a, to: b, t, lat, lng, distance }
+              }
+              else if (!best || distance < best.distance) {
                 best = { from: a, to: b, t, lat, lng, distance }
+              }
             }
           }
         }
       }
     }
+    // Standing on an island, with the network well away: that is where
+    // the waypoint is, connected or not.
+    if (island && (!best || best.distance > island.distance + 60))
+      return island
     return best
   }
 
@@ -381,6 +618,10 @@ export class RoadGraph {
    * The quickest path between two points, as node ids with the virtual start
    * and end points on either side. `penalty` scales the cost of edges already
    * used, which is how alternatives are found.
+   *
+   * The search runs over edges rather than nodes, so each step knows the way
+   * it came in: a turn costs time by its angle, turning round costs more,
+   * and a forbidden turn cannot be made at all.
    */
   search(from: LatLngLike, to: LatLngLike, penalty?: Map<string, number>): { nodes: number[], start: ReturnType<RoadGraph['snap']>, end: ReturnType<RoadGraph['snap']> } | undefined {
     const start = this.snap(from)
@@ -388,16 +629,22 @@ export class RoadGraph {
     if (!start || !end)
       return undefined
 
-    const n = this.size
-    const START = n
-    const END = n + 1
-    const g = new Float64Array(n + 2).fill(Infinity)
-    const came = new Int32Array(n + 2).fill(-1)
-    const closed = new Uint8Array(n + 2)
+    // States are directed edges, by id, arriving at their `to`; then the
+    // virtual end.
+    const E = this.edgeList.length
+    const END = E
+    const g = new Float64Array(E + 1).fill(Infinity)
+    const came = new Int32Array(E + 1).fill(-1)
+    const closed = new Uint8Array(E + 1)
     const mps = this._maxSpeed / 3.6
-    const h = (id: number): number => id === END ? 0 : haversine(id === START ? start.lat : this.lat[id]!, id === START ? start.lng : this.lng[id]!, end.lat, end.lng) / mps
+    const h = (state: number): number => {
+      if (state === END)
+        return 0
+      const node = this.edgeList[state]!.to
+      return haversine(this.lat[node]!, this.lng[node]!, end.lat, end.lng) / mps
+    }
 
-    // Binary heap of [f, id].
+    // Binary heap of [f, state].
     const heap: Array<[number, number]> = []
     const push = (f: number, id: number): void => {
       heap.push([f, id])
@@ -437,79 +684,71 @@ export class RoadGraph {
       return top
     }
 
-    const edgeCost = (a: number, b: number, base: number): number => {
-      const p = penalty?.get(a < b ? `${a}-${b}` : `${b}-${a}`)
-      return p ? base * p : base
+    const edgeCost = (edge: Edge): number => {
+      const p = penalty?.get(edge.from < edge.to ? `${edge.from}-${edge.to}` : `${edge.to}-${edge.from}`)
+      return p ? edge.cost * p : edge.cost
     }
-
-    // From the snapped start, along its edge to either end — or only forward
-    // on a one-way street.
-    const startCost = (fraction: number): number => {
-      const edge = this.edges[start.from]!.find(e => e.to === start.to)
-      return edge ? edge.cost * fraction : 0
-    }
-    g[START] = 0
-    const reachable = (a: number, b: number): boolean => this.edges[a]!.some(e => e.to === b)
-    if (reachable(start.from, start.to)) {
-      g[start.to] = startCost(1 - start.t)
-      came[start.to] = START
-      push(g[start.to]! + h(start.to), start.to)
-    }
-    if (reachable(start.to, start.from)) {
-      const back = this.edges[start.to]!.find(e => e.to === start.from)!.cost * start.t
-      if (back < g[start.from]!) {
-        g[start.from] = back
-        came[start.from] = START
-        push(back + h(start.from), start.from)
+    const directed = (a: number, b: number): Edge | undefined => this.edges[a]!.find(e => e.to === b)
+    const offer = (state: number, cost: number, prior: number): void => {
+      if (cost < g[state]!) {
+        g[state] = cost
+        came[state] = prior
+        push(cost + h(state), state)
       }
     }
+
+    // From the snapped start along its edge to either end, or only forward
+    // on a one-way street. The start state is that edge itself, so the
+    // first turn off it is costed like any other.
+    const forward = directed(start.from, start.to)
+    const backward = directed(start.to, start.from)
+    if (forward)
+      offer(forward.id, forward.cost * (1 - start.t), -1)
+    if (backward)
+      offer(backward.id, backward.cost * start.t, -1)
     // Both on the same edge, heading the right way along it.
     if (start.from === end.from && start.to === end.to) {
-      const along = end.t >= start.t ? reachable(start.from, start.to) : reachable(start.to, start.from)
-      if (along) {
-        g[END] = this._edge(start.from, start.to)!.cost * Math.abs(end.t - start.t)
-        came[END] = START
-        push(g[END]!, END)
-      }
+      const along = end.t >= start.t ? forward : backward
+      if (along)
+        offer(END, along.cost * Math.abs(end.t - start.t), -1)
     }
 
-    const endEdge = (node: number): number | undefined => {
-      // Arriving at the end point from one of its edge's ends.
-      if (node === end.from && reachable(end.from, end.to))
-        return this.edges[end.from]!.find(e => e.to === end.to)!.cost * end.t
-      if (node === end.to && reachable(end.to, end.from))
-        return this.edges[end.to]!.find(e => e.to === end.from)!.cost * (1 - end.t)
-      return undefined
-    }
+    // Arriving at the end point from one of its edge's ends, turning onto it.
+    const endForward = directed(end.from, end.to)
+    const endBackward = directed(end.to, end.from)
 
     while (heap.length) {
-      const [, id] = pop()
-      if (closed[id])
+      const [, state] = pop()
+      if (closed[state])
         continue
-      closed[id] = 1
-      if (id === END)
+      closed[state] = 1
+      if (state === END)
         break
-      const last = endEdge(id)
-      if (last !== undefined && g[id]! + last < g[END]!) {
-        g[END] = g[id]! + last
-        came[END] = id
-        push(g[END]!, END)
+      const edge = this.edgeList[state]!
+      const v = edge.to
+      if (v === end.from && endForward) {
+        const turn = this._transition(edge.from, v, end.to, edge.road, endForward.road)
+        offer(END, g[state]! + turn + endForward.cost * end.t, state)
       }
-      for (const edge of this.edges[id]!) {
-        const cost = g[id]! + edgeCost(id, edge.to, edge.cost)
-        if (cost < g[edge.to]!) {
-          g[edge.to] = cost
-          came[edge.to] = id
-          push(cost + h(edge.to), edge.to)
-        }
+      if (v === end.to && endBackward) {
+        const turn = this._transition(edge.from, v, end.from, edge.road, endBackward.road)
+        offer(END, g[state]! + turn + endBackward.cost * (1 - end.t), state)
+      }
+      for (const next of this.edges[v]!) {
+        if (closed[next.id])
+          continue
+        const turn = this._transition(edge.from, v, next.to, edge.road, next.road)
+        if (!Number.isFinite(turn))
+          continue
+        offer(next.id, g[state]! + turn + edgeCost(next), state)
       }
     }
 
     if (!Number.isFinite(g[END]!))
       return undefined
     const nodes: number[] = []
-    for (let id = came[END]!; id !== START && id >= 0; id = came[id]!)
-      nodes.push(id)
+    for (let state = came[END]!; state >= 0; state = came[state]!)
+      nodes.push(this.edgeList[state]!.to)
     nodes.reverse()
     return { nodes, start, end }
   }
@@ -579,8 +818,12 @@ function hopCost(graph: RoadGraph, edge: Edge | undefined, road: OfflineRoad | u
  * flickering to another for a few metres and back is not two maneuvers, and
  * a jog of a few metres is not worth announcing.
  */
-function tidySteps(steps: RouteStep[]): RouteStep[] {
+function tidySteps(steps: RouteStep[], profile: TransportProfile = 'driving'): RouteStep[] {
   const straight = (s: RouteStep): boolean => s.maneuver === 'new-name-straight' || s.maneuver === 'continue'
+  // On foot, corners are where sidewalks, crosswalks and the street itself
+  // meet, mapped as separate lines a few metres apart. Crossing one to carry
+  // on is not a turn worth a step.
+  const walking = profile === 'walking'
   const absorb = (into: RouteStep, from: RouteStep): void => {
     into.geometry.push(...from.geometry.slice(1))
     into.distance += from.distance
@@ -591,8 +834,9 @@ function tidySteps(steps: RouteStep[]): RouteStep[] {
     const step = steps[i]!
     const prev = out[out.length - 1]
     const next = steps[i + 1]
-    // A–B–A: a short stretch under another name, then back.
-    if (prev && next && step.distance < 80 && straight(step) && straight(next) && next.name && next.name === prev.name) {
+    // A–B–A: a short stretch under another name, then back. On foot, any
+    // short stretch: crossing the side street to stay on the same one.
+    if (prev && next && step.distance < 80 && (walking ? step.distance < 40 : straight(step) && straight(next)) && next.name && next.name === prev.name) {
       absorb(prev, step)
       absorb(prev, next)
       i++
@@ -606,8 +850,13 @@ function tidySteps(steps: RouteStep[]): RouteStep[] {
       i++
       continue
     }
-    // A few metres, or a short unnamed jog: part of the step before.
+    // A few metres, or a short unnamed jog: part of the step before. On
+    // foot, any step that short before another is a corner being crossed.
     if (prev && (step.distance < 15 ? straight(step) : !step.name && step.distance < 30)) {
+      absorb(prev, step)
+      continue
+    }
+    if (walking && prev && next && step.distance < 30) {
       absorb(prev, step)
       continue
     }
@@ -657,6 +906,17 @@ function describe(graph: RoadGraph, found: NonNullable<ReturnType<RoadGraph['sea
   for (let i = 0; i < hops.length; i++)
     hops[i]!.road ??= hops[i - 1]?.road ?? hops.find(h => h.road)?.road
 
+  // The time turns and junctions took, on the hop arriving at each: the
+  // search counted it, and so does the time the route says it takes.
+  if (nodes.length) {
+    const seq = [nodes[0] === start!.to ? start!.from : start!.to, ...nodes, nodes[nodes.length - 1] === end!.from ? end!.to : end!.from]
+    for (let i = 1; i < seq.length - 1; i++) {
+      const hop = hops.find(h => h.node === seq[i])
+      if (hop)
+        hop.cost += graph.transitionCost(seq[i - 1]!, seq[i]!, seq[i + 1]!)
+    }
+  }
+
   // Break the path wherever the road changes, or bends hard at a junction.
   const steps: RouteStep[] = []
   let stepStart = 0
@@ -702,7 +962,7 @@ function describe(graph: RoadGraph, found: NonNullable<ReturnType<RoadGraph['sea
       flush(i, next)
   }
   flush(hops.length, 'arrive')
-  const tidy = tidySteps(steps)
+  const tidy = tidySteps(steps, graph.profile)
   steps.length = 0
   steps.push(...tidy)
 
@@ -802,4 +1062,49 @@ function joinLegs(legs: Route[]): Route {
     steps,
     legs,
   }
+}
+
+/**
+ * Turn restrictions from an Overpass API answer with geometry, as
+ *
+ * ```
+ * [out:json];
+ * relation["type"="restriction"](south,west,north,east);
+ * out geom;
+ * ```
+ *
+ * returns them. Each relation's `from` and `to` ways are read for the point
+ * next to the `via` node, which is all the router needs to tell the roads
+ * apart. Restrictions through a way rather than a node, and ones that apply
+ * to buses or bicycles only, are left out.
+ */
+export function restrictionsFromOverpass(answer: { elements?: Array<Record<string, any>> }): TurnRestriction[] {
+  const out: TurnRestriction[] = []
+  for (const element of answer.elements ?? []) {
+    const tags = element.tags ?? {}
+    const kind = String(tags.restriction ?? tags['restriction:motorcar'] ?? '')
+    const type = kind.startsWith('no_') ? 'no' : kind.startsWith('only_') ? 'only' : undefined
+    if (element.type !== 'relation' || !type)
+      continue
+    const members: Array<Record<string, any>> = element.members ?? []
+    const via = members.find(m => m.role === 'via' && m.type === 'node')
+    const from = members.find(m => m.role === 'from' && m.type === 'way')
+    const to = members.find(m => m.role === 'to' && m.type === 'way')
+    if (!via || !from?.geometry?.length || !to?.geometry?.length)
+      continue
+    const at = { lat: Number(via.lat), lng: Number(via.lon) }
+    // The way's vertex next to the via node, from whichever end touches it.
+    const beside = (geometry: Array<{ lat: number, lon: number }>): LatLngLike | undefined => {
+      const first = geometry[0]!
+      const last = geometry[geometry.length - 1]!
+      const near = (p: { lat: number, lon: number }): boolean => haversine(p.lat, p.lon, at.lat, at.lng) < 2
+      const point = near(first) ? geometry[1] : near(last) ? geometry[geometry.length - 2] : undefined
+      return point ? { lat: point.lat, lng: point.lon } : undefined
+    }
+    const a = beside(from.geometry)
+    const b = beside(to.geometry)
+    if (a && b && Number.isFinite(at.lat) && Number.isFinite(at.lng))
+      out.push({ type, from: a, via: at, to: b })
+  }
+  return out
 }

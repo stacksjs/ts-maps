@@ -29,3 +29,6 @@ packages/*/src/**/*.d.ts
 # scripts/build-tiles.ts work directory and output
 .tiles-build
 *.pmtiles
+
+# Test fixtures: real tiles, gzipped to keep them small.
+!packages/ts-maps/test/fixtures/*.gz

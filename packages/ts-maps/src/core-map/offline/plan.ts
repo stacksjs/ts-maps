@@ -9,6 +9,7 @@
  */
 
 import type { OfflineGlyphs, OfflinePlan } from './OfflineStore'
+import type { TurnRestriction } from './router'
 import { isPMTilesUrl, pmtilesSourceUrl, pmtilesTileUrl } from '../pmtiles/protocol'
 import { glyphUrl } from '../symbols/loadGlyphs'
 import { spriteUrl } from '../symbols/loadSprite'
@@ -61,6 +62,12 @@ export interface OfflineArea {
    * zoom. Default 12.
    */
   terrainMaxZoom?: number
+  /**
+   * Turn restrictions for the offline router, which OpenMapTiles tiles do
+   * not carry: "no left turn", "only straight on". `restrictionsFromOverpass`
+   * reads them from OpenStreetMap.
+   */
+  restrictions?: TurnRestriction[]
 }
 
 export interface PlannedArea {
@@ -404,7 +411,7 @@ export function planArea(area: OfflineArea): PlannedArea {
           }
         }
       }
-      return { urls: [...urls], index, ...(glyphs ? { glyphs } : {}), ...(terrain.length ? { terrain } : {}) }
+      return { urls: [...urls], index, ...(glyphs ? { glyphs } : {}), ...(terrain.length ? { terrain } : {}), ...(area.restrictions?.length ? { restrictions: area.restrictions } : {}) }
     },
   }
 }

@@ -381,10 +381,13 @@ describe('offline directions', () => {
     expect(codes).toEqual(['depart', 'turn-right', 'arrive'])
     expect(route!.steps[0]!.name).toBe('Market Street')
     expect(route!.steps[1]!.instruction).toBe('Turn right onto Van Ness Avenue')
-    // About 1.3 km at 30 km/h.
+    // About 1.3 km at 30 km/h, and a right turn at the corner: a few
+    // seconds to slow and give way, but no gap in oncoming traffic to wait for.
     expect(route!.distance).toBeGreaterThan(1000)
     expect(route!.distance).toBeLessThan(1600)
-    expect(route!.duration).toBeCloseTo(route!.distance / (30 / 3.6), 0)
+    const turn = route!.duration - route!.distance / (30 / 3.6)
+    expect(turn).toBeGreaterThan(4)
+    expect(turn).toBeLessThan(12)
   })
 
   test('joins streets the tiles simplified apart, but not a bridge to the road below', () => {

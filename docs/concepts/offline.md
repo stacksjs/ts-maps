@@ -110,6 +110,25 @@ The offline router runs A* over the downloaded roads for driving, walking or cyc
 
 Tiles are simplified when they are made, which drops junction vertices along straight streets. The graph finds those junctions again: at every crossing, and wherever a road ends on another. Roads at different levels are never joined, so a bridge does not connect to the street below it.
 
+- **Turns cost time.** The search runs over road segments rather than junctions, so it knows which way it arrived: going straight costs nothing, a turn with the traffic a few seconds, a turn across it more, and turning round most of all. Of two routes as long, the one with fewer, easier turns wins, as Apple's do. `drivingSide: 'left'` on `RoadGraph` flips which turns cross traffic.
+- **Junctions cost what meets there.** Carrying straight on along the bigger road costs next to nothing; joining or crossing a bigger one costs a stop or a light, more the bigger it is. On foot, crossing a main road is a wait for the lights.
+- **Who may use a road.** `access`, `foot` and `bicycle` are read from the tiles: a street closed to traffic is driven round and walked through, a footway marked `foot=no` is not walked. Driveways and parking aisles are slow, so they are used to reach a door rather than to cut through.
+- **Walking directions** fold a corner's sidewalks, crosswalks and the street itself into one step: crossing a side street to stay on the same one is not a turn.
+- **A waypoint by a scrap of network** cut off from everything else, a plaza's paths or a car park, snaps to the connected street a short walk away instead.
+
+OpenMapTiles tiles carry no turn restrictions ("no left turn", "only straight on"), no lanes and no traffic signals, so offline routes ignore them unless told. Restrictions can be downloaded with an area, from OpenStreetMap:
+
+```ts
+import { restrictionsFromOverpass } from 'ts-maps'
+
+const [w, s, e, n] = bounds
+const query = `[out:json];relation["type"="restriction"](${s},${w},${n},${e});out geom;`
+const answer = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`).then(r => r.json())
+await map.offline.download({ bounds, restrictions: restrictionsFromOverpass(answer) })
+```
+
+They bind driving and cycling, not walking. Lane guidance is an online provider's: offline steps carry no `lanes`.
+
 Search, reverse geocoding and routing read the tiles' schema, found from their layer names: **OpenMapTiles** (what OpenFreeMap, MapTiler and planetiler publish, and what the built-in styles draw), **Protomaps**, **Shortbread** (VersaTiles, Geofabrik) and **Mapbox Streets v8**. Each is read into one vocabulary, OpenMapTiles' place kinds and road classes, so a café is a `cafe` and a residential street a `minor` road whichever schema it came in. A schema of your own is a `TileSchema` object passed as `new OfflineMaps({ schema })`; the four built in are exported as `OPENMAPTILES`, `PROTOMAPS`, `SHORTBREAD` and `MAPBOX_STREETS`, and `renamedOpenMapTiles({ transportation: 'road' })` matches a style built with `sourceLayers`.
 
 ### Opening the page with no connection
