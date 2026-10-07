@@ -53,7 +53,7 @@ await map.offline.usage()         // { bytes, entries } on this device
 
 - **Which tiles are downloaded.** An area is downloaded for every tile layer on the map. Each layer is asked for its URLs exactly as it asks while drawing: subdomain, retina suffix and 512px zoom shift included. What is stored is therefore exactly what the map later requests.
 - **Zoom range.** A vector source is kept to its top zoom by default; past that, its tiles are drawn sharply by overzooming. Image layers stop at zoom 16 unless `maxZoom` says otherwise.
-- **Style files.** The style's sprite sheets, the common glyph ranges, and the style document (when it was loaded from a URL) are kept too.
+- **Style files.** The style's sprite sheets, its glyphs, and the style document (when it was loaded from a URL) are kept too. Glyphs are kept for the Latin ranges up front, then for every script the area's names are written in: once the tiles are in, the names the style labels with (`name`, usually, read from its `text-field`) are scanned, and the ranges they need, Cyrillic in Sofia or Arabic in Cairo, are added to the download. `glyphRanges: [1024]` asks for more up front, by the first code point of each range. Styles drawn with local fonts, as the built-in ones are, need no glyph server and download none.
 - **Without a map.** Download from URL templates by passing `sources: [{ url, type, tileSize, maxZoom }]`.
 - **Size limit.** An area over `maxTiles` (150,000 by default) is refused; `estimate()` reports it as `tooLarge`.
 

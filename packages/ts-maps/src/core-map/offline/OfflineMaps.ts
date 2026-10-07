@@ -20,9 +20,9 @@ import type { RouteOptions } from './router'
 import { Evented } from '../core/Events'
 import { pmtilesFetch, withPMTiles } from '../pmtiles/protocol'
 import { saveOfflineRegion } from '../storage/offlineRegion'
-import { extractTile, mergePlaces } from './extract'
+import { extractTile, labelGlyphRanges, mergePlaces } from './extract'
 import { IndexedDBOfflineStore, MemoryOfflineStore } from './OfflineStore'
-import { normalizeBounds, planArea } from './plan'
+import { glyphUrls, normalizeBounds, planArea } from './plan'
 import { RoadGraph, routeOnGraph } from './router'
 import { OfflineDirections, OfflineGeocoder } from './search'
 
@@ -547,8 +547,20 @@ export class OfflineMaps extends Evented {
     }
     else {
       await this.store.putIndex(region.id, await this._buildIndex(plan))
-      region.status = 'complete'
-      this._learn(region.bytes, region.downloaded)
+      // Names in other scripts need their own glyph ranges, which only the
+      // tiles can say: Cyrillic in Sofia, Arabic in Cairo.
+      if (plan.glyphs && !(await this._fetchGlyphs(region, plan, refresh, job))) {
+        // Stopped part way (`job.stop` is set by now, whatever TypeScript
+        // narrowed it to above), or a range would not download.
+        const stopped = (job as Job).stop
+        region.status = stopped ? 'paused' : 'error'
+        if (!stopped)
+          region.error = 'Some label glyphs could not be downloaded'
+      }
+      else {
+        region.status = 'complete'
+        this._learn(region.bytes, region.downloaded)
+      }
     }
     region.updatedAt = Date.now()
     await this._save(region)
@@ -611,6 +623,43 @@ export class OfflineMaps extends Evented {
     await this.store.putTile(url, { data, mime })
     await this.store.putRefs(url, { regions: holders.includes(id) ? holders : [...holders, id], bytes: data.byteLength })
     return data.byteLength
+  }
+
+  /**
+   * Download the glyph ranges the area's labels need beyond those planned,
+   * and add them to its plan so they are updated and deleted with it.
+   * Whether every one arrived.
+   */
+  async _fetchGlyphs(region: OfflineRegionRecord, plan: OfflinePlan, refresh: boolean, job: Job): Promise<boolean> {
+    const glyphs = plan.glyphs!
+    const needed = new Set<number>()
+    for (const { url } of plan.index) {
+      const tile = await this.store.getTile(url)
+      if (tile?.data.byteLength)
+        labelGlyphRanges(tile.data, glyphs.keys, needed)
+    }
+    const ranges = [...needed].filter(r => !glyphs.ranges.includes(r)).sort((a, b) => a - b)
+    if (!ranges.length)
+      return true
+    const urls = glyphUrls(glyphs, ranges).filter(url => !plan.urls.includes(url))
+    region.tiles += urls.length
+    let ok = true
+    for (const url of urls) {
+      if (job.stop)
+        return false
+      try {
+        region.bytes += await this._fetchInto(url, region.id, refresh, job.abort.signal)
+        region.downloaded++
+      }
+      catch {
+        ok = false
+      }
+    }
+    plan.urls.push(...urls)
+    plan.glyphs = { ...glyphs, ranges: [...glyphs.ranges, ...ranges].sort((a, b) => a - b) }
+    await this.store.putPlan(region.id, plan)
+    this.fire('progress', { region: { ...region } })
+    return ok
   }
 
   async _buildIndex(plan: OfflinePlan): Promise<OfflineIndex> {

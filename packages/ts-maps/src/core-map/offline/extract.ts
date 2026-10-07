@@ -379,3 +379,40 @@ export function mergePlaces(places: OfflinePlace[]): OfflinePlace[] {
   }
   return out
 }
+
+/**
+ * The 256-code-point glyph ranges a tile's labels need: every block a
+ * character of `keys` (the properties labels are drawn from) falls in, added
+ * to `into`. Whitespace and the Latin blocks are skipped, since every
+ * download keeps those.
+ */
+export function labelGlyphRanges(bytes: Uint8Array, keys: readonly string[], into: Set<number> = new Set()): Set<number> {
+  if (!bytes.length)
+    return into
+  let tile: VectorTile
+  try {
+    tile = new VectorTile(new Pbf(bytes))
+  }
+  catch {
+    return into
+  }
+  for (const name of Object.keys(tile.layers)) {
+    const layer = tile.layers[name]!
+    for (let i = 0; i < layer.length; i++) {
+      const props = layer.feature(i).properties as Record<string, unknown>
+      for (const key of keys) {
+        const value = props[key]
+        if (typeof value !== 'string')
+          continue
+        for (const ch of value) {
+          const cp = ch.codePointAt(0)!
+          // Latin and its punctuation are always downloaded.
+          if (cp < 512 || (cp >= 8192 && cp < 8448))
+            continue
+          into.add(Math.floor(cp / 256) * 256)
+        }
+      }
+    }
+  }
+  return into
+}

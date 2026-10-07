@@ -49,6 +49,22 @@ export interface OfflinePlan {
   urls: string[]
   /** Vector tiles at their source's top zoom: what search and routing read. */
   index: Array<{ url: string, z: number, x: number, y: number }>
+  /**
+   * The style's glyph server, for the scripts the area's names are written
+   * in. Ranges past the Latin ones are added once the tiles are read.
+   */
+  glyphs?: OfflineGlyphs
+}
+
+export interface OfflineGlyphs {
+  /** The style's `glyphs` URL template. */
+  template: string
+  /** Every `text-font` stack the style's labels use. */
+  stacks: string[]
+  /** The feature properties labels are drawn from: `name`, usually. */
+  keys: string[]
+  /** Range starts already in `urls`. */
+  ranges: number[]
 }
 
 /** A named place found in a region's tiles, for offline search. */

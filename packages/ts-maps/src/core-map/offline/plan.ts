@@ -8,7 +8,7 @@
  * map will later request. Without one, a region is described by URL templates.
  */
 
-import type { OfflinePlan } from './OfflineStore'
+import type { OfflineGlyphs, OfflinePlan } from './OfflineStore'
 import { isPMTilesUrl, pmtilesSourceUrl, pmtilesTileUrl } from '../pmtiles/protocol'
 import { glyphUrl } from '../symbols/loadGlyphs'
 import { spriteUrl } from '../symbols/loadSprite'
@@ -48,6 +48,12 @@ export interface OfflineArea {
   sources?: OfflineSource[]
   /** Other URLs to keep: a TileJSON, a style document. */
   resources?: string[]
+  /**
+   * Glyph ranges to keep, by their first code point (`1024` for Cyrillic,
+   * `19968` and up for CJK), as well as the Latin ones and whatever the
+   * area's names turn out to need. Only for a style with a `glyphs` server.
+   */
+  glyphRanges?: number[]
 }
 
 export interface PlannedArea {
@@ -58,6 +64,8 @@ export interface PlannedArea {
   /** Tiles and resources together. */
   count: number
   kinds: { vector: number, raster: number, resource: number }
+  /** The style's glyph server, when it has one. */
+  glyphs?: OfflineGlyphs
   /** Builds the full URL list, which for a large area is worth not doing twice. */
   build: () => OfflinePlan
 }
@@ -207,7 +215,59 @@ function jobForLayer(layer: any, minZoom: number, maxZoom: number | undefined): 
 }
 
 /** The style's own files: sprite sheets, glyph ranges for common scripts, and the style document. */
-function styleResources(map: any): string[] {
+/** Basic Latin, Latin-1 and Latin Extended, and general punctuation. */
+export const LATIN_GLYPH_RANGES: readonly number[] = [0, 256, 8192]
+
+/**
+ * The properties a style's labels read: `name` from `['get', 'name']` or
+ * `'{name}'`, and so on. Fallbacks in a `coalesce` count too.
+ */
+export function labelKeys(layers: any[]): string[] {
+  const keys = new Set<string>()
+  const walk = (value: unknown): void => {
+    if (typeof value === 'string') {
+      for (const m of value.matchAll(/\{([^{}]+)\}/g))
+        keys.add(m[1]!)
+    }
+    else if (Array.isArray(value)) {
+      if (value[0] === 'get' && typeof value[1] === 'string')
+        keys.add(value[1])
+      for (const v of value) walk(v)
+    }
+  }
+  for (const layer of layers) {
+    if (layer?.type === 'symbol')
+      walk(layer.layout?.['text-field'])
+  }
+  return keys.size ? [...keys] : ['name']
+}
+
+function styleGlyphs(spec: any, extra: number[] = []): OfflineGlyphs | undefined {
+  if (typeof spec?.glyphs !== 'string')
+    return undefined
+  const stacks = new Set<string>()
+  for (const layer of spec.layers ?? []) {
+    const font = layer.layout?.['text-font']
+    if (Array.isArray(font) && font.every((f: unknown) => typeof f === 'string'))
+      stacks.add(font.join(','))
+  }
+  if (!stacks.size)
+    return undefined
+  const ranges = [...new Set([...LATIN_GLYPH_RANGES, ...extra.map(r => Math.floor(r / 256) * 256)])].sort((a, b) => a - b)
+  return { template: spec.glyphs, stacks: [...stacks], keys: labelKeys(spec.layers ?? []), ranges }
+}
+
+/** Every glyph URL for some ranges of a style's fonts. */
+export function glyphUrls(glyphs: OfflineGlyphs, ranges: readonly number[]): string[] {
+  const out: string[] = []
+  for (const stack of glyphs.stacks) {
+    for (const start of ranges)
+      out.push(glyphUrl(glyphs.template, stack, start))
+  }
+  return out
+}
+
+function styleResources(map: any, glyphs: OfflineGlyphs | undefined): string[] {
   const out: string[] = []
   if (typeof map?._styleUrl === 'string')
     out.push(map._styleUrl)
@@ -221,20 +281,10 @@ function styleResources(map: any): string[] {
     for (const ratio of [1, 2])
       out.push(spriteUrl(base, 'json', ratio), spriteUrl(base, 'png', ratio))
   }
-  if (typeof spec.glyphs === 'string') {
-    const stacks = new Set<string>()
-    for (const layer of spec.layers ?? []) {
-      const font = layer.layout?.['text-font']
-      if (Array.isArray(font) && font.every((f: unknown) => typeof f === 'string'))
-        stacks.add(font.join(','))
-    }
-    // Basic Latin, Latin-1, Latin Extended, and general punctuation: enough
-    // for the names in most of the world's street maps.
-    for (const stack of stacks) {
-      for (const start of [0, 256, 8192])
-        out.push(glyphUrl(spec.glyphs, stack, start))
-    }
-  }
+  // The Latin ranges cover the names in most of the world's street maps, and
+  // any asked for; others are added once the area's names have been read.
+  if (glyphs)
+    out.push(...glyphUrls(glyphs, glyphs.ranges))
   return out
 }
 
@@ -272,7 +322,8 @@ export function planArea(area: OfflineArea): PlannedArea {
   // An archive's TileJSON is kept with its tiles: offline, it is how the map
   // learns the archive's top zoom (see `VectorTileMapLayer.sourceReady`).
   const archives = jobs.filter(job => isPMTilesUrl(job.template)).map(job => pmtilesSourceUrl(job.template))
-  const resources = [...new Set([...(area.map ? styleResources(area.map) : []), ...archives, ...(area.resources ?? [])])]
+  const glyphs = area.map ? styleGlyphs(area.map._style?.spec, area.glyphRanges) : undefined
+  const resources = [...new Set([...(area.map ? styleResources(area.map, glyphs) : []), ...archives, ...(area.resources ?? [])])]
   const kinds = { vector: 0, raster: 0, resource: resources.length }
   let top = minZoom
   for (const job of jobs) {
@@ -289,6 +340,7 @@ export function planArea(area: OfflineArea): PlannedArea {
     sources: jobs.map(j => j.template),
     count: kinds.vector + kinds.raster + kinds.resource,
     kinds,
+    ...(glyphs ? { glyphs } : {}),
     build: () => {
       const urls = new Set<string>(resources)
       const index: OfflinePlan['index'] = []
@@ -307,7 +359,7 @@ export function planArea(area: OfflineArea): PlannedArea {
           }
         }
       }
-      return { urls: [...urls], index }
+      return { urls: [...urls], index, ...(glyphs ? { glyphs } : {}) }
     },
   }
 }
