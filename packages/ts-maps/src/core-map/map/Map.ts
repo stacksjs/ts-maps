@@ -190,6 +190,16 @@ export interface TerrainOptions {
   exaggeration?: number
 }
 
+/** Whether the reader has asked the system for less motion. */
+export function prefersReducedMotion(): boolean {
+  try {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+  }
+  catch {
+    return false
+  }
+}
+
 // The central class of the API — used to create a map on a page and manipulate it.
 export class TsMap extends Evented {
   static _pointerEvents: string[] = ['click', 'dblclick', 'pointerover', 'pointerout', 'contextmenu']
@@ -573,8 +583,8 @@ export class TsMap extends Evented {
 
   flyTo(targetCenter: any, targetZoom?: number, options?: any): this {
     options ??= {}
-    if (options.animate === false)
-    return this.setView(targetCenter, targetZoom, options)
+    if (options.animate === false || (prefersReducedMotion() && !options.essential))
+      return this.setView(targetCenter, targetZoom, { ...options, animate: false })
 
     this._stop()
 
@@ -1095,6 +1105,8 @@ export class TsMap extends Evented {
     easing?: EasingFunction
     padding?: any
     noMoveStart?: boolean
+    /** Animate even when the reader prefers reduced motion. */
+    essential?: boolean
   } = {}): this {
     // Cancel any in-flight animation on this map. `_camAnim.run` would do
     // this too, but we also need to quiesce the legacy pan/fly fallbacks.
@@ -1112,7 +1124,9 @@ export class TsMap extends Evented {
       : startBearing
     const endPitch = typeof options.pitch === 'number' ? this._clampPitch(options.pitch) : startPitch
 
-    const duration = options.duration ?? 300
+    // A reader who asked for less motion gets the view without the journey,
+    // unless the animation is the point (`essential`, as Mapbox has it).
+    const duration = prefersReducedMotion() && !(options as { essential?: boolean }).essential ? 0 : options.duration ?? 300
 
     const centerChanged = !startCenter.equals(endCenter)
     const zoomChanged = Math.abs(endZoom - startZoom) > 1e-9

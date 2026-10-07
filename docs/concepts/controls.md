@@ -14,6 +14,30 @@ Every control's colours come from the theme tokens described in
 [Styles & theming](./styles-and-theming.md), so they follow `map.setTheme()`
 without any per-control configuration.
 
+## Accessibility
+
+The panels follow WAI-ARIA's patterns, so a screen reader and a keyboard can
+use them:
+
+- **Search** is a combobox: the field names the highlighted row with
+  `aria-activedescendant` as the arrow keys move, and a live region says how
+  many results a search found and which place was chosen. Closing a place's
+  card puts the keyboard back in the field.
+- **Offline Maps** and the **map type picker** are dialogs: opening one from
+  its button moves the keyboard into it, Escape closes it and returns to the
+  button. Each map's buttons name it ("Pause San Francisco download"), and a
+  download is a `progressbar` with its value. The area picker's corners take
+  focus with Tab and move with the arrow keys (Shift for bigger steps), and
+  the area is described in words: "About 2.1 × 1.4 km · Estimated size: 312 MB".
+- **Turn-by-turn**'s banner is a polite live region, so the next maneuver is
+  read out as it changes; End and mute say what they do.
+- **Motion:** with `prefers-reduced-motion`, `flyTo` and `easeTo` jump rather
+  than fly (pass `essential: true` where the animation is the point), and pins
+  and cards appear without moving.
+- **Contrast:** text on the panels is at 4.5:1 or better in both themes.
+  Action blue is `#0066cc` in light and `#5eb0ff` in dark rather than Apple's
+  `#0a84ff`, which is 3.6:1 on white.
+
 ## Zoom and navigation
 
 `control.zoom()` is the plain `+`/`−` pair, and is added automatically unless

@@ -125,6 +125,9 @@ function sameCategories(a: SearchCategory[] | undefined, b: SearchCategory[] | u
 
 const CLASS = 'tsmap-search'
 
+/** Search controls on the page, for ids no two share. */
+let searchControls = 0
+
 type Row
   = | { type: 'query', query: string }
     | { type: 'category', category: SearchCategory }
@@ -186,6 +189,7 @@ export class SearchControl extends Control {
   declare _details: Map<string, PlaceDetails | null>
   /** Favorites drawn on the map as stars, by place id. */
   declare _stars: Map<string, Marker>
+  declare _uid?: number
   declare _unsave?: () => void
   declare _detailsAbort?: AbortController
   declare _selectedId?: string
@@ -211,6 +215,12 @@ export class SearchControl extends Control {
     this._stars = new Map()
   }
 
+  /** The id of the list of rows, which the field says it controls. */
+  get _listId(): string {
+    this._uid ??= ++searchControls
+    return `tsmap-search-${this._uid}-list`
+  }
+
   onAdd(map: any): HTMLElement {
     this.engine = new SearchEngine({ map, provider: this.options.provider, offline: this.options.offline, language: this.options.language, schema: this.options.schema })
     this._hookSaved()
@@ -219,12 +229,13 @@ export class SearchControl extends Control {
       <div class="${CLASS}-field">
         <span class="${CLASS}-icon">${MAGNIFIER}</span>
         <input class="${CLASS}-input" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search"
-          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-label="Search Maps"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="${this._listId}" aria-label="Search Maps"
           placeholder="${escape(this.options.placeholder ?? 'Search Maps')}">
         <button class="${CLASS}-clear" type="button" aria-label="Clear">✕</button>
         <button class="${CLASS}-cancel" type="button">Cancel</button>
       </div>
-      <div class="${CLASS}-body" role="listbox"></div>`
+      <div class="${CLASS}-body" role="listbox" aria-label="Search results" id="${this._listId}"></div>
+      <div class="tsmap-sr-only" role="status" aria-live="polite"></div>`
     this._input = container.querySelector<HTMLInputElement>(`.${CLASS}-input`)!
     this._body = container.querySelector<HTMLElement>(`.${CLASS}-body`)!
 
@@ -313,6 +324,7 @@ export class SearchControl extends Control {
       map.flyTo ? map.flyTo([place.center.lat, place.center.lng], zoom) : map.setView([place.center.lat, place.center.lng], zoom)
     }
     this._show('place')
+    this._announce([place.name, kindLabel(place.kind), place.address].filter(Boolean).join(', '))
     this._emit('select', { place })
     void this._loadDetails(place)
     return this
@@ -357,6 +369,13 @@ export class SearchControl extends Control {
       this._emit('details', { place, details })
     }
     return details
+  }
+
+  /** Say something to a screen reader, through the control's live region. */
+  _announce(text: string): void {
+    const region = this._container?.querySelector<HTMLElement>('.tsmap-sr-only')
+    if (region)
+      region.textContent = text
   }
 
   /** The favorites and guides Save adds to: the one given, or the page's. */
@@ -687,8 +706,18 @@ export class SearchControl extends Control {
       this._active = e.key === 'ArrowDown'
         ? (this._active + 1) % rows.length
         : (this._active <= 0 ? rows.length : this._active) - 1
-      rows.forEach((row, i) => row.classList.toggle(`${CLASS}-active`, i === this._active))
-      rows[this._active]?.scrollIntoView?.({ block: 'nearest' })
+      rows.forEach((row, i) => {
+        row.classList.toggle(`${CLASS}-active`, i === this._active)
+        row.setAttribute('aria-selected', String(i === this._active))
+      })
+      const row = rows[this._active]
+      if (row) {
+        // Focus stays in the field; the screen reader is told which row is
+        // highlighted, as a combobox should.
+        row.id ||= `${this._listId}-${row.dataset.row}`
+        this._input!.setAttribute('aria-activedescendant', row.id)
+        row.scrollIntoView?.({ block: 'nearest' })
+      }
     }
     else if (e.key === 'Enter') {
       e.preventDefault()
@@ -705,12 +734,16 @@ export class SearchControl extends Control {
 
   /** One step back: card to results, results to an empty box, then closed. */
   _back(): void {
+    const fromCard = this._view === 'place'
     if (this._view === 'place' && this._results.length)
       this._show('results')
     else if (this._view === 'results' || this._view === 'place' || this._view === 'suggest')
       this.cancel()
     else
       this._show('idle')
+    // Closing a card puts the keyboard back in the field it was opened from.
+    if (fromCard)
+      this._input?.focus()
   }
 
   _choose(row: Row): void {
@@ -804,6 +837,7 @@ export class SearchControl extends Control {
   _show(view: View, extra: { loading?: boolean, title?: string } = {}): void {
     this._view = view
     this._active = -1
+    this._input?.removeAttribute('aria-activedescendant')
     this._container?.classList.toggle(`${CLASS}-open`, view !== 'idle')
     // On a phone the list shares the screen with the pins it describes.
     this._container?.classList.toggle(`${CLASS}-sheet`, view === 'results' || view === 'place')
@@ -850,9 +884,9 @@ export class SearchControl extends Control {
     ]
     const units = this._units()
     const chips = categories.map((category, i) => `
-      <button class="${CLASS}-chip" type="button" data-row="${i}">${badge(category.icon, 40)}<span>${escape(category.label)}</span></button>`).join('')
+      <button class="${CLASS}-chip" type="button" role="option" aria-selected="false" data-row="${i}">${badge(category.icon, 40)}<span>${escape(category.label)}</span></button>`).join('')
     const favoriteChips = favorites.map((place, j) => `
-      <button class="${CLASS}-chip" type="button" data-row="${categories.length + j}">${badge(place.icon, 40)}<span>${escape(place.name)}</span></button>`).join('')
+      <button class="${CLASS}-chip" type="button" role="option" aria-selected="false" data-row="${categories.length + j}">${badge(place.icon, 40)}<span>${escape(place.name)}</span></button>`).join('')
     const guideRows = guides.map((guide, j) => this._rowHtml(categories.length + favorites.length + j, `<span class="${CLASS}-glyph">${BOOK}</span>`, escape(guide.name), `${guide.places.length} ${guide.places.length === 1 ? 'place' : 'places'}`)).join('')
     const recentRows = recents.map((entry, j) => {
       const i = categories.length + favorites.length + guides.length + j
@@ -871,7 +905,7 @@ export class SearchControl extends Control {
   }
 
   _rowHtml(index: number, icon: string, title: string, detail: string): string {
-    return `<div class="${CLASS}-row" role="option" data-row="${index}">${icon}<div class="${CLASS}-row-text"><div class="${CLASS}-row-title">${title}</div>${detail ? `<div class="${CLASS}-row-detail">${detail}</div>` : ''}</div></div>`
+    return `<div class="${CLASS}-row" role="option" aria-selected="false" data-row="${index}">${icon}<div class="${CLASS}-row-text"><div class="${CLASS}-row-title">${title}</div>${detail ? `<div class="${CLASS}-row-detail">${detail}</div>` : ''}</div></div>`
   }
 
   _showSuggestions(query: string, places: SearchPlace[]): void {
@@ -910,6 +944,8 @@ export class SearchControl extends Control {
     this._layoutPins()
     this._fitResults(places)
     this._show('results')
+    const title = what.query ?? what.category?.label
+    this._announce(places.length ? `${places.length} ${places.length === 1 ? 'result' : 'results'}${title ? ` for ${title}` : ''}` : `No results${title ? ` for ${title}` : ''}`)
     this._emit('results', { ...what, places })
   }
 

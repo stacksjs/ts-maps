@@ -4,6 +4,8 @@ import type { GeocoderProvider } from '../services/types'
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { Rectangle } from '../layer/vector/Rectangle'
+import { distanceMeters } from '../search/SearchEngine'
+import { formatDistance, prefersImperial } from '../services/instructions'
 import { offlineMaps } from '../offline/OfflineMaps'
 import { unitToLat, unitToLng } from '../offline/plan'
 import { Control } from './Control'
@@ -78,6 +80,9 @@ export interface OfflineMapsTarget extends Omit<OfflineMapsControlOptions, 'maps
 
 const CLASS = 'tsmap-offline'
 
+/** Offline maps controls on the page, for ids no two share. */
+let offlineControls = 0
+
 const ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>'
 
 /** "850 KB", "312 MB", "1.2 GB". */
@@ -102,6 +107,19 @@ function day(time: number): string {
   return new Date(time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: new Date(time).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' })
 }
 
+/**
+ * How big an area is, as it would be said: "About 2.1 × 1.4 km". What the
+ * picker's frame shows, in words, for those who cannot see it.
+ */
+export function areaSize([w, s, e, n]: [number, number, number, number], units: 'metric' | 'imperial' = prefersImperial() ? 'imperial' : 'metric'): string {
+  const midLat = (s + n) / 2
+  const across = distanceMeters({ lat: midLat, lng: w }, { lat: midLat, lng: e })
+  const down = distanceMeters({ lat: s, lng: w }, { lat: n, lng: w })
+  const [a, unit] = formatDistance(across, units).split(' ')
+  const [b, unitB] = formatDistance(down, units).split(' ')
+  return unit === unitB ? `About ${a} × ${b} ${unit}` : `About ${a} ${unit} × ${b} ${unitB}`
+}
+
 /** Place classes, most important first: what an area is named after. */
 const NAMING = ['country', 'state', 'province', 'city', 'town', 'village', 'suburb', 'quarter', 'neighbourhood', 'hamlet']
 
@@ -124,6 +142,7 @@ export class OfflineMapsControl extends Control {
   declare _listeners?: Map<(type: OfflineMapsEvent, event: any) => void, Array<[string, (e: any) => void]>>
   declare _wasOpen?: boolean
   declare _synced: { open?: boolean, onlyOffline?: boolean }
+  declare _uid: number
   declare _storageInfo?: OfflineStorage | null
 
   initialize(options: OfflineMapsControlOptions = {}): void {
@@ -133,6 +152,7 @@ export class OfflineMapsControl extends Control {
     super.initialize({ position: 'topright', showStatus: true, ...given })
     this.maps = options.maps ?? offlineMaps()
     this._synced = {}
+    this._uid = ++offlineControls
   }
 
   onAdd(map: any): HTMLElement {
@@ -142,6 +162,8 @@ export class OfflineMapsControl extends Control {
     link.title = this.options.title ?? 'Offline Maps'
     link.setAttribute('role', 'button')
     link.setAttribute('aria-label', link.title)
+    link.setAttribute('aria-haspopup', 'dialog')
+    link.setAttribute('aria-expanded', 'false')
     link.innerHTML = ICON
     DomEvent.disableClickPropagation(link)
     DomEvent.on(link, 'click', DomEvent.stop)
@@ -330,18 +352,28 @@ export class OfflineMapsControl extends Control {
     this._endSelection()
     // Read again each time: downloads since change what is used and free.
     this._storageInfo = undefined
+    const returning = this._card?.contains(document.activeElement)
     this._card?.remove()
-    this._card = this._panel(`${CLASS}-card`)
+    this._card = this._panel(`${CLASS}-card`, 'Offline Maps')
     this._button?.classList.add(`${CLASS}-button-active`)
+    this._button?.setAttribute('aria-expanded', 'true')
     this.maps.ready().then(() => this._renderList(), () => this._renderList())
     this._renderList()
+    // The keyboard moves into the panel when it opens from the button, or
+    // stays in it coming back from the area picker.
+    if (returning || this._button === document.activeElement)
+      this._card.querySelector<HTMLElement>(`.${CLASS}-new`)?.focus()
     this._setOpen(true)
     return this
   }
 
   close(): this {
     this._endSelection()
+    const hadFocus = !!this._card?.contains(document.activeElement)
     this._card?.remove()
+    this._button?.setAttribute('aria-expanded', 'false')
+    if (hadFocus)
+      this._button?.focus()
     this._card = undefined
     this._confirming = undefined
     this._hideOutline()
@@ -362,15 +394,19 @@ export class OfflineMapsControl extends Control {
     this._frame = { top: 0, left: 0, right: 0, bottom: 0 }
 
     const select = this._select = DomUtil.create('div', `${CLASS}-select`, map.getContainer())
-    select.innerHTML = `<div class="${CLASS}-frame"></div>${['nw', 'ne', 'sw', 'se'].map(c => `<div class="${CLASS}-handle ${CLASS}-handle-${c}" data-corner="${c}"></div>`).join('')}`
-    for (const handle of select.querySelectorAll<HTMLElement>(`.${CLASS}-handle`))
+    const corners: Record<string, string> = { nw: 'top-left', ne: 'top-right', sw: 'bottom-left', se: 'bottom-right' }
+    select.innerHTML = `<div class="${CLASS}-frame"></div>${['nw', 'ne', 'sw', 'se'].map(c => `<div class="${CLASS}-handle ${CLASS}-handle-${c}" data-corner="${c}" role="button" tabindex="0" aria-label="Move the ${corners[c]} corner of the area" aria-describedby="${CLASS}-estimate-${this._uid}"></div>`).join('')}`
+    for (const handle of select.querySelectorAll<HTMLElement>(`.${CLASS}-handle`)) {
       this._dragHandle(handle)
+      this._keyHandle(handle)
+    }
 
-    const card = this._card = this._panel(`${CLASS}-card ${CLASS}-card-select`)
+    const card = this._card = this._panel(`${CLASS}-card ${CLASS}-card-select`, 'Download Map')
     card.innerHTML = `
       <div class="${CLASS}-head"><span class="${CLASS}-title">Download Map</span><button class="${CLASS}-close" aria-label="Cancel">✕</button></div>
       <input class="${CLASS}-name" aria-label="Name" value="" placeholder="Name">
-      <div class="${CLASS}-estimate">Estimating size…</div>
+      <div class="${CLASS}-estimate" id="${CLASS}-estimate-${this._uid}" aria-live="polite">Estimating size…</div>
+      <div class="${CLASS}-hint">Drag the corners, or move the map, to choose the area. A corner focused with Tab moves with the arrow keys.</div>
       <div class="${CLASS}-hint">Drag the corners, or move the map, to choose the area.</div>
       <div class="${CLASS}-actions"><button class="${CLASS}-cancel">Cancel</button><button class="${CLASS}-download">Download</button></div>`
     card.querySelector(`.${CLASS}-close`)?.addEventListener('click', () => this.open())
@@ -501,33 +537,40 @@ export class OfflineMapsControl extends Control {
 
   _row(region: OfflineRegionRecord): string {
     const id = escape(region.id)
+    const name = escape(region.name)
     const percent = region.tiles ? Math.floor((region.downloaded / region.tiles) * 100) : 0
     let detail: string
     let actions: string
     const confirming = this._confirming === region.id
+    // Each button says which map it acts on: a list of "Pause", "Pause",
+    // "Delete" read aloud is no help.
+    const button = (action: string, text: string, label: string, extra = ''): string =>
+      `<button class="${CLASS}-action${extra}" data-action="${action}" data-id="${id}" aria-label="${label}">${text}</button>`
     const remove = confirming
-      ? `<button class="${CLASS}-action ${CLASS}-danger" data-action="confirm-delete" data-id="${id}">Delete Map</button>`
-      : `<button class="${CLASS}-action" data-action="delete" data-id="${id}">Delete</button>`
+      ? button('confirm-delete', 'Delete Map', `Delete ${name} for good`, ` ${CLASS}-danger`)
+      : button('delete', 'Delete', `Delete ${name}`)
+    const bar = (paused: boolean): string =>
+      `<div class="${CLASS}-bar${paused ? ` ${CLASS}-bar-paused` : ''}" role="progressbar" aria-label="${paused ? 'Paused' : 'Downloading'} ${name}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div>`
     switch (region.status) {
       case 'downloading':
-        detail = `<div class="${CLASS}-bar"><span style="width:${percent}%"></span></div><span>Downloading · ${formatBytes(region.bytes)} · ${percent}%</span>`
-        actions = `<button class="${CLASS}-action" data-action="pause" data-id="${id}">Pause</button>${remove}`
+        detail = `${bar(false)}<span>Downloading · ${formatBytes(region.bytes)} · ${percent}%</span>`
+        actions = `${button('pause', 'Pause', `Pause ${name} download`)}${remove}`
         break
       case 'paused':
-        detail = `<div class="${CLASS}-bar ${CLASS}-bar-paused"><span style="width:${percent}%"></span></div><span>Paused · ${percent}%</span>`
-        actions = `<button class="${CLASS}-action" data-action="resume" data-id="${id}">Resume</button>${remove}`
+        detail = `${bar(true)}<span>Paused · ${percent}%</span>`
+        actions = `${button('resume', 'Resume', `Resume ${name} download`)}${remove}`
         break
       case 'error':
         detail = `<span class="${CLASS}-error">${escape(region.error ?? 'Download failed')}</span>`
-        actions = `<button class="${CLASS}-action" data-action="resume" data-id="${id}">Retry</button>${remove}`
+        actions = `${button('resume', 'Retry', `Retry ${name} download`)}${remove}`
         break
       default:
         detail = `<span>${formatBytes(region.bytes)} · ${region.updatedAt > region.createdAt + 60_000 ? 'Updated' : 'Downloaded'} ${day(region.updatedAt)}</span>`
-        actions = `<button class="${CLASS}-action" data-action="update" data-id="${id}">Update</button>${remove}`
+        actions = `${button('update', 'Update', `Update ${name}`)}${remove}`
     }
     return `
       <div class="${CLASS}-row" data-status="${region.status}">
-        <button class="${CLASS}-row-name" data-action="show" data-id="${id}">${escape(region.name)}</button>
+        <button class="${CLASS}-row-name" data-action="show" data-id="${id}" aria-label="Show ${name} on the map">${name}</button>
         <div class="${CLASS}-row-detail">${detail}</div>
         <div class="${CLASS}-row-actions">${actions}</div>
       </div>`
@@ -611,6 +654,33 @@ export class OfflineMapsControl extends Control {
     }, 250)
   }
 
+  /** Arrow keys move a focused corner: 10 pixels a press, 50 with Shift. */
+  _keyHandle(handle: HTMLElement): void {
+    handle.addEventListener('keydown', (e) => {
+      const step = e.shiftKey ? 50 : 10
+      const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
+      const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0
+      if (!dx && !dy)
+        return
+      e.preventDefault()
+      e.stopPropagation()
+      const f = this._frame!
+      const size = this._map.getSize()
+      const corner = handle.dataset.corner!
+      const MIN = 80
+      if (corner.includes('n'))
+        f.top = Math.max(8, Math.min(size.y - f.bottom - MIN, f.top + dy))
+      if (corner.includes('s'))
+        f.bottom = Math.max(8, Math.min(size.y - f.top - MIN, f.bottom - dy))
+      if (corner.includes('w'))
+        f.left = Math.max(8, Math.min(size.x - f.right - MIN, f.left + dx))
+      if (corner.includes('e'))
+        f.right = Math.max(8, Math.min(size.x - f.left - MIN, f.right - dx))
+      this._layoutSelection()
+      this._settleSelection()
+    })
+  }
+
   _dragHandle(handle: HTMLElement): void {
     handle.addEventListener('pointerdown', (down) => {
       down.preventDefault()
@@ -676,8 +746,8 @@ export class OfflineMapsControl extends Control {
         // An estimate, so a warning rather than a refusal: the download says
         // plainly if it does run out.
         el.innerHTML = free !== undefined && free < estimate.bytes
-          ? `Estimated size: <strong>${formatBytes(estimate.bytes)}</strong> · <span class="${CLASS}-error">Only ${formatBytes(free)} free on this device</span>`
-          : `Estimated size: <strong>${formatBytes(estimate.bytes)}</strong>`
+          ? `${areaSize(bounds)} · Estimated size: <strong>${formatBytes(estimate.bytes)}</strong> · <span class="${CLASS}-error">Only ${formatBytes(free)} free on this device</span>`
+          : `${areaSize(bounds)} · Estimated size: <strong>${formatBytes(estimate.bytes)}</strong>`
         button.disabled = false
       }
     }
@@ -771,8 +841,20 @@ export class OfflineMapsControl extends Control {
       this._pill.textContent = text
   }
 
-  _panel(className: string): HTMLElement {
+  _panel(className: string, label?: string): HTMLElement {
     const el = DomUtil.create('div', className, this._map.getContainer())
+    if (label) {
+      el.setAttribute('role', 'dialog')
+      el.setAttribute('aria-label', label)
+      // Escape closes it, as a dialog's should, and the keyboard goes back
+      // to the button that opened it.
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation()
+          this.close()
+        }
+      })
+    }
     // Taps on a panel are for the panel, not a drag of the map beneath it.
     for (const type of ['pointerdown', 'wheel', 'dblclick', 'click', 'touchstart'])
       el.addEventListener(type, e => e.stopPropagation())

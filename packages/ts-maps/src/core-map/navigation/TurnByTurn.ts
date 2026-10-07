@@ -747,7 +747,7 @@ export class TurnByTurn extends Evented {
     card.innerHTML = `
       <div class="tsmap-nav-card-head"><span class="tsmap-nav-card-title">${title}</span><button class="tsmap-nav-close" aria-label="Close">✕</button></div>
       <div class="tsmap-nav-options">${rows}</div>
-      <button class="tsmap-nav-go">Go</button>`
+      <button class="tsmap-nav-go" aria-label="Start route">Go</button>`
     card.querySelectorAll<HTMLElement>('.tsmap-nav-option').forEach(el => el.addEventListener('click', () => this.selectRoute(Number(el.dataset.index))))
     card.querySelector('.tsmap-nav-go')?.addEventListener('click', () => this.start())
     card.querySelector('.tsmap-nav-close')?.addEventListener('click', () => this.stop())
@@ -756,6 +756,10 @@ export class TurnByTurn extends Evented {
   _showBanner(): void {
     this._banner?.remove()
     this._banner = this._panel('tsmap-nav-banner')
+    // The next maneuver, read out as it changes without taking focus; with
+    // the voice muted, this is how a screen reader hears the route.
+    this._banner.setAttribute('role', 'status')
+    this._banner.setAttribute('aria-live', 'polite')
     const first = this.route?.steps[1]
     const maneuver = parseManeuver(first?.maneuver ?? 'depart', first?.exit)
     this._banner.innerHTML = `<div class="tsmap-nav-icon">${maneuverIcon(maneuver)}</div><div class="tsmap-nav-banner-text"><div class="tsmap-nav-distance"></div><div class="tsmap-nav-road"></div></div>`
@@ -788,13 +792,14 @@ export class TurnByTurn extends Evented {
         <div><div class="tsmap-nav-minutes tsmap-nav-stat">--</div><div class="tsmap-nav-stat-label">min</div></div>
         <div><div class="tsmap-nav-left tsmap-nav-stat">--</div><div class="tsmap-nav-left-unit tsmap-nav-stat-label"></div></div>
       </div>
-      <button class="tsmap-nav-mute" aria-label="Mute">🔊</button>
-      <button class="tsmap-nav-end">End</button>`
+      <button class="tsmap-nav-mute" aria-label="Mute voice guidance" aria-pressed="${this._muted}">${this._muted ? '🔇' : '🔊'}</button>
+      <button class="tsmap-nav-end" aria-label="End route">End</button>`
     card.querySelector('.tsmap-nav-end')?.addEventListener('click', () => this.stop())
     card.querySelector('.tsmap-nav-mute')?.addEventListener('click', (e) => {
       this._muted = !this._muted
       const button = e.currentTarget as HTMLElement
       button.textContent = this._muted ? '🔇' : '🔊'
+      button.setAttribute('aria-pressed', String(this._muted))
       if (this._muted && typeof speechSynthesis !== 'undefined')
         speechSynthesis.cancel()
     })

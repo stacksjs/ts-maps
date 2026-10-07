@@ -1362,6 +1362,13 @@ a.tsmap-control-locate-denied::after {
   --tsmap-nav-card-fg: #1d1d1f;
   --tsmap-nav-card-muted: #6e6e73;
   --tsmap-nav-option-bg: #f2f2f7;
+  /* Action blue, warning red and Saved yellow, each at 4.5:1 or better
+   * against the card and its option rows (WCAG AA for text). Apple's own
+   * #0a84ff is 3.6:1 on white. */
+  --tsmap-action: #0066cc;
+  --tsmap-action-bg: #0066cc;
+  --tsmap-danger: #d70015;
+  --tsmap-saved: #8a6500;
 }
 
 .tsmap-container.tsmap-dark {
@@ -1370,6 +1377,10 @@ a.tsmap-control-locate-denied::after {
   --tsmap-nav-card-fg: #f5f5f7;
   --tsmap-nav-card-muted: #98989d;
   --tsmap-nav-option-bg: #3a3a3c;
+  --tsmap-action: #5eb0ff;
+  --tsmap-action-bg: #0066cc;
+  --tsmap-danger: #ff6961;
+  --tsmap-saved: #ffd60a;
 }
 
 .tsmap-nav-banner,
@@ -1615,7 +1626,7 @@ a.tsmap-control-locate-denied::after {
   padding: 10px 18px;
   border-radius: 20px;
   background: var(--tsmap-nav-card-bg);
-  color: #0a84ff;
+  color: var(--tsmap-action);
   font: 600 16px -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   cursor: pointer;
 }
@@ -1636,7 +1647,7 @@ a.tsmap-control-locate-denied::after {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #0a84ff;
+  background: var(--tsmap-action-bg);
   position: relative;
 
   &::after {
@@ -1746,7 +1757,7 @@ a.tsmap-control-locate-denied::after {
 }
 
 .tsmap-traffic-card-delay {
-  color: #ff3b30;
+  color: var(--tsmap-danger);
   font-weight: 600;
 }
 
@@ -1756,7 +1767,7 @@ a.tsmap-control-locate-denied::after {
   font-weight: 600;
 
   &.tsmap-nav-traffic-light {
-    color: #248a3d;
+    color: #1e7b34;
   }
 
   &.tsmap-nav-traffic-moderate {
@@ -1965,7 +1976,7 @@ a.tsmap-control-locate-denied::after {
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--tsmap-nav-option-bg);
-  color: #0a84ff;
+  color: var(--tsmap-action);
   font-weight: 600;
   text-align: left;
 }
@@ -2022,7 +2033,7 @@ a.tsmap-control-locate-denied::after {
 .tsmap-offline-card .tsmap-offline-action {
   padding: 5px 9px;
   border-radius: 8px;
-  color: #0a84ff;
+  color: var(--tsmap-action);
   font-size: 14px;
 
   &:hover {
@@ -2030,7 +2041,7 @@ a.tsmap-control-locate-denied::after {
   }
 
   &.tsmap-offline-danger {
-    color: #ff3b30;
+    color: var(--tsmap-danger);
     font-weight: 600;
   }
 }
@@ -2045,7 +2056,7 @@ a.tsmap-control-locate-denied::after {
     display: block;
     height: 100%;
     border-radius: 2px;
-    background: #0a84ff;
+    background: var(--tsmap-action-bg);
     transition: width 0.3s ease;
   }
 
@@ -2055,7 +2066,7 @@ a.tsmap-control-locate-denied::after {
 }
 
 .tsmap-offline-error {
-  color: #ff3b30;
+  color: var(--tsmap-danger);
 }
 
 .tsmap-offline-empty,
@@ -2148,7 +2159,7 @@ a.tsmap-control-locate-denied::after {
 }
 
 .tsmap-offline-card .tsmap-offline-download {
-  background: #0a84ff;
+  background: var(--tsmap-action-bg);
   color: #fff;
 
   &:disabled {
@@ -2300,7 +2311,7 @@ a.tsmap-control-locate-denied::after {
 .tsmap-search .tsmap-search-cancel {
   display: none;
   margin-right: -2px;
-  color: #0a84ff;
+  color: var(--tsmap-action);
   font-size: 16px;
   white-space: nowrap;
 }
@@ -2334,7 +2345,7 @@ a.tsmap-control-locate-denied::after {
 }
 
 .tsmap-search .tsmap-search-link {
-  color: #0a84ff;
+  color: var(--tsmap-action);
   font-size: 14px;
   font-weight: 400;
 }
@@ -2496,7 +2507,7 @@ a.tsmap-control-locate-denied::after {
   margin-top: 14px;
   padding: 11px;
   border-radius: 12px;
-  background: #0a84ff;
+  background: var(--tsmap-action-bg);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
@@ -2509,7 +2520,7 @@ a.tsmap-control-locate-denied::after {
   font-weight: 600;
 
   &.tsmap-search-open {
-    color: #248a3d;
+    color: #1e7b34;
   }
 
   &.tsmap-search-closed {
@@ -2543,7 +2554,7 @@ a.tsmap-control-locate-denied::after {
   padding: 8px 4px;
   border-radius: 12px;
   background: var(--tsmap-nav-option-bg);
-  color: #0a84ff;
+  color: var(--tsmap-action);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -2661,6 +2672,31 @@ a.tsmap-control-locate-denied::after {
   }
 }
 
+/* Favorites on the map: a small yellow star, below results' pins. */
+.tsmap-search-star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #ffcc00;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+  color: #fff;
+  cursor: pointer;
+
+  & svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+.tsmap-search .tsmap-search-action.tsmap-search-saved {
+  color: var(--tsmap-saved);
+}
+
 /* Results too close to tell apart, as one bubble with how many: the colour
  * of the kind most of them are. They come apart as the map zooms in. */
 .tsmap-search-cluster {
@@ -2685,39 +2721,45 @@ a.tsmap-control-locate-denied::after {
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-/* Favorites on the map: a small yellow star, below results' pins. */
-.tsmap-search-star {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  box-sizing: border-box;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #ffcc00;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
-  color: #fff;
-  cursor: pointer;
-
-  & svg {
-    width: 13px;
-    height: 13px;
-  }
-}
-
-.tsmap-search .tsmap-search-action.tsmap-search-saved {
-  color: #d4a000;
-}
-
   padding: 9px 16px;
   border: 0;
   border-radius: 18px;
   background: var(--tsmap-nav-card-bg);
-  color: #0a84ff;
+  color: var(--tsmap-action);
   box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   font: 600 14px -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   cursor: pointer;
+}
+
+/* Read by screen readers, not shown: the live regions that announce
+ * results and choices. */
+.tsmap-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* A corner of the offline area picker, focused from the keyboard. */
+.tsmap-offline-handle:focus-visible {
+  outline: 3px solid var(--tsmap-action-bg);
+  outline-offset: 2px;
+}
+
+/* Less motion, where the reader asks for it: pins drop and cards appear
+ * without moving. Camera flights are cut short in TsMap.flyTo/easeTo. */
+@media (prefers-reduced-motion: reduce) {
+  .tsmap-search-pin,
+  .tsmap-search-cluster,
+  .tsmap-offline-card,
+  .tsmap-maptype-card,
+  .tsmap-nav-card,
+  .tsmap-nav-banner {
+    transition: none !important;
+    animation: none !important;
+  }
 }
