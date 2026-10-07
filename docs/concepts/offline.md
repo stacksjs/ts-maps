@@ -170,6 +170,25 @@ setOfflineMaps(new OfflineMaps({ background: true, autoResume: true }))
 - Background Fetch counts bytes, not files, so progress is an estimate until the worker has stored them.
 - Without Background Fetch (Firefox and Safari today), without a service worker in control, or for a `pmtiles://` archive, which is read in ranges, the page downloads as before.
 
+### Where they are kept
+
+A browser keeps downloaded maps in IndexedDB (`IndexedDBOfflineStore`), and
+anything without it keeps them in memory. `KeyValueOfflineStore` keeps them
+in any store of strings, given async `get`, `set` and `delete`:
+
+```ts
+import { KeyValueOfflineStore, OfflineMaps, setOfflineMaps } from 'ts-maps'
+
+setOfflineMaps(new OfflineMaps({ store: new KeyValueOfflineStore(myStorage) }))
+```
+
+Tiles are stored as base64 next to their MIME type, and everything else as
+JSON. The list of regions and the space used are kept under keys of their
+own, so the storage never has to list its keys. This is what React Native
+uses for `MapView`'s `offlineStore`, which keeps downloaded maps in the
+app's files rather than the WebView's IndexedDB; see the React Native
+README.
+
 ## Tile cache
 
 `TileCache` is a lower-level, promise-based key/value store of tile bytes keyed by URL, with optional TTL and LRU limits. It is in memory unless you give it a backend. `cachedFetch` reads through it: a hit returns immediately, and a miss goes to the network and is stored. If the network fails, it falls back to whatever the cache holds.

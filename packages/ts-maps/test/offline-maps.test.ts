@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import {
   extractTile,
   IndexedDBOfflineStore,
+  KeyValueOfflineStore,
   matchScore,
   MemoryOfflineStore,
   offlineFetch,
@@ -433,5 +434,71 @@ describe('offline directions', () => {
     await maps.download(AREA)
     const routes = await maps.directions().getDirections([at(700, 1000), at(2000, 3000)])
     expect(routes[0]?.steps.map(s => s.maneuver)).toEqual(['depart', 'turn-right', 'arrive'])
+  })
+})
+
+describe('the key–value store', () => {
+  /** A storage of strings, as an app's files would be, counting what it is asked. */
+  function strings() {
+    const data = new Map<string, string>()
+    const calls = { get: 0, set: 0, delete: 0 }
+    return {
+      data,
+      calls,
+      get: async (k: string) => (calls.get++, data.get(k)),
+      set: async (k: string, v: string) => void (calls.set++, data.set(k, v)),
+      delete: async (k: string) => void (calls.delete++, data.delete(k)),
+    }
+  }
+
+  test('keeps a tile\'s bytes exactly, and its type', async () => {
+    const store = new KeyValueOfflineStore(strings())
+    const bytes = Uint8Array.from({ length: 70000 }, (_, i) => i % 256)
+    await store.putTile('https://tiles.test/1/0/0.pbf', { data: bytes, mime: 'application/x-protobuf' })
+    const back = (await store.getTile('https://tiles.test/1/0/0.pbf'))!
+    expect(back.mime).toBe('application/x-protobuf')
+    expect(back.data).toEqual(bytes)
+    expect(await store.getTile('nope')).toBeUndefined()
+  })
+
+  test('counts the space used as refs come and go, once per tile however they race', async () => {
+    const storage = strings()
+    const store = new KeyValueOfflineStore(storage, { prefix: 'app/' })
+    await Promise.all([
+      store.putRefs('a', { regions: ['r1'], bytes: 100 }),
+      store.putRefs('a', { regions: ['r1', 'r2'], bytes: 100 }),
+      store.putRefs('b', { regions: ['r1'], bytes: 50 }),
+    ])
+    expect(await store.usage()).toEqual({ bytes: 150, entries: 2 })
+    await store.deleteRefs('a')
+    await store.deleteRefs('a')
+    expect(await store.usage()).toEqual({ bytes: 50, entries: 1 })
+    // Kept, under its own key: a new store on the same storage reads it back.
+    expect(await new KeyValueOfflineStore(storage, { prefix: 'app/' }).usage()).toEqual({ bytes: 50, entries: 1 })
+    expect([...storage.data.keys()].every(k => k.startsWith('app/'))).toBe(true)
+  })
+
+  test('downloads, shares and deletes as the other stores do', async () => {
+    const store = new KeyValueOfflineStore(strings())
+    const tiles = server()
+    const maps = new OfflineMaps({ store, fetch: tiles.fetch })
+    const a = await maps.download(AREA)
+    const b = await maps.download({ ...AREA, minZoom: 14 })
+    expect(b.downloaded).toBe(2)
+    expect((await maps.usage()).entries).toBe(3)
+    await maps.delete(a.id)
+    expect((await maps.usage()).entries).toBe(2)
+    await maps.delete(b.id)
+    expect(await maps.usage()).toEqual({ bytes: 0, entries: 0 })
+    expect(await store.listRegions()).toEqual([])
+  })
+
+  test('survives a reload: a new manager on the same storage finds the map and its tiles', async () => {
+    const storage = strings()
+    const first = new OfflineMaps({ store: new KeyValueOfflineStore(storage), fetch: server().fetch })
+    await first.download({ ...AREA, name: 'Mission' })
+    const second = new OfflineMaps({ store: new KeyValueOfflineStore(storage), fetch: server().fetch })
+    expect((await second.list()).map(r => r.name)).toEqual(['Mission'])
+    expect((await second.lookup(`https://tiles.test/14/${X}/${Y}.pbf`))?.data.byteLength).toBeGreaterThan(0)
   })
 })

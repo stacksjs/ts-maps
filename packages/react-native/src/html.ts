@@ -20,6 +20,8 @@ export interface BuildHtmlOptions {
     indoor?: IndoorSpec
     landmarks?: LandmarkSpec[]
     trees?: boolean | TreesSpec
+    /** Keep downloaded maps in the app's storage, over the bridge. */
+    nativeStore?: boolean
   }
 }
 
@@ -82,6 +84,26 @@ const RUNTIME_SCRIPT = [
   '  }',
   '  function fail(message) {',
   '    send({ type: "error", id: `e${Date.now()}`, payload: { message: String(message) } });',
+  '  }',
+  // Downloaded maps in the app's storage: every read and write of the
+  // page's offline maps goes across as a `store` envelope, answered by
+  // MapView's `offlineStore`. Set up before the map, which reads from them.
+  '  const storeCalls = {};',
+  '  let storeSeq = 0;',
+  '  function ask(op, key, value) {',
+  '    return new Promise(function (resolve, reject) {',
+  '      const id = `st${++storeSeq}`;',
+  '      storeCalls[id] = { resolve: resolve, reject: reject };',
+  '      send({ type: "store", id: id, payload: { op: op, key: key, value: value } });',
+  '    });',
+  '  }',
+  '  if (initial.nativeStore) {',
+  '    const ns0 = window.tsMaps || window;',
+  '    if (ns0.KeyValueOfflineStore && ns0.OfflineMaps && ns0.setOfflineMaps) {',
+  '      const storage = { get: function (k) { return ask("get", k); }, set: function (k, v) { return ask("set", k, v); }, delete: function (k) { return ask("delete", k); } };',
+  '      ns0.setOfflineMaps(new ns0.OfflineMaps({ store: new ns0.KeyValueOfflineStore(storage) }));',
+  '    }',
+  '    else fail("this ts-maps runtime has no KeyValueOfflineStore; offline maps stay in the WebView");',
   '  }',
   '  const Ctor = (window.tsMaps && window.tsMaps.TsMap) || window.TsMap;',
   '  if (!Ctor) { fail("ts-maps runtime not found on window"); return; }',
@@ -434,6 +456,14 @@ const RUNTIME_SCRIPT = [
   '  applyTrees(initial.trees);',
   '  function handle(env) {',
   '    if (!env || typeof env !== "object") return;',
+  '    if (env.type === "store:result" || env.type === "store:error") {',
+  '      const waiting = storeCalls[env.id];',
+  '      if (!waiting) return;',
+  '      delete storeCalls[env.id];',
+  '      if (env.type === "store:result") waiting.resolve(env.result);',
+  '      else waiting.reject(new Error(env.error));',
+  '      return;',
+  '    }',
   '    if (env.type === "call") {',
   '      const method = env.payload && env.payload.method;',
   '      const args = (env.payload && env.payload.args) || [];',

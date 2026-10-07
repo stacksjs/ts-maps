@@ -1,5 +1,5 @@
 import type { ViewStyle } from 'react-native'
-import type { SearchCategory } from 'ts-maps'
+import type { KeyValueStorage, SearchCategory } from 'ts-maps'
 
 /**
  * How the ts-maps runtime is delivered to the WebView.
@@ -416,6 +416,15 @@ export interface MapViewProps {
   /** Offline maps: download areas to use with no connection. Live, like `markers`, options included. */
   offlineMaps?: OfflineMapsSpec
 
+  /**
+   * Where downloaded maps are kept: the app's own storage, rather than the
+   * WebView's IndexedDB, which the OS may clear and the app cannot see.
+   * `expoFileSystemStore(FileSystem)` and `reactNativeFsStore(RNFS)` keep
+   * them in files; anything with `get`, `set` and `delete` of strings will
+   * do. Read when the WebView is built: give it from the first render.
+   */
+  offlineStore?: KeyValueStorage
+
   /** Search: places, addresses and kinds of place. Live, like `markers`, options included. */
   search?: SearchSpec
 
@@ -492,6 +501,9 @@ export type BridgeEnvelope =
   | { type: 'setLandmarks', id: string, payload: { landmarks: LandmarkSpec[] | null } }
   | { type: 'setTrees', id: string, payload: { trees: boolean | TreesSpec | null } }
   | { type: 'markerPress', id: string, payload: { id?: string, index: number, coordinate: [number, number] } }
+  | { type: 'store', id: string, payload: { op: 'get' | 'set' | 'delete', key: string, value?: string } }
+  | { type: 'store:result', id: string, result: string | null }
+  | { type: 'store:error', id: string, error: string }
   | { type: 'call', id: string, payload: { method: string, args: unknown[] } }
   | { type: 'call:result', id: string, result: unknown }
   | { type: 'call:error', id: string, error: string }

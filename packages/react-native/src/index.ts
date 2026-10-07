@@ -1,6 +1,8 @@
 export { decode, encode, nextId } from './bridge'
 export { buildHtml } from './html'
 export { MapView } from './MapView'
+export { expoFileSystemStore, fileNameFor, reactNativeFsStore } from './offlineStore'
+export type { ExpoFileSystemLike, ReactNativeFsLike } from './offlineStore'
 export type {
   TerritorySpec,
   BridgeEnvelope,

@@ -231,7 +231,17 @@ method names can now reach one level in:
 />
 ```
 
-Downloads made in the WebView are kept in its IndexedDB.
+Downloads made in the WebView are kept in its IndexedDB, unless `offlineStore`
+keeps them in the app's own files, out of the OS's reach when space runs low:
+
+```tsx
+import * as FileSystem from 'expo-file-system/legacy'
+import { expoFileSystemStore } from '@ts-maps/react-native'
+
+<MapView runtime={runtime} offlineMaps={{}} offlineStore={expoFileSystemStore(FileSystem)} />
+```
+
+`reactNativeFsStore(RNFS)` does the same with `react-native-fs`.
 
 ## Search
 

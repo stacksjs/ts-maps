@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { buildHtml, decode, encode, MapView, nextId } from '../src'
+import { buildHtml, decode, encode, expoFileSystemStore, fileNameFor, MapView, nextId, reactNativeFsStore } from '../src'
 
 type WebViewInstance = {
   ref: { postMessage: (msg: string) => void }
@@ -1178,5 +1178,135 @@ describe('options after mount', () => {
       delete w.ReactNativeWebView
       page.remove()
     }
+  })
+})
+
+describe('offline maps in the app\'s storage', () => {
+  /** An in-memory stand-in for an app's file system. */
+  function files() {
+    const data = new Map<string, string>()
+    return {
+      data,
+      expo: {
+        documentDirectory: 'file:///docs/',
+        readAsStringAsync: async (uri: string) => data.get(uri)!,
+        writeAsStringAsync: async (uri: string, contents: string) => void data.set(uri, contents),
+        deleteAsync: async (uri: string) => void data.delete(uri),
+        getInfoAsync: async (uri: string) => ({ exists: data.has(uri) }),
+        makeDirectoryAsync: async () => {},
+      },
+      rnfs: {
+        DocumentDirectoryPath: '/docs',
+        readFile: async (path: string) => data.get(path)!,
+        writeFile: async (path: string, contents: string) => void data.set(path, contents),
+        unlink: async (path: string) => void data.delete(path),
+        exists: async (path: string) => data.has(path),
+        mkdir: async () => {},
+      },
+    }
+  }
+
+  test('a key is a safe file name, and a long one is hashed', () => {
+    expect(fileNameFor('ts-maps/tile/https://tiles.test/14/1/2.pbf')).toMatch(/^[\w.~-]+$/)
+    expect(fileNameFor('a/b')).not.toBe(fileNameFor('a~002fb'))
+    const long = `ts-maps/tile/https://tiles.test/${'x'.repeat(300)}.pbf`
+    expect(fileNameFor(long).length).toBeLessThan(40)
+    expect(fileNameFor(long)).not.toBe(fileNameFor(`${long}?v=2`))
+  })
+
+  test('Expo and react-native-fs adapters keep strings in files', async () => {
+    for (const make of [(f: ReturnType<typeof files>) => expoFileSystemStore(f.expo), (f: ReturnType<typeof files>) => reactNativeFsStore(f.rnfs)]) {
+      const fs = files()
+      const store = make(fs)
+      expect(await store.get('ts-maps/tile/a')).toBeUndefined()
+      await store.set('ts-maps/tile/a', 'application/x-protobuf\nAAEC')
+      expect(await store.get('ts-maps/tile/a')).toBe('application/x-protobuf\nAAEC')
+      expect([...fs.data.keys()][0]).toContain('/ts-maps-offline/')
+      await store.delete('ts-maps/tile/a')
+      await store.delete('ts-maps/tile/a')
+      expect(fs.data.size).toBe(0)
+    }
+  })
+
+  test('MapView answers the WebView\'s store calls from offlineStore', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const root = createRoot(host)
+    const kept = new Map<string, string>([['k', 'v']])
+    const offlineStore = {
+      get: async (k: string) => kept.get(k),
+      set: async (k: string, v: string) => void kept.set(k, v),
+      delete: async (k: string) => void kept.delete(k),
+    }
+    await act(async () => {
+      root.render(createElement(MapView, { runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' }, offlineStore }))
+    })
+    const inst = lastInstance()
+    const sent: any[] = []
+    inst.ref.postMessage = (raw: string) => { sent.push(JSON.parse(raw)) }
+    const ask = async (id: string, payload: unknown): Promise<void> => {
+      await act(async () => {
+        inst.onMessage?.({ nativeEvent: { data: JSON.stringify({ type: 'store', id, payload }) } })
+        await new Promise(r => setTimeout(r, 0))
+      })
+    }
+    await ask('s1', { op: 'get', key: 'k' })
+    await ask('s2', { op: 'set', key: 'n', value: 'new' })
+    await ask('s3', { op: 'get', key: 'missing' })
+    await ask('s4', { op: 'rename', key: 'k' })
+    expect(sent.find(e => e.id === 's1')).toEqual({ type: 'store:result', id: 's1', result: 'v' })
+    expect(kept.get('n')).toBe('new')
+    expect(sent.find(e => e.id === 's3')).toEqual({ type: 'store:result', id: 's3', result: null })
+    expect(sent.find(e => e.id === 's4')?.type).toBe('store:error')
+    await act(async () => { root.unmount() })
+    host.remove()
+  })
+
+  test('the WebView keeps its offline maps in the app\'s storage, across the bridge', async () => {
+    const tsMaps = await import('ts-maps')
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { center: [37.78, -122.42], zoom: 14, nativeStore: true },
+    })
+    expect(html).toContain('"nativeStore":true')
+    const script = html.slice(html.lastIndexOf('<script>') + '<script>'.length, html.lastIndexOf('</script>'))
+    const page = document.createElement('div')
+    page.innerHTML = '<div id="map" style="width:400px;height:600px"></div>'
+    document.body.appendChild(page)
+    // The app's side: a storage of strings, answering each `store` envelope.
+    const kept = new Map<string, string>()
+    const posted: any[] = []
+    const deliver = (env: unknown): void => {
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(env) }))
+    }
+    const w = window as any
+    w.tsMaps = tsMaps
+    w.ReactNativeWebView = {
+      postMessage: (raw: string) => {
+        const env = JSON.parse(raw)
+        posted.push(env)
+        if (env.type !== 'store')
+          return
+        const { op, key, value } = env.payload
+        if (op === 'set')
+          kept.set(key, value)
+        if (op === 'delete')
+          kept.delete(key)
+        setTimeout(() => deliver({ type: 'store:result', id: env.id, result: op === 'get' ? kept.get(key) ?? null : null }), 0)
+      },
+    }
+    runScript(script)
+
+    const maps = tsMaps.offlineMaps()
+    expect(maps.store).toBeInstanceOf(tsMaps.KeyValueOfflineStore)
+    await maps.store.putRegion({ id: 'r', name: 'Home', bounds: [0, 0, 1, 1], minZoom: 0, maxZoom: 1, sources: [], status: 'complete', tiles: 0, downloaded: 0, bytes: 0, createdAt: 1, updatedAt: 1 })
+    expect([...kept.keys()]).toEqual(['ts-maps/region/r', 'ts-maps/meta/regions'])
+    expect((await maps.store.listRegions()).map(r => r.name)).toEqual(['Home'])
+    expect(posted.filter(e => e.type === 'store').length).toBeGreaterThan(2)
+
+    tsMaps.setOfflineMaps(null)
+    delete w.tsMaps
+    delete w.ReactNativeWebView
+    page.remove()
   })
 })

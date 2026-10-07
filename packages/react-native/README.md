@@ -45,6 +45,7 @@ export default function Screen() {
 | `styleSpec`   | `unknown`                                                       | Object passed to `TsMap.setStyle`           |
 | `turnByTurn`  | `TurnByTurnSpec`                                                | Navigation — live, options included         |
 | `offlineMaps` | `OfflineMapsSpec`                                               | Offline maps — live, options included       |
+| `offlineStore` | `{ get, set, delete }`                                         | Keep offline maps in the app's storage      |
 | `search`      | `SearchSpec`                                                    | Search — live, options included             |
 | `mapType`     | `MapTypeSpec`                                                   | Map type picker — live, options included    |
 | `indoor`      | `IndoorSpec`                                                    | Indoor map — live, options included         |
@@ -99,6 +100,30 @@ For a Traffic switch on the card, `trafficProvider` (`'mapbox'` or `'tomtom'`) a
   trees
 />
 ```
+
+## Offline maps in the app's storage
+
+By default a downloaded map lives in the WebView's IndexedDB. The OS may
+clear that storage when space runs low, and the app can't see it. With
+`offlineStore`, the WebView keeps nothing itself: every tile, region and
+index goes across the bridge to the app, which keeps them in its own files.
+
+```tsx
+import * as FileSystem from 'expo-file-system/legacy'
+import { expoFileSystemStore, MapView } from '@ts-maps/react-native'
+
+const offlineStore = expoFileSystemStore(FileSystem)
+
+<MapView runtime={runtime} offlineMaps={{ open: false }} offlineStore={offlineStore} />
+```
+
+`reactNativeFsStore(RNFS)` does the same with `react-native-fs`. Each
+writes one file per key into `ts-maps-offline` in the app's documents
+folder (pass a second argument for another folder). Anything with async
+`get`, `set` and `delete` of strings will also do, such as MMKV or a
+SQLite table. `offlineMaps` and `onOfflineMaps` work exactly as they do
+without it. The store is read when the WebView is built, so give it from
+the first render.
 
 ## Bundling the runtime
 

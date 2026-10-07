@@ -40,6 +40,7 @@ export function MapView(props: MapViewProps): ReactElement {
     runTrail,
     turnByTurn,
     offlineMaps,
+    offlineStore,
     search,
     mapType,
     indoor,
@@ -63,7 +64,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, landmarks, trees } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, landmarks, trees, nativeStore: !!offlineStore } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,6 +240,26 @@ export function MapView(props: MapViewProps): ReactElement {
         case 'indoor':
           onIndoor?.(env.payload)
           break
+        // The WebView's offline maps, read from and written to the app's storage.
+        case 'store': {
+          const { op, key, value } = env.payload ?? {}
+          const done = Promise.resolve().then(() => {
+            if (!offlineStore)
+              throw new Error('no offlineStore was given to MapView')
+            if (op === 'get')
+              return offlineStore.get(key)
+            if (op === 'set')
+              return offlineStore.set(key, value ?? '')
+            if (op === 'delete')
+              return offlineStore.delete(key)
+            throw new Error(`unknown store operation: ${String(op)}`)
+          })
+          done.then(
+            result => post({ type: 'store:result', id: env.id, result: typeof result === 'string' ? result : null }),
+            err => post({ type: 'store:error', id: env.id, error: String((err as Error)?.message ?? err) }),
+          )
+          break
+        }
         case 'call:result': {
           const p = pendingRef.current.get(env.id)
           if (p) {
@@ -259,7 +280,7 @@ export function MapView(props: MapViewProps): ReactElement {
           break
       }
     },
-    [api, onClick, onError, onLoad, onMove, onReady, onMarkerPress, onTurnByTurn, onOfflineMaps, onSearch, onMapType, onIndoor],
+    [api, onClick, onError, onLoad, onMove, onReady, onMarkerPress, onTurnByTurn, onOfflineMaps, onSearch, onMapType, onIndoor, offlineStore, post],
   )
 
   // react-native-webview isn't typed well across versions, and `WebView`
