@@ -16,6 +16,9 @@ const realCancel = globalThis.cancelAnimationFrame
 beforeEach(() => {
   queue = []
   clock = 0
+  // The test DOM lays out block flow, so maps other files left in <body>
+  // would push this one down the page and off the cursor's client point.
+  document.body.replaceChildren()
   globalThis.requestAnimationFrame = ((cb: (t: number) => void) => { queue.push(cb); return queue.length }) as any
   globalThis.cancelAnimationFrame = ((id: number) => { queue[id - 1] = () => {} }) as any
 })
