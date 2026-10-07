@@ -1,6 +1,8 @@
 # Examples
 
-Twelve runnable demos. Each page has a `.ts` sibling you can copy into your own project.
+Twelve examples. Each page has a `.ts` sibling you can copy into your own project.
+
+To try the library without installing anything, open the [playground](/playground/): every demo there runs in the browser, from a real basemap and search to turn-by-turn and offline maps.
 
 | # | Title | What it shows |
 | - | ----- | ------------- |

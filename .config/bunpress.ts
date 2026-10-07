@@ -64,6 +64,10 @@ const config: BunPressConfig = {
       link: '/examples/',
     },
     {
+      text: 'Playground',
+      link: '/playground/',
+    },
+    {
       text: 'Migrating',
       items: [
         { text: 'From Leaflet', link: '/migration/from-leaflet' },
@@ -77,6 +81,7 @@ const config: BunPressConfig = {
     { text: 'Home', link: '/' },
     { text: 'Guide', link: '/guide/getting-started' },
     { text: 'Examples', link: '/examples/' },
+    { text: 'Playground', link: '/playground/' },
     { text: 'API', link: '/api/' },
     { text: 'GitHub', link: 'https://github.com/stacksjs/ts-maps' },
   ],

@@ -1,0 +1,7 @@
+# The docs site, with the core-map playground built into /playground/.
+[build]
+command = "bun install && bun run build:site"
+publish = "dist/.bunpress"
+
+[build.environment]
+BUN_VERSION = "1.4.2"

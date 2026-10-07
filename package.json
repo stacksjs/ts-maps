@@ -54,11 +54,13 @@
     "render:check": "bun --bun scripts/verify-render.ts",
     "dev:docs": "bun --bun bunpress dev docs",
     "build:docs": "bun --bun bunpress build docs",
+    "build:playground": "bun --bun scripts/build-playground.ts",
+    "build:site": "bun run build:docs && bun run build:playground",
     "preview:docs": "bun --bun bunpress preview docs",
     "release:patch": "bunx --bun @stacksjs/bumpx patch --recursive --commit --tag --push --yes"
   },
   "devDependencies": {
-    "@stacksjs/bunpress": "^0.2.11",
+    "@stacksjs/bunpress": "^0.2.17",
     "better-dx": "^0.2.15"
   },
   "git-hooks": {
