@@ -1,5 +1,7 @@
 import type { TsMap } from 'ts-maps'
-import { control, divIcon, marker as makeMarker, OfflineMapsControl, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import type { PageTheme, ResolveTileJsonOptions, RouteLatLng, RouteMarker, RouteOptions } from './route'
+import { CircleMarker, control, divIcon, marker as makeMarker, OfflineMapsControl, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
+import { basemapStyle, drawRoute, pageTheme, refitOnResize, resolveTileJson, watchPageTheme } from './route'
 
 /**
  * How the components in this package become things on a map.
@@ -96,10 +98,23 @@ export interface MapProps {
   pitch?: number
   theme?: 'light' | 'dark' | 'auto'
   styleSpec?: unknown
-  basemap?: 'dark' | 'light'
+  /** `'auto'` follows the page: a `dark` class on `<html>`, else the system setting. */
+  basemap?: 'dark' | 'light' | 'auto'
   tiles?: string | string[]
   tilesAttribution?: string
   basemapMode?: 'vector' | 'raster'
+  /**
+   * TileJSON URLs to take the vector tile URL from, tried in order (a list, or
+   * one comma-separated string). For a tile service whose URLs carry a build
+   * date. When none answers the map draws `rasterFallback`, never nothing.
+   */
+  tilejson?: string | string[]
+  /** Raster tiles for when no TileJSON answers; CARTO's by default. */
+  rasterFallback?: string | Partial<Record<PageTheme, string>>
+  /** Palette overrides for the bundled basemaps, per theme. */
+  palette?: Partial<Record<PageTheme, Record<string, string>>>
+  /** Share gestures with a scrolling page: two fingers or ⌘ + wheel move the map. */
+  cooperativeGestures?: boolean
   zoomControl?: boolean
   attributionControl?: boolean
 }
@@ -114,27 +129,96 @@ export function mapOptionsFrom(props: MapProps): Record<string, unknown> {
     maxZoom: props.maxZoom,
     bearing: props.bearing ?? 0,
     pitch: props.pitch ?? 0,
-    theme: props.theme ?? 'light',
+    theme: props.theme ?? (props.basemap === 'auto' ? pageTheme() : 'light'),
     zoomControl: props.zoomControl ?? true,
     attributionControl: props.attributionControl ?? true,
+    cooperativeGestures: props.cooperativeGestures,
     style,
   })
 }
 
+function hasTileJson(props: MapProps): boolean {
+  return Array.isArray(props.tilejson) ? props.tilejson.length > 0 : !!props.tilejson
+}
+
 /** One of the bundled basemaps, when `basemap` names one and `tiles` is set. */
 function buildBasemap(props: MapProps): unknown {
-  if (props.basemap !== 'dark' && props.basemap !== 'light')
+  if (props.basemap !== 'dark' && props.basemap !== 'light' && props.basemap !== 'auto')
+    return undefined
+  // Drawn by `attachBasemap` once the TileJSON answers: painting a fallback
+  // first would download a screenful of tiles only to replace them.
+  if (hasTileJson(props))
     return undefined
   if (!props.tiles || (Array.isArray(props.tiles) && props.tiles.length === 0)) {
-    console.warn('[ts-maps] <Map basemap> needs a `tiles` url; ignoring')
+    console.warn('[ts-maps] <Map basemap> needs a `tiles` url or a `tilejson`; ignoring')
     return undefined
   }
 
-  return styles[props.basemap]({
+  const theme = props.basemap === 'auto' ? pageTheme() : props.basemap
+  return styles[theme]({
     tiles: props.tiles,
     mode: props.basemapMode ?? 'vector',
     attribution: props.tilesAttribution,
+    ...(props.palette?.[theme] ? { palette: props.palette[theme] } : {}),
   })
+}
+
+/**
+ * The parts of a basemap that cannot be decided when the map is built: tiles
+ * from a TileJSON (with its fallback chain), and a basemap that follows the
+ * page between light and dark. Returns the teardown; a no-op when the props
+ * ask for neither.
+ */
+export function attachBasemap(map: TsMap, props: MapProps, env: Pick<ResolveTileJsonOptions, 'fetch' | 'storage'> & { doc?: Document } = {}): () => void {
+  const fromTileJson = hasTileJson(props)
+  const auto = props.basemap === 'auto'
+  if (props.styleSpec || (!fromTileJson && !auto) || (props.basemap !== 'light' && props.basemap !== 'dark' && !auto))
+    return () => {}
+  if (!fromTileJson && !props.tiles)
+    return () => {}
+
+  const anyMap = map as any
+  let alive = true
+  let ready = !fromTileJson
+  let tiles: string | string[] | null = fromTileJson ? null : (props.tiles ?? null)
+  let attribution = props.tilesAttribution
+  const theme = (): PageTheme => (auto ? pageTheme(env.doc) : props.basemap as PageTheme)
+  const apply = () => {
+    anyMap.setStyle(basemapStyle(styles, {
+      theme: theme(),
+      tiles,
+      attribution,
+      rasterFallback: props.rasterFallback,
+      palette: props.palette,
+    }))
+  }
+
+  if (fromTileJson) {
+    void resolveTileJson(props.tilejson as string | string[], { fetch: env.fetch, storage: env.storage }).then((found) => {
+      // The map may have been removed while the lookup was in flight.
+      if (!alive)
+        return
+      tiles = found?.tiles ?? null
+      attribution = props.tilesAttribution ?? found?.attribution
+      ready = true
+      apply()
+    })
+  }
+
+  const stopWatching = auto
+    ? watchPageTheme((next) => {
+        if (!alive)
+          return
+        anyMap.setTheme?.(next)
+        if (ready)
+          apply()
+      }, env.doc)
+    : () => {}
+
+  return () => {
+    alive = false
+    stopWatching()
+  }
 }
 
 type Removable = { remove: () => unknown }
@@ -205,6 +289,31 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           anyMap.addLayer(layer)
           created.push(layer as unknown as Removable)
           root.dispatchEvent(new CustomEvent('runtrail:ready', { bubbles: true, detail: { layer } }))
+          break
+        }
+
+        case 'route': {
+          const coords = readJson<RouteLatLng[]>(el, 'data-coords', [])
+          const { theme: wanted, markers, ...rest } = definedOnly(readJson<Record<string, unknown>>(el, 'data-options', {})) as Omit<RouteOptions, 'theme'> & { theme?: PageTheme | 'auto', markers?: RouteMarker[] }
+          const auto = wanted === undefined || wanted === 'auto'
+          const route = drawRoute({ Polyline, CircleMarker, marker: makeMarker, divIcon }, map, coords, {
+            ...rest,
+            markers: markers ?? [],
+            theme: auto ? pageTheme() : wanted,
+          })
+          const stopTheme = auto ? watchPageTheme(next => route.setTheme(next)) : () => {}
+          const stopResize = rest.fit === false ? () => {} : refitOnResize(map, route)
+          // A route the page fetches after render is handed over here:
+          // `e.detail.route.setRoute(coords, markers)`, and `setCursor` for a
+          // chart that follows along.
+          root.dispatchEvent(new CustomEvent('route:ready', { bubbles: true, detail: { route } }))
+          created.push({
+            remove: () => {
+              stopTheme()
+              stopResize()
+              route.remove()
+            },
+          })
           break
         }
 

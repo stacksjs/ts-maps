@@ -51,6 +51,7 @@ tiles somewhere below the fold.
 | `Source` / `Layer` | Style-spec sources and the layers that draw them |
 | `Marker` | A pin, default or your own markup |
 | `Popup` | A bubble, bound to a marker or free-standing |
+| `RouteLayer` | A recorded route: cased line, start and finish, distance markers, framed to fit |
 | `ZoomControl` `NavigationControl` `GeocoderControl` `FullscreenControl` `LocateControl` `ScaleControl` `AttributionControl` | Map controls |
 
 Same names and prop shapes as the React, Vue, Svelte and Solid bindings.
@@ -67,6 +68,20 @@ layer instances rather than plain data. Use the map directly for that one.
 `basemap` + `tiles` — build one of the bundled basemaps without composing a
 style yourself. `basemapMode` picks `'vector'` (default) or `'raster'`;
 `tilesAttribution` is passed through to the attribution control.
+
+`basemap="auto"` follows the page between light and dark (a `dark` class on
+`<html>`, else the system setting), restyling in place when it changes.
+
+`tilejson` — vector tiles from a TileJSON instead of a fixed `tiles` URL, for
+a tile service whose URLs carry a build date. A list (or a comma-separated
+string) is tried in order, each source raced against a timeout; when none
+answers the map draws `rasterFallback` (CARTO's raster tiles by default) under
+everything else rather than nothing. The answer is cached for the session.
+`palette` overrides basemap colours per theme: `{ light: { water: '#bcd7ea' } }`.
+
+`cooperativeGestures` — for a map inside a page that scrolls (on a phone,
+almost always): one finger or a plain wheel scrolls the page, two fingers or
+⌘/Ctrl + wheel move the map, with a hint saying so.
 
 `styleSpec` — a full style object or a URL, when you want your own.
 
@@ -102,6 +117,41 @@ onMount(() => {
   })
 })
 ```
+
+### `<RouteLayer>`
+
+```stx
+<Map basemap="auto" cooperativeGestures
+     tilejson="https://tiles.example.org/tiles.json,https://tiles.openfreemap.org/planet"
+     containerStyle="height: 320px">
+  <FullscreenControl />
+  <RouteLayer :coords="run.coords" :markers="run.kmMarkers" />
+</Map>
+```
+
+`coords` is `[lat, lng]` per point; `markers` is `{ lat, lng, label }`. The
+route is cased so it reads over any ground, starts green and finishes red,
+frames itself, and re-frames when the map is resized for as long as nobody has
+moved the camera. `theme` defaults to `'auto'`; `color`, or `colors` per theme
+(`line`, `casing`, `start`, `finish`, `ring`), restyles it.
+
+A route the page fetches after it renders is handed over on `route:ready`:
+
+```ts
+container.addEventListener('route:ready', (e) => {
+  e.detail.route.setRoute(coords, markers)
+  // A chart being scrubbed can move a dot along it:
+  e.detail.route.setCursor([lat, lng])
+})
+```
+
+### Without the components
+
+`@ts-maps/stx/route` is the same logic as plain functions that take the
+ts-maps module as an argument — `resolveTileJson`, `basemapStyle`,
+`drawRoute`, `refitOnResize`, `pageTheme`, `watchPageTheme` — and import only
+its types. An app that loads ts-maps lazily, as its own chunk so pages without
+a map never download it, passes in the module it loaded.
 
 ## Reaching the map
 

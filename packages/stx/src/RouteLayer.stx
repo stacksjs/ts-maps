@@ -1,0 +1,59 @@
+<script server>
+/**
+ * A recorded route: a cased line, start and finish, optional distance
+ * markers, framed to fit and re-framed when the map resizes.
+ *
+ * ```stx
+ * <Map basemap="auto" tilejson="https://tiles.example.org/tiles.json,https://tiles.openfreemap.org/planet" cooperativeGestures>
+ *   <RouteLayer :coords="run.coords" :markers="[{ lat: 32.79, lng: -117.25, label: '5' }]" />
+ * </Map>
+ * ```
+ *
+ * `coords` is `[lat, lng]` per point. `theme` is `'auto'` by default, which
+ * follows the page between light and dark; `colors` overrides any of
+ * `line`, `casing`, `start`, `finish`, `ring` per theme, and `color` is the
+ * shortcut for the line in both.
+ *
+ * A route fetched after the page renders is handed over through the
+ * `route:ready` event, whose `detail.route` has `setRoute(coords, markers)`,
+ * and `setCursor([lat, lng])` for a chart that moves a dot along it.
+ */
+export const coordsJson = JSON.stringify($props.coords ?? [])
+const color = $props.color
+const colors = $props.colors ?? (color ? { light: { line: color }, dark: { line: color } } : undefined)
+
+export const optionsJson = JSON.stringify({
+  theme: $props.theme,
+  colors,
+  weight: $props.weight,
+  markers: $props.markers,
+  fit: $props.fit,
+  padding: $props.padding,
+})
+</script>
+
+<span
+  hidden
+  data-ts-map-child="route"
+  data-coords="{{ coordsJson }}"
+  data-options="{{ optionsJson }}"
+></span>
+
+<style>
+  .ts-map-route-marker-icon { background: transparent; border: 0; }
+  .ts-map-route-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    font: 600 10px/1 system-ui, -apple-system, sans-serif;
+    font-variant-numeric: tabular-nums;
+    color: #1d4ed8;
+    background: #ffffff;
+    border: 1.5px solid currentColor;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.25);
+  }
+  .dark .ts-map-route-marker { color: #93c5fd; background: #0f172a; }
+</style>

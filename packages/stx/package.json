@@ -29,6 +29,11 @@
       "bun": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./route": {
+      "types": "./dist/route.d.ts",
+      "bun": "./src/route.ts",
+      "import": "./src/route.ts"
+    },
     "./stx-plugin": {
       "bun": "./stx-plugin.ts",
       "import": "./stx-plugin.ts"

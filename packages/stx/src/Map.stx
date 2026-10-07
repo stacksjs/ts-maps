@@ -45,6 +45,15 @@ export const basemap = $props.basemap
 export const tiles = $props.tiles
 export const tilesAttribution = $props.tilesAttribution
 export const basemapMode = $props.basemapMode
+/**
+ * Vector tiles through TileJSON, tried in order, with a raster fallback when
+ * none answers: `tilejson="https://tiles.example.org/tiles.json,https://tiles.openfreemap.org/planet"`.
+ */
+export const tilejson = $props.tilejson
+export const rasterFallback = $props.rasterFallback
+export const palette = $props.palette
+/** Two fingers (or ⌘ + wheel) to move the map, so the page keeps scrolling. */
+export const cooperativeGestures = $props.cooperativeGestures
 export const zoomControl = $props.zoomControl
 export const attributionControl = $props.attributionControl
 export const className = $props.className || ''
@@ -64,6 +73,10 @@ export const mapPropsJson = JSON.stringify({
   tiles,
   tilesAttribution,
   basemapMode,
+  tilejson,
+  rasterFallback,
+  palette,
+  cooperativeGestures,
   zoomControl,
   attributionControl,
 })
@@ -88,7 +101,7 @@ export const mapPropsJson = JSON.stringify({
 
 <script client>
   import { TsMap } from 'ts-maps'
-  import { mapOptionsFrom, mountChildren, publishMap, readJson, unpublishMap } from './runtime'
+  import { attachBasemap, mapOptionsFrom, mountChildren, publishMap, readJson, unpublishMap } from './runtime'
 
   const root = useRef('root')
 
@@ -96,15 +109,19 @@ export const mapPropsJson = JSON.stringify({
     const container = root.value
     if (!container) return
 
-    const map = new TsMap(container, mapOptionsFrom(readJson(container, 'data-ts-map-props', {})))
+    const props = readJson(container, 'data-ts-map-props', {})
+    const map = new TsMap(container, mapOptionsFrom(props))
     publishMap(container, map)
 
     // One pass over the subtree builds every declared child. stx emits a
     // component's client script once per definition rather than per use, so
     // this is the only place that can see all ten of your markers.
     const teardown = mountChildren(map, container)
+    // Tiles from a TileJSON, and a basemap following the page's theme.
+    const detachBasemap = attachBasemap(map, props)
 
     onDestroy(() => {
+      detachBasemap()
       teardown()
       unpublishMap(container)
       map.remove()

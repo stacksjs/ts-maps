@@ -17,6 +17,7 @@
  */
 
 export {
+  attachBasemap,
   CHILD_ATTRIBUTE,
   definedOnly,
   findMap,
@@ -29,3 +30,26 @@ export {
   readJson,
   unpublishMap,
 } from './runtime'
+
+export {
+  basemapStyle,
+  type BasemapOptions,
+  drawRoute,
+  pageTheme,
+  type PageTheme,
+  RASTER_FALLBACK,
+  RASTER_FALLBACK_ATTRIBUTION,
+  refitOnResize,
+  resolveTileJson,
+  type ResolvedTiles,
+  type ResolveTileJsonOptions,
+  ROUTE_COLORS,
+  type RouteColors,
+  type RouteHandle,
+  type RouteLatLng,
+  type RouteMarker,
+  routeMarkerHtml,
+  type RouteOptions,
+  type TileJsonEnv,
+  watchPageTheme,
+} from './route'
