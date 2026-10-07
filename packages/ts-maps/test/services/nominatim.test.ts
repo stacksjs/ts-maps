@@ -139,12 +139,18 @@ describe('NominatimGeocoder', () => {
   test('rejects on non-ok response', async () => {
     globalThis.fetch = (async () => ({
       ok: false,
-      status: 429,
-      statusText: 'Too Many Requests',
+      status: 500,
+      statusText: 'Internal Server Error',
       json: async () => ({}),
     } as Response)) as unknown as typeof fetch
     const geo = new NominatimGeocoder()
-    await expect(geo.search('Lagos')).rejects.toThrow(/429/)
+    await expect(geo.search('Lagos')).rejects.toThrow(/500/)
+  })
+
+  test('a 429 backs off with a RateLimitError', async () => {
+    globalThis.fetch = (async () => new Response('', { status: 429, headers: { 'Retry-After': '60' } })) as unknown as typeof fetch
+    const geo = new NominatimGeocoder()
+    await expect(geo.search('Lagos')).rejects.toThrow(/rate-limited/)
   })
 
   test('supports AbortSignal', async () => {

@@ -12,11 +12,17 @@ import type {
   GeocodingResult,
   LatLngLike,
 } from '../types'
+import type { RateLimitOptions } from '../rate-limit'
 import { throttle } from '../../core/Util'
+import { RateLimiter } from '../rate-limit'
 
 export interface NominatimOptions {
   baseUrl?: string
   userAgent?: string
+  /** How a 429 is retried and backed off from. See `RateLimiter`. */
+  rateLimit?: RateLimitOptions
+  /** Injectable for tests. */
+  fetch?: typeof fetch
 }
 
 interface NominatimAddress {
@@ -91,10 +97,14 @@ export class NominatimGeocoder implements GeocoderProvider {
   private baseUrl: string
   private userAgent: string
   private scheduleRequest: (run: () => void) => void
+  private limiter: RateLimiter
+  private fetcher?: typeof fetch
 
   constructor(opts: NominatimOptions = {}) {
     this.baseUrl = (opts.baseUrl ?? 'https://nominatim.openstreetmap.org').replace(/\/$/, '')
     this.userAgent = opts.userAgent ?? 'ts-maps'
+    this.limiter = new RateLimiter(this.name, opts.rateLimit)
+    this.fetcher = opts.fetch
     // Wrap `throttle` so each request is queued through a 250ms gate.
     this.scheduleRequest = throttle((run: () => void) => run(), 250)
   }
@@ -137,10 +147,10 @@ export class NominatimGeocoder implements GeocoderProvider {
   }
 
   private async fetch(url: string, signal?: AbortSignal): Promise<unknown> {
-    const res = await fetch(url, {
+    const res = await this.limiter.fetch(url, {
       headers: { 'User-Agent': this.userAgent, 'Accept': 'application/json' },
       signal,
-    })
+    }, this.fetcher ?? fetch)
     if (!res.ok)
       throw new Error(`Nominatim request failed: ${res.status} ${res.statusText}`)
     return res.json()

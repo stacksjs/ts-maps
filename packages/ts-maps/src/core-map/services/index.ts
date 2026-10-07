@@ -24,6 +24,10 @@ export { RouteSimulator } from './simulator'
 export type { RouteSimulatorOptions } from './simulator'
 export type { RouteBuilderOptions, RouteBuilderState, SegmentRouter } from './route-builder'
 
+export { RateLimiter, RateLimitError, retryAfterMs } from './rate-limit'
+export type { RateLimitOptions } from './rate-limit'
+export { GeocoderChain, geocoderChain } from './providers/Chain'
+export type { GeocoderChainOptions } from './providers/Chain'
 export { GazetteerGeocoder } from './providers/Gazetteer'
 export type { GazetteerGeocoderOptions } from './providers/Gazetteer'
 export { GoogleDirections, GoogleGeocoder } from './providers/Google'
@@ -32,6 +36,7 @@ export { MaptilerGeocoder } from './providers/Maptiler'
 export { NominatimGeocoder } from './providers/Nominatim'
 export { OSRMDirections, OSRMMatrix } from './providers/OSRM'
 export { PhotonGeocoder } from './providers/Photon'
+export type { PhotonOptions } from './providers/Photon'
 export { ValhallaDirections, ValhallaElevation, ValhallaIsochrone, ValhallaMatrix } from './providers/Valhalla'
 
 import type {

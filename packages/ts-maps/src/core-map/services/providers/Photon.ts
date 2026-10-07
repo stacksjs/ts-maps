@@ -5,15 +5,26 @@
 //   GET /api?q=...&limit=...&lang=...
 //   GET /reverse?lat=...&lon=...&lang=...
 
+import type { RateLimitOptions } from '../rate-limit'
 import type {
   GeocoderOptions,
   GeocoderProvider,
   GeocodingResult,
   LatLngLike,
 } from '../types'
+import { RateLimiter } from '../rate-limit'
 
 export interface PhotonOptions {
+  /** A self-hosted instance. Default the public one, which has fair-use limits. */
   baseUrl?: string
+  /**
+   * How a 429 is retried and backed off from. While it backs off, calls throw
+   * `RateLimitError` without asking, and search falls back to the map's own
+   * places and offline maps.
+   */
+  rateLimit?: RateLimitOptions
+  /** Injectable for tests. */
+  fetch?: typeof fetch
 }
 
 interface PhotonFeature {
@@ -99,9 +110,18 @@ function toResult(f: PhotonFeature): GeocodingResult {
 export class PhotonGeocoder implements GeocoderProvider {
   name: string = 'photon'
   private baseUrl: string
+  private limiter: RateLimiter
+  private fetcher?: typeof fetch
 
   constructor(opts: PhotonOptions = {}) {
     this.baseUrl = (opts.baseUrl ?? 'https://photon.komoot.io').replace(/\/$/, '')
+    this.limiter = new RateLimiter(this.name, opts.rateLimit)
+    this.fetcher = opts.fetch
+  }
+
+  /** Whether the provider is backing off after a 429. */
+  get rateLimited(): boolean {
+    return this.limiter.limited
   }
 
   async search(query: string, opts?: GeocoderOptions): Promise<GeocodingResult[]> {
@@ -119,7 +139,7 @@ export class PhotonGeocoder implements GeocoderProvider {
     if (opts?.bbox)
       params.set('bbox', opts.bbox.join(','))
     const url = `${this.baseUrl}/api?${params.toString()}`
-    const res = await fetch(url, { signal: opts?.signal })
+    const res = await this.limiter.fetch(url, { signal: opts?.signal }, this.fetcher ?? fetch)
     if (!res.ok)
       throw new Error(`Photon request failed: ${res.status} ${res.statusText}`)
     const raw = (await res.json()) as PhotonResponse
@@ -135,7 +155,7 @@ export class PhotonGeocoder implements GeocoderProvider {
     if (opts?.language)
       params.set('lang', opts.language)
     const url = `${this.baseUrl}/reverse?${params.toString()}`
-    const res = await fetch(url, { signal: opts?.signal })
+    const res = await this.limiter.fetch(url, { signal: opts?.signal }, this.fetcher ?? fetch)
     if (!res.ok)
       throw new Error(`Photon reverse request failed: ${res.status} ${res.statusText}`)
     const raw = (await res.json()) as PhotonResponse

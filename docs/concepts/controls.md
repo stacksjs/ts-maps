@@ -109,6 +109,60 @@ Answers come from three places at once, merged so the same café is one result:
 Every framework binding has it as `<Search>`, with `query` followed as a prop —
 see [framework bindings](../guide/framework-bindings.md#search).
 
+### In production: rate limits and your own geocoder
+
+The map's own places answer instantly and offline, but typing still asks the
+online geocoder once per pause. Photon's public instance at
+`photon.komoot.io` is free and shared, with a fair-use limit and no
+guarantee; it is right for development and small sites. When it answers
+`429 Too Many Requests`:
+
+- a short `Retry-After` (2 s or less) is waited out and the request retried
+  once;
+- a longer one, or a second 429, puts the provider in a back-off of 30 s,
+  doubling for each limit in a row up to five minutes (or the `Retry-After`,
+  if longer). It asks nothing while it backs off;
+- search carries on with the map's own places and downloaded maps, as it does
+  with no network. The user sees fewer addresses, not an error.
+
+Tune it with `rateLimit: { retries, maxRetryDelay, cooldown }` on
+`PhotonGeocoder` or `NominatimGeocoder`. A rate-limited call throws
+`RateLimitError`, with `retryAfter` in milliseconds, for code of your own.
+
+For a production app, use a geocoder you control or pay for:
+
+| Provider | | Cost |
+| --- | --- | --- |
+| **Photon, self-hosted** | `new PhotonGeocoder({ baseUrl: 'https://geo.example.com' })` | A server. Photon runs from one Java process over a prebuilt index; GraphHopper publishes planet and country indexes, and a country is far smaller than the planet. Same answers as the public instance, no limit but your hardware. |
+| **MapTiler** | `new MaptilerGeocoder({ apiKey })` | A key. A free tier, then paid plans by requests. See [maptiler.com/cloud/pricing](https://www.maptiler.com/cloud/pricing/). |
+| **Mapbox** | `new MapboxGeocoder({ accessToken })` | A token. Free up to a monthly request allowance, then per request. See [mapbox.com/pricing](https://www.mapbox.com/pricing#search). |
+| **Google** | `new GoogleGeocoder({ apiKey })` | A key with billing on. Per request after the monthly credit; autocomplete is billed by session. See [Google Maps Platform pricing](https://mapsplatform.google.com/pricing/). |
+
+Nominatim's public instance is not on that list for search: its usage policy
+forbids autocomplete. A self-hosted Nominatim is fine.
+
+Prices change; check the provider's page before you choose. Whichever you
+pick, keep its attribution in the map's credits.
+
+To try one and then another, chain them. The next provider is asked when one
+fails, and a provider that is backing off is skipped without being asked:
+
+```ts
+import { control, services } from 'ts-maps'
+
+control.search({
+  provider: services.geocoderChain([
+    new services.PhotonGeocoder({ baseUrl: 'https://geo.example.com' }), // yours
+    new services.MaptilerGeocoder({ apiKey }), // when yours is down or busy
+  ]),
+}).addTo(map)
+```
+
+An empty answer is an answer: the chain stops there. Pass
+`{ fallThroughOnEmpty: true }` to go on to the next provider, which suits a
+regional instance in front of a global one, at the cost of a second request
+for every query the first cannot answer.
+
 `search.search('coffee')`, `search.searchCategory(category)`,
 `search.select(place)` and `search.cancel()` drive it from code.
 `search.listen((type, e) => …)` hears `results`, `select`, `directions` and
