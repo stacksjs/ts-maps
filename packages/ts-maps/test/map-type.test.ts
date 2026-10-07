@@ -60,7 +60,7 @@ describe('satellite, hybrid and driving styles', () => {
 describe('MapTypeControl', () => {
   const types = mapTypes({ tiles: TILES, imagery: IMAGERY })
 
-  test('offers Explore, Driving and Satellite, and switches the style', () => {
+  test('offers Explore, Driving, Transit and Satellite, and switches the style', () => {
     const map = makeMap()
     map.setStyle(styles.light({ tiles: TILES }))
     const picker = control.mapType({ types }).addTo(map)
@@ -68,7 +68,7 @@ describe('MapTypeControl', () => {
     picker.listen((type, e) => type === 'change' && changes.push(e.value))
     picker.open()
     const card = map.getContainer().querySelector('.tsmap-maptype-card')!
-    expect([...card.querySelectorAll('.tsmap-maptype-label')].map(l => l.textContent)).toEqual(['Explore', 'Driving', 'Satellite'])
+    expect([...card.querySelectorAll('.tsmap-maptype-label')].map(l => l.textContent)).toEqual(['Explore', 'Driving', 'Transit', 'Satellite'])
     card.querySelector<HTMLElement>('[data-type="satellite"]')!.click()
     expect(map.getStyle()!.layers.map(l => l.id)).toContain('imagery')
     expect(map.getTheme()).toBe('dark')

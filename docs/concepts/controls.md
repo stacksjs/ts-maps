@@ -247,14 +247,14 @@ one without uses `zoom`. The map fires `geocoderesults`, `geocodeselect` and
 
 ## Map type
 
-The map type picker, as in Apple Maps: a card of Explore, Driving and
-Satellite that sets the map's style.
+The map type picker, as in Apple Maps: a card of Explore, Driving, Transit
+and Satellite that sets the map's style.
 
 ```ts
 control.mapType({ types: mapTypes({ tiles, imagery }) }).addTo(map)
 ```
 
-`mapTypes()` builds the three from one vector source and one imagery source
+`mapTypes()` builds the four from one vector source and one imagery source
 (see [Satellite, hybrid and Driving](./styles-and-theming.md#satellite-hybrid-and-driving));
 pass `labels: false` for imagery without names, or any list of
 `{ id, label, style, theme }` of your own. Choosing one keeps the camera, the

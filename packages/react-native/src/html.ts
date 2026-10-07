@@ -215,12 +215,20 @@ const RUNTIME_SCRIPT = [
   // `directions`, a provider object, cannot cross; the default is used.
   '  const NAV_KEYS = ["profile", "units", "voice", "simulate", "alternatives", "destinationName"];',
   '  let nav = null;',
+  // Transit is planned by OpenTripPlanner at `otpUrl`: one client per URL,
+  // so a spec that has not changed does not look like a new provider.
+  '  let otp = null;',
+  '  function navDirections(spec, ns) {',
+  '    if (spec.profile !== "transit" || !spec.otpUrl || !ns.services || !ns.services.OpenTripPlannerDirections) return undefined;',
+  '    if (!otp || otp.url !== spec.otpUrl) otp = { url: spec.otpUrl, provider: new ns.services.OpenTripPlannerDirections({ url: spec.otpUrl }) };',
+  '    return otp.provider;',
+  '  }',
   '  function applyTurnByTurn(spec) {',
   '    const ns = window.tsMaps || window;',
   '    if (!spec) { if (nav) { nav.stop(); nav = null; } return; }',
   '    if (!ns.TurnByTurn) return;',
   '    if (!nav) {',
-  '      try { nav = new ns.TurnByTurn(map, given(spec, NAV_KEYS)); }',
+  '      try { nav = new ns.TurnByTurn(map, Object.assign(given(spec, NAV_KEYS), { directions: navDirections(spec, ns) })); }',
   '      catch (e) { fail((e && e.message) || e); return; }',
   '      Object.keys(ns.TURN_BY_TURN_EVENTS || {}).forEach(function (type) {',
   '        nav.on(type, function (e) {',
@@ -228,7 +236,7 @@ const RUNTIME_SCRIPT = [
   '        });',
   '      });',
   '    }',
-  '    nav.sync(follow(spec, NAV_KEYS, { from: spec.from, to: spec.to, active: !!spec.active }));',
+  '    nav.sync(follow(spec, NAV_KEYS, { from: spec.from, to: spec.to, active: !!spec.active, directions: navDirections(spec, ns) }));',
   '  }',
   // Offline maps are the same control the other bindings use; its events
   // come back over the bridge as plain data. `maps` and `geocoder` cannot

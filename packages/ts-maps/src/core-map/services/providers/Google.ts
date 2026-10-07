@@ -13,8 +13,10 @@ import type {
   LatLngLike,
   Route,
   RouteStep,
-  TransportProfile,
+  TravelMode,
 } from '../types'
+import { decodePolyline } from '../polyline'
+import { transitInstruction, transitVehicle } from '../transit'
 
 export interface GoogleOptions {
   apiKey: string
@@ -29,44 +31,13 @@ function requireKey(apiKey: string | undefined): string {
   return apiKey
 }
 
-const profileMap: Record<TransportProfile, string> = {
+const profileMap: Record<TravelMode, string> = {
   driving: 'driving',
   walking: 'walking',
   cycling: 'bicycling',
+  transit: 'transit',
 }
 
-// Decode Google polyline (precision 5, the default for Directions API).
-function decodePolyline(encoded: string, precision: number = 5): LatLngLike[] {
-  const factor = 10 ** precision
-  const len = encoded.length
-  let index = 0
-  let lat = 0
-  let lng = 0
-  const out: LatLngLike[] = []
-  while (index < len) {
-    let shift = 0
-    let result = 0
-    let byte: number
-    do {
-      byte = encoded.charCodeAt(index++) - 63
-      result |= (byte & 0x1F) << shift
-      shift += 5
-    } while (byte >= 0x20)
-    const dLat = (result & 1) ? ~(result >> 1) : (result >> 1)
-    lat += dLat
-    shift = 0
-    result = 0
-    do {
-      byte = encoded.charCodeAt(index++) - 63
-      result |= (byte & 0x1F) << shift
-      shift += 5
-    } while (byte >= 0x20)
-    const dLng = (result & 1) ? ~(result >> 1) : (result >> 1)
-    lng += dLng
-    out.push({ lat: lat / factor, lng: lng / factor })
-  }
-  return out
-}
 
 async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
   const res = await fetch(url, { signal })
@@ -173,15 +144,29 @@ export class GoogleGeocoder implements GeocoderProvider {
   }
 }
 
+interface GoogleTransitDetails {
+  line?: { short_name?: string, name?: string, color?: string, text_color?: string, vehicle?: { type?: string }, agencies?: Array<{ name?: string }> }
+  headsign?: string
+  num_stops?: number
+  departure_stop?: { name?: string, location?: { lat: number, lng: number } }
+  arrival_stop?: { name?: string, location?: { lat: number, lng: number } }
+  departure_time?: { value?: number }
+  arrival_time?: { value?: number }
+}
+
 interface GoogleDirectionsStep {
   distance?: { value?: number }
   duration?: { value?: number }
   html_instructions?: string
   maneuver?: string
   polyline?: { points: string }
+  travel_mode?: string
+  transit_details?: GoogleTransitDetails
 }
 
 interface GoogleDirectionsLeg {
+  departure_time?: { value?: number }
+  arrival_time?: { value?: number }
   distance?: { value?: number }
   duration?: { value?: number }
   /** With a departure time: the leg in today's traffic. */
@@ -213,6 +198,30 @@ function stepToStep(step: GoogleDirectionsStep): RouteStep {
   }
   if (step.maneuver)
     out.maneuver = step.maneuver
+  const t = step.transit_details
+  if (step.travel_mode === 'TRANSIT' && t) {
+    const transit = {
+      vehicle: transitVehicle(t.line?.vehicle?.type),
+      line: t.line?.short_name || t.line?.name || 'Transit',
+      ...(t.line?.name ? { lineName: t.line.name } : {}),
+      ...(t.line?.color ? { color: t.line.color } : {}),
+      ...(t.line?.text_color ? { textColor: t.line.text_color } : {}),
+      ...(t.headsign ? { headsign: t.headsign } : {}),
+      ...(t.line?.agencies?.[0]?.name ? { agency: t.line.agencies[0].name } : {}),
+      from: { name: t.departure_stop?.name ?? '', ...(t.departure_stop?.location ? { location: t.departure_stop.location } : {}) },
+      to: { name: t.arrival_stop?.name ?? '', ...(t.arrival_stop?.location ? { location: t.arrival_stop.location } : {}) },
+      departure: new Date((t.departure_time?.value ?? 0) * 1000),
+      arrival: new Date((t.arrival_time?.value ?? 0) * 1000),
+      stops: t.num_stops ?? 0,
+    }
+    out.transit = transit
+    out.maneuver = 'transit'
+    out.name = transit.line
+    out.instruction = transitInstruction(transit)
+  }
+  else if (step.travel_mode === 'WALKING' && !step.maneuver) {
+    out.maneuver = 'walk'
+  }
   return out
 }
 
@@ -227,7 +236,9 @@ function routeToRoute(r: GoogleDirectionsRoute): Route {
     const inTraffic = legs.reduce((sum, l) => sum + l.duration_in_traffic!.value!, 0)
     return { distance, duration: inTraffic, typicalDuration: duration, traffic: true, geometry, steps }
   }
-  return { distance, duration, geometry, steps }
+  const first = legs[0]?.departure_time?.value
+  const last = legs[legs.length - 1]?.arrival_time?.value
+  return { distance, duration, geometry, steps, ...(first ? { departure: new Date(first * 1000) } : {}), ...(last ? { arrival: new Date(last * 1000) } : {}) }
 }
 
 export class GoogleDirections implements DirectionsProvider {
@@ -263,6 +274,10 @@ export class GoogleDirections implements DirectionsProvider {
       params.set('language', opts.language)
     if (this.traffic && (opts?.profile ?? 'driving') === 'driving')
       params.set('departure_time', 'now')
+    if (opts?.arriveBy)
+      params.set('arrival_time', String(Math.round(opts.arriveBy.getTime() / 1000)))
+    else if (opts?.departAt)
+      params.set('departure_time', String(Math.round(opts.departAt.getTime() / 1000)))
     const url = `${this.baseUrl}/directions/json?${params.toString()}`
     const raw = (await fetchJson(url, opts?.signal)) as GoogleDirectionsResponse
     if (raw.status !== 'OK' && raw.status !== 'ZERO_RESULTS')

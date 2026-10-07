@@ -1,4 +1,4 @@
-import type { DirectionsProvider, LatLngLike, Route, TransportProfile } from '../services/types'
+import type { DirectionsProvider, LatLngLike, Route, TransitDetails, TravelMode } from '../services/types'
 import type { DistanceUnits } from '../services/instructions'
 import type { Instruction, NavigationProgress, PositionFix } from '../services/navigator'
 import type { RouteSimulatorOptions } from '../services/simulator'
@@ -14,6 +14,7 @@ import '../layer/vector/Renderer.getRenderer'
 import { formatDistance, laneIcon, maneuverIcon, parseManeuver, prefersImperial } from '../services/instructions'
 import { Navigator } from '../services/navigator'
 import { RouteSimulator } from '../services/simulator'
+import { transitRides } from '../services/transit'
 import { OSRMDirections } from '../services/providers/OSRM'
 
 /**
@@ -44,7 +45,8 @@ import { OSRMDirections } from '../services/providers/OSRM'
 export interface TurnByTurnOptions {
   /** Where routes come from. Default: the public OSRM server. */
   directions?: DirectionsProvider
-  profile?: TransportProfile
+  /** `'transit'` needs a provider that plans it: OpenTripPlanner, or Google. */
+  profile?: TravelMode
   /** Default: from the browser's locale — miles in the US, kilometres elsewhere. */
   units?: DistanceUnits
   /** Speak instructions with the browser's speech synthesis. Default true. */
@@ -131,6 +133,22 @@ export function trafficNote(route: Route): string {
     return '<span class="tsmap-nav-traffic tsmap-nav-traffic-light">Light traffic</span>'
   const heavy = delay >= Math.max(600, route.typicalDuration * 0.25)
   return `<span class="tsmap-nav-traffic tsmap-nav-traffic-${heavy ? 'heavy' : 'moderate'}">${formatDuration(delay)} delay</span>`
+}
+
+/** A line as its sign shows it: its name on its colour. */
+export function lineBadge(ride: TransitDetails): string {
+  const style = ride.color ? ` style="background:${escape(ride.color)};color:${escape(ride.textColor ?? '#fff')}"` : ''
+  return `<span class="tsmap-nav-line tsmap-nav-line-${ride.vehicle}"${style}>${escape(ride.line)}</span>`
+}
+
+/** A transit route in a line: its rides, and when it leaves and arrives. "N › 38 · 10:12–10:41". */
+export function transitSummary(route: Route): string {
+  const rides = transitRides(route)
+  const time = (d: Date): string => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  const leaves = route.departure ?? rides[0]?.departure
+  const arrives = route.arrival ?? rides[rides.length - 1]?.arrival
+  const when = leaves && arrives ? ` · ${time(leaves)}–${time(arrives)}` : ''
+  return `${rides.map(lineBadge).join('<span class="tsmap-nav-line-sep">›</span>')}${when}`
 }
 
 const BLUE = '#0a84ff'
@@ -251,7 +269,8 @@ export class TurnByTurn extends Evented {
     if (!route)
       throw new Error('Preview a route first')
 
-    const nav = this.navigator = new Navigator(route, { profile: this.options.profile, units: this.options.units })
+    // On transit, what is guided is the walking: the rides keep their own time.
+    const nav = this.navigator = new Navigator(route, { profile: this.options.profile === 'transit' ? 'walking' : this.options.profile, units: this.options.units })
     nav.on('progress', (e: any) => this._onProgress(e.progress))
     nav.on('instruction', (e: any) => this._onInstruction(e.instruction))
     nav.on('offroute', (e: any) => this._reroute(e.progress))
@@ -590,7 +609,7 @@ export class TurnByTurn extends Evented {
 
   _placeCamera(location: LatLngLike, heading: number, speed: number, dt: number): void {
     const map = this.map
-    const walking = this.options.profile === 'walking'
+    const walking = this.options.profile === 'walking' || this.options.profile === 'transit'
     // Closer in when slow, further out on a fast road, as Apple Maps does.
     const zoomTarget = walking ? 18 : 17.4 - Math.min(1.6, Math.max(0, (speed - 8) / 12))
     const pitchTarget = walking ? 45 : 58
@@ -722,7 +741,7 @@ export class TurnByTurn extends Evented {
     const rows = this.routes.map((route, i) => `
       <button class="tsmap-nav-option${i === this.selected ? ' tsmap-selected' : ''}" data-index="${i}">
         <span class="tsmap-nav-option-time">${formatDuration(route.duration)}</span>
-        <span class="tsmap-nav-option-detail">${formatDistance(route.distance, this.options.units)}${i === 0 ? ' · Fastest' : ''}</span>
+        <span class="tsmap-nav-option-detail">${transitRides(route).length ? transitSummary(route) : `${formatDistance(route.distance, this.options.units)}${i === 0 ? ' · Fastest' : ''}`}</span>
         ${trafficNote(route)}
       </button>`).join('')
     card.innerHTML = `

@@ -293,7 +293,7 @@ keeps Favorites in the WebView's own storage, `showSaved` is followed, and
 
 `MapType` adds Apple Maps' map type picker (see
 [the map type control](../concepts/controls.md#map-type)): a button opening a
-card of Explore, Driving and Satellite. Choosing one sets the map's style and
+card of Explore, Driving, Transit and Satellite. Choosing one sets the map's style and
 keeps the layers the page added to it. `types` says what to offer —
 `mapTypes({ tiles, imagery })` builds Apple's three from one basemap source and
 one imagery source. Two props are followed as they change — `value` shows a

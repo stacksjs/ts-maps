@@ -16,9 +16,9 @@
 import type { DirectionsOptions, LatLngLike, Route } from '../services/types'
 import type { OfflineIndex, OfflinePlace, OfflinePlan, OfflineRegionRecord, OfflineStore, StoredTile } from './OfflineStore'
 import type { OfflineArea, PlannedArea } from './plan'
-import type { RouteOptions } from './router'
 import { Evented } from '../core/Events'
 import { pmtilesFetch, withPMTiles } from '../pmtiles/protocol'
+import { streetProfile } from '../services/transit'
 import { saveOfflineRegion } from '../storage/offlineRegion'
 import type { BackgroundFetchLike, OfflineChannelMessage } from './background'
 import type { TileSchema } from './schema'
@@ -904,8 +904,9 @@ export class OfflineMaps extends Evented {
   }
 
   /** Directions over the roads in the downloaded maps. Empty when the waypoints are not both inside one. */
-  async route(waypoints: LatLngLike[], options: DirectionsOptions & RouteOptions = {}): Promise<Route[]> {
-    const profile = options.profile ?? 'driving'
+  async route(waypoints: LatLngLike[], options: DirectionsOptions = {}): Promise<Route[]> {
+    // Downloaded tiles carry roads, not timetables.
+    const profile = streetProfile(options.profile, 'Offline routing')
     let graph = this._graphs.get(profile)
     if (!graph) {
       graph = (async () => {

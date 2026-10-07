@@ -22,6 +22,7 @@ import type {
   RouteStep,
   TransportProfile,
 } from '../types'
+import { streetProfile } from '../transit'
 
 export interface MapboxOptions {
   accessToken: string
@@ -240,7 +241,7 @@ export class MapboxDirections implements DirectionsProvider {
     if (waypoints.length < 2)
       throw new Error('Mapbox directions requires at least two waypoints')
     const traffic = this.traffic && (opts?.profile ?? 'driving') === 'driving'
-    const profile = traffic ? 'mapbox/driving-traffic' : profileMap[opts?.profile ?? 'driving']
+    const profile = traffic ? 'mapbox/driving-traffic' : profileMap[streetProfile(opts?.profile, 'Mapbox')]
     const coordStr = waypoints.map(w => `${w.lng},${w.lat}`).join(';')
     const params = new URLSearchParams()
     params.set('access_token', this.accessToken)
@@ -337,7 +338,7 @@ export class MapboxMatrix implements MatrixProvider {
   }
 
   async getMatrix(origins: LatLngLike[], destinations: LatLngLike[], opts?: MatrixOptions): Promise<MatrixResult> {
-    const profile = profileMap[opts?.profile ?? 'driving']
+    const profile = profileMap[streetProfile(opts?.profile, 'Mapbox')]
     const all = [...origins, ...destinations]
     const coordStr = all.map(w => `${w.lng},${w.lat}`).join(';')
     const sources = origins.map((_, i) => i).join(';')

@@ -110,7 +110,8 @@ export interface TerritorySpec {
  * Live: changing any of it updates the navigation over the bridge — a new
  * `profile` fetches a showing preview again. An option removed returns to its
  * default. `directions`, the routing provider the other bindings take, is an
- * object and cannot cross the bridge, so the default OSRM server is used.
+ * object and cannot cross the bridge, so the default OSRM server is used, or
+ * for transit, OpenTripPlanner at `otpUrl`.
  */
 export interface TurnByTurnSpec {
   /** Where the trip starts, `[lat, lng]`. */
@@ -119,7 +120,10 @@ export interface TurnByTurnSpec {
   to?: [number, number] | null
   /** Guide along the chosen route. Off returns to the preview. */
   active?: boolean
-  profile?: 'driving' | 'walking' | 'cycling'
+  /** `'transit'` is planned by OpenTripPlanner at `otpUrl`. */
+  profile?: 'driving' | 'walking' | 'cycling' | 'transit'
+  /** An OpenTripPlanner GTFS GraphQL endpoint, for `profile: 'transit'`. */
+  otpUrl?: string
   units?: 'metric' | 'imperial'
   voice?: boolean
   /** Drive the route instead of following the device. */

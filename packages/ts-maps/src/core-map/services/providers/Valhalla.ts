@@ -32,6 +32,8 @@ import type {
   RouteStep,
   TransportProfile,
 } from '../types'
+import { streetProfile } from '../transit'
+import { decodePolyline } from '../polyline'
 
 export interface ValhallaOptions {
   baseUrl?: string
@@ -46,38 +48,6 @@ const costingMap: Record<TransportProfile, string> = {
   cycling: 'bicycle',
 }
 
-// Decode a Google encoded polyline at precision 6 (Valhalla's default for v2).
-function decodePolyline(encoded: string, precision: number = 6): LatLngLike[] {
-  const factor = 10 ** precision
-  const len = encoded.length
-  let index = 0
-  let lat = 0
-  let lng = 0
-  const out: LatLngLike[] = []
-  while (index < len) {
-    let shift = 0
-    let result = 0
-    let byte: number
-    do {
-      byte = encoded.charCodeAt(index++) - 63
-      result |= (byte & 0x1F) << shift
-      shift += 5
-    } while (byte >= 0x20)
-    const dLat = (result & 1) ? ~(result >> 1) : (result >> 1)
-    lat += dLat
-    shift = 0
-    result = 0
-    do {
-      byte = encoded.charCodeAt(index++) - 63
-      result |= (byte & 0x1F) << shift
-      shift += 5
-    } while (byte >= 0x20)
-    const dLng = (result & 1) ? ~(result >> 1) : (result >> 1)
-    lng += dLng
-    out.push({ lat: lat / factor, lng: lng / factor })
-  }
-  return out
-}
 
 interface ValhallaManeuver {
   length?: number // km
@@ -129,7 +99,7 @@ const VALHALLA_MANEUVERS: Record<number, string> = {
 }
 
 function legToRoute(leg: ValhallaLeg): Route {
-  const shape = leg.shape ? decodePolyline(leg.shape) : []
+  const shape = leg.shape ? decodePolyline(leg.shape, 6) : []
   const steps: RouteStep[] = (leg.maneuvers ?? []).map((m) => {
     const start = m.begin_shape_index ?? 0
     const end = m.end_shape_index ?? start
@@ -206,7 +176,7 @@ export class ValhallaDirections implements DirectionsProvider {
       throw new Error('Valhalla requires at least two waypoints')
     const body: Record<string, unknown> = {
       locations: waypoints.map(w => ({ lat: w.lat, lon: w.lng })),
-      costing: costingMap[opts?.profile ?? 'driving'] ?? 'auto',
+      costing: costingMap[streetProfile(opts?.profile, 'Valhalla')] ?? 'auto',
       directions_options: { language: opts?.language ?? 'en-US' },
     }
     if (opts?.alternatives)
@@ -369,7 +339,7 @@ export class ValhallaMatrix implements MatrixProvider {
     const body = {
       sources: origins.map(o => ({ lat: o.lat, lon: o.lng })),
       targets: destinations.map(d => ({ lat: d.lat, lon: d.lng })),
-      costing: costingMap[opts?.profile ?? 'driving'] ?? 'auto',
+      costing: costingMap[streetProfile(opts?.profile, 'Valhalla')] ?? 'auto',
     }
     const url = buildUrl(this.baseUrl, '/sources_to_targets', this.apiKey)
     const raw = (await postJson(url, body, opts?.signal)) as ValhallaMatrixResponse

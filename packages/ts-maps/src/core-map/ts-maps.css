@@ -1665,6 +1665,49 @@ a.tsmap-control-locate-denied::after {
   box-sizing: border-box;
 }
 
+/* A transit line as its sign shows it: its name on its colour. */
+.tsmap-nav-line {
+  display: inline-block;
+  min-width: 14px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #636366;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.tsmap-nav-line-sep {
+  margin: 0 3px;
+  color: var(--tsmap-nav-card-muted);
+}
+
+/* Indoor maps (see indoor/IndoorMap): the level picker, highest level at the
+ * top, the level showing filled in. */
+.tsmap-indoor-control {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tsmap-indoor-control .tsmap-indoor-level {
+  min-width: 34px;
+  height: 32px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--tsmap-fg);
+  font: 600 13px -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  cursor: pointer;
+
+  &.tsmap-indoor-active {
+    background: var(--tsmap-accent);
+    color: #fff;
+  }
+}
+
 /* Traffic (see traffic/TrafficLayer): incident markers and their card, and
  * what traffic does to a route in the preview. */
 .tsmap-traffic-incident-icon {

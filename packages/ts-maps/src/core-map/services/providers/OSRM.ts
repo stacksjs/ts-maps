@@ -15,6 +15,7 @@ import type {
   RouteStep,
   TransportProfile,
 } from '../types'
+import { streetProfile } from '../transit'
 
 export interface OSRMOptions {
   baseUrl?: string
@@ -145,7 +146,7 @@ export class OSRMDirections implements DirectionsProvider {
   async getDirections(waypoints: LatLngLike[], opts?: DirectionsOptions): Promise<Route[]> {
     if (waypoints.length < 2)
       throw new Error('OSRM requires at least two waypoints')
-    const profile = profileMap[opts?.profile ?? 'driving'] ?? 'driving'
+    const profile = profileMap[streetProfile(opts?.profile, 'OSRM')] ?? 'driving'
     const coords = waypoints.map(w => `${w.lng},${w.lat}`).join(';')
     const params = new URLSearchParams()
     params.set('overview', 'full')
@@ -191,7 +192,7 @@ export class OSRMMatrix implements MatrixProvider {
   ): Promise<MatrixResult> {
     if (origins.length === 0 || destinations.length === 0)
       throw new Error('OSRM matrix requires at least one origin and one destination')
-    const profile = profileMap[opts?.profile ?? 'driving'] ?? 'driving'
+    const profile = profileMap[streetProfile(opts?.profile, 'OSRM')] ?? 'driving'
     const all = [...origins, ...destinations]
     const coords = all.map(w => `${w.lng},${w.lat}`).join(';')
     const sources = origins.map((_, i) => i).join(';')

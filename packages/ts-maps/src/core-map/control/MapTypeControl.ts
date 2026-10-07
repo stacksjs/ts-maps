@@ -6,10 +6,11 @@ import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { dark, light } from '../styles/basemap'
 import { hybrid, satellite } from '../styles/imagery'
+import { transit } from '../styles/transit'
 import { Control } from './Control'
 
 /**
- * The map type picker, after Apple Maps: Explore, Driving, Satellite.
+ * The map type picker, after Apple Maps: Explore, Driving, Transit, Satellite.
  *
  * A button opens a card of map types; choosing one sets its style. Markers,
  * routes and popups are not part of a style and stay where they are, as does
@@ -80,13 +81,15 @@ export interface MapTypesOptions extends Omit<BasemapStyleOptions, 'emphasis' | 
 
 /**
  * Apple's map types from one basemap source and one imagery source: Explore
- * (the basemap), Driving (roads first) and Satellite (imagery, with names).
+ * (the basemap), Driving (roads first), Transit (lines and stations) and
+ * Satellite (imagery, with names).
  */
 export function mapTypes(options: MapTypesOptions): MapTypeOption[] {
   const build = options.theme === 'dark' ? dark : light
   return [
     { id: 'explore', label: 'Explore', style: () => build(options), theme: options.theme ?? 'light' },
     { id: 'driving', label: 'Driving', style: () => build({ ...options, emphasis: 'driving' }), theme: options.theme ?? 'light' },
+    { id: 'transit', label: 'Transit', style: () => transit(options), theme: options.theme ?? 'light' },
     { id: 'satellite', label: 'Satellite', style: () => options.labels === false ? satellite(options) : hybrid(options), theme: 'dark' },
   ]
 }

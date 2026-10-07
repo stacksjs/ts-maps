@@ -924,6 +924,11 @@ describe('options after mount', () => {
       await new Promise(r => setTimeout(r, 30))
       expect(asked.length).toBe(before)
 
+      // Transit is planned by OpenTripPlanner at otpUrl.
+      window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setTurnByTurn', id: 't4', payload: { turnByTurn: { ...trip, profile: 'transit', otpUrl: 'https://otp.test/otp/gtfs/v1' } } }) }))
+      await new Promise(r => setTimeout(r, 30))
+      expect(asked.at(-1)).toBe('https://otp.test/otp/gtfs/v1')
+
       window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'setTurnByTurn', id: 't3', payload: { turnByTurn: null } }) }))
     }
     finally {

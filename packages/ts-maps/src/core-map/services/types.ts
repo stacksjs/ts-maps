@@ -34,6 +34,33 @@ export interface GeocoderProvider {
 
 export type TransportProfile = 'driving' | 'walking' | 'cycling'
 
+/** How a trip is made: a street profile, or public transport with walks between. */
+export type TravelMode = TransportProfile | 'transit'
+
+/** The kinds of vehicle a transit line runs, as GTFS names them. */
+export type TransitVehicle = 'bus' | 'tram' | 'subway' | 'rail' | 'ferry' | 'cable_car' | 'gondola' | 'funicular' | 'trolleybus' | 'monorail' | 'other'
+
+/** A ride on a transit line: one leg of a transit route. */
+export interface TransitDetails {
+  vehicle: TransitVehicle
+  /** What the line is called on the sign: "N", "38R", "BART". */
+  line: string
+  /** Its full name: "N Judah". */
+  lineName?: string
+  /** `#rrggbb`, where the agency gives one. */
+  color?: string
+  textColor?: string
+  /** Where it is going: "Ocean Beach". */
+  headsign?: string
+  agency?: string
+  from: { name: string, location?: LatLngLike }
+  to: { name: string, location?: LatLngLike }
+  departure: Date
+  arrival: Date
+  /** Stops ridden, the last one counted. */
+  stops: number
+}
+
 /**
  * One lane of the road approaching a maneuver, left to right as the driver
  * sees them.
@@ -62,6 +89,8 @@ export interface RouteStep {
   exit?: number
   /** The lanes approaching this step's maneuver, where the provider knows them. */
   lanes?: LaneInfo[]
+  /** On a transit route, the ride this step is. A walking step has none. */
+  transit?: TransitDetails
 }
 
 export interface Route {
@@ -75,10 +104,16 @@ export interface Route {
   geometry: LatLngLike[] // full polyline
   steps: RouteStep[]
   legs?: Route[] // when there are via points
+  /** A transit route's departure and arrival: it runs to a timetable. */
+  departure?: Date
+  arrival?: Date
 }
 
 export interface DirectionsOptions {
-  profile?: TransportProfile
+  profile?: TravelMode
+  /** For transit: leave at, or arrive by, this time. Default leaving now. */
+  departAt?: Date
+  arriveBy?: Date
   alternatives?: boolean
   signal?: AbortSignal
   language?: string

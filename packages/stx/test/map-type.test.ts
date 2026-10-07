@@ -31,7 +31,7 @@ describe('map-type child', () => {
 
     const unmount = mountChildren(map, root)
     expect(control).not.toBeNull()
-    expect(control.types.map((t: any) => t.id)).toEqual(['explore', 'driving', 'satellite'])
+    expect(control.types.map((t: any) => t.id)).toEqual(['explore', 'driving', 'transit', 'satellite'])
     expect(root.querySelector('.tsmap-maptype-button')).not.toBeNull()
 
     el.setAttribute('data-options', JSON.stringify({ ...plain, value: 'driving', open: true }))

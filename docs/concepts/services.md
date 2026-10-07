@@ -121,6 +121,38 @@ new GoogleDirections({ apiKey, traffic: true })      // leaving now, duration_in
 OSRM and Valhalla's public servers have no live traffic; a Valhalla of your
 own with a traffic feed answers in traffic without being asked.
 
+### By transit
+
+Walk, ride, change, walk, as Apple plans it. Transit needs timetables, so it
+comes from a provider that has them:
+
+```ts
+import { OpenTripPlannerDirections } from 'ts-maps/services'
+
+const transit = new OpenTripPlannerDirections({ url: 'https://otp.example.com/otp/gtfs/v1' })
+const [route] = await transit.getDirections([from, to], { profile: 'transit', departAt: new Date() })
+
+route.steps.map(s => s.instruction)
+// ['Walk to Embarcadero Station', 'Take the N Judah toward Ocean Beach, 6 stops', 'Walk to your destination']
+route.steps[1].transit // { vehicle: 'tram', line: 'N', lineName: 'Judah', color: '#005B95', headsign, stops, departure, arrival, … }
+```
+
+[OpenTripPlanner](https://www.opentripplanner.org) is open source and plans
+from GTFS feeds and OpenStreetMap; run your own, or use an agency's or a
+region's public instance (Entur, Digitransit). `GoogleDirections` plans
+transit too, with `profile: 'transit'`. `departAt` and `arriveBy` choose the
+time. Providers without transit (OSRM, Valhalla, Mapbox, offline routing)
+say so plainly rather than answering by car.
+
+`TurnByTurn` with `profile: 'transit'` previews each route as its rides,
+the line names on their colours, with when it leaves and arrives, and
+speaks each step in its own words. `styles.transit({ tiles })` is the
+Transit map: streets quietened, rail and tram lines drawn strong, stations
+named; `mapTypes()` offers it in the picker.
+
+Encoded polylines, as these providers send shapes, are
+`decodePolyline(encoded, precision)` and `encodePolyline(points, precision)`.
+
 ## Turn-by-turn navigation
 
 `turnByTurn(map)` is navigation after Apple Maps: route options, then guidance

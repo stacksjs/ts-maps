@@ -372,11 +372,14 @@ export class Navigator extends Evented {
       for (let j = i; j < stages.length; j++)
         this._announced.add(`${progress.stepIndex}:${stages[j]![0]}`)
 
+      // A ride or a walk on a transit route says what it is in its own
+      // words: "Take the N Judah toward Ocean Beach, 6 stops".
+      const own = next.transit || next.maneuver === 'walk' ? next.instruction : undefined
       const instruction: Instruction = {
-        text: formatInstruction(progress.nextManeuver, { name: next.name }),
+        text: own ?? formatInstruction(progress.nextManeuver, { name: next.name }),
         // Which lane to be in is said with the warnings, while there is
         // still time to change lanes; not at the turn itself.
-        spoken: spokenInstruction(progress.nextManeuver, next.name, stage === 'now' ? undefined : d, this.options.units, this.options.profile === 'walking' ? undefined : next.lanes),
+        spoken: own ?? spokenInstruction(progress.nextManeuver, next.name, stage === 'now' ? undefined : d, this.options.units, this.options.profile === 'walking' ? undefined : next.lanes),
         stage,
         stepIndex: progress.stepIndex,
         distance: d,
