@@ -3,6 +3,7 @@ import type { IMDFSource, IndoorLevel, IndoorPlace, IndoorVenue, LoadIMDFOptions
 import { Control } from '../control/Control'
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { controlLocale, message } from '../i18n'
 import { iconForKind } from '../search/categories'
 import { label, loadIMDF, searchIndoor } from './imdf'
 
@@ -25,6 +26,8 @@ export interface IndoorMapOptions extends LoadIMDFOptions {
   /** Zoom below which the plan is hidden and the picker with it. Default 16. */
   minZoom?: number
   position?: string
+  /** The language of the level picker. Default the venue's `language`, else the map's, else the browser's. */
+  locale?: string
 }
 
 /** Every event an indoor map reports, with the callback-prop name bindings give it. */
@@ -118,6 +121,10 @@ export class IndoorMap extends Control {
     return ordinals.includes(0) ? 0 : ordinals.find(o => o > 0) ?? ordinals[0] ?? 0
   }
 
+  _locale(): string {
+    return controlLocale({ options: { locale: this.options.locale ?? this.options.language }, _map: this._map })
+  }
+
   get levels(): IndoorLevel[] {
     return this.venue?.levels ?? []
   }
@@ -125,7 +132,7 @@ export class IndoorMap extends Control {
   onAdd(map: any): HTMLElement {
     const container = DomUtil.create('div', `${CLASS}-control tsmap-bar`)
     container.setAttribute('role', 'group')
-    container.setAttribute('aria-label', 'Levels')
+    container.setAttribute('aria-label', message(this._locale(), 'indoor.levels'))
     container.style.display = 'none'
     this._list = container
     DomEvent.disableClickPropagation(container)

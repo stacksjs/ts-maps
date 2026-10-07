@@ -38,6 +38,8 @@ export interface OfflineMapsProps extends OfflineMapsEventProps {
   /** The pill shown when the connection drops. Default true. */
   showStatus?: boolean
   title?: string
+  /** The language its words are in. Default the map's `locale`, else the browser's. */
+  locale?: string
   /** The underlying control; `control.maps` is the manager, for `download`, `list` and the rest. */
   // eslint-disable-next-line no-unused-vars
   onReady?: (control: OfflineMapsControl) => void
@@ -64,8 +66,8 @@ export function OfflineMaps(props: OfflineMapsProps): null {
   latest.current = props
 
   useEffect(() => {
-    const { position, maps, geocoder, resources, showStatus, title } = latest.current
-    const offline = new OfflineMapsControl({ position, maps, geocoder, resources, showStatus, title })
+    const { position, maps, geocoder, resources, showStatus, title, locale } = latest.current
+    const offline = new OfflineMapsControl({ position, maps, geocoder, resources, showStatus, title, locale })
     offline.addTo(map)
     const stop = offline.listen((type, e) => (latest.current as any)[OFFLINE_MAPS_EVENTS[type]]?.(e))
     controlRef.current = offline
@@ -80,12 +82,12 @@ export function OfflineMaps(props: OfflineMapsProps): null {
   // Every option is followed; the control does nothing for one that has not
   // changed. Arrays are compared by value, so an inline `resources={[…]}`
   // is not a change on every render.
-  const { open, onlyOffline, position, maps, geocoder, resources, showStatus, title } = props
+  const { open, onlyOffline, position, maps, geocoder, resources, showStatus, title, locale } = props
   const resourcesKey = JSON.stringify(resources ?? null)
   useEffect(() => {
-    controlRef.current?.sync({ open, onlyOffline, position, maps, geocoder, resources, showStatus, title })
+    controlRef.current?.sync({ open, onlyOffline, position, maps, geocoder, resources, showStatus, title, locale })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, open, onlyOffline, position, maps, geocoder, resourcesKey, showStatus, title])
+  }, [map, open, onlyOffline, position, maps, geocoder, resourcesKey, showStatus, title, locale])
 
   return null
 }

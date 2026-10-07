@@ -96,6 +96,13 @@ export interface MapOptions {
   */
   theme?: 'light' | 'dark' | 'auto'
   /**
+  * The language the built-in controls speak: search, Offline Maps, the map
+  * type picker, turn-by-turn and its voice. A control's own `locale` wins.
+  * Default the browser's (`navigator.language`); English where a language
+  * has no words.
+  */
+  locale?: string
+  /**
   * A style to apply at construction — a `StyleSpec` object, a URL to one, or
   * one of the built-in presets from `styles`. Equivalent to calling
   * `setStyle()` immediately after the map is created.

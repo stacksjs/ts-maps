@@ -15,7 +15,7 @@
  * With a `<Search>` in the same map, the venue's shops and gates are found by
  * it, and choosing one goes to its level. Every prop is followed after
  * mount: a changed `level` or `position` goes to the control's `sync`, and a
- * changed `venue`, `minZoom` or `language` makes the control again. Events
+ * changed `venue`, `minZoom`, `language` or `locale` makes the control again. Events
  * cannot be props here — stx passes props as data — so each one is a DOM
  * event bubbling from the map: `indoor:load` (`{ venue }`),
  * `indoor:levelchange` (`{ level, name }`) and `indoor:visibilitychange`
@@ -33,6 +33,7 @@ export const optionsJson = JSON.stringify({
   position: $props.position,
   minZoom: $props.minZoom,
   language: $props.language,
+  locale: $props.locale,
 })
 </script>
 

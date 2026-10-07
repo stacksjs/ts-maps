@@ -47,6 +47,7 @@ const config: BunPressConfig = {
         { text: 'Territory Capture', link: '/concepts/territory-capture' },
         { text: 'Services', link: '/concepts/services' },
         { text: 'Offline', link: '/concepts/offline' },
+        { text: 'Localization', link: '/concepts/localization' },
       ],
     },
     {

@@ -33,6 +33,7 @@ new Marker([40.758, -73.9855]).addTo(map).bindPopup('Hi').openPopup()
 - [Terrain](./concepts/terrain.md) — DEM sources, `setTerrain`.
 - [Services](./concepts/services.md) — geocoding, directions, matrix.
 - [Offline](./concepts/offline.md) — tile caching, offline regions.
+- [Localization](./concepts/localization.md) — the UI and turn-by-turn in the reader's language.
 
 ## Framework bindings
 

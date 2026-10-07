@@ -11,6 +11,7 @@ import { Polyline } from '../layer/vector/Polyline'
 // Routes are vector paths; this installs the renderer lookup they need, so the
 // module works without the rest of the library having been imported first.
 import '../layer/vector/Renderer.getRenderer'
+import { controlLocale, formatDate, languageOf, message, translator } from '../i18n'
 import { formatDistance, laneIcon, maneuverIcon, parseManeuver, prefersImperial } from '../services/instructions'
 import { Navigator } from '../services/navigator'
 import { RouteSimulator } from '../services/simulator'
@@ -57,6 +58,8 @@ export interface TurnByTurnOptions {
   alternatives?: boolean
   /** Shown at the top of the preview card: "Directions to …". */
   destinationName?: string
+  /** The language of the cards, the banner and the voice. Default the map's, else the browser's. */
+  locale?: string
 }
 
 /**
@@ -125,14 +128,14 @@ function samePlace(a: LatLngLike | null, b: LatLngLike | null): boolean {
  * red as it grows, or that the traffic is light. Nothing where the provider
  * does not count traffic.
  */
-export function trafficNote(route: Route): string {
+export function trafficNote(route: Route, locale?: string): string {
   if (!route.traffic || route.typicalDuration === undefined)
     return ''
   const delay = route.duration - route.typicalDuration
   if (delay < 60)
-    return '<span class="tsmap-nav-traffic tsmap-nav-traffic-light">Light traffic</span>'
+    return `<span class="tsmap-nav-traffic tsmap-nav-traffic-light">${message(locale, 'nav.lightTraffic')}</span>`
   const heavy = delay >= Math.max(600, route.typicalDuration * 0.25)
-  return `<span class="tsmap-nav-traffic tsmap-nav-traffic-${heavy ? 'heavy' : 'moderate'}">${formatDuration(delay)} delay</span>`
+  return `<span class="tsmap-nav-traffic tsmap-nav-traffic-${heavy ? 'heavy' : 'moderate'}">${message(locale, 'nav.delay', { duration: formatDuration(delay, locale) })}</span>`
 }
 
 /** A line as its sign shows it: its name on its colour. */
@@ -142,9 +145,9 @@ export function lineBadge(ride: TransitDetails): string {
 }
 
 /** A transit route in a line: its rides, and when it leaves and arrives. "N › 38 · 10:12–10:41". */
-export function transitSummary(route: Route): string {
+export function transitSummary(route: Route, locale?: string): string {
   const rides = transitRides(route)
-  const time = (d: Date): string => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  const time = (d: Date): string => formatDate(d, locale, { hour: 'numeric', minute: '2-digit' })
   const leaves = route.departure ?? rides[0]?.departure
   const arrives = route.arrival ?? rides[rides.length - 1]?.arrival
   const when = leaves && arrives ? ` · ${time(leaves)}–${time(arrives)}` : ''
@@ -160,7 +163,7 @@ const TRAVELED_CASING = '#8e96a3'
 
 export class TurnByTurn extends Evented {
   map: any
-  options: Required<Omit<TurnByTurnOptions, 'simulate' | 'destinationName'>> & Pick<TurnByTurnOptions, 'simulate' | 'destinationName'>
+  options: Required<Omit<TurnByTurnOptions, 'simulate' | 'destinationName' | 'locale'>> & Pick<TurnByTurnOptions, 'simulate' | 'destinationName' | 'locale'>
   routes: Route[] = []
   selected = 0
   navigator: Navigator | null = null
@@ -196,12 +199,24 @@ export class TurnByTurn extends Evented {
     this.options = {
       directions: options.directions ?? new OSRMDirections(),
       profile: options.profile ?? 'driving',
-      units: options.units ?? (prefersImperial() ? 'imperial' : 'metric'),
+      units: options.units ?? (prefersImperial(options.locale ?? map?.options?.locale) ? 'imperial' : 'metric'),
       voice: options.voice ?? true,
       alternatives: options.alternatives ?? true,
       simulate: options.simulate,
       destinationName: options.destinationName,
+      locale: options.locale,
     }
+  }
+
+  /** The language it speaks: its own `locale`, else the map's, else the browser's. */
+  get locale(): string {
+    return controlLocale({ options: this.options, _map: this.map })
+  }
+
+  /** What to ask the provider for: a language only where one was chosen, so the provider's own default stands otherwise. */
+  _language(): { language?: string } {
+    const language = this.options.locale ?? this.map?.options?.locale
+    return language ? { language } : {}
   }
 
   // ---------------------------------------------------------------------------
@@ -219,6 +234,7 @@ export class TurnByTurn extends Evented {
     const routes = await this.options.directions.getDirections([from, to], {
       profile: this.options.profile,
       alternatives: this.options.alternatives,
+      ...this._language(),
     })
     if (call !== this._previews)
       return routes
@@ -270,7 +286,7 @@ export class TurnByTurn extends Evented {
       throw new Error('Preview a route first')
 
     // On transit, what is guided is the walking: the rides keep their own time.
-    const nav = this.navigator = new Navigator(route, { profile: this.options.profile === 'transit' ? 'walking' : this.options.profile, units: this.options.units })
+    const nav = this.navigator = new Navigator(route, { profile: this.options.profile === 'transit' ? 'walking' : this.options.profile, units: this.options.units, locale: this.locale })
     nav.on('progress', (e: any) => this._onProgress(e.progress))
     nav.on('instruction', (e: any) => this._onInstruction(e.instruction))
     nav.on('offroute', (e: any) => this._reroute(e.progress))
@@ -291,7 +307,9 @@ export class TurnByTurn extends Evented {
     this._showTripCard()
     this._showPuck(route.geometry[0] ?? this.from!)
 
-    this._speak(this.route?.steps[0]?.name ? `Starting route on ${this.route.steps[0].name}` : 'Starting route')
+    const t = translator(this.locale)
+    const road = this.route?.steps[0]?.name
+    this._speak(road ? t('nav.startingOn', { name: road }) : t('nav.starting'))
     this._startPositions()
     this._following = true
     this.map.on('dragstart', this._interrupt)
@@ -413,7 +431,13 @@ export class TurnByTurn extends Evented {
       reroute = true
     }
     let redraw = false
-    const units = target.units ?? (prefersImperial() ? 'imperial' : 'metric')
+    if (has('locale') && target.locale !== o.locale) {
+      o.locale = target.locale
+      if (this.navigator)
+        (this.navigator.options as { locale?: string }).locale = this.locale
+      redraw = true
+    }
+    const units = target.units ?? (prefersImperial(o.locale ?? this.map?.options?.locale) ? 'imperial' : 'metric')
     if (has('units') && units !== o.units) {
       o.units = units
       if (this.navigator)
@@ -536,10 +560,10 @@ export class TurnByTurn extends Evented {
     if (this._rerouting || !this.to)
       return
     this._rerouting = true
-    this._speak('Rerouting')
+    this._speak(message(this.locale, 'nav.rerouting'))
     this.fire('reroute', { progress })
     try {
-      const [route] = await this.options.directions.getDirections([progress.raw, this.to], { profile: this.options.profile })
+      const [route] = await this.options.directions.getDirections([progress.raw, this.to], { profile: this.options.profile, ...this._language() })
       if (route && this.navigator) {
         this.routes = [route]
         this.selected = 0
@@ -558,9 +582,10 @@ export class TurnByTurn extends Evented {
   _onArrive(progress: NavigationProgress): void {
     this.state = 'arrived'
     this._stopPositions()
-    this._speak('You have arrived')
+    const t = translator(this.locale)
+    this._speak(t('nav.youHaveArrived'))
     if (this._banner) {
-      this._banner.innerHTML = `<div class="tsmap-nav-icon">${maneuverIcon(parseManeuver('arrive'))}</div><div class="tsmap-nav-banner-text"><div class="tsmap-nav-distance">Arrived</div><div class="tsmap-nav-road">${escape(this.options.destinationName ?? 'Your destination')}</div></div>`
+      this._banner.innerHTML = `<div class="tsmap-nav-icon">${maneuverIcon(parseManeuver('arrive'))}</div><div class="tsmap-nav-banner-text"><div class="tsmap-nav-distance">${t('nav.arrived')}</div><div class="tsmap-nav-road">${escape(this.options.destinationName ?? t('nav.yourDestination'))}</div></div>`
     }
     this.fire('arrive', { progress })
   }
@@ -569,7 +594,15 @@ export class TurnByTurn extends Evented {
     if (!this.options.voice || this._muted || typeof speechSynthesis === 'undefined' || typeof SpeechSynthesisUtterance === 'undefined')
       return
     speechSynthesis.cancel()
-    speechSynthesis.speak(new SpeechSynthesisUtterance(text))
+    // In the language of the words: a German sentence in an English voice
+    // is hard to follow.
+    const utterance = new SpeechSynthesisUtterance(text)
+    const locale = this.locale
+    utterance.lang = locale
+    const voice = voiceFor(locale, speechSynthesis.getVoices?.() ?? [])
+    if (voice)
+      utterance.voice = voice
+    speechSynthesis.speak(utterance)
   }
 
   // ---------------------------------------------------------------------------
@@ -737,17 +770,19 @@ export class TurnByTurn extends Evented {
   _showPreviewCard(): void {
     this._card?.remove()
     const card = this._card = this._panel('tsmap-nav-card tsmap-nav-preview')
-    const title = this.options.destinationName ? `Directions to ${escape(this.options.destinationName)}` : 'Directions'
+    const locale = this.locale
+    const t = translator(locale)
+    const title = this.options.destinationName ? t('nav.directionsTo', { name: escape(this.options.destinationName) }) : t('nav.directions')
     const rows = this.routes.map((route, i) => `
       <button class="tsmap-nav-option${i === this.selected ? ' tsmap-selected' : ''}" data-index="${i}">
-        <span class="tsmap-nav-option-time">${formatDuration(route.duration)}</span>
-        <span class="tsmap-nav-option-detail">${transitRides(route).length ? transitSummary(route) : `${formatDistance(route.distance, this.options.units)}${i === 0 ? ' · Fastest' : ''}`}</span>
-        ${trafficNote(route)}
+        <span class="tsmap-nav-option-time">${formatDuration(route.duration, locale)}</span>
+        <span class="tsmap-nav-option-detail">${transitRides(route).length ? transitSummary(route, locale) : `${formatDistance(route.distance, this.options.units, locale)}${i === 0 ? ` · ${t('nav.fastest')}` : ''}`}</span>
+        ${trafficNote(route, locale)}
       </button>`).join('')
     card.innerHTML = `
-      <div class="tsmap-nav-card-head"><span class="tsmap-nav-card-title">${title}</span><button class="tsmap-nav-close" aria-label="Close">✕</button></div>
+      <div class="tsmap-nav-card-head"><span class="tsmap-nav-card-title">${title}</span><button class="tsmap-nav-close" aria-label="${t('nav.close')}">✕</button></div>
       <div class="tsmap-nav-options">${rows}</div>
-      <button class="tsmap-nav-go" aria-label="Start route">Go</button>`
+      <button class="tsmap-nav-go" aria-label="${t('nav.startRoute')}">${t('nav.go')}</button>`
     card.querySelectorAll<HTMLElement>('.tsmap-nav-option').forEach(el => el.addEventListener('click', () => this.selectRoute(Number(el.dataset.index))))
     card.querySelector('.tsmap-nav-go')?.addEventListener('click', () => this.start())
     card.querySelector('.tsmap-nav-close')?.addEventListener('click', () => this.stop())
@@ -769,16 +804,18 @@ export class TurnByTurn extends Evented {
     const banner = this._banner
     if (!banner || this.state !== 'navigating')
       return
+    const locale = this.locale
+    const t = translator(locale)
     const icon = maneuverIcon(p.nextManeuver)
     const name = p.nextStep?.name
-    const road = name ? abbreviated(p.banner, name) : p.banner
-    const then = p.thenManeuver ? `<div class="tsmap-nav-then">Then <span class="tsmap-nav-then-icon">${maneuverIcon(p.thenManeuver)}</span></div>` : ''
+    const road = name ? abbreviated(p.banner, name, locale) : p.banner
+    const then = p.thenManeuver ? `<div class="tsmap-nav-then">${t('nav.then')} <span class="tsmap-nav-then-icon">${maneuverIcon(p.thenManeuver)}</span></div>` : ''
     // Apple's lane strip: every lane approaching the maneuver, the ones to be
     // in bright and the rest dimmed, shown as the maneuver draws near.
     const lanes = p.lanes
-      ? `<div class="tsmap-nav-lanes" role="img" aria-label="Lane guidance">${p.lanes.map(lane => `<span class="tsmap-nav-lane${lane.valid ? ' tsmap-nav-lane-valid' : ''}">${laneIcon(lane, p.nextManeuver)}</span>`).join('')}</div>`
+      ? `<div class="tsmap-nav-lanes" role="img" aria-label="${t('nav.lanes')}">${p.lanes.map(lane => `<span class="tsmap-nav-lane${lane.valid ? ' tsmap-nav-lane-valid' : ''}">${laneIcon(lane, p.nextManeuver)}</span>`).join('')}</div>`
       : ''
-    const html = `<div class="tsmap-nav-icon">${icon}</div><div class="tsmap-nav-banner-text"><div class="tsmap-nav-distance">${formatDistance(p.distanceToManeuver, this.options.units)}</div><div class="tsmap-nav-road">${escape(road)}</div></div>${then}${lanes}`
+    const html = `<div class="tsmap-nav-icon">${icon}</div><div class="tsmap-nav-banner-text"><div class="tsmap-nav-distance">${formatDistance(p.distanceToManeuver, this.options.units, locale)}</div><div class="tsmap-nav-road">${escape(road)}</div></div>${then}${lanes}`
     if (banner.innerHTML !== html)
       banner.innerHTML = html
   }
@@ -786,14 +823,15 @@ export class TurnByTurn extends Evented {
   _showTripCard(): void {
     this._card?.remove()
     const card = this._card = this._panel('tsmap-nav-card tsmap-nav-trip')
+    const t = translator(this.locale)
     card.innerHTML = `
       <div class="tsmap-nav-trip-stats">
-        <div><div class="tsmap-nav-arrival tsmap-nav-stat">--:--</div><div class="tsmap-nav-stat-label">arrival</div></div>
-        <div><div class="tsmap-nav-minutes tsmap-nav-stat">--</div><div class="tsmap-nav-stat-label">min</div></div>
+        <div><div class="tsmap-nav-arrival tsmap-nav-stat">--:--</div><div class="tsmap-nav-stat-label">${t('nav.arrival')}</div></div>
+        <div><div class="tsmap-nav-minutes tsmap-nav-stat">--</div><div class="tsmap-nav-stat-label">${t('nav.min')}</div></div>
         <div><div class="tsmap-nav-left tsmap-nav-stat">--</div><div class="tsmap-nav-left-unit tsmap-nav-stat-label"></div></div>
       </div>
-      <button class="tsmap-nav-mute" aria-label="Mute voice guidance" aria-pressed="${this._muted}">${this._muted ? '🔇' : '🔊'}</button>
-      <button class="tsmap-nav-end" aria-label="End route">End</button>`
+      <button class="tsmap-nav-mute" aria-label="${t('nav.mute')}" aria-pressed="${this._muted}">${this._muted ? '🔇' : '🔊'}</button>
+      <button class="tsmap-nav-end" aria-label="${t('nav.endRoute')}">${t('nav.end')}</button>`
     card.querySelector('.tsmap-nav-end')?.addEventListener('click', () => this.stop())
     card.querySelector('.tsmap-nav-mute')?.addEventListener('click', (e) => {
       this._muted = !this._muted
@@ -809,13 +847,14 @@ export class TurnByTurn extends Evented {
     const card = this._card
     if (!card)
       return
-    const [value, unit] = formatDistance(p.distanceRemaining, this.options.units).split(' ')
+    const locale = this.locale
+    const [value, unit] = formatDistance(p.distanceRemaining, this.options.units, locale).split(' ')
     const set = (selector: string, text: string): void => {
       const el = card.querySelector(selector)
       if (el && el.textContent !== text)
         el.textContent = text
     }
-    set('.tsmap-nav-arrival', p.arrival.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))
+    set('.tsmap-nav-arrival', formatDate(p.arrival, locale, { hour: 'numeric', minute: '2-digit' }))
     set('.tsmap-nav-minutes', String(Math.max(1, Math.round(p.durationRemaining / 60))))
     set('.tsmap-nav-left', value ?? '')
     set('.tsmap-nav-left-unit', unit ?? '')
@@ -825,7 +864,7 @@ export class TurnByTurn extends Evented {
     if (this._recenter)
       return
     const button = this._recenter = this._panel('tsmap-nav-recenter')
-    button.textContent = 'Resume'
+    button.textContent = message(this.locale, 'nav.resume')
     button.addEventListener('click', () => this.recenter())
   }
 }
@@ -834,20 +873,36 @@ export function turnByTurn(map: any, options?: TurnByTurnOptions): TurnByTurn {
   return new TurnByTurn(map, options)
 }
 
-/** "12 min", "1 hr 5 min". */
-export function formatDuration(seconds: number): string {
+/** "12 min", "1 hr 5 min"; "1 Std. 5 Min." in German. */
+export function formatDuration(seconds: number, locale?: string): string {
+  const t = translator(locale)
   const minutes = Math.max(1, Math.round(seconds / 60))
   if (minutes < 60)
-    return `${minutes} min`
-  const hours = Math.floor(minutes / 60)
+    return t('duration.min', { minutes: String(minutes) })
+  const hours = String(Math.floor(minutes / 60))
   const rest = minutes % 60
-  return rest ? `${hours} hr ${rest} min` : `${hours} hr`
+  return rest ? t('duration.hrMin', { hours, minutes: String(rest) }) : t('duration.hr', { hours })
 }
 
+/**
+ * The voice to speak a locale with: one for exactly that locale (`de-AT`),
+ * else one for its language (`de-DE`), else none, leaving it to the browser.
+ */
+export function voiceFor<V extends { lang: string }>(locale: string, voices: readonly V[]): V | undefined {
+  const tag = (lang: string): string => lang.toLowerCase().replace(/_/g, '-')
+  const want = tag(locale)
+  const language = want.split('-')[0]
+  return voices.find(v => tag(v.lang) === want) ?? voices.find(v => tag(v.lang).split('-')[0] === language)
+}
+
+/** The word before the road in a banner, by language: "Turn right onto Market St". */
+const ONTO: Record<string, string> = { en: ' onto ', de: ' auf ' }
+
 /** The banner's road, with the name part of the instruction dropped: Apple shows just the road under the distance. */
-function abbreviated(banner: string, name: string): string {
-  const onto = banner.lastIndexOf(' onto ')
-  return onto >= 0 ? banner.slice(onto + 6) : banner || name
+function abbreviated(banner: string, name: string, locale?: string): string {
+  const word = ONTO[languageOf(locale)] ?? ONTO.en!
+  const onto = banner.lastIndexOf(word)
+  return onto >= 0 ? banner.slice(onto + word.length) : banner || name
 }
 
 function escape(text: string): string {

@@ -23,6 +23,8 @@ export interface SearchProps {
   turnByTurn?: SearchControlOptions['turnByTurn']
   origin?: SearchControlOptions['origin']
   language?: string
+  /** The language its words are in. Default `language`, else the map's `locale`, else the browser's. */
+  locale?: string
   /** Where a chosen place's hours, phone and website come from. Default OpenStreetMap; `null` for none. */
   details?: SearchControlOptions['details']
   /** The link Share sends. Default the place on openstreetmap.org. */
@@ -82,6 +84,7 @@ export function Search(props: SearchProps): JSX.Element {
       turnByTurn: props.turnByTurn,
       origin: props.origin,
       language: props.language,
+      locale: props.locale,
       details: props.details,
       shareUrl: props.shareUrl,
       saved: props.saved,
@@ -108,6 +111,7 @@ export function Search(props: SearchProps): JSX.Element {
       turnByTurn: props.turnByTurn,
       origin: props.origin,
       language: props.language,
+      locale: props.locale,
       details: props.details,
       shareUrl: props.shareUrl,
       saved: props.saved,

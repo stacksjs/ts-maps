@@ -19,8 +19,8 @@ import { useMap } from './useMap'
  *
  * `level`, `position` and `search` are followed as they change; `level` works
  * with `v-model`, following the picker and a place chosen in `search`.
- * `venue`, `min-zoom` and `language` are read when the control is made: a new
- * one makes it again. Events carry the core names — `load` (`{ venue }`),
+ * `venue`, `min-zoom`, `language` and `locale` are read when the control is
+ * made: a new one makes it again. Events carry the core names — `load` (`{ venue }`),
  * `levelchange` (`{ level, name }`) and `visibilitychange` (`{ visible }`) —
  * and `ready` hands over the control, for `setLevel`, `search` and `levels`.
  */
@@ -32,6 +32,8 @@ export const IndoorMap = defineComponent({
     position: { type: String as PropType<ControlPosition>, default: undefined },
     minZoom: { type: Number, default: undefined },
     language: { type: String, default: undefined },
+    /** The language of the level picker. Default `language`, else the map's `locale`, else the browser's. */
+    locale: { type: String, default: undefined },
     /** A `SearchControl` — from `<TsSearch @ready>` — to find the venue's places in. */
     search: { type: Object as PropType<SearchControl>, default: undefined },
   },
@@ -61,7 +63,7 @@ export const IndoorMap = defineComponent({
       if (!map)
         return
       teardown()
-      const made = new TsIndoorMap({ venue: props.venue, level: props.level, position: props.position, minZoom: props.minZoom, language: props.language })
+      const made = new TsIndoorMap({ venue: props.venue, level: props.level, position: props.position, minZoom: props.minZoom, language: props.language, locale: props.locale })
       indoor = made
       made.addTo(map)
       unlisten = made.listen((type, e) => {
@@ -91,7 +93,7 @@ export const IndoorMap = defineComponent({
       { immediate: true },
     )
 
-    watch([() => props.venue, () => props.minZoom, () => props.language], () => build())
+    watch([() => props.venue, () => props.minZoom, () => props.language, () => props.locale], () => build())
     watch([() => props.level, () => props.position], () => indoor?.sync({ level: props.level, position: props.position }))
     watch(() => props.search, () => connect())
 

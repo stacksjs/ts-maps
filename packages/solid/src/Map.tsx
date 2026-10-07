@@ -1,6 +1,6 @@
 import type { JSX, ParentProps } from 'solid-js'
 import type { TsMap as TsMapInstance } from 'ts-maps'
-import { createSignal, onCleanup, onMount } from 'solid-js'
+import { createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import { TsMap } from 'ts-maps'
 import { MapContext } from './context'
 
@@ -9,6 +9,13 @@ export interface MapProps {
   zoom?: number
   bearing?: number
   pitch?: number
+  /**
+   * The language the built-in controls speak, unless one has its own
+   * `locale`. Default the browser's. A change reaches each control the next
+   * time it draws its words; give the control its own `locale` to relabel it
+   * at once.
+   */
+  locale?: string
   style?: JSX.CSSProperties
   class?: string
 }
@@ -41,8 +48,16 @@ export function Map(props: ParentProps<MapProps>): JSX.Element {
     if (props.zoom !== undefined) options.zoom = props.zoom
     if (props.bearing !== undefined) options.bearing = props.bearing
     if (props.pitch !== undefined) options.pitch = props.pitch
+    if (props.locale !== undefined) options.locale = props.locale
     const instance = new TsMap(container, options)
     setMap(instance)
+  })
+
+  createEffect(() => {
+    const instance = map()
+    const locale = props.locale
+    if (instance)
+      instance.options.locale = locale
   })
 
   onCleanup(() => {

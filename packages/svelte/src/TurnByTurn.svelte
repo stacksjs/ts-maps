@@ -28,6 +28,8 @@
   export let alternatives: boolean | undefined = undefined
   export let destinationName: string | undefined = undefined
   export let directions: TurnByTurnOptions['directions'] = undefined
+  /** The language of its cards and voice. Default the map's `locale`, else the browser's. */
+  export let locale: string | undefined = undefined
 
   /* eslint-disable no-unused-vars */
   export let onReady: ((nav: TsTurnByTurn) => void) | undefined = undefined
@@ -52,7 +54,7 @@
   onMount(() => {
     const map = useMap()
     if (!map) return
-    nav = new TsTurnByTurn(map, { profile, units, voice, simulate, alternatives, destinationName, directions })
+    nav = new TsTurnByTurn(map, { profile, units, voice, simulate, alternatives, destinationName, directions, locale })
     for (const [event, prop] of Object.entries(TURN_BY_TURN_EVENTS))
       nav.on(event, (e: any) => handler(prop)?.(e))
     onReady?.(nav)
@@ -60,7 +62,7 @@
 
   // Every option is followed: another `profile` or `directions` fetches a
   // showing preview again, `units` redraw the cards in place.
-  $: if (nav) nav.sync({ from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions })
+  $: if (nav) nav.sync({ from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions, locale })
 
   onDestroy(() => {
     nav?.stop()

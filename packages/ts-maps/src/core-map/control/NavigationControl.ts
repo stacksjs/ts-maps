@@ -1,5 +1,6 @@
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { controlLocale, message } from '../i18n'
 import { Control } from './Control'
 
 /**
@@ -33,6 +34,8 @@ export interface NavigationControlOptions {
   zoomInTitle?: string
   zoomOutTitle?: string
   compassTitle?: string
+  /** The language of the buttons' labels. Default the map's, else the browser's. */
+  locale?: string
 }
 
 const CLASS = 'tsmap-control-navigation'
@@ -45,19 +48,20 @@ export class NavigationControl extends Control {
 
   onAdd(map: any): HTMLElement {
     const options = this.options as NavigationControlOptions
+    const locale = controlLocale(this)
     const container = DomUtil.create('div', `${CLASS} tsmap-bar`)
 
     if (options.showZoom !== false) {
       this._zoomInButton = this._createButton(
         `${CLASS}-zoom-in`,
-        options.zoomInTitle ?? 'Zoom in',
+        options.zoomInTitle ?? message(locale, 'zoom.in'),
         '<span aria-hidden="true">+</span>',
         container,
         this._zoomIn,
       )
       this._zoomOutButton = this._createButton(
         `${CLASS}-zoom-out`,
-        options.zoomOutTitle ?? 'Zoom out',
+        options.zoomOutTitle ?? message(locale, 'zoom.out'),
         '<span aria-hidden="true">&#x2212;</span>',
         container,
         this._zoomOut,
@@ -69,7 +73,7 @@ export class NavigationControl extends Control {
     if (options.showCompass !== false) {
       this._compassButton = this._createButton(
         `${CLASS}-compass`,
-        options.compassTitle ?? 'Reset bearing to north',
+        options.compassTitle ?? message(locale, 'compass.reset'),
         '<span class="tsmap-compass-needle" aria-hidden="true"></span>',
         container,
         this._resetNorth,

@@ -32,6 +32,7 @@ export const optionsJson = JSON.stringify({
   resources: $props.resources,
   showStatus: $props.showStatus,
   title: $props.title,
+  locale: $props.locale,
 })
 </script>
 

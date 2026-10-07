@@ -27,7 +27,8 @@ type ControlFactory = (options?: any) => { addTo: (map: any) => unknown, remove:
  *
  * `options` is watched deeply so a reactive options object updates the control,
  * which is rebuilt rather than mutated — controls read most of their options
- * once, when they build their DOM.
+ * once, when they build their DOM. So is a new `locale`, the language of the
+ * zoom, navigation, locate and fullscreen controls' titles.
  */
 function createControlComponent(factory: ControlFactory, name: string) {
   return defineComponent({
@@ -35,6 +36,8 @@ function createControlComponent(factory: ControlFactory, name: string) {
     props: {
       position: { type: String as PropType<ControlPosition>, default: undefined },
       options: { type: Object as PropType<Record<string, unknown>>, default: undefined },
+      /** The language of its titles. Default the map's `locale`, else the browser's. */
+      locale: { type: String, default: undefined },
     },
     setup(props) {
       const mapRef = useMap()
@@ -51,18 +54,20 @@ function createControlComponent(factory: ControlFactory, name: string) {
         detach()
         instance = factory({
           ...(props.position ? { position: props.position } : {}),
+          ...(props.locale ? { locale: props.locale } : {}),
           ...props.options,
         })
         instance.addTo(map)
       }
 
-      // Three watchers rather than one over a combined source, because only
+      // Separate watchers rather than one over a combined source, because only
       // `options` may be traversed deeply. A deep watch whose source list
       // includes the map would walk the entire map object graph — every pane,
       // layer and DOM node it holds — on each check.
       const stops = [
         watch(mapRef, map => attach(map), { immediate: true }),
         watch(() => props.position, () => attach(mapRef.value)),
+        watch(() => props.locale, () => attach(mapRef.value)),
         watch(() => props.options, () => attach(mapRef.value), { deep: true }),
       ]
 

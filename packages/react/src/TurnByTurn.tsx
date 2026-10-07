@@ -36,6 +36,8 @@ export interface TurnByTurnProps extends TurnByTurnEventProps {
   alternatives?: boolean
   destinationName?: string
   directions?: TurnByTurnOptions['directions']
+  /** The language of its cards and voice. Default the map's `locale`, else the browser's. */
+  locale?: string
   /** The underlying `TurnByTurn`, for `selectRoute`, `recenter` and `update`. */
   // eslint-disable-next-line no-unused-vars
   onReady?: (nav: TsTurnByTurn) => void
@@ -62,8 +64,8 @@ export function TurnByTurn(props: TurnByTurnProps): null {
   latest.current = props
 
   useEffect(() => {
-    const { profile, units, voice, simulate, alternatives, destinationName, directions } = latest.current
-    const nav = new TsTurnByTurn(map, { profile, units, voice, simulate, alternatives, destinationName, directions })
+    const { profile, units, voice, simulate, alternatives, destinationName, directions, locale } = latest.current
+    const nav = new TsTurnByTurn(map, { profile, units, voice, simulate, alternatives, destinationName, directions, locale })
     for (const [event, prop] of Object.entries(TURN_BY_TURN_EVENTS))
       nav.on(event, (e: any) => (latest.current as any)[prop]?.(e))
     navRef.current = nav
@@ -77,14 +79,14 @@ export function TurnByTurn(props: TurnByTurnProps): null {
   // Every option is followed: another `profile` or `directions` fetches a
   // showing preview again, `units` redraw the cards in place. Places and
   // `simulate` are compared by value, so inline literals are not a change.
-  const { from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions } = props
+  const { from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions, locale } = props
   const fromKey = JSON.stringify(from ?? null)
   const toKey = JSON.stringify(to ?? null)
   const simulateKey = JSON.stringify(simulate ?? null)
   useEffect(() => {
-    navRef.current?.sync({ from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions })
+    navRef.current?.sync({ from, to, active, profile, units, voice, simulate, alternatives, destinationName, directions, locale })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, fromKey, toKey, active, profile, units, voice, simulateKey, alternatives, destinationName, directions])
+  }, [map, fromKey, toKey, active, profile, units, voice, simulateKey, alternatives, destinationName, directions, locale])
 
   return null
 }

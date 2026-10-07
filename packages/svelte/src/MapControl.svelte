@@ -29,22 +29,32 @@
   export let type: ControlType
   export let position: 'topleft' | 'topright' | 'bottomleft' | 'bottomright' | undefined = undefined
   export let options: Record<string, unknown> | undefined = undefined
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  export let locale: string | undefined = undefined
 
+  let map: ReturnType<typeof useMap> = null
   let instance: { remove?: () => unknown } | null = null
 
-  onMount(() => {
-    const map = useMap()
-    if (!map) return
-
+  // Made again for a new `locale`: a control writes its titles when it is built.
+  function build(lang: string | undefined): void {
+    instance?.remove?.()
+    instance = null
     const factory = (control as unknown as Record<string, (o?: unknown) => any>)[type]
-    if (typeof factory !== 'function') return
+    if (!map || typeof factory !== 'function') return
 
     instance = factory({
       ...(position ? { position } : {}),
+      ...(lang ? { locale: lang } : {}),
       ...options,
     })
     ;(instance as { addTo: (m: unknown) => unknown }).addTo(map)
+  }
+
+  onMount(() => {
+    map = useMap()
   })
+
+  $: if (map) build(locale)
 
   onDestroy(() => {
     instance?.remove?.()

@@ -1,5 +1,6 @@
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { controlLocale, message } from '../i18n'
 import { TsMap } from '../map/Map'
 import { Control } from './Control'
 
@@ -12,9 +13,11 @@ export class ZoomControl extends Control {
     const zoomName = 'tsmap-control-zoom'
     const container = DomUtil.create('div', `${zoomName} tsmap-bar`)
     const options = this.options!
+    // Titles from the catalogue, in the control's `locale`, unless given.
+    const locale = controlLocale(this)
 
-    this._zoomInButton = this._createButton(options.zoomInText, options.zoomInTitle, `${zoomName}-in`, container, this._zoomIn)
-    this._zoomOutButton = this._createButton(options.zoomOutText, options.zoomOutTitle, `${zoomName}-out`, container, this._zoomOut)
+    this._zoomInButton = this._createButton(options.zoomInText, options.zoomInTitle ?? message(locale, 'zoom.in'), `${zoomName}-in`, container, this._zoomIn)
+    this._zoomOutButton = this._createButton(options.zoomOutText, options.zoomOutTitle ?? message(locale, 'zoom.out'), `${zoomName}-out`, container, this._zoomOut)
 
     this._updateDisabled()
     map.on('zoomend zoomlevelschange', this._updateDisabled, this)
@@ -85,9 +88,7 @@ export class ZoomControl extends Control {
 ZoomControl.setDefaultOptions( {
   position: 'topleft',
   zoomInText: '<span aria-hidden="true">+</span>',
-  zoomInTitle: 'Zoom in',
   zoomOutText: '<span aria-hidden="true">&#x2212;</span>',
-  zoomOutTitle: 'Zoom out',
 })
 
 TsMap.mergeOptions( { zoomControl: true })

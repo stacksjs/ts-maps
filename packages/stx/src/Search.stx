@@ -38,6 +38,7 @@ export const optionsJson = JSON.stringify({
   recents: $props.recents,
   units: $props.units,
   language: $props.language,
+  locale: $props.locale,
   showSaved: $props.showSaved,
 })
 </script>

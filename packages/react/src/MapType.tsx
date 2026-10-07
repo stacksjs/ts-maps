@@ -28,6 +28,8 @@ export interface MapTypeProps extends MapTypeEventProps {
   traffic?: MapTypeControlOptions['traffic']
   /** Show traffic, with `traffic`. */
   showTraffic?: boolean
+  /** The language of its words. Default the map's `locale`, else the browser's. */
+  locale?: string
   /** The underlying control, for `select`. */
   // eslint-disable-next-line no-unused-vars
   onReady?: (control: MapTypeControl) => void
@@ -54,8 +56,8 @@ export function MapType(props: MapTypeProps): null {
   latest.current = props
 
   useEffect(() => {
-    const { types, value, position, title, traffic } = latest.current
-    const picker = new MapTypeControl({ types, value, position, title, traffic })
+    const { types, value, position, title, traffic, locale } = latest.current
+    const picker = new MapTypeControl({ types, value, position, title, traffic, locale })
     picker.addTo(map)
     const stop = picker.listen((type, e) => (latest.current as any)[MAP_TYPE_EVENTS[type]]?.(e))
     controlRef.current = picker
@@ -67,10 +69,10 @@ export function MapType(props: MapTypeProps): null {
     }
   }, [map])
 
-  const { types, value, open, position, showTraffic } = props
+  const { types, value, open, position, showTraffic, locale } = props
   useEffect(() => {
-    controlRef.current?.sync({ types, value, open, position, showTraffic })
-  }, [map, types, value, open, position, showTraffic])
+    controlRef.current?.sync({ types, value, open, position, showTraffic, locale })
+  }, [map, types, value, open, position, showTraffic, locale])
 
   return null
 }

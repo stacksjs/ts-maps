@@ -33,6 +33,8 @@
   export let turnByTurn: SearchControlOptions['turnByTurn'] = undefined
   export let origin: SearchControlOptions['origin'] = undefined
   export let language: string | undefined = undefined
+  /** The language its words are in. Default `language`, else the map's `locale`, else the browser's. */
+  export let locale: string | undefined = undefined
   export let details: SearchControlOptions['details'] = undefined
   export let shareUrl: SearchControlOptions['shareUrl'] = undefined
   export let saved: SearchControlOptions['saved'] = undefined
@@ -60,7 +62,7 @@
   onMount(() => {
     const map = useMap()
     if (!map) return
-    search = new SearchControl({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved })
+    search = new SearchControl({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, locale, details, shareUrl, saved, showSaved })
     search.addTo(map)
     unlisten = search.listen((type, e) => handler(SEARCH_EVENTS[type])?.(e))
     onReady?.(search)
@@ -70,7 +72,7 @@
   // changed. A `TurnByTurn` usually arrives after mount, from its own
   // onReady. The query is followed on its own, so another option does not
   // search again.
-  $: if (search) search.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved })
+  $: if (search) search.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, locale, details, shareUrl, saved, showSaved })
   $: if (search) search.sync({ query })
 
   onDestroy(() => {

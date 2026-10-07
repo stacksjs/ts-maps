@@ -464,6 +464,43 @@ inside the WebView from its URL, matching landmarks across updates by `id`:
 />
 ```
 
+## Localization
+
+`locale` on the map is the language its built-in controls speak: search,
+Offline Maps, the map type and level pickers, the zoom, compass, locate and
+fullscreen buttons, and turn-by-turn. Default the browser's. A control's own
+`locale` wins over the map's; see [Localization](../concepts/localization.md).
+
+```tsx
+// React, Solid and Svelte; Vue as <TsMap locale="de">, Nuxt as <TsMapsMap locale="de">
+<Map center={[52.52, 13.405]} zoom={13} locale="de">
+  <Search />            {/* "Karten durchsuchen" */}
+  <ZoomControl />       {/* "Vergrößern" */}
+  <OfflineMaps locale="en" />
+</Map>
+```
+
+What follows a change:
+
+- `Search`, `OfflineMaps`, `MapType` and `TurnByTurn` follow their own
+  `locale` as it changes, relabelling in place.
+- `IndoorMap` and the control components (`ZoomControl`,
+  `NavigationControl`, `LocateControl`, `FullscreenControl`) are made again
+  for a new `locale`; in stx they are read when built.
+- The map's `locale` is read when it is built in stx. In the other bindings a
+  change sets `map.options.locale`, which a control without its own picks up
+  the next time it draws its words. Give the control its own `locale` to
+  relabel it at once.
+
+React Native takes `locale` on `MapView`. It is baked into the document, and
+a change after load goes over the bridge: search, offline maps, the map type
+picker and turn-by-turn relabel in place, and the indoor map is made again.
+`controls` keep the language they were built in.
+
+```tsx
+<MapView runtime={runtime} locale="de" search={{}} offlineMaps={{}} />
+```
+
 ## Subscribing to events
 
 `useMapEvent` binds a handler for the lifetime of the calling component, in

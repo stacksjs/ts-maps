@@ -19,6 +19,8 @@ export interface MapTypeProps {
   traffic?: MapTypeControlOptions['traffic']
   /** Show traffic, with `traffic`. */
   showTraffic?: boolean
+  /** The language of its words. Default the map's `locale`, else the browser's. */
+  locale?: string
   /** The underlying control, for `select`. */
   onReady?: (control: MapTypeControl) => void
   /** A map type was chosen: `{ value }`. */
@@ -61,6 +63,7 @@ export function MapType(props: MapTypeProps): JSX.Element {
       position: props.position,
       title: props.title,
       traffic: props.traffic,
+      locale: props.locale,
     }))
     picker.addTo(map)
     unlisten = picker.listen((type, e) => (props as any)[MAP_TYPE_EVENTS[type]]?.(e))
@@ -72,7 +75,7 @@ export function MapType(props: MapTypeProps): JSX.Element {
   // change, so the card closed by its own ✕ stays closed when another prop
   // changes.
   createEffect(() => {
-    const target = { types: props.types, value: props.value, open: props.open, position: props.position, showTraffic: props.showTraffic }
+    const target = { types: props.types, value: props.value, open: props.open, position: props.position, showTraffic: props.showTraffic, locale: props.locale }
     control()?.sync(target)
   })
 

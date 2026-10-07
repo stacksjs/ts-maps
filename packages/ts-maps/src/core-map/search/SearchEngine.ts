@@ -555,9 +555,9 @@ export function merge<T extends SearchPlace & { score?: number }>(places: T[]): 
 }
 
 /** The second line of a result: "Café · 0.3 mi · Market Street". */
-export function describePlace(place: SearchPlace, formatDistance?: (meters: number) => string): string {
+export function describePlace(place: SearchPlace, formatDistance?: (meters: number) => string, locale?: string): string {
   return [
-    kindLabel(place.kind),
+    kindLabel(place.kind, locale),
     place.distance !== undefined && formatDistance ? formatDistance(place.distance) : undefined,
     place.address,
   ].filter(Boolean).join(' · ')

@@ -33,6 +33,7 @@ export function MapView(props: MapViewProps): ReactElement {
     pitch,
     runtime,
     styleSpec,
+    locale,
     controls,
     markers,
     territories,
@@ -64,7 +65,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, landmarks, trees, nativeStore: !!offlineStore } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, locale, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, landmarks, trees, nativeStore: !!offlineStore } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,6 +121,12 @@ export function MapView(props: MapViewProps): ReactElement {
       return
     post({ type: 'setStyle', id: nextId(), payload: { styleSpec } })
   }, [styleSpec, post])
+
+  useEffect(() => {
+    if (!readyRef.current)
+      return
+    post({ type: 'setLocale', id: nextId(), payload: { locale: locale ?? null } })
+  }, [locale, post])
 
   // Markers, unlike controls, are live: the initial set is baked into the
   // document, and every change after that goes over the bridge. Reloading the

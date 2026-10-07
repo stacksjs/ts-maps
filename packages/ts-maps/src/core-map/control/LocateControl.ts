@@ -1,5 +1,6 @@
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { controlLocale, message } from '../i18n'
 import { DivIcon } from '../layer/marker/DivIcon'
 import { Marker } from '../layer/marker/Marker'
 import { Circle } from '../layer/vector/Circle'
@@ -39,6 +40,8 @@ export interface LocateControlOptions {
   titleLocating?: string
   titleActive?: string
   titleDenied?: string
+  /** The language of the button's label. Default the map's, else the browser's. */
+  locale?: string
   /** Draw an accuracy circle and position dot. Default: true. */
   showMarker?: boolean
 }
@@ -59,7 +62,7 @@ export class LocateControl extends Control {
 
     const link = DomUtil.create('a', `${CLASS}-button`, container) as HTMLAnchorElement
     link.href = '#'
-    link.title = options.title ?? 'Show your location'
+    link.title = options.title ?? message(controlLocale(this), 'locate.show')
     link.setAttribute('role', 'button')
     link.setAttribute('aria-label', link.title)
     // The crosshair is drawn in CSS so it inherits colour with the button
@@ -250,13 +253,14 @@ export class LocateControl extends Control {
 
     button.classList.add(`${CLASS}-${state}`)
 
+    const locale = controlLocale(this)
     const title = state === 'locating'
-      ? (options.titleLocating ?? 'Finding your location…')
+      ? (options.titleLocating ?? message(locale, 'locate.locating'))
       : state === 'active'
-        ? (options.titleActive ?? 'Following your location')
+        ? (options.titleActive ?? message(locale, 'locate.active'))
         : state === 'denied'
-          ? (options.titleDenied ?? 'Location unavailable — check browser permissions')
-          : (options.title ?? 'Show your location')
+          ? (options.titleDenied ?? message(locale, 'locate.denied'))
+          : (options.title ?? message(locale, 'locate.show'))
 
     button.title = title
     button.setAttribute('aria-label', title)

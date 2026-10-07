@@ -31,6 +31,11 @@ export const bearing = $props.bearing
 export const pitch = $props.pitch
 /** 'light' | 'dark' | 'auto' — the map's own chrome. */
 export const theme = $props.theme
+/**
+ * The language the built-in controls speak, unless one has its own `locale`.
+ * Default the browser's. Read when the map is built.
+ */
+export const locale = $props.locale
 /** A StyleSpec object, or a URL to one. */
 export const styleSpec = $props.styleSpec
 /**
@@ -68,6 +73,7 @@ export const mapPropsJson = JSON.stringify({
   bearing,
   pitch,
   theme,
+  locale,
   styleSpec,
   basemap,
   tiles,

@@ -74,6 +74,8 @@ export interface NavigatorOptions {
   offRouteThreshold?: number
   /** Metres from the destination that count as arrived. */
   arrivalThreshold?: number
+  /** The language instructions are worded in. Default the browser's. */
+  locale?: string
 }
 
 export interface Instruction {
@@ -110,7 +112,7 @@ function projector(lat0: number): (p: LatLngLike) => [number, number] {
 
 export class Navigator extends Evented {
   route: Route
-  options: Required<NavigatorOptions>
+  options: Required<Omit<NavigatorOptions, 'locale'>> & Pick<NavigatorOptions, 'locale'>
   /** The route line, step by step, with each point's distance along it. */
   points: LatLngLike[] = []
   along: number[] = []
@@ -135,6 +137,7 @@ export class Navigator extends Evented {
       units: options.units ?? 'metric',
       offRouteThreshold: options.offRouteThreshold ?? (options.profile === 'walking' ? 25 : 40),
       arrivalThreshold: options.arrivalThreshold ?? 25,
+      locale: options.locale,
     }
     this.route = route
     this._project = projector(route.geometry[0]?.lat ?? 0)
@@ -281,7 +284,7 @@ export class Navigator extends Evented {
       nextStep: next,
       nextManeuver,
       distanceToManeuver,
-      banner: formatInstruction(nextManeuver, { name: next?.name, abbreviate: true }),
+      banner: formatInstruction(nextManeuver, { name: next?.name, abbreviate: true, locale: this.options.locale }),
       thenManeuver,
       lanes: lanesMatter(next?.lanes) && distanceToManeuver <= LANE_DISTANCE[this.options.profile] ? next!.lanes : undefined,
     }
@@ -376,10 +379,10 @@ export class Navigator extends Evented {
       // words: "Take the N Judah toward Ocean Beach, 6 stops".
       const own = next.transit || next.maneuver === 'walk' ? next.instruction : undefined
       const instruction: Instruction = {
-        text: own ?? formatInstruction(progress.nextManeuver, { name: next.name }),
+        text: own ?? formatInstruction(progress.nextManeuver, { name: next.name, locale: this.options.locale }),
         // Which lane to be in is said with the warnings, while there is
         // still time to change lanes; not at the turn itself.
-        spoken: own ?? spokenInstruction(progress.nextManeuver, next.name, stage === 'now' ? undefined : d, this.options.units, this.options.profile === 'walking' ? undefined : next.lanes),
+        spoken: own ?? spokenInstruction(progress.nextManeuver, next.name, stage === 'now' ? undefined : d, this.options.units, this.options.profile === 'walking' ? undefined : next.lanes, this.options.locale),
         stage,
         stepIndex: progress.stepIndex,
         distance: d,

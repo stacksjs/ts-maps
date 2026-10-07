@@ -7,6 +7,13 @@
   export let zoom: number | undefined = undefined
   export let bearing: number | undefined = undefined
   export let pitch: number | undefined = undefined
+  /**
+   * The language the built-in controls speak, unless one has its own
+   * `locale`. Default the browser's. A change reaches each control the next
+   * time it draws its words; give the control its own `locale` to relabel it
+   * at once.
+   */
+  export let locale: string | undefined = undefined
 
   let container: HTMLDivElement | null = null
   let map: TsMap | null = null
@@ -20,8 +27,11 @@
     if (zoom !== undefined) options.zoom = zoom
     if (bearing !== undefined) options.bearing = bearing
     if (pitch !== undefined) options.pitch = pitch
+    if (locale !== undefined) options.locale = locale
     map = new TsMap(container, options)
   })
+
+  $: if (map) map.options.locale = locale
 
   onDestroy(() => {
     try {

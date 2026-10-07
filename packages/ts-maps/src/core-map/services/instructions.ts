@@ -9,6 +9,7 @@
  */
 
 import type { LaneInfo } from './types'
+import { formatNumber, languageOf } from '../i18n'
 
 export type ManeuverKind
   = | 'depart'
@@ -71,6 +72,32 @@ export function parseManeuver(code: string | undefined, exit?: number): Maneuver
   return { ...base, kind: 'turn' }
 }
 
+/**
+ * How a language words turn-by-turn: one of these per language, after
+ * OSRM's `osrm-text-instructions`, which has the grammar of forty. English
+ * and German are built in; `addInstructionLanguage` adds another.
+ */
+export interface InstructionLanguage {
+  /** The banner's instruction for a maneuver onto `name` ('' for none). */
+  instruction: (maneuver: Maneuver, name: string) => string
+  /** What the voice says before a maneuver: `text` is the instruction, `distance` already spoken. */
+  spoken: (maneuver: Maneuver, text: string, distance: string, lanes?: string) => string
+  /** A distance as the voice says it after "in": "400 feet", "400 Metern". */
+  spokenDistance: (value: number, unit: 'm' | 'km' | 'ft' | 'mi', formatted: string) => string
+  /** Which lanes to be in: "the left 2 lanes", "die linken 2 Spuren". */
+  lanes: (where: 'left' | 'right' | 'middle' | 'nth', count: number, nth?: number) => string
+  /** Banner abbreviations for street names. */
+  abbreviations?: Array<[RegExp, string]>
+}
+
+function upper(text: string): string {
+  return text ? text[0]!.toUpperCase() + text.slice(1) : text
+}
+
+function lowerFirst(text: string): string {
+  return text ? text[0]!.toLowerCase() + text.slice(1) : text
+}
+
 const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth']
 
 function ordinal(n: number): string {
@@ -97,13 +124,148 @@ const ABBREVIATIONS: Array<[RegExp, string]> = [
   [/\bWest\b/g, 'W'],
 ]
 
+/** Apple Maps' English: "Turn right onto Market St", "At the roundabout, take the second exit". */
+const ENGLISH: InstructionLanguage = {
+  instruction(maneuver, name) {
+    const onto = name ? ` onto ${name}` : ''
+    const side = maneuver.direction === 'straight' ? '' : maneuver.direction
+    switch (maneuver.kind) {
+      case 'depart':
+        return name ? `Start on ${name}` : 'Start'
+      case 'arrive':
+        return side ? `Arrive at your destination on the ${side}` : 'Arrive at your destination'
+      case 'continue':
+        return name ? `Continue on ${name}` : 'Continue straight'
+      case 'turn':
+        if (maneuver.degree === 'slight')
+          return `Slight ${side}${onto}`
+        if (maneuver.degree === 'sharp')
+          return `Sharp ${side}${onto}`
+        return `Turn ${side}${onto}`
+      case 'uturn':
+        return `Make a U-turn${onto}`
+      case 'merge':
+        return `Merge${side ? ` ${side}` : ''}${onto}`
+      case 'fork':
+      case 'keep':
+        return `Keep ${side}${onto}`
+      case 'ramp':
+        return side ? `Take the ramp on the ${side}${onto}` : `Take the ramp${onto}`
+      case 'exit':
+        return side ? `Take the exit on the ${side}${onto}` : `Take the exit${onto}`
+      case 'roundabout':
+        return maneuver.exit
+          ? `At the roundabout, take the ${ordinal(maneuver.exit)} exit${onto}`
+          : `Enter the roundabout${onto}`
+      case 'roundabout-exit':
+        return `Exit the roundabout${onto}`
+      default:
+        return side ? `Turn ${side}${onto}` : `Continue${onto}`
+    }
+  },
+  spoken(_maneuver, text, distance, lanes) {
+    return lanes ? `In ${distance}, use ${lanes} to ${lowerFirst(text)}` : `In ${distance}, ${lowerFirst(text)}`
+  },
+  spokenDistance(value, unit, formatted) {
+    if (unit === 'mi' && value >= 0.2) {
+      // Common fractions read the way people say them.
+      for (const [at, words] of [[0.25, 'a quarter mile'], [0.5, 'half a mile'], [0.75, 'three quarters of a mile'], [1, '1 mile']] as Array<[number, string]>) {
+        if (Math.abs(value - at) < 0.06)
+          return words
+      }
+    }
+    const words = { m: 'meters', km: 'kilometers', ft: 'feet', mi: 'miles' }[unit]
+    return `${formatted} ${words}`
+  },
+  lanes(where, count, nth) {
+    if (where === 'nth')
+      return `the ${ordinal(nth!)} lane from the left`
+    return count === 1 ? `the ${where} lane` : `the ${where} ${count} lanes`
+  },
+  abbreviations: ABBREVIATIONS,
+}
+
+const ORDINALS_DE = ['erste', 'zweite', 'dritte', 'vierte', 'fünfte', 'sechste', 'siebte', 'achte']
+
+/** German, in the infinitive navigation systems use: "Rechts abbiegen auf Hauptstraße". */
+const GERMAN: InstructionLanguage = {
+  instruction(maneuver, name) {
+    const onto = name ? ` auf ${name}` : ''
+    const side = maneuver.direction === 'left' ? 'links' : maneuver.direction === 'right' ? 'rechts' : ''
+    const nth = (n: number): string => ORDINALS_DE[n - 1] ?? `${n}.`
+    switch (maneuver.kind) {
+      case 'depart':
+        return name ? `Auf ${name} losfahren` : 'Losfahren'
+      case 'arrive':
+        return side ? `Das Ziel befindet sich ${side}` : 'Ziel erreicht'
+      case 'continue':
+        return name ? `Weiter auf ${name}` : 'Geradeaus weiterfahren'
+      case 'turn':
+        if (maneuver.degree === 'slight')
+          return `Leicht ${side} abbiegen${onto}`
+        if (maneuver.degree === 'sharp')
+          return `Scharf ${side} abbiegen${onto}`
+        return `${upper(side)} abbiegen${onto}`
+      case 'uturn':
+        return `Wenden${onto}`
+      case 'merge':
+        return side ? `${upper(side)} einfädeln${onto}` : `Einfädeln${onto}`
+      case 'fork':
+      case 'keep':
+        return `${upper(side)} halten${onto}`
+      case 'ramp':
+        return side ? `Die Auffahrt ${side} nehmen${onto}` : `Die Auffahrt nehmen${onto}`
+      case 'exit':
+        return side ? `Die Ausfahrt ${side} nehmen${onto}` : `Die Ausfahrt nehmen${onto}`
+      case 'roundabout':
+        return maneuver.exit
+          ? `Im Kreisverkehr die ${nth(maneuver.exit)} Ausfahrt nehmen${onto}`
+          : `In den Kreisverkehr einfahren${onto}`
+      case 'roundabout-exit':
+        return `Den Kreisverkehr verlassen${onto}`
+      default:
+        return side ? `${upper(side)} abbiegen${onto}` : `Weiterfahren${onto}`
+    }
+  },
+  spoken(maneuver, text, distance, lanes) {
+    if (maneuver.kind === 'arrive')
+      return `In ${distance} erreichen Sie Ihr Ziel`
+    return lanes ? `In ${distance} ${lanes} benutzen und ${lowerFirst(text)}` : `In ${distance} ${lowerFirst(text)}`
+  },
+  spokenDistance(value, unit, formatted) {
+    // Dative, after "in": "in 400 Metern", "in einem Kilometer".
+    if (value === 1)
+      return { m: 'einem Meter', km: 'einem Kilometer', ft: 'einem Fuß', mi: 'einer Meile' }[unit]
+    return `${formatted} ${{ m: 'Metern', km: 'Kilometern', ft: 'Fuß', mi: 'Meilen' }[unit]}`
+  },
+  lanes(where, count, nth) {
+    if (where === 'nth')
+      return `die ${ORDINALS_DE[nth! - 1] ?? `${nth}.`} Spur von links`
+    const side = { left: 'linke', right: 'rechte', middle: 'mittlere' }[where]
+    return count === 1 ? `die ${side} Spur` : `die ${side}n ${count} Spuren`
+  },
+  abbreviations: [[/straße\b/g, 'str.'], [/Straße\b/g, 'Str.']],
+}
+
+const LANGUAGES: Record<string, InstructionLanguage> = { en: ENGLISH, de: GERMAN }
+
+/** Word turn-by-turn in another language, or change how one is worded. */
+export function addInstructionLanguage(language: string, words: InstructionLanguage): void {
+  LANGUAGES[language.toLowerCase()] = words
+}
+
+/** The wording for a locale: its language's, else English. */
+export function instructionLanguage(locale?: string): InstructionLanguage {
+  return LANGUAGES[languageOf(locale)] ?? ENGLISH
+}
+
 /**
- * A street name as a banner shows it: "Market St", "Van Ness Ave". Spoken
- * instructions keep the full name.
+ * A street name as a banner shows it: "Market St", "Van Ness Ave",
+ * "Hauptstr.". Spoken instructions keep the full name.
  */
-export function abbreviateStreet(name: string): string {
+export function abbreviateStreet(name: string, locale?: string): string {
   let out = name
-  for (const [pattern, short] of ABBREVIATIONS)
+  for (const [pattern, short] of instructionLanguage(locale).abbreviations ?? [])
     out = out.replace(pattern, short)
   return out
 }
@@ -113,53 +275,19 @@ export interface InstructionOptions {
   name?: string
   /** Abbreviate street names, as the banner does. */
   abbreviate?: boolean
+  /** The language to word it in. Default the browser's. */
+  locale?: string
 }
 
 /**
  * The instruction for a maneuver, in the words Apple Maps uses: "Turn right
  * onto Market St", "Slight left onto I-80 E", "At the roundabout, take the
- * second exit".
+ * second exit"; or in German, "Rechts abbiegen auf Hauptstr.".
  */
 export function formatInstruction(maneuver: Maneuver, options: InstructionOptions = {}): string {
   const raw = options.name?.trim()
-  const name = raw ? (options.abbreviate ? abbreviateStreet(raw) : raw) : ''
-  const onto = name ? ` onto ${name}` : ''
-  const side = maneuver.direction === 'straight' ? '' : maneuver.direction
-  const Side = side ? side[0]!.toUpperCase() + side.slice(1) : ''
-
-  switch (maneuver.kind) {
-    case 'depart':
-      return name ? `Start on ${name}` : 'Start'
-    case 'arrive':
-      return side ? `Arrive at your destination on the ${side}` : 'Arrive at your destination'
-    case 'continue':
-      return name ? `Continue on ${name}` : 'Continue straight'
-    case 'turn':
-      if (maneuver.degree === 'slight')
-        return `Slight ${side}${onto}`
-      if (maneuver.degree === 'sharp')
-        return `Sharp ${side}${onto}`
-      return `Turn ${side}${onto}`
-    case 'uturn':
-      return `Make a U-turn${onto}`
-    case 'merge':
-      return `Merge${side ? ` ${side}` : ''}${onto}`
-    case 'fork':
-    case 'keep':
-      return `Keep ${side}${onto}`
-    case 'ramp':
-      return side ? `Take the ramp on the ${side}${onto}` : `Take the ramp${onto}`
-    case 'exit':
-      return side ? `Take the exit on the ${side}${onto}` : `Take the exit${onto}`
-    case 'roundabout':
-      return maneuver.exit
-        ? `At the roundabout, take the ${ordinal(maneuver.exit)} exit${onto}`
-        : `Enter the roundabout${onto}`
-    case 'roundabout-exit':
-      return `Exit the roundabout${onto}`
-    default:
-      return Side ? `Turn ${side}${onto}` : `Continue${onto}`
-  }
+  const name = raw ? (options.abbreviate ? abbreviateStreet(raw, options.locale) : raw) : ''
+  return instructionLanguage(options.locale).instruction(maneuver, name)
 }
 
 /** Whether a locale reads distances in miles and feet. */
@@ -168,43 +296,45 @@ export function prefersImperial(locale?: string): boolean {
   return l.endsWith('-us') || l.endsWith('-lr') || l.endsWith('-mm') || l === 'en'
 }
 
-/**
- * A distance as the banner shows it, rounded the way a driver reads a sign:
- * "150 m", "1.2 km", "400 ft", "0.3 mi".
- */
-export function formatDistance(meters: number, units: DistanceUnits): string {
+/** A distance's number and unit, rounded the way a driver reads a sign. */
+function roundDistance(meters: number, units: DistanceUnits): { value: number, unit: 'm' | 'km' | 'ft' | 'mi', digits: number } {
   const m = Math.max(0, meters)
   if (units === 'imperial') {
     const feet = m * 3.28084
     if (feet < 528) {
       const step = feet < 100 ? 10 : 50
-      return `${Math.max(step, Math.round(feet / step) * step)} ft`
+      return { value: Math.max(step, Math.round(feet / step) * step), unit: 'ft', digits: 0 }
     }
     const miles = m / 1609.344
-    return miles < 10 ? `${(Math.round(miles * 10) / 10).toFixed(1)} mi` : `${Math.round(miles)} mi`
+    return miles < 10 ? { value: Math.round(miles * 10) / 10, unit: 'mi', digits: 1 } : { value: Math.round(miles), unit: 'mi', digits: 0 }
   }
   if (m < 1000) {
     const step = m < 100 ? 10 : 50
-    return `${Math.max(step, Math.round(m / step) * step)} m`
+    return { value: Math.max(step, Math.round(m / step) * step), unit: 'm', digits: 0 }
   }
   const km = m / 1000
-  return km < 10 ? `${(Math.round(km * 10) / 10).toFixed(1)} km` : `${Math.round(km)} km`
+  return km < 10 ? { value: Math.round(km * 10) / 10, unit: 'km', digits: 1 } : { value: Math.round(km), unit: 'km', digits: 0 }
+}
+
+function number(value: number, digits: number, locale?: string): string {
+  return formatNumber(value, locale, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+}
+
+/**
+ * A distance as the banner shows it, rounded the way a driver reads a sign:
+ * "150 m", "1.2 km", "400 ft", "0.3 mi"; "1,2 km" in German.
+ */
+export function formatDistance(meters: number, units: DistanceUnits, locale?: string): string {
+  const { value, unit, digits } = roundDistance(meters, units)
+  return `${number(value, digits, locale)} ${unit}`
 }
 
 /** A distance as the voice says it: "400 feet", "a quarter mile", "1.2 kilometers". */
-export function spokenDistance(meters: number, units: DistanceUnits): string {
-  if (units === 'imperial') {
-    const miles = meters / 1609.344
-    if (miles >= 0.2) {
-      // Common fractions read the way people say them.
-      for (const [value, words] of [[0.25, 'a quarter mile'], [0.5, 'half a mile'], [0.75, 'three quarters of a mile'], [1, '1 mile']] as Array<[number, string]>) {
-        if (Math.abs(miles - value) < 0.06)
-          return words
-      }
-    }
-    return formatDistance(meters, units).replace(/ ft$/, ' feet').replace(/ mi$/, ' miles')
-  }
-  return formatDistance(meters, units).replace(/ km$/, ' kilometers').replace(/ m$/, ' meters')
+export function spokenDistance(meters: number, units: DistanceUnits, locale?: string): string {
+  const { value, unit, digits } = roundDistance(meters, units)
+  // Miles are spoken from the exact distance, so 0.27 mi is "a quarter mile".
+  const exact = unit === 'mi' ? meters / 1609.344 : value
+  return instructionLanguage(locale).spokenDistance(exact, unit, number(value, digits, locale))
 }
 
 /**
@@ -213,15 +343,11 @@ export function spokenDistance(meters: number, units: DistanceUnits): string {
  * the lanes, and a warning to give, it says which to be in, as Apple Maps
  * does: "In 400 feet, use the left 2 lanes to turn left onto Broadway".
  */
-export function spokenInstruction(maneuver: Maneuver, name: string | undefined, distance: number | undefined, units: DistanceUnits, lanes?: LaneInfo[]): string {
-  const text = formatInstruction(maneuver, { name })
+export function spokenInstruction(maneuver: Maneuver, name: string | undefined, distance: number | undefined, units: DistanceUnits, lanes?: LaneInfo[], locale?: string): string {
+  const text = formatInstruction(maneuver, { name, locale })
   if (distance === undefined)
     return text
-  const lower = `${text[0]!.toLowerCase()}${text.slice(1)}`
-  const hint = laneHint(lanes)
-  return hint
-    ? `In ${spokenDistance(distance, units)}, use ${hint} to ${lower}`
-    : `In ${spokenDistance(distance, units)}, ${lower}`
+  return instructionLanguage(locale).spoken(maneuver, text, spokenDistance(distance, units, locale), laneHint(lanes, locale))
 }
 
 // ---------------------------------------------------------------------------
@@ -289,7 +415,7 @@ export function lanesMatter(lanes: LaneInfo[] | undefined): boolean {
  * right 2 lanes", "the middle lane", "the second lane from the left".
  * Nothing when every lane will do.
  */
-export function laneHint(lanes: LaneInfo[] | undefined): string | undefined {
+export function laneHint(lanes: LaneInfo[] | undefined, locale?: string): string | undefined {
   if (!lanes || !lanesMatter(lanes))
     return undefined
   const valid = lanes.map((l, i) => (l.valid ? i : -1)).filter(i => i >= 0)
@@ -300,13 +426,14 @@ export function laneHint(lanes: LaneInfo[] | undefined): string | undefined {
   const contiguous = last - first === k - 1
   if (!contiguous)
     return undefined
+  const words = instructionLanguage(locale)
   if (first === 0)
-    return k === 1 ? 'the left lane' : `the left ${k} lanes`
+    return words.lanes('left', k)
   if (last === n - 1)
-    return k === 1 ? 'the right lane' : `the right ${k} lanes`
-  if (k === 1)
-    return n === 3 ? 'the middle lane' : `the ${ordinal(first + 1)} lane from the left`
-  return `the middle ${k} lanes`
+    return words.lanes('right', k)
+  if (k === 1 && n !== 3)
+    return words.lanes('nth', 1, first + 1)
+  return words.lanes('middle', k)
 }
 
 /**

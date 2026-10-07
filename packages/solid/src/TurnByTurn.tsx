@@ -19,6 +19,8 @@ export interface TurnByTurnProps {
   alternatives?: boolean
   destinationName?: string
   directions?: TurnByTurnOptions['directions']
+  /** The language of its cards and voice. Default the map's `locale`, else the browser's. */
+  locale?: string
   /** The underlying `TurnByTurn`, for `selectRoute`, `recenter` and `update`. */
   onReady?: (nav: TsTurnByTurn) => void
   onPreview?: (e: any) => void
@@ -66,6 +68,7 @@ export function TurnByTurn(props: TurnByTurnProps): JSX.Element {
       alternatives: props.alternatives,
       destinationName: props.destinationName,
       directions: props.directions,
+      locale: props.locale,
     }
     if (!map)
       return
@@ -78,6 +81,7 @@ export function TurnByTurn(props: TurnByTurnProps): JSX.Element {
         alternatives: target.alternatives,
         destinationName: target.destinationName,
         directions: target.directions,
+        locale: target.locale,
       })
       for (const [event, prop] of Object.entries(TURN_BY_TURN_EVENTS))
         nav.on(event, (e: any) => (props as any)[prop]?.(e))

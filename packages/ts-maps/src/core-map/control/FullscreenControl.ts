@@ -1,5 +1,6 @@
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { controlLocale, message } from '../i18n'
 import { Control } from './Control'
 
 /**
@@ -22,6 +23,8 @@ export interface FullscreenControlOptions {
   container?: HTMLElement
   title?: string
   titleCancel?: string
+  /** The language of the button's label. Default the map's, else the browser's. */
+  locale?: string
 }
 
 const CLASS = 'tsmap-control-fullscreen'
@@ -148,8 +151,8 @@ export class FullscreenControl extends Control {
 
     const options = this.options as FullscreenControlOptions
     const title = active
-      ? (options.titleCancel ?? 'Exit fullscreen')
-      : (options.title ?? 'View fullscreen')
+      ? (options.titleCancel ?? message(controlLocale(this), 'fullscreen.exit'))
+      : (options.title ?? message(controlLocale(this), 'fullscreen.enter'))
 
     button.title = title
     button.setAttribute('aria-label', title)

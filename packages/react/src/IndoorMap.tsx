@@ -25,6 +25,8 @@ export interface IndoorMapProps extends IndoorMapEventProps {
   minZoom?: number
   /** The language names are read in. Default English. */
   language?: string
+  /** The language of the level picker. Default `language`, else the map's `locale`, else the browser's. */
+  locale?: string
   /** A `SearchControl` — from `<Search onReady>` — to find the venue's places, and go to a chosen one's level. */
   search?: SearchControl
   /** The underlying control, for `setLevel`, `search` and `levels`. */
@@ -45,8 +47,8 @@ export interface IndoorMapProps extends IndoorMapEventProps {
  * ```
  *
  * `level`, `position` and `search` are followed as they change. `venue`,
- * `minZoom` and `language` are read when the control is made: a new one
- * makes it again, so keep a venue's identity stable across renders.
+ * `minZoom`, `language` and `locale` are read when the control is made: a new
+ * one makes it again, so keep a venue's identity stable across renders.
  */
 export function IndoorMap(props: IndoorMapProps): null {
   const map = useMap()
@@ -54,10 +56,10 @@ export function IndoorMap(props: IndoorMapProps): null {
   const latest = useRef(props)
   latest.current = props
 
-  const { venue, minZoom, language } = props
+  const { venue, minZoom, language, locale } = props
   useEffect(() => {
     const { level, position } = latest.current
-    const indoor = new TsIndoorMap({ venue, level, position, minZoom, language })
+    const indoor = new TsIndoorMap({ venue, level, position, minZoom, language, locale })
     indoor.addTo(map)
     const stop = indoor.listen((type, e) => (latest.current as any)[INDOOR_EVENTS[type]]?.(e))
     controlRef.current = indoor
@@ -72,12 +74,12 @@ export function IndoorMap(props: IndoorMapProps): null {
       indoor.remove()
       controlRef.current = null
     }
-  }, [map, venue, minZoom, language])
+  }, [map, venue, minZoom, language, locale])
 
   const { level, position } = props
   useEffect(() => {
     controlRef.current?.sync({ level, position })
-  }, [map, venue, minZoom, language, level, position])
+  }, [map, venue, minZoom, language, locale, level, position])
 
   // Runs after the control is made, so a new venue is connected again.
   const { search } = props
@@ -85,7 +87,7 @@ export function IndoorMap(props: IndoorMapProps): null {
     if (!search || !controlRef.current)
       return
     return controlRef.current.connect(search)
-  }, [map, venue, minZoom, language, search])
+  }, [map, venue, minZoom, language, locale, search])
 
   return null
 }

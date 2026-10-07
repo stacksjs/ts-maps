@@ -4,6 +4,7 @@ import type { ImageryOptions } from '../styles/imagery'
 import type { Style as StyleSpec } from '../style-spec/types'
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { controlLocale, message } from '../i18n'
 import { dark, light } from '../styles/basemap'
 import { hybrid, satellite } from '../styles/imagery'
 import { transit } from '../styles/transit'
@@ -21,6 +22,8 @@ export interface MapTypeOption {
   id: string
   /** What the card calls it: "Explore", "Satellite". */
   label: string
+  /** A catalogue key for the label, worded in the picker's locale instead: `maptype.explore`. */
+  labelKey?: string
   /** The style, or a function building it when chosen. */
   style: StyleSpec | (() => StyleSpec)
   /** The chrome to show over it: imagery reads best under dark controls. */
@@ -43,6 +46,8 @@ export interface MapTypeControlOptions {
   keep?: (layer: StyleSpec['layers'][number], style: StyleSpec) => boolean
   /** A traffic layer for the card's Traffic switch, as Apple's picker has. */
   traffic?: TrafficLayer
+  /** The language of the button and the card. Default the map's, else the browser's. */
+  locale?: string
 }
 
 /** What `sync` brings the control into line with; left out is left alone. */
@@ -53,6 +58,7 @@ export interface MapTypeTarget {
   types?: MapTypeOption[]
   /** Show traffic, with the `traffic` layer the picker was given. */
   showTraffic?: boolean
+  locale?: string
 }
 
 /**
@@ -77,6 +83,11 @@ export interface MapTypesOptions extends Omit<BasemapStyleOptions, 'emphasis' | 
   theme?: 'light' | 'dark'
   /** Offer Satellite with labels on (hybrid) rather than without. Default true. */
   labels?: boolean
+  /**
+   * The language of the labels. Default: none, so the picker words them in
+   * its own locale.
+   */
+  locale?: string
 }
 
 /**
@@ -86,11 +97,16 @@ export interface MapTypesOptions extends Omit<BasemapStyleOptions, 'emphasis' | 
  */
 export function mapTypes(options: MapTypesOptions): MapTypeOption[] {
   const build = options.theme === 'dark' ? dark : light
+  // Given a locale, the labels are fixed in it; without one, the picker
+  // words them in its own.
+  const label = (id: string): Pick<MapTypeOption, 'label' | 'labelKey'> => options.locale
+    ? { label: message(options.locale, `maptype.${id}`) }
+    : { label: message('en', `maptype.${id}`), labelKey: `maptype.${id}` }
   return [
-    { id: 'explore', label: 'Explore', style: () => build(options), theme: options.theme ?? 'light' },
-    { id: 'driving', label: 'Driving', style: () => build({ ...options, emphasis: 'driving' }), theme: options.theme ?? 'light' },
-    { id: 'transit', label: 'Transit', style: () => transit(options), theme: options.theme ?? 'light' },
-    { id: 'satellite', label: 'Satellite', style: () => options.labels === false ? satellite(options) : hybrid(options), theme: 'dark' },
+    { id: 'explore', ...label('explore'), style: () => build(options), theme: options.theme ?? 'light' },
+    { id: 'driving', ...label('driving'), style: () => build({ ...options, emphasis: 'driving' }), theme: options.theme ?? 'light' },
+    { id: 'transit', ...label('transit'), style: () => transit(options), theme: options.theme ?? 'light' },
+    { id: 'satellite', ...label('satellite'), style: () => options.labels === false ? satellite(options) : hybrid(options), theme: 'dark' },
   ]
 }
 
@@ -119,11 +135,16 @@ export class MapTypeControl extends Control {
     this._synced = {}
   }
 
+  /** The language it speaks: its own `locale`, else the map's, else the browser's. */
+  get locale(): string {
+    return controlLocale(this)
+  }
+
   onAdd(): HTMLElement {
     const container = DomUtil.create('div', `${CLASS}-control tsmap-bar`)
     const link = DomUtil.create('a', `${CLASS}-button`, container) as HTMLAnchorElement
     link.href = '#'
-    link.title = this.options.title ?? 'Map Type'
+    link.title = this.options.title ?? message(this.locale, 'maptype.title')
     link.setAttribute('role', 'button')
     link.setAttribute('aria-label', link.title)
     link.setAttribute('aria-haspopup', 'dialog')
@@ -153,7 +174,7 @@ export class MapTypeControl extends Control {
       return this
     const card = DomUtil.create('div', `${CLASS}-card`, this._map.getContainer())
     card.setAttribute('role', 'dialog')
-    card.setAttribute('aria-label', 'Choose Map')
+    card.setAttribute('aria-label', message(this.locale, 'maptype.choose'))
     card.addEventListener('click', (e) => {
       const el = e.target as HTMLElement
       const type = el.closest<HTMLElement>('[data-type]')?.dataset.type
@@ -192,16 +213,17 @@ export class MapTypeControl extends Control {
   _render(): void {
     if (!this._card)
       return
+    const locale = this.locale
     const options = this.types.map(type => `
       <button type="button" class="${CLASS}-option${type.id === this.value ? ` ${CLASS}-active` : ''}" data-type="${escape(type.id)}" aria-pressed="${type.id === this.value}">
         <span class="${CLASS}-swatch ${CLASS}-swatch-${escape(type.id)}" aria-hidden="true"></span>
-        <span class="${CLASS}-label">${escape(type.label)}</span>
+        <span class="${CLASS}-label">${escape(type.labelKey ? message(locale, type.labelKey) : type.label)}</span>
       </button>`).join('')
     const traffic = this.options.traffic
     this._card.innerHTML = `
-      <div class="${CLASS}-head"><span class="${CLASS}-title">Choose Map</span><button type="button" class="${CLASS}-close" data-action="close" aria-label="Close">✕</button></div>
+      <div class="${CLASS}-head"><span class="${CLASS}-title">${message(locale, 'maptype.choose')}</span><button type="button" class="${CLASS}-close" data-action="close" aria-label="${message(locale, 'maptype.close')}">✕</button></div>
       <div class="${CLASS}-options">${options}</div>
-      ${traffic ? `<label class="${CLASS}-setting"><span>Traffic</span><input type="checkbox" class="${CLASS}-switch" data-setting="traffic"${traffic.active ? ' checked' : ''}></label>` : ''}`
+      ${traffic ? `<label class="${CLASS}-setting"><span>${message(locale, 'maptype.traffic')}</span><input type="checkbox" class="${CLASS}-switch" data-setting="traffic"${traffic.active ? ' checked' : ''}></label>` : ''}`
     this._card.querySelector<HTMLInputElement>('[data-setting="traffic"]')?.addEventListener('change', (e) => {
       const on = (e.currentTarget as HTMLInputElement).checked
       if (on !== traffic!.active)
@@ -267,6 +289,13 @@ export class MapTypeControl extends Control {
   sync(target: MapTypeTarget): this {
     if ('types' in target && target.types)
       this.options.types = target.types
+    if ('locale' in target && target.locale !== this.options.locale) {
+      this.options.locale = target.locale
+      const title = this.options.title ?? message(this.locale, 'maptype.title')
+      this._button?.setAttribute('title', title)
+      this._button?.setAttribute('aria-label', title)
+      this._card?.setAttribute('aria-label', message(this.locale, 'maptype.choose'))
+    }
     if ('position' in target && (target.position ?? 'topright') !== this.options.position)
       this.setPosition(target.position ?? 'topright')
     if (target.value !== undefined && target.value !== this._synced.value) {

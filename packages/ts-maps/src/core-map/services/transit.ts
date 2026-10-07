@@ -1,6 +1,7 @@
 // Transit directions: walk, ride, change, walk, as Apple writes them.
 
 import type { Route, TransitDetails, TransitVehicle, TransportProfile, TravelMode } from './types'
+import { message, translator } from '../i18n'
 
 /** A street profile for a provider that has no transit: an error, said plainly, for transit. */
 export function streetProfile(profile: TravelMode | undefined, provider: string): TransportProfile {
@@ -27,35 +28,23 @@ export function transitVehicle(mode: string | number | undefined): TransitVehicl
   }
 }
 
-const VEHICLE_NOUN: Record<TransitVehicle, string> = {
-  bus: 'bus',
-  tram: 'tram',
-  subway: 'train',
-  rail: 'train',
-  ferry: 'ferry',
-  cable_car: 'cable car',
-  gondola: 'gondola',
-  funicular: 'funicular',
-  trolleybus: 'bus',
-  monorail: 'train',
-  other: 'line',
-}
-
-/** "Take the N Judah toward Ocean Beach, 6 stops". */
-export function transitInstruction(ride: TransitDetails): string {
+/** "Take the N Judah toward Ocean Beach, 6 stops"; "N Judah Richtung Ocean Beach nehmen, 6 Stationen" in German. */
+export function transitInstruction(ride: TransitDetails, locale?: string): string {
+  const t = translator(locale)
   // "the N Judah" where the line has a name; "the 38 bus" where it is only a number.
   const named = ride.lineName && ride.lineName !== ride.line
-  const what = named
-    ? `the ${ride.lineName!.startsWith(ride.line) ? ride.lineName : `${ride.line} ${ride.lineName}`}`
-    : /^\d+[A-Z]?$/.test(ride.line) ? `the ${ride.line} ${VEHICLE_NOUN[ride.vehicle]}` : `the ${ride.line}`
-  const toward = ride.headsign ? ` toward ${ride.headsign}` : ''
-  const stops = ride.stops ? `, ${ride.stops} ${ride.stops === 1 ? 'stop' : 'stops'}` : ''
-  return `Take ${what}${toward}${stops}`
+  const line = named
+    ? t('transit.named', { name: ride.lineName!.startsWith(ride.line) ? ride.lineName! : `${ride.line} ${ride.lineName}` })
+    : /^\d+[A-Z]?$/.test(ride.line)
+      ? t('transit.numbered', { line: ride.line, vehicle: t(`transit.vehicle.${ride.vehicle}`) })
+      : t('transit.line', { line: ride.line })
+  const take = ride.headsign ? t('transit.takeToward', { line, headsign: ride.headsign }) : t('transit.take', { line })
+  return ride.stops ? t('transit.withStops', { ride: take, stops: t('transit.stops', { count: ride.stops }) }) : take
 }
 
 /** "Walk to Church St & Duboce Ave", or "Walk to your destination". */
-export function walkInstruction(to: string | undefined): string {
-  return to ? `Walk to ${to}` : 'Walk to your destination'
+export function walkInstruction(to: string | undefined, locale?: string): string {
+  return to ? message(locale, 'transit.walkTo', { place: to }) : message(locale, 'transit.walkToDestination')
 }
 
 /** The rides of a transit route, in order. */

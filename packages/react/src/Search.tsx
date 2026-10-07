@@ -44,6 +44,8 @@ export interface SearchProps extends SearchEventProps {
   /** Where Directions starts. Default the device's position. */
   origin?: SearchControlOptions['origin']
   language?: string
+  /** The language its words are in. Default `language`, else the map's `locale`, else the browser's. */
+  locale?: string
   /** Where a chosen place's hours, phone and website come from. Default OpenStreetMap; `null` for none. */
   details?: SearchControlOptions['details']
   /** The link Share sends. Default the place on openstreetmap.org. */
@@ -78,8 +80,8 @@ export function Search(props: SearchProps): null {
   latest.current = props
 
   useEffect(() => {
-    const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved } = latest.current
-    const search = new SearchControl({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved })
+    const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, locale, details, shareUrl, saved, showSaved } = latest.current
+    const search = new SearchControl({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, locale, details, shareUrl, saved, showSaved })
     search.addTo(map)
     const stop = search.listen((type, e) => (latest.current as any)[SEARCH_EVENTS[type]]?.(e))
     controlRef.current = search
@@ -95,12 +97,12 @@ export function Search(props: SearchProps): null {
   // changed. A `TurnByTurn` usually arrives after the first render, from its
   // own onReady. Categories are compared by value, so an inline list is not
   // a change on every render.
-  const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved } = props
+  const { position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, locale, details, shareUrl, saved, showSaved } = props
   const categoriesKey = JSON.stringify(categories?.map(c => [c.id, c.label, c.icon]) ?? null)
   useEffect(() => {
-    controlRef.current?.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved })
+    controlRef.current?.sync({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, language, locale, details, shareUrl, saved, showSaved })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, position, placeholder, provider, offline, categoriesKey, recents, units, location, turnByTurn, origin, language, details, shareUrl, saved, showSaved])
+  }, [map, position, placeholder, provider, offline, categoriesKey, recents, units, location, turnByTurn, origin, language, locale, details, shareUrl, saved, showSaved])
 
   const { query } = props
   useEffect(() => {

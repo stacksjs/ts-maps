@@ -35,6 +35,8 @@ export const OfflineMaps = defineComponent({
     resources: { type: Array as PropType<string[]>, default: undefined },
     showStatus: { type: Boolean, default: undefined },
     title: { type: String, default: undefined },
+    /** The language its words are in. Default the map's `locale`, else the browser's. */
+    locale: { type: String, default: undefined },
   },
   emits: [...Object.keys(OFFLINE_MAPS_EVENTS), 'ready', 'update:open', 'update:onlyOffline'],
   setup(props, { emit, expose }) {
@@ -50,6 +52,7 @@ export const OfflineMaps = defineComponent({
       resources: props.resources,
       showStatus: props.showStatus,
       title: props.title,
+      locale: props.locale,
     })
 
     const stop = watch(
@@ -64,6 +67,7 @@ export const OfflineMaps = defineComponent({
           resources: props.resources,
           showStatus: props.showStatus,
           title: props.title,
+          locale: props.locale,
         })
         offline.addTo(map)
         unlisten = offline.listen((type, e) => {
@@ -92,6 +96,7 @@ export const OfflineMaps = defineComponent({
         () => JSON.stringify(props.resources ?? null),
         () => props.showStatus,
         () => props.title,
+        () => props.locale,
       ],
       () => offline?.sync(target()),
     )

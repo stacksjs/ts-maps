@@ -12,6 +12,8 @@
  */
 export const position = $props.position
 export const options = $props.options || {}
+/** The language of its titles. Default the map's `locale`, else the browser's. Read when built. */
+export const locale = $props.locale
 </script>
 
-<MapControl type="zoom" :position="position" :options="options" />
+<MapControl type="zoom" :position="position" :options="options" :locale="locale" />

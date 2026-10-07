@@ -3,6 +3,7 @@ import type { OfflineRegionRecord } from '../offline/OfflineStore'
 import type { GeocoderProvider } from '../services/types'
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
+import { controlLocale, formatDate, formatNumber, message } from '../i18n'
 import { Rectangle } from '../layer/vector/Rectangle'
 import { distanceMeters } from '../search/SearchEngine'
 import { formatDistance, prefersImperial } from '../services/instructions'
@@ -34,6 +35,8 @@ export interface OfflineMapsControlOptions {
   /** Show the offline pill when the connection drops. Default true. */
   showStatus?: boolean
   title?: string
+  /** The language of the panel. Default the map's, else the browser's. */
+  locale?: string
 }
 
 /**
@@ -85,10 +88,10 @@ let offlineControls = 0
 
 const ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14"/></svg>'
 
-/** "850 KB", "312 MB", "1.2 GB". */
-export function formatBytes(bytes: number): string {
+/** "850 KB", "312 MB", "1.2 GB"; "1,2 GB" in German. */
+export function formatBytes(bytes: number, locale?: string): string {
   if (bytes < 1000)
-    return `${Math.max(0, Math.round(bytes))} bytes`
+    return message(locale, 'offline.bytes', { count: Math.max(0, Math.round(bytes)) })
   const units = ['KB', 'MB', 'GB', 'TB']
   let value = bytes / 1000
   let unit = 0
@@ -96,28 +99,33 @@ export function formatBytes(bytes: number): string {
     value /= 1000
     unit++
   }
-  return `${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`
+  const digits = value >= 10 || unit === 0 ? 0 : 1
+  return `${formatNumber(value, locale, { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false })} ${units[unit]}`
 }
 
 function escape(text: string): string {
   return text.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)
 }
 
-function day(time: number): string {
-  return new Date(time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: new Date(time).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' })
+/** "Sep 23", with the year when it is not this one. */
+function day(time: number, locale?: string): string {
+  return formatDate(time, locale, { month: 'short', day: 'numeric', year: new Date(time).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' })
 }
 
 /**
  * How big an area is, as it would be said: "About 2.1 × 1.4 km". What the
  * picker's frame shows, in words, for those who cannot see it.
  */
-export function areaSize([w, s, e, n]: [number, number, number, number], units: 'metric' | 'imperial' = prefersImperial() ? 'imperial' : 'metric'): string {
+export function areaSize([w, s, e, n]: [number, number, number, number], units?: 'metric' | 'imperial', locale?: string): string {
+  const system = units ?? (prefersImperial(locale) ? 'imperial' : 'metric')
   const midLat = (s + n) / 2
   const across = distanceMeters({ lat: midLat, lng: w }, { lat: midLat, lng: e })
   const down = distanceMeters({ lat: s, lng: w }, { lat: n, lng: w })
-  const [a, unit] = formatDistance(across, units).split(' ')
-  const [b, unitB] = formatDistance(down, units).split(' ')
-  return unit === unitB ? `About ${a} × ${b} ${unit}` : `About ${a} ${unit} × ${b} ${unitB}`
+  const a = formatDistance(across, system, locale)
+  const b = formatDistance(down, system, locale)
+  const [value, unit] = a.split(' ')
+  // One unit, said once: "1.8 × 2.2 km".
+  return message(locale, 'offline.area', { across: unit === b.split(' ')[1] ? value! : a, down: b })
 }
 
 /** Place classes, most important first: what an area is named after. */
@@ -155,11 +163,20 @@ export class OfflineMapsControl extends Control {
     this._uid = ++offlineControls
   }
 
+  /** The language it speaks: its own `locale`, else the map's, else the browser's. */
+  get locale(): string {
+    return controlLocale(this)
+  }
+
+  _t(key: string, params?: Record<string, string | number>): string {
+    return message(this.locale, key, params)
+  }
+
   onAdd(map: any): HTMLElement {
     const container = DomUtil.create('div', `${CLASS}-control tsmap-bar`)
     const link = DomUtil.create('a', `${CLASS}-button`, container) as HTMLAnchorElement
     link.href = '#'
-    link.title = this.options.title ?? 'Offline Maps'
+    link.title = this.options.title ?? this._t('offline.title')
     link.setAttribute('role', 'button')
     link.setAttribute('aria-label', link.title)
     link.setAttribute('aria-haspopup', 'dialog')
@@ -279,11 +296,25 @@ export class OfflineMapsControl extends Control {
       this.options.geocoder = target.geocoder ?? undefined
     if ('resources' in target)
       this.options.resources = target.resources
-    if ('title' in target && (target.title ?? 'Offline Maps') !== (this.options.title ?? 'Offline Maps')) {
-      this.options.title = target.title
-      const title = target.title ?? 'Offline Maps'
+    if ('locale' in target && target.locale !== this.options.locale) {
+      this.options.locale = target.locale
+      const title = this.options.title ?? this._t('offline.title')
       this._button?.setAttribute('title', title)
       this._button?.setAttribute('aria-label', title)
+      if (this._card && !this._select) {
+        this._card.setAttribute('aria-label', this._t('offline.title'))
+        this._renderList()
+      }
+      this._updateStatus()
+    }
+    if ('title' in target && target.title !== this.options.title) {
+      const was = this.options.title ?? this._t('offline.title')
+      this.options.title = target.title
+      const title = target.title ?? this._t('offline.title')
+      if (title !== was) {
+        this._button?.setAttribute('title', title)
+        this._button?.setAttribute('aria-label', title)
+      }
     }
     if ('showStatus' in target && (target.showStatus ?? true) !== (this.options.showStatus ?? true)) {
       this.options.showStatus = target.showStatus ?? true
@@ -354,7 +385,7 @@ export class OfflineMapsControl extends Control {
     this._storageInfo = undefined
     const returning = this._card?.contains(document.activeElement)
     this._card?.remove()
-    this._card = this._panel(`${CLASS}-card`, 'Offline Maps')
+    this._card = this._panel(`${CLASS}-card`, this._t('offline.title'))
     this._button?.classList.add(`${CLASS}-button-active`)
     this._button?.setAttribute('aria-expanded', 'true')
     this.maps.ready().then(() => this._renderList(), () => this._renderList())
@@ -394,21 +425,21 @@ export class OfflineMapsControl extends Control {
     this._frame = { top: 0, left: 0, right: 0, bottom: 0 }
 
     const select = this._select = DomUtil.create('div', `${CLASS}-select`, map.getContainer())
-    const corners: Record<string, string> = { nw: 'top-left', ne: 'top-right', sw: 'bottom-left', se: 'bottom-right' }
-    select.innerHTML = `<div class="${CLASS}-frame"></div>${['nw', 'ne', 'sw', 'se'].map(c => `<div class="${CLASS}-handle ${CLASS}-handle-${c}" data-corner="${c}" role="button" tabindex="0" aria-label="Move the ${corners[c]} corner of the area" aria-describedby="${CLASS}-estimate-${this._uid}"></div>`).join('')}`
+    select.innerHTML = `<div class="${CLASS}-frame"></div>${['nw', 'ne', 'sw', 'se'].map(c => `<div class="${CLASS}-handle ${CLASS}-handle-${c}" data-corner="${c}" role="button" tabindex="0" aria-label="${this._t(`offline.corner.${c}`)}" aria-describedby="${CLASS}-estimate-${this._uid}"></div>`).join('')}`
     for (const handle of select.querySelectorAll<HTMLElement>(`.${CLASS}-handle`)) {
       this._dragHandle(handle)
       this._keyHandle(handle)
     }
 
-    const card = this._card = this._panel(`${CLASS}-card ${CLASS}-card-select`, 'Download Map')
+    const t = (key: string): string => this._t(key)
+    const card = this._card = this._panel(`${CLASS}-card ${CLASS}-card-select`, t('offline.downloadMap'))
     card.innerHTML = `
-      <div class="${CLASS}-head"><span class="${CLASS}-title">Download Map</span><button class="${CLASS}-close" aria-label="Cancel">✕</button></div>
-      <input class="${CLASS}-name" aria-label="Name" value="" placeholder="Name">
-      <div class="${CLASS}-estimate" id="${CLASS}-estimate-${this._uid}" aria-live="polite">Estimating size…</div>
-      <div class="${CLASS}-hint">Drag the corners, or move the map, to choose the area. A corner focused with Tab moves with the arrow keys.</div>
-      <div class="${CLASS}-hint">Drag the corners, or move the map, to choose the area.</div>
-      <div class="${CLASS}-actions"><button class="${CLASS}-cancel">Cancel</button><button class="${CLASS}-download">Download</button></div>`
+      <div class="${CLASS}-head"><span class="${CLASS}-title">${t('offline.downloadMap')}</span><button class="${CLASS}-close" aria-label="${t('offline.cancel')}">✕</button></div>
+      <input class="${CLASS}-name" aria-label="${t('offline.name')}" value="" placeholder="${t('offline.name')}">
+      <div class="${CLASS}-estimate" id="${CLASS}-estimate-${this._uid}" aria-live="polite">${t('offline.estimating')}</div>
+      <div class="${CLASS}-hint">${t('offline.hint')}</div>
+      <div class="${CLASS}-hint">${t('offline.hintShort')}</div>
+      <div class="${CLASS}-actions"><button class="${CLASS}-cancel">${t('offline.cancel')}</button><button class="${CLASS}-download">${t('offline.download')}</button></div>`
     card.querySelector(`.${CLASS}-close`)?.addEventListener('click', () => this.open())
     card.querySelector(`.${CLASS}-cancel`)?.addEventListener('click', () => this.open())
     card.querySelector(`.${CLASS}-download`)?.addEventListener('click', () => this._download())
@@ -491,13 +522,14 @@ export class OfflineMapsControl extends Control {
     const regions = this.maps.regions
     const rows = regions.map(region => this._row(region)).join('')
     const used = regions.reduce((sum, r) => sum + r.bytes, 0)
+    const t = (key: string, params?: Record<string, string | number>): string => this._t(key, params)
     const html = `
-      <div class="${CLASS}-head"><span class="${CLASS}-title">Offline Maps</span><button class="${CLASS}-close" aria-label="Close">✕</button></div>
-      <button class="${CLASS}-new">${ICON}<span>Download New Map</span></button>
-      ${regions.length ? `<div class="${CLASS}-section">Downloaded Maps</div><div class="${CLASS}-list">${rows}</div>` : `<div class="${CLASS}-empty">Download maps to use them without a connection — the map, search and directions all keep working.</div>`}
-      <label class="${CLASS}-setting"><span>Automatic Updates</span><input type="checkbox" class="${CLASS}-switch" data-setting="autoUpdate"${this.maps.autoUpdate ? ' checked' : ''}></label>
-      <label class="${CLASS}-setting"><span>Only Use Offline Maps</span><input type="checkbox" class="${CLASS}-switch" data-setting="onlyOffline"${this.maps.onlyOffline ? ' checked' : ''}></label>
-      ${regions.length ? `<div class="${CLASS}-usage">${formatBytes(used)} used on this device${this._storageNote()}</div>` : ''}`
+      <div class="${CLASS}-head"><span class="${CLASS}-title">${t('offline.title')}</span><button class="${CLASS}-close" aria-label="${t('offline.close')}">✕</button></div>
+      <button class="${CLASS}-new">${ICON}<span>${t('offline.downloadNew')}</span></button>
+      ${regions.length ? `<div class="${CLASS}-section">${t('offline.section')}</div><div class="${CLASS}-list">${rows}</div>` : `<div class="${CLASS}-empty">${t('offline.empty')}</div>`}
+      <label class="${CLASS}-setting"><span>${t('offline.autoUpdate')}</span><input type="checkbox" class="${CLASS}-switch" data-setting="autoUpdate"${this.maps.autoUpdate ? ' checked' : ''}></label>
+      <label class="${CLASS}-setting"><span>${t('offline.onlyOffline')}</span><input type="checkbox" class="${CLASS}-switch" data-setting="onlyOffline"${this.maps.onlyOffline ? ' checked' : ''}></label>
+      ${regions.length ? `<div class="${CLASS}-usage">${t('offline.used', { size: formatBytes(used, this.locale) })}${this._storageNote()}</div>` : ''}`
     // Progress updates many times a second; leave the DOM alone when nothing
     // visible changed, so a button is never replaced under a pointer.
     if (card.dataset.html === html)
@@ -532,13 +564,16 @@ export class OfflineMapsControl extends Control {
         this._renderList()
       }, () => {})
     }
-    return this._storageInfo?.persisted === false ? ' · The browser may remove them if space runs low' : ''
+    return this._storageInfo?.persisted === false ? ` · ${this._t('offline.mayRemove')}` : ''
   }
 
   _row(region: OfflineRegionRecord): string {
+    const locale = this.locale
+    const t = (key: string, params?: Record<string, string | number>): string => message(locale, key, params)
     const id = escape(region.id)
     const name = escape(region.name)
     const percent = region.tiles ? Math.floor((region.downloaded / region.tiles) * 100) : 0
+    const shown = formatNumber(percent / 100, locale, { style: 'percent' })
     let detail: string
     let actions: string
     const confirming = this._confirming === region.id
@@ -547,30 +582,30 @@ export class OfflineMapsControl extends Control {
     const button = (action: string, text: string, label: string, extra = ''): string =>
       `<button class="${CLASS}-action${extra}" data-action="${action}" data-id="${id}" aria-label="${label}">${text}</button>`
     const remove = confirming
-      ? button('confirm-delete', 'Delete Map', `Delete ${name} for good`, ` ${CLASS}-danger`)
-      : button('delete', 'Delete', `Delete ${name}`)
+      ? button('confirm-delete', t('offline.deleteMap'), t('offline.deleteForGood', { name }), ` ${CLASS}-danger`)
+      : button('delete', t('offline.delete'), t('offline.deleteNamed', { name }))
     const bar = (paused: boolean): string =>
-      `<div class="${CLASS}-bar${paused ? ` ${CLASS}-bar-paused` : ''}" role="progressbar" aria-label="${paused ? 'Paused' : 'Downloading'} ${name}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div>`
+      `<div class="${CLASS}-bar${paused ? ` ${CLASS}-bar-paused` : ''}" role="progressbar" aria-label="${t(paused ? 'offline.pausedNamed' : 'offline.downloadingNamed', { name })}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div>`
     switch (region.status) {
       case 'downloading':
-        detail = `${bar(false)}<span>Downloading · ${formatBytes(region.bytes)} · ${percent}%</span>`
-        actions = `${button('pause', 'Pause', `Pause ${name} download`)}${remove}`
+        detail = `${bar(false)}<span>${t('offline.downloading')} · ${formatBytes(region.bytes, locale)} · ${shown}</span>`
+        actions = `${button('pause', t('offline.pause'), t('offline.pauseNamed', { name }))}${remove}`
         break
       case 'paused':
-        detail = `${bar(true)}<span>Paused · ${percent}%</span>`
-        actions = `${button('resume', 'Resume', `Resume ${name} download`)}${remove}`
+        detail = `${bar(true)}<span>${t('offline.paused')} · ${shown}</span>`
+        actions = `${button('resume', t('offline.resume'), t('offline.resumeNamed', { name }))}${remove}`
         break
       case 'error':
-        detail = `<span class="${CLASS}-error">${escape(region.error ?? 'Download failed')}</span>`
-        actions = `${button('resume', 'Retry', `Retry ${name} download`)}${remove}`
+        detail = `<span class="${CLASS}-error">${escape(region.error ?? t('offline.failed'))}</span>`
+        actions = `${button('resume', t('offline.retry'), t('offline.retryNamed', { name }))}${remove}`
         break
       default:
-        detail = `<span>${formatBytes(region.bytes)} · ${region.updatedAt > region.createdAt + 60_000 ? 'Updated' : 'Downloaded'} ${day(region.updatedAt)}</span>`
-        actions = `${button('update', 'Update', `Update ${name}`)}${remove}`
+        detail = `<span>${formatBytes(region.bytes, locale)} · ${t(region.updatedAt > region.createdAt + 60_000 ? 'offline.updated' : 'offline.downloaded', { date: day(region.updatedAt, locale) })}</span>`
+        actions = `${button('update', t('offline.update'), t('offline.updateNamed', { name }))}${remove}`
     }
     return `
       <div class="${CLASS}-row" data-status="${region.status}">
-        <button class="${CLASS}-row-name" data-action="show" data-id="${id}" aria-label="Show ${name} on the map">${name}</button>
+        <button class="${CLASS}-row-name" data-action="show" data-id="${id}" aria-label="${t('offline.show', { name })}">${name}</button>
         <div class="${CLASS}-row-detail">${detail}</div>
         <div class="${CLASS}-row-actions">${actions}</div>
       </div>`
@@ -733,21 +768,23 @@ export class OfflineMapsControl extends Control {
       const button = card.querySelector<HTMLButtonElement>(`.${CLASS}-download`)
       if (!el || !button)
         return
+      const locale = this.locale
       if (estimate.tiles === 0) {
-        el.textContent = 'There is nothing on this map to download.'
+        el.textContent = message(locale, 'offline.nothing')
         button.disabled = true
       }
       else if (estimate.tooLarge) {
-        el.innerHTML = `<span class="${CLASS}-error">This area is too large. Zoom in to choose a smaller one.</span>`
+        el.innerHTML = `<span class="${CLASS}-error">${message(locale, 'offline.tooLarge')}</span>`
         button.disabled = true
       }
       else {
         const free = this._storageInfo?.free
+        const size = `${areaSize(bounds, undefined, locale)} · ${message(locale, 'offline.estimate', { size: `<strong>${formatBytes(estimate.bytes, locale)}</strong>` })}`
         // An estimate, so a warning rather than a refusal: the download says
         // plainly if it does run out.
         el.innerHTML = free !== undefined && free < estimate.bytes
-          ? `${areaSize(bounds)} · Estimated size: <strong>${formatBytes(estimate.bytes)}</strong> · <span class="${CLASS}-error">Only ${formatBytes(free)} free on this device</span>`
-          : `${areaSize(bounds)} · Estimated size: <strong>${formatBytes(estimate.bytes)}</strong>`
+          ? `${size} · <span class="${CLASS}-error">${message(locale, 'offline.free', { size: formatBytes(free, locale) })}</span>`
+          : size
         button.disabled = false
       }
     }
@@ -786,7 +823,7 @@ export class OfflineMapsControl extends Control {
     }
     // Nothing better: keep what it was called a moment ago.
     if (!this._nameEdited && this._select)
-      input.value = name ?? (input.value || 'Offline Map')
+      input.value = name ?? (input.value || this._t('offline.defaultName'))
   }
 
   _download(): void {
@@ -832,9 +869,7 @@ export class OfflineMapsControl extends Control {
       const [w, south, e, n] = region.bounds
       return region.status === 'complete' && w <= view.getEast() && e >= view.getWest() && south <= view.getNorth() && n >= view.getSouth()
     })
-    const text = only
-      ? 'Using Offline Maps Only'
-      : covered ? 'Offline · Using Downloaded Maps' : 'You’re Offline'
+    const text = this._t(only ? 'offline.onlyOfflineStatus' : covered ? 'offline.covered' : 'offline.offline')
     this._pill ??= this._panel(`${CLASS}-pill`)
     this._pill.classList.toggle(`${CLASS}-pill-covered`, covered || only)
     if (this._pill.textContent !== text)

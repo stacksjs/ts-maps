@@ -34,6 +34,8 @@ export type { Roof, RoofShape } from './renderer/webgl/roofs'
 export { CONGESTION_COLORS, TomTomIncidents, TrafficLayer, trafficLayer, trafficSources } from './traffic/TrafficLayer'
 export type { Congestion, IncidentProvider, TomTomIncidentsOptions, TrafficIncident, TrafficLayerOptions, TrafficSourceSpec } from './traffic/TrafficLayer'
 export * from './search/index'
+export { addMessages, formatDate, formatNumber, hasMessage, message, messageLocales, resolveLocale, translator } from './i18n'
+export type { Catalogue, Message, Translate } from './i18n'
 // Decode a vector tile by hand — `new VectorTile(new Pbf(bytes))` — e.g. to
 // check an archive read with `ts-maps/pmtiles` before publishing it.
 export {
@@ -129,7 +131,7 @@ export type { ResolvedTileJSON, ResolveTileJSONOptions } from './styles/tilejson
 // ts-maps as one browser chunk can draw a share card's map with what it has.
 export { mercatorX, mercatorY, renderStaticMap, staticMapSvg, staticMapView, staticMapZoom } from './static/index'
 export type { StaticMap, StaticMapOptions, StaticMapView } from './static/index'
-export { formatDuration, lineBadge, trafficNote, transitSummary, TURN_BY_TURN_EVENTS, TurnByTurn, turnByTurn } from './navigation/TurnByTurn'
+export { formatDuration, lineBadge, trafficNote, transitSummary, TURN_BY_TURN_EVENTS, TurnByTurn, turnByTurn, voiceFor } from './navigation/TurnByTurn'
 export type { LatLngInput, TurnByTurnEvent, TurnByTurnOptions, TurnByTurnTarget } from './navigation/TurnByTurn'
 
 // Factory helper: turns a constructor into a callable function.

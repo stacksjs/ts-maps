@@ -185,3 +185,30 @@ describe('stylesheet', () => {
     expect(nuxt.options.css?.length).toBe(1)
   })
 })
+
+describe('locale', () => {
+  test('TsMapsMap and TsMapsSearch take a locale, and a map in German speaks German', async () => {
+    run()
+    const vue = await vueBinding()
+    const component = (name: string): any => vue[registered.find(c => c.name === name)!.export]
+    const { createApp, h, nextTick } = await import('vue')
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const app = createApp({
+      render: () => h(component('TsMapsMap'), { center: [37.79, -122.4], zoom: 15, locale: 'de' }, () => [
+        h(component('TsMapsSearch'), { provider: null, offline: null, recents: false, details: null }),
+        h(component('TsMapsZoomControl'), { position: 'topright', locale: 'en' }),
+      ]),
+    })
+    app.mount(host)
+    await nextTick()
+
+    expect(host.querySelector('.tsmap-search-input')?.getAttribute('placeholder')).toBe('Karten durchsuchen')
+    expect(host.querySelector('.tsmap-top.tsmap-left .tsmap-control-zoom-in')?.getAttribute('title')).toBe('Vergrößern')
+    // A control's own locale wins over the map's.
+    expect(host.querySelector('.tsmap-top.tsmap-right .tsmap-control-zoom-in')?.getAttribute('title')).toBe('Zoom in')
+
+    app.unmount()
+    host.remove()
+  })
+})

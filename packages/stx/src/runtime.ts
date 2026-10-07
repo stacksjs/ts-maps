@@ -97,6 +97,8 @@ export interface MapProps {
   bearing?: number
   pitch?: number
   theme?: 'light' | 'dark' | 'auto'
+  /** The language the built-in controls speak, unless one has its own. Default the browser's. */
+  locale?: string
   styleSpec?: unknown
   /** `'auto'` follows the page: a `dark` class on `<html>`, else the system setting. */
   basemap?: 'dark' | 'light' | 'auto'
@@ -130,6 +132,7 @@ export function mapOptionsFrom(props: MapProps): Record<string, unknown> {
     bearing: props.bearing ?? 0,
     pitch: props.pitch ?? 0,
     theme: props.theme ?? (props.basemap === 'auto' ? pageTheme() : 'light'),
+    locale: props.locale,
     zoomControl: props.zoomControl ?? true,
     attributionControl: props.attributionControl ?? true,
     cooperativeGestures: props.cooperativeGestures,
@@ -251,11 +254,11 @@ function trafficFrom(props: Record<string, any>): TrafficLayer | undefined {
  * never reset by the markup.
  */
 const MARKUP_PROPS = {
-  'turn-by-turn': ['from', 'to', 'active', 'profile', 'units', 'voice', 'simulate', 'alternatives', 'destinationName'],
-  'search': ['query', 'position', 'placeholder', 'categories', 'recents', 'units', 'language', 'showSaved'],
-  'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title'],
-  'map-type': ['value', 'open', 'position', 'showTraffic', ...MAP_TYPES_PROPS, ...TRAFFIC_PROPS],
-  'indoor-map': ['venue', 'level', 'position', 'minZoom', 'language'],
+  'turn-by-turn': ['from', 'to', 'active', 'profile', 'units', 'voice', 'simulate', 'alternatives', 'destinationName', 'locale'],
+  'search': ['query', 'position', 'placeholder', 'categories', 'recents', 'units', 'language', 'locale', 'showSaved'],
+  'offline-maps': ['open', 'onlyOffline', 'position', 'resources', 'showStatus', 'title', 'locale'],
+  'map-type': ['value', 'open', 'position', 'showTraffic', 'locale', ...MAP_TYPES_PROPS, ...TRAFFIC_PROPS],
+  'indoor-map': ['venue', 'level', 'position', 'minZoom', 'language', 'locale'],
   'landmark': ['model', 'position', 'altitude', 'rotation', 'scale', 'replace', 'minZoom', 'opacity'],
   'trees': ['spacing', 'maxPerTile', 'minZoom', 'minPitch', 'colors', 'height'],
 } as const
@@ -458,7 +461,7 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           // and its key, and built again when those change.
           const trafficKeyOf = (props: Record<string, any>): string => JSON.stringify(TRAFFIC_PROPS.map(key => props[key] ?? null))
           let trafficKey = trafficKeyOf(raw)
-          const picker = new MapTypeControl(definedOnly({ types: built.types, value: raw.value, position: raw.position, title: raw.title, traffic: trafficFrom(raw) }) as MapTypeControlOptions)
+          const picker = new MapTypeControl(definedOnly({ types: built.types, value: raw.value, position: raw.position, title: raw.title, traffic: trafficFrom(raw), locale: raw.locale }) as MapTypeControlOptions)
           picker.addTo(map)
           // Every event, as a DOM event: stx props are data, so a callback
           // cannot be one. The names are the core ones, prefixed.
@@ -480,7 +483,7 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
               if (on)
                 traffic?.addTo(map)
             }
-            picker.sync({ types: built.types, value: props.value, open: props.open, position: props.position, showTraffic: props.showTraffic })
+            picker.sync({ types: built.types, value: props.value, open: props.open, position: props.position, showTraffic: props.showTraffic, locale: props.locale })
           })
           created.push({
             remove: () => {
@@ -495,8 +498,9 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
 
         case 'indoor-map': {
           // The venue is a URL: markup carries data, not an archive's bytes or
-          // a loaded venue. A new venue, `minZoom` or `language` makes the
-          // control again, and the searches are connected to the new one.
+          // a loaded venue. A new venue, `minZoom`, `language` or `locale`
+          // makes the control again, and the searches are connected to the new
+          // one.
           let indoor: IndoorMap | null = null
           let built: string | undefined
           let latest: Record<string, any> = {}
@@ -520,7 +524,7 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
               console.warn('[ts-maps] <IndoorMap> needs a `venue` url; ignoring')
               return
             }
-            const made = new IndoorMap(definedOnly({ venue: props.venue, level: props.level, position: props.position, minZoom: props.minZoom, language: props.language }) as unknown as IndoorMapOptions)
+            const made = new IndoorMap(definedOnly({ venue: props.venue, level: props.level, position: props.position, minZoom: props.minZoom, language: props.language, locale: props.locale }) as unknown as IndoorMapOptions)
             indoor = made
             made.addTo(map)
             // Every event, as a DOM event: stx props are data, so a callback
@@ -538,7 +542,7 @@ export function mountChildren(map: TsMap, root: HTMLElement): () => void {
           }
           const unfollow = followProps(el, MARKUP_PROPS['indoor-map'], (props) => {
             latest = props
-            const key = JSON.stringify([props.venue, props.minZoom, props.language])
+            const key = JSON.stringify([props.venue, props.minZoom, props.language, props.locale])
             if (key !== built) {
               built = key
               build(props)

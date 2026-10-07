@@ -12,6 +12,7 @@
 
 import type { RateLimitOptions } from '../services/rate-limit'
 import type { SearchPlace } from './SearchEngine'
+import { message } from '../i18n'
 import { RateLimiter } from '../services/rate-limit'
 
 export interface PlaceDetails {
@@ -224,16 +225,24 @@ export function openingStatus(spec: string, now: Date = new Date()): OpeningStat
   return { open: false }
 }
 
-/** "Open · Closes 9 PM", "Closed · Opens tomorrow 8 AM", "Open 24 hours". */
+/**
+ * "Open · Closes 9 PM", "Closed · Opens tomorrow 8 AM", "Open 24 hours";
+ * "Geöffnet · Schließt um 21 Uhr" in German.
+ */
 export function describeOpening(status: OpeningStatus, now: Date = new Date(), locale?: string): string {
   if (status.always)
-    return 'Open 24 hours'
+    return message(locale, 'opening.always')
   const time = (date: Date): string => date.toLocaleTimeString(locale, date.getMinutes() ? { hour: 'numeric', minute: '2-digit' } : { hour: 'numeric' })
-  const dayOf = (date: Date): string => {
+  // A closing time just past midnight is tonight's, said without a day.
+  const when = (date: Date, lateNight: boolean): string => {
     const days = Math.round((new Date(date).setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0)) / 864e5)
-    return days === 0 ? '' : days === 1 ? 'tomorrow ' : `${date.toLocaleDateString(locale, { weekday: 'short' })} `
+    if (days === 0 || (days === 1 && lateNight && date.getHours() < 6))
+      return message(locale, 'opening.today', { time: time(date) })
+    if (days === 1)
+      return message(locale, 'opening.tomorrow', { time: time(date) })
+    return message(locale, 'opening.weekday', { day: date.toLocaleDateString(locale, { weekday: 'short' }), time: time(date) })
   }
   if (status.open)
-    return status.closes ? `Open · Closes ${dayOf(status.closes) === 'tomorrow ' && status.closes.getHours() < 6 ? '' : dayOf(status.closes)}${time(status.closes)}` : 'Open'
-  return status.opens ? `Closed · Opens ${dayOf(status.opens)}${time(status.opens)}` : 'Closed'
+    return status.closes ? message(locale, 'opening.closes', { when: when(status.closes, true) }) : message(locale, 'opening.open')
+  return status.opens ? message(locale, 'opening.opens', { when: when(status.opens, false) }) : message(locale, 'opening.closed')
 }

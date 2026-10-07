@@ -28,6 +28,8 @@
   export let resources: string[] | undefined = undefined
   export let showStatus: boolean | undefined = undefined
   export let title: string | undefined = undefined
+  /** The language its words are in. Default the map's `locale`, else the browser's. */
+  export let locale: string | undefined = undefined
 
   /* eslint-disable no-unused-vars */
   export let onReady: ((control: OfflineMapsControl) => void) | undefined = undefined
@@ -51,7 +53,7 @@
   onMount(() => {
     const map = useMap()
     if (!map) return
-    offline = new OfflineMapsControl({ position, maps, geocoder, resources, showStatus, title })
+    offline = new OfflineMapsControl({ position, maps, geocoder, resources, showStatus, title, locale })
     offline.addTo(map)
     unlisten = offline.listen((type, e) => {
       // Kept in step, so `bind:open` and `bind:onlyOffline` see the panel's
@@ -65,7 +67,7 @@
 
   // Every option is followed; the control does nothing for one that has not
   // changed.
-  $: if (offline) offline.sync({ open, onlyOffline, position, maps, geocoder, resources, showStatus, title })
+  $: if (offline) offline.sync({ open, onlyOffline, position, maps, geocoder, resources, showStatus, title, locale })
 
   onDestroy(() => {
     unlisten?.()

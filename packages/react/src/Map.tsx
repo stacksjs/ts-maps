@@ -14,6 +14,13 @@ export interface MapProps extends MapEventProps {
   pitch?: number
   /** Style specification (object) or stylesheet URL. */
   style?: unknown
+  /**
+   * The language the built-in controls speak, unless one has its own
+   * `locale`. Default the browser's. A change reaches each control the next
+   * time it draws its words; give the control its own `locale` to relabel it
+   * at once.
+   */
+  locale?: string
   /** CSS styles applied to the container div. */
   containerStyle?: CSSProperties
   /** CSS class applied to the container div. */
@@ -35,6 +42,7 @@ export function Map(props: MapProps): ReactElement {
     bearing,
     pitch,
     style,
+    locale,
     containerStyle,
     className,
     onLoad,
@@ -61,6 +69,8 @@ export function Map(props: MapProps): ReactElement {
       options.pitch = pitch
     if (style !== undefined)
       options.style = style
+    if (locale !== undefined)
+      options.locale = locale
 
     const instance = new TsMap(containerRef.current, options)
     mapRef.current = instance
@@ -118,6 +128,11 @@ export function Map(props: MapProps): ReactElement {
       return
     ;(map as unknown as { setPitch?: (p: number) => void }).setPitch?.(pitch)
   }, [map, pitch])
+
+  useEffect(() => {
+    if (map)
+      map.options.locale = locale
+  }, [map, locale])
 
   return (
     <MapContext.Provider value={{ map }}>

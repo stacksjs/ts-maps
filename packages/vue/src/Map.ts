@@ -87,6 +87,13 @@ export const Map = defineComponent({
     bearing: { type: Number, default: undefined },
     pitch: { type: Number, default: undefined },
     style: { type: [Object, String] as PropType<unknown>, default: undefined },
+    /**
+     * The language the built-in controls speak, unless one has its own
+     * `locale`. Default the browser's. A change reaches each control the next
+     * time it draws its words; give the control its own `locale` to relabel
+     * it at once.
+     */
+    locale: { type: String, default: undefined },
     containerStyle: { type: Object as PropType<Record<string, string | number>>, default: undefined },
     containerClass: { type: [String, Array, Object] as PropType<unknown>, default: undefined },
   },
@@ -112,6 +119,8 @@ export const Map = defineComponent({
         options.pitch = props.pitch
       if (props.style !== undefined)
         options.style = props.style
+      if (props.locale !== undefined)
+        options.locale = props.locale
 
       const instance = new TsMap(containerRef.value, options)
       mapRef.value = instance
@@ -158,6 +167,14 @@ export const Map = defineComponent({
         if (!m || pitch === undefined)
           return
         m.setPitch?.(pitch)
+      },
+    )
+
+    watch(
+      () => props.locale,
+      (locale) => {
+        if (mapRef.value)
+          mapRef.value.options.locale = locale
       },
     )
 

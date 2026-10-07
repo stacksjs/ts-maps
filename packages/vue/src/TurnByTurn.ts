@@ -34,6 +34,8 @@ export const TurnByTurn = defineComponent({
     alternatives: { type: Boolean, default: undefined },
     destinationName: { type: String, default: undefined },
     directions: { type: Object as PropType<TurnByTurnOptions['directions']>, default: undefined },
+    /** The language of its cards and voice. Default the map's `locale`, else the browser's. */
+    locale: { type: String, default: undefined },
   },
   emits: [...Object.keys(TURN_BY_TURN_EVENTS), 'ready'],
   setup(props, { emit, expose }) {
@@ -47,6 +49,7 @@ export const TurnByTurn = defineComponent({
       alternatives: props.alternatives,
       destinationName: props.destinationName,
       directions: props.directions,
+      locale: props.locale,
     })
     const target = (): TurnByTurnTarget => ({ from: props.from, to: props.to, active: props.active, ...options() })
 
@@ -79,6 +82,7 @@ export const TurnByTurn = defineComponent({
         () => props.alternatives,
         () => props.destinationName,
         () => props.directions,
+        () => props.locale,
       ],
       () => nav?.sync(target()),
     )

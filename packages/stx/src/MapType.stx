@@ -46,6 +46,7 @@ export const optionsJson = JSON.stringify({
   trafficKey: $props.trafficKey,
   incidents: $props.incidents,
   showTraffic: $props.showTraffic,
+  locale: $props.locale,
 })
 </script>
 

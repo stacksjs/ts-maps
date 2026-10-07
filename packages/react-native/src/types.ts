@@ -374,6 +374,15 @@ export interface MapViewProps {
   styleSpec?: unknown
 
   /**
+   * The language the built-in controls speak: search, offline maps, the map
+   * type picker, the level picker and turn-by-turn. Default the WebView's.
+   * Live: a change relabels search, offline maps, the map type picker and
+   * turn-by-turn in place, and makes the indoor map again; `controls` keep
+   * the language they were built in.
+   */
+  locale?: string
+
+  /**
    * Controls to place on the map, e.g.
    * `[{ type: 'navigation', position: 'topright' }]`.
    *
@@ -509,3 +518,4 @@ export type BridgeEnvelope =
   | { type: 'call:error', id: string, error: string }
   | { type: 'setCamera', id: string, payload: { center?: [number, number], zoom?: number, bearing?: number, pitch?: number } }
   | { type: 'setStyle', id: string, payload: { styleSpec: unknown } }
+  | { type: 'setLocale', id: string, payload: { locale: string | null } }

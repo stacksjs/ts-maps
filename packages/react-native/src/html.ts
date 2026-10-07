@@ -8,6 +8,8 @@ export interface BuildHtmlOptions {
     bearing?: number
     pitch?: number
     styleSpec?: unknown
+    /** The language the built-in controls speak. */
+    locale?: string
     controls?: ControlSpec[]
     markers?: MarkerSpec[]
     territories?: TerritorySpec[]
@@ -28,7 +30,7 @@ export interface BuildHtmlOptions {
 /**
  * Build the HTML document loaded by the WebView. The inner script wires up
  * ts-maps, forwards `load`/`move`/`click`/`error` events back to the RN side,
- * and handles inbound `call`/`setCamera`/`setStyle` envelopes.
+ * and handles inbound `call`/`setCamera`/`setStyle`/`setLocale` envelopes.
  */
 export function buildHtml(options: BuildHtmlOptions): string {
   const runtimeTag = options.runtime.source === 'cdn'
@@ -113,6 +115,8 @@ const RUNTIME_SCRIPT = [
   '  if (initial.bearing != null) opts.bearing = initial.bearing;',
   '  if (initial.pitch != null) opts.pitch = initial.pitch;',
   '  if (initial.styleSpec) opts.style = initial.styleSpec;',
+  '  let locale = initial.locale == null ? undefined : initial.locale;',
+  '  if (locale) opts.locale = locale;',
   '  let map;',
   '  try { map = new Ctor(document.getElementById("map"), opts); }',
   '  catch (e) { fail((e && e.message) || e); return; }',
@@ -240,6 +244,7 @@ const RUNTIME_SCRIPT = [
   // `directions`, a provider object, cannot cross; the default is used.
   '  const NAV_KEYS = ["profile", "units", "voice", "simulate", "alternatives", "destinationName"];',
   '  let nav = null;',
+  '  let navTarget = null;',
   // Transit is planned by OpenTripPlanner at `otpUrl`: one client per URL,
   // so a spec that has not changed does not look like a new provider.
   '  let otp = null;',
@@ -250,7 +255,7 @@ const RUNTIME_SCRIPT = [
   '  }',
   '  function applyTurnByTurn(spec) {',
   '    const ns = window.tsMaps || window;',
-  '    if (!spec) { if (nav) { nav.stop(); nav = null; } return; }',
+  '    if (!spec) { if (nav) { nav.stop(); nav = null; navTarget = null; } return; }',
   '    if (!ns.TurnByTurn) return;',
   '    if (!nav) {',
   '      try { nav = new ns.TurnByTurn(map, Object.assign(given(spec, NAV_KEYS), { directions: navDirections(spec, ns) })); }',
@@ -261,7 +266,8 @@ const RUNTIME_SCRIPT = [
   '        });',
   '      });',
   '    }',
-  '    nav.sync(follow(spec, NAV_KEYS, { from: spec.from, to: spec.to, active: !!spec.active, directions: navDirections(spec, ns) }));',
+  '    navTarget = follow(spec, NAV_KEYS, { from: spec.from, to: spec.to, active: !!spec.active, directions: navDirections(spec, ns) });',
+  '    nav.sync(navTarget);',
   '  }',
   // Offline maps are the same control the other bindings use; its events
   // come back over the bridge as plain data. `maps` and `geocoder` cannot
@@ -357,12 +363,14 @@ const RUNTIME_SCRIPT = [
   // The indoor map is the same control the other bindings use, its venue
   // loaded here from a URL. Its places are found by the search above, whichever
   // is set up first. A new venue, `minZoom` or `language` loads it again;
-  // `level` and `position` are followed by the control. A venue is reduced to
-  // its id, name and levels to cross the bridge.
+  // `level` and `position` are followed by the control, and a new `locale`,
+  // the level picker's, makes it again. A venue is reduced to its id, name
+  // and levels to cross the bridge.
   '  const INDOOR_KEYS = ["level", "position", "minZoom", "language"];',
   '  let indoor = null;',
   '  let indoorKey = null;',
   '  let indoorLevel;',
+  '  let indoorSpec = null;',
   '  let indoorUnlink = null;',
   '  function unlinkIndoor() {',
   '    if (indoorUnlink) { indoorUnlink(); indoorUnlink = null; }',
@@ -377,7 +385,8 @@ const RUNTIME_SCRIPT = [
   '  }',
   '  function applyIndoor(spec) {',
   '    const ns = window.tsMaps || window;',
-  '    const key = spec && spec.venue ? JSON.stringify([spec.venue, spec.minZoom, spec.language]) : null;',
+  '    indoorSpec = spec || null;',
+  '    const key = spec && spec.venue ? JSON.stringify([spec.venue, spec.minZoom, spec.language, locale]) : null;',
   '    if (indoor && key !== indoorKey) { unlinkIndoor(); indoor.remove(); indoor = null; indoorKey = null; }',
   '    if (!key || !ns.IndoorMap) return;',
   '    indoorLevel = spec.level == null ? undefined : spec.level;',
@@ -445,6 +454,18 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else trees.setOptions(opts);',
   '  }',
+  // A new language for the map, and for the controls the page holds, which
+  // relabel in place. Navigation is given its whole target again, since a
+  // `sync` without the trip would end it.
+  '  function applyLocale(next) {',
+  '    locale = next == null ? undefined : next;',
+  '    map.options.locale = locale;',
+  '    if (search) search.sync({ locale: locale });',
+  '    if (offline) offline.sync({ locale: locale });',
+  '    if (picker) picker.sync({ locale: locale });',
+  '    if (nav && navTarget) nav.sync(Object.assign({}, navTarget, { locale: locale }));',
+  '    if (indoor) applyIndoor(indoorSpec);',
+  '  }',
   '  applyTerritories(initial.territories);',
   '  applyTrail(initial.runTrail);',
   '  applyTurnByTurn(initial.turnByTurn);',
@@ -495,6 +516,9 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else if (env.type === "setStyle") {',
   '      if (typeof map.setStyle === "function") map.setStyle(env.payload && env.payload.styleSpec);',
+  '    }',
+  '    else if (env.type === "setLocale") {',
+  '      applyLocale(env.payload && env.payload.locale);',
   '    }',
   '    else if (env.type === "setMarkers") {',
   '      applyMarkers(env.payload && env.payload.markers);',

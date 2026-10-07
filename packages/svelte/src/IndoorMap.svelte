@@ -13,8 +13,8 @@
    *
    * `level`, `position` and `search` are followed as they change, and `level`
    * can be bound: it follows the picker and a place chosen in `search`.
-   * `venue`, `minZoom` and `language` are read when the control is made: a
-   * new one makes it again. Events are callback props with the same names the
+   * `venue`, `minZoom`, `language` and `locale` are read when the control is
+   * made: a new one makes it again. Events are callback props with the same names the
    * other bindings use — `onLoad`, `onLevelChange`, `onVisibilityChange`.
    */
   import type { IMDFSource, IndoorVenue, SearchControl, TsMap } from 'ts-maps'
@@ -27,6 +27,8 @@
   export let position: 'topleft' | 'topright' | 'bottomleft' | 'bottomright' | undefined = undefined
   export let minZoom: number | undefined = undefined
   export let language: string | undefined = undefined
+  /** The language of the level picker. Default `language`, else the map's `locale`, else the browser's. */
+  export let locale: string | undefined = undefined
   /** A `SearchControl` — from `<Search onReady>` — to find the venue's places in. */
   export let search: SearchControl | undefined = undefined
 
@@ -56,10 +58,10 @@
     indoor = null
   }
 
-  function build(from: IndoorVenue | IMDFSource, zoom: number | undefined, lang: string | undefined): void {
+  function build(from: IndoorVenue | IMDFSource, zoom: number | undefined, lang: string | undefined, words: string | undefined): void {
     teardown()
     if (!map) return
-    const made = new IndoorMap({ venue: from, level, position, minZoom: zoom, language: lang })
+    const made = new IndoorMap({ venue: from, level, position, minZoom: zoom, language: lang, locale: words })
     made.addTo(map)
     unlisten = made.listen((type, e) => {
       // Kept in step, so `bind:level` sees a level chosen on the picker.
@@ -86,7 +88,7 @@
     map = useMap()
   })
 
-  $: if (map) build(venue, minZoom, language)
+  $: if (map) build(venue, minZoom, language, locale)
   $: if (indoor) indoor.sync({ level, position })
   $: connect(indoor, search)
 

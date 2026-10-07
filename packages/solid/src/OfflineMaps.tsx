@@ -21,6 +21,8 @@ export interface OfflineMapsProps {
   /** The pill shown when the connection drops. Default true. */
   showStatus?: boolean
   title?: string
+  /** The language its words are in. Default the map's `locale`, else the browser's. */
+  locale?: string
   /** The underlying control; `control.maps` is the manager. */
   onReady?: (control: OfflineMapsControl) => void
   onChange?: (e: any) => void
@@ -65,6 +67,7 @@ export function OfflineMaps(props: OfflineMapsProps): JSX.Element {
       resources: props.resources,
       showStatus: props.showStatus,
       title: props.title,
+      locale: props.locale,
     }))
     offline.addTo(map)
     unlisten = offline.listen((type, e) => (props as any)[OFFLINE_MAPS_EVENTS[type]]?.(e))
@@ -82,6 +85,7 @@ export function OfflineMaps(props: OfflineMapsProps): JSX.Element {
       resources: props.resources,
       showStatus: props.showStatus,
       title: props.title,
+      locale: props.locale,
     }
     control()?.sync(target)
   })

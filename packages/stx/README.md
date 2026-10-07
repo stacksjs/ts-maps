@@ -65,6 +65,11 @@ layer instances rather than plain data. Use the map directly for that one.
 
 `theme` — `'light'`, `'dark'` or `'auto'`, for the map's own chrome.
 
+`locale` — the language the built-in controls speak, `'de'` for German;
+the browser's by default. A control's own `locale` wins. Read when the map is
+built; `<Search>`, `<OfflineMaps>`, `<MapType>` and `<TurnByTurn>` follow a
+changed `locale` of their own, and `<IndoorMap>` is made again.
+
 `basemap` + `tiles` — build one of the bundled basemaps without composing a
 style yourself. `basemapMode` picks `'vector'` (default) or `'raster'`;
 `tilesAttribution` is passed through to the attribution control.

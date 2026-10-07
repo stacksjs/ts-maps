@@ -189,7 +189,7 @@ function stripHtml(html?: string): string {
   return html ? html.replace(/<[^>]+>/g, '') : ''
 }
 
-function stepToStep(step: GoogleDirectionsStep): RouteStep {
+function stepToStep(step: GoogleDirectionsStep, language?: string): RouteStep {
   const out: RouteStep = {
     distance: step.distance?.value ?? 0,
     duration: step.duration?.value ?? 0,
@@ -217,7 +217,7 @@ function stepToStep(step: GoogleDirectionsStep): RouteStep {
     out.transit = transit
     out.maneuver = 'transit'
     out.name = transit.line
-    out.instruction = transitInstruction(transit)
+    out.instruction = transitInstruction(transit, language)
   }
   else if (step.travel_mode === 'WALKING' && !step.maneuver) {
     out.maneuver = 'walk'
@@ -225,9 +225,9 @@ function stepToStep(step: GoogleDirectionsStep): RouteStep {
   return out
 }
 
-function routeToRoute(r: GoogleDirectionsRoute): Route {
+function routeToRoute(r: GoogleDirectionsRoute, language?: string): Route {
   const legs = r.legs ?? []
-  const steps = legs.flatMap(l => (l.steps ?? []).map(stepToStep))
+  const steps = legs.flatMap(l => (l.steps ?? []).map(step => stepToStep(step, language)))
   const distance = legs.reduce((sum, l) => sum + (l.distance?.value ?? 0), 0)
   const duration = legs.reduce((sum, l) => sum + (l.duration?.value ?? 0), 0)
   const geometry = r.overview_polyline ? decodePolyline(r.overview_polyline.points) : steps.flatMap(s => s.geometry)
@@ -282,6 +282,6 @@ export class GoogleDirections implements DirectionsProvider {
     const raw = (await fetchJson(url, opts?.signal)) as GoogleDirectionsResponse
     if (raw.status !== 'OK' && raw.status !== 'ZERO_RESULTS')
       throw new Error(`Google directions error: ${raw.status}${raw.error_message ? ` — ${raw.error_message}` : ''}`)
-    return (raw.routes ?? []).map(routeToRoute)
+    return (raw.routes ?? []).map(r => routeToRoute(r, opts?.language))
   }
 }

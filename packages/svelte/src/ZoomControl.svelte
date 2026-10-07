@@ -5,6 +5,8 @@
 
   export let position: 'topleft' | 'topright' | 'bottomleft' | 'bottomright' | undefined = undefined
   export let options: Record<string, unknown> | undefined = undefined
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  export let locale: string | undefined = undefined
 </script>
 
-<MapControl type="zoom" {position} {options} />
+<MapControl type="zoom" {position} {options} {locale} />

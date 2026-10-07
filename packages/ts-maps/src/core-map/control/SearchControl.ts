@@ -10,7 +10,8 @@ import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { DivIcon } from '../layer/marker/DivIcon'
 import { Marker } from '../layer/marker/Marker'
-import { categoriesMatching, categoryForQuery, kindLabel, SEARCH_CATEGORIES } from '../search/categories'
+import { message, resolveLocale } from '../i18n'
+import { categoriesMatching, categoryForQuery, categoryLabel, kindLabel, SEARCH_CATEGORIES } from '../search/categories'
 import { describeOpening, openingStatus, OverpassPlaceDetails } from '../search/details'
 import { clusterPins, PIN_CLUSTER_RADIUS } from '../search/pins'
 import { savedPlaces } from '../search/saved'
@@ -57,7 +58,10 @@ export interface SearchControlOptions {
   origin?: () => LatLngLike | Promise<LatLngLike>
   /** Called by Directions instead of, or as well as, `turnByTurn`. */
   onDirections?: (place: SearchPlace) => void
+  /** The language results' names are asked for in, and its words when there is no `locale`. */
   language?: string
+  /** The language its words are in. Default `language`, else the map's `locale`, else the browser's. */
+  locale?: string
   /** The schema of the map's tiles. Default: found from their layer names. */
   schema?: TileSchema
   /**
@@ -229,12 +233,12 @@ export class SearchControl extends Control {
       <div class="${CLASS}-field">
         <span class="${CLASS}-icon">${MAGNIFIER}</span>
         <input class="${CLASS}-input" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search"
-          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="${this._listId}" aria-label="Search Maps"
-          placeholder="${escape(this.options.placeholder ?? 'Search Maps')}">
-        <button class="${CLASS}-clear" type="button" aria-label="Clear">✕</button>
-        <button class="${CLASS}-cancel" type="button">Cancel</button>
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="${this._listId}" aria-label="${escape(this._t('search.placeholder'))}"
+          placeholder="${escape(this.options.placeholder ?? this._t('search.placeholder'))}">
+        <button class="${CLASS}-clear" type="button" aria-label="${escape(this._t('search.clear'))}">✕</button>
+        <button class="${CLASS}-cancel" type="button">${escape(this._t('search.cancel'))}</button>
       </div>
-      <div class="${CLASS}-body" role="listbox" aria-label="Search results" id="${this._listId}"></div>
+      <div class="${CLASS}-body" role="listbox" aria-label="${escape(this._t('search.results'))}" id="${this._listId}"></div>
       <div class="tsmap-sr-only" role="status" aria-live="polite"></div>`
     this._input = container.querySelector<HTMLInputElement>(`.${CLASS}-input`)!
     this._body = container.querySelector<HTMLElement>(`.${CLASS}-body`)!
@@ -289,7 +293,7 @@ export class SearchControl extends Control {
 
   /** Search for text, as though typed and Search pressed. */
   async search(query: string): Promise<SearchPlace[]> {
-    const category = categoryForQuery(query)
+    const category = categoryForQuery(query, this._locale())
     if (category)
       return this.searchCategory(category)
     this._input!.value = query
@@ -302,8 +306,8 @@ export class SearchControl extends Control {
 
   /** Find a kind of place in the area on screen: "Coffee", "Gas Stations". */
   async searchCategory(category: SearchCategory): Promise<SearchPlace[]> {
-    this._input!.value = category.label
-    this._show('results', { loading: true, title: category.label })
+    this._input!.value = categoryLabel(category, this._locale())
+    this._show('results', { loading: true, title: categoryLabel(category, this._locale()) })
     const places = await this._run(signal => this.engine.nearby(category, { near: this._near(), signal }))
     this._showResults(places, { category })
     return places
@@ -324,7 +328,7 @@ export class SearchControl extends Control {
       map.flyTo ? map.flyTo([place.center.lat, place.center.lng], zoom) : map.setView([place.center.lat, place.center.lng], zoom)
     }
     this._show('place')
-    this._announce([place.name, kindLabel(place.kind), place.address].filter(Boolean).join(', '))
+    this._announce([place.name, kindLabel(place.kind, this._locale()), place.address].filter(Boolean).join(', '))
     this._emit('select', { place })
     void this._loadDetails(place)
     return this
@@ -479,7 +483,7 @@ export class SearchControl extends Control {
     }
     try {
       await nav?.clipboard?.writeText(url)
-      this._flash('Link copied')
+      this._flash(this._t('search.linkCopied'))
       return 'copied'
     }
     catch {
@@ -572,7 +576,7 @@ export class SearchControl extends Control {
     }
     if (has('placeholder') && target.placeholder !== this.options.placeholder) {
       this.options.placeholder = target.placeholder
-      this._input?.setAttribute('placeholder', target.placeholder ?? 'Search Maps')
+      this._input?.setAttribute('placeholder', target.placeholder ?? this._t('search.placeholder'))
     }
     let redraw = false
     if (has('categories') && !sameCategories(target.categories, this.options.categories)) {
@@ -585,6 +589,11 @@ export class SearchControl extends Control {
     }
     if (has('units') && target.units !== this.options.units) {
       this.options.units = target.units
+      redraw = true
+    }
+    if (has('locale') && target.locale !== this.options.locale) {
+      this.options.locale = target.locale
+      this._relabel()
       redraw = true
     }
     if (redraw && this._map && (this._view === 'home' || this._view === 'place' || (this._view === 'results' && this._results.length)))
@@ -653,7 +662,36 @@ export class SearchControl extends Control {
   }
 
   _units(): DistanceUnits {
-    return this.options.units ?? (prefersImperial() ? 'imperial' : 'metric')
+    return this.options.units ?? (prefersImperial(this.options.locale ?? this._map?.options?.locale) ? 'imperial' : 'metric')
+  }
+
+  /** The field's words, again in its language. */
+  _relabel(): void {
+    const input = this._input
+    if (!input)
+      return
+    input.setAttribute('aria-label', this._t('search.placeholder'))
+    input.setAttribute('placeholder', this.options.placeholder ?? this._t('search.placeholder'))
+    this._container?.querySelector(`.${CLASS}-clear`)?.setAttribute('aria-label', this._t('search.clear'))
+    const cancel = this._container?.querySelector(`.${CLASS}-cancel`)
+    if (cancel)
+      cancel.textContent = this._t('search.cancel')
+    this._body?.setAttribute('aria-label', this._t('search.results'))
+  }
+
+  /** The language its words are in. */
+  _locale(): string {
+    return resolveLocale(this.options.locale ?? this.options.language ?? this._map?.options?.locale)
+  }
+
+  /** A word or sentence from the catalogue, in its language. */
+  _t(key: string, params?: Record<string, string | number>): string {
+    return message(this._locale(), key, params)
+  }
+
+  /** A distance in its language: "1.2 km", "1,2 km". */
+  _distance(meters: number, units: DistanceUnits): string {
+    return formatDistance(meters, units, this._locale())
   }
 
   async _run(fn: (signal: AbortSignal) => Promise<SearchPlace[]>): Promise<SearchPlace[]> {
@@ -856,7 +894,7 @@ export class SearchControl extends Control {
       case 'results':
         if (extra.loading) {
           this._rows = []
-          this._body!.innerHTML = `<div class="${CLASS}-head"><span class="${CLASS}-title">${escape(extra.title ?? '')}</span></div><div class="${CLASS}-status">Searching…</div>`
+          this._body!.innerHTML = `<div class="${CLASS}-head"><span class="${CLASS}-title">${escape(extra.title ?? '')}</span></div><div class="${CLASS}-status">${escape(this._t('search.searching'))}</div>`
         }
         else {
           this._renderResults()
@@ -884,24 +922,24 @@ export class SearchControl extends Control {
     ]
     const units = this._units()
     const chips = categories.map((category, i) => `
-      <button class="${CLASS}-chip" type="button" role="option" aria-selected="false" data-row="${i}">${badge(category.icon, 40)}<span>${escape(category.label)}</span></button>`).join('')
+      <button class="${CLASS}-chip" type="button" role="option" aria-selected="false" data-row="${i}">${badge(category.icon, 40)}<span>${escape(categoryLabel(category, this._locale()))}</span></button>`).join('')
     const favoriteChips = favorites.map((place, j) => `
       <button class="${CLASS}-chip" type="button" role="option" aria-selected="false" data-row="${categories.length + j}">${badge(place.icon, 40)}<span>${escape(place.name)}</span></button>`).join('')
-    const guideRows = guides.map((guide, j) => this._rowHtml(categories.length + favorites.length + j, `<span class="${CLASS}-glyph">${BOOK}</span>`, escape(guide.name), `${guide.places.length} ${guide.places.length === 1 ? 'place' : 'places'}`)).join('')
+    const guideRows = guides.map((guide, j) => this._rowHtml(categories.length + favorites.length + j, `<span class="${CLASS}-glyph">${BOOK}</span>`, escape(guide.name), escape(this._t('search.places', { count: guide.places.length })))).join('')
     const recentRows = recents.map((entry, j) => {
       const i = categories.length + favorites.length + guides.length + j
       if (entry.place) {
         const d = distanceMeters(this._near(), entry.place.center)
-        return this._rowHtml(i, badge(entry.place.icon), escape(entry.place.name), escape(describePlace({ ...entry.place, distance: d }, m => formatDistance(m, units))))
+        return this._rowHtml(i, badge(entry.place.icon), escape(entry.place.name), escape(describePlace({ ...entry.place, distance: d }, m => this._distance(m, units), this._locale())))
       }
       return this._rowHtml(i, `<span class="${CLASS}-glyph">${CLOCK}</span>`, escape(entry.query ?? ''), '')
     }).join('')
     this._body!.innerHTML = `
-      <div class="${CLASS}-section"><span>Find Nearby</span></div>
+      <div class="${CLASS}-section"><span>${escape(this._t('search.findNearby'))}</span></div>
       <div class="${CLASS}-chips">${chips}</div>
-      ${favorites.length ? `<div class="${CLASS}-section"><span>Favorites</span></div><div class="${CLASS}-chips">${favoriteChips}</div>` : ''}
-      ${guides.length ? `<div class="${CLASS}-section"><span>Guides</span></div><div class="${CLASS}-rows">${guideRows}</div>` : ''}
-      ${recents.length ? `<div class="${CLASS}-section"><span>Recents</span><button type="button" class="${CLASS}-link" data-action="clear-recents">Clear</button></div><div class="${CLASS}-rows">${recentRows}</div>` : ''}`
+      ${favorites.length ? `<div class="${CLASS}-section"><span>${escape(this._t('search.favorites'))}</span></div><div class="${CLASS}-chips">${favoriteChips}</div>` : ''}
+      ${guides.length ? `<div class="${CLASS}-section"><span>${escape(this._t('search.guides'))}</span></div><div class="${CLASS}-rows">${guideRows}</div>` : ''}
+      ${recents.length ? `<div class="${CLASS}-section"><span>${escape(this._t('search.recents'))}</span><button type="button" class="${CLASS}-link" data-action="clear-recents">${escape(this._t('search.clearRecents'))}</button></div><div class="${CLASS}-rows">${recentRows}</div>` : ''}`
   }
 
   _rowHtml(index: number, icon: string, title: string, detail: string): string {
@@ -913,7 +951,7 @@ export class SearchControl extends Control {
     this._container?.classList.add(`${CLASS}-open`)
     this._hideAreaButton()
     const units = this._units()
-    const categories = categoriesMatching(query).slice(0, 2)
+    const categories = categoriesMatching(query, this._locale()).slice(0, 2)
     this._rows = [
       { type: 'query', query },
       ...categories.map(category => ({ type: 'category' as const, category })),
@@ -922,8 +960,8 @@ export class SearchControl extends Control {
     let i = 0
     const html = [
       this._rowHtml(i++, `<span class="${CLASS}-glyph">${MAGNIFIER}</span>`, escape(query), ''),
-      ...categories.map(category => this._rowHtml(i++, badge(category.icon), highlight(category.label, query), 'Search Nearby')),
-      ...places.map(place => this._rowHtml(i++, badge(place.icon), highlight(place.name, query), escape(describePlace(place, m => formatDistance(m, units))))),
+      ...categories.map(category => this._rowHtml(i++, badge(category.icon), highlight(categoryLabel(category, this._locale()), query), escape(this._t('search.searchNearby')))),
+      ...places.map(place => this._rowHtml(i++, badge(place.icon), highlight(place.name, query), escape(describePlace(place, m => this._distance(m, units), this._locale())))),
     ].join('')
     // Rewritten only when something changed, so a row is never swapped out
     // from under a pointer that is about to click it.
@@ -944,8 +982,10 @@ export class SearchControl extends Control {
     this._layoutPins()
     this._fitResults(places)
     this._show('results')
-    const title = what.query ?? what.category?.label
-    this._announce(places.length ? `${places.length} ${places.length === 1 ? 'result' : 'results'}${title ? ` for ${title}` : ''}` : `No results${title ? ` for ${title}` : ''}`)
+    const title = what.query ?? (what.category && categoryLabel(what.category, this._locale()))
+    this._announce(places.length
+      ? this._t(title ? 'search.countFor' : 'search.count', { count: places.length, query: title ?? '' })
+      : title ? this._t('search.noneFor', { query: title }) : this._t('search.none'))
     this._emit('results', { ...what, places })
   }
 
@@ -953,13 +993,13 @@ export class SearchControl extends Control {
     const places = this._results
     const units = this._units()
     const what = this._resultsFor
-    const title = what?.category?.label ?? what?.query ?? 'Results'
+    const title = (what?.category && categoryLabel(what.category, this._locale())) ?? what?.query ?? this._t('search.resultsTitle')
     this._rows = places.map(place => ({ type: 'place' as const, place }))
-    const rows = places.map((place, i) => this._rowHtml(i, badge(place.icon), escape(place.name), escape(describePlace(place, m => formatDistance(m, units))))).join('')
+    const rows = places.map((place, i) => this._rowHtml(i, badge(place.icon), escape(place.name), escape(describePlace(place, m => this._distance(m, units), this._locale())))).join('')
     this._body!.dataset.html = ''
     this._body!.innerHTML = `
-      <div class="${CLASS}-head"><span class="${CLASS}-title">${escape(title)}</span><span class="${CLASS}-count">${places.length ? `${places.length} ${places.length === 1 ? 'result' : 'results'}` : ''}</span></div>
-      ${places.length ? `<div class="${CLASS}-rows">${rows}</div>` : `<div class="${CLASS}-status">No results${what?.category ? ' in this area. Zoom out or move the map, then Search This Area.' : '.'}</div>`}`
+      <div class="${CLASS}-head"><span class="${CLASS}-title">${escape(title)}</span><span class="${CLASS}-count">${places.length ? escape(this._t('search.count', { count: places.length })) : ''}</span></div>
+      ${places.length ? `<div class="${CLASS}-rows">${rows}</div>` : `<div class="${CLASS}-status">${escape(what?.category ? this._t('search.noneHere') : `${this._t('search.none')}.`)}</div>`}`
   }
 
   _renderPlace(): void {
@@ -967,20 +1007,20 @@ export class SearchControl extends Control {
     if (!place)
       return
     const units = this._units()
-    const kind = kindLabel(place.kind)
-    const distance = place.distance !== undefined ? formatDistance(place.distance, units) : undefined
+    const kind = kindLabel(place.kind, this._locale())
+    const distance = place.distance !== undefined ? this._distance(place.distance, units) : undefined
     const coords = `${place.center.lat.toFixed(5)}, ${place.center.lng.toFixed(5)}`
     const details = this._details.get(place.id) ?? undefined
     const status = details?.openingHours ? openingStatus(details.openingHours) : undefined
-    const hours = status ? `<div class="${CLASS}-place-hours ${CLASS}-${status.open ? 'open' : 'closed'}">${escape(describeOpening(status, new Date(), this.options.language))}</div>` : ''
+    const hours = status ? `<div class="${CLASS}-place-hours ${CLASS}-${status.open ? 'open' : 'closed'}">${escape(describeOpening(status, new Date(), this._locale()))}</div>` : ''
     const website = details?.website && /^https?:\/\//i.test(details.website) ? details.website : details?.website ? `https://${details.website}` : undefined
     const phone = details?.phone?.replace(/[^\d+]/g, '')
     const isSaved = !!this.saved?.isFavorite(place.id)
     const actions = [
-      this.saved ? `<button type="button" class="${CLASS}-action${isSaved ? ` ${CLASS}-saved` : ''}" data-action="save" aria-pressed="${isSaved}">${isSaved ? STAR : STAR_OUTLINE}<span>${isSaved ? 'Saved' : 'Save'}</span></button>` : '',
-      phone ? `<a class="${CLASS}-action" href="tel:${escape(phone)}">${PHONE}<span>Call</span></a>` : '',
-      website ? `<a class="${CLASS}-action" href="${escape(website)}" target="_blank" rel="noopener noreferrer">${GLOBE}<span>Website</span></a>` : '',
-      `<button type="button" class="${CLASS}-action" data-action="share">${SHARE}<span>Share</span></button>`,
+      this.saved ? `<button type="button" class="${CLASS}-action${isSaved ? ` ${CLASS}-saved` : ''}" data-action="save" aria-pressed="${isSaved}">${isSaved ? STAR : STAR_OUTLINE}<span>${escape(this._t(isSaved ? 'search.saved' : 'search.save'))}</span></button>` : '',
+      phone ? `<a class="${CLASS}-action" href="tel:${escape(phone)}">${PHONE}<span>${escape(this._t('search.call'))}</span></a>` : '',
+      website ? `<a class="${CLASS}-action" href="${escape(website)}" target="_blank" rel="noopener noreferrer">${GLOBE}<span>${escape(this._t('search.website'))}</span></a>` : '',
+      `<button type="button" class="${CLASS}-action" data-action="share">${SHARE}<span>${escape(this._t('search.share'))}</span></button>`,
     ].join('')
     this._rows = []
     this._body!.dataset.html = ''
@@ -993,17 +1033,17 @@ export class SearchControl extends Control {
             <div class="${CLASS}-place-kind">${escape([kind, distance].filter(Boolean).join(' · '))}</div>
             ${hours}
           </div>
-          <button type="button" class="${CLASS}-close" data-action="close-place" aria-label="Close">✕</button>
+          <button type="button" class="${CLASS}-close" data-action="close-place" aria-label="${escape(this._t('search.close'))}">✕</button>
         </div>
-        ${this.options.turnByTurn || this.options.onDirections ? `<button type="button" class="${CLASS}-directions" data-action="directions">${CAR}<span>Directions</span></button>` : ''}
+        ${this.options.turnByTurn || this.options.onDirections ? `<button type="button" class="${CLASS}-directions" data-action="directions">${CAR}<span>${escape(this._t('search.directions'))}</span></button>` : ''}
         <div class="${CLASS}-actions">${actions}</div>
         <div class="${CLASS}-note" role="status" aria-live="polite"></div>
         <div class="${CLASS}-place-info">
-          ${details?.openingHours ? `<div class="${CLASS}-info-label">Hours</div><div class="${CLASS}-info-value">${escape(details.openingHours)}</div>` : ''}
-          ${details?.phone ? `<div class="${CLASS}-info-label">Phone</div><div class="${CLASS}-info-value">${escape(details.phone)}</div>` : ''}
-          ${website ? `<div class="${CLASS}-info-label">Website</div><div class="${CLASS}-info-value">${escape(website.replace(/^https?:\/\/(?:www\.)?/i, '').replace(/\/$/, ''))}</div>` : ''}
-          ${place.address ? `<div class="${CLASS}-info-label">Address</div><div class="${CLASS}-info-value">${escape(place.address)}</div>` : ''}
-          <div class="${CLASS}-info-label">Coordinates</div><div class="${CLASS}-info-value">${coords}</div>
+          ${details?.openingHours ? `<div class="${CLASS}-info-label">${escape(this._t('search.hours'))}</div><div class="${CLASS}-info-value">${escape(details.openingHours)}</div>` : ''}
+          ${details?.phone ? `<div class="${CLASS}-info-label">${escape(this._t('search.phone'))}</div><div class="${CLASS}-info-value">${escape(details.phone)}</div>` : ''}
+          ${website ? `<div class="${CLASS}-info-label">${escape(this._t('search.website'))}</div><div class="${CLASS}-info-value">${escape(website.replace(/^https?:\/\/(?:www\.)?/i, '').replace(/\/$/, ''))}</div>` : ''}
+          ${place.address ? `<div class="${CLASS}-info-label">${escape(this._t('search.address'))}</div><div class="${CLASS}-info-value">${escape(place.address)}</div>` : ''}
+          <div class="${CLASS}-info-label">${escape(this._t('search.coordinates'))}</div><div class="${CLASS}-info-value">${coords}</div>
         </div>
       </div>`
   }
@@ -1079,7 +1119,7 @@ export class SearchControl extends Control {
     const icon = [...counts].sort((a, b) => b[1] - a[1])[0]![0]
     const category = POI_CATEGORIES[icon] ?? POI_CATEGORIES.place!
     const first = members[0]!
-    const label = `${members.length} results`
+    const label = this._t('search.count', { count: members.length })
     const html = `<div class="${CLASS}-cluster" style="--pin:${category.color}" role="button" aria-label="${escape(label)}">${members.length}</div>`
     const marker = new Marker([first.center.lat, first.center.lng], {
       icon: new DivIcon({ className: `${CLASS}-pin-icon`, html, iconSize: [36, 36], iconAnchor: [18, 18] }),
@@ -1158,7 +1198,7 @@ export class SearchControl extends Control {
       return
     const button = this._areaButton = DomUtil.create('button', `${CLASS}-area`, this._map.getContainer())
     button.type = 'button'
-    button.textContent = 'Search This Area'
+    button.textContent = this._t('search.searchThisArea')
     // Centred at the top of the map, unless the card is there: then just
     // below it.
     const card = this._container?.getBoundingClientRect()

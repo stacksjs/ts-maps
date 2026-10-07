@@ -16,6 +16,8 @@ export interface IndoorMapProps {
   minZoom?: number
   /** The language names are read in. Default English. */
   language?: string
+  /** The language of the level picker. Default `language`, else the map's `locale`, else the browser's. */
+  locale?: string
   /** A `SearchControl` — from `<Search onReady>` — to find the venue's places, and go to a chosen one's level. */
   search?: SearchControl
   /** The underlying control, for `setLevel`, `search` and `levels`. */
@@ -42,8 +44,8 @@ export interface IndoorMapProps {
  * ```
  *
  * `level`, `position` and `search` are followed as they change. `venue`,
- * `minZoom` and `language` are read when the control is made: a new one
- * makes it again.
+ * `minZoom`, `language` and `locale` are read when the control is made: a new
+ * one makes it again.
  */
 export function IndoorMap(props: IndoorMapProps): JSX.Element {
   const [control, setControl] = createSignal<TsIndoorMap | null>(null)
@@ -53,10 +55,10 @@ export function IndoorMap(props: IndoorMapProps): JSX.Element {
   // read untracked here, and followed below.
   createEffect(() => {
     const map = useMap()
-    const { venue, minZoom, language } = props
+    const { venue, minZoom, language, locale } = props
     if (!map)
       return
-    const indoor = untrack(() => new TsIndoorMap({ venue, level: props.level, position: props.position, minZoom, language }))
+    const indoor = untrack(() => new TsIndoorMap({ venue, level: props.level, position: props.position, minZoom, language, locale }))
     indoor.addTo(map)
     const unlisten = indoor.listen((type, e) => (props as any)[INDOOR_EVENTS[type]]?.(e))
     untrack(() => props.onReady?.(indoor))

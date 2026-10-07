@@ -34,7 +34,8 @@ function createControlComponent<P extends ControlProps>(factory: ControlFactory)
 
     // An effect rather than onMount: the map arrives through a signal, so a
     // control mounted in the same tick as the map would otherwise find nothing
-    // to attach to.
+    // to attach to. Every prop is read here, so a new one, `locale` among
+    // them, makes the control again.
     createEffect(() => {
       const map = useMap()
       if (!map)
@@ -59,7 +60,19 @@ function createControlComponent<P extends ControlProps>(factory: ControlFactory)
   }
 }
 
+export interface ZoomControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
+}
+
+export interface FullscreenControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
+}
+
 export interface NavigationControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
   showZoom?: boolean
   showCompass?: boolean
   visualizePitch?: boolean
@@ -79,15 +92,17 @@ export interface GeocoderControlProps extends ControlProps {
 }
 
 export interface LocateControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
   zoom?: number | null
   follow?: boolean
   showMarker?: boolean
 }
 
-export const ZoomControl: (props: ControlProps) => JSX.Element = createControlComponent<ControlProps>(control.zoom as ControlFactory)
+export const ZoomControl: (props: ZoomControlProps) => JSX.Element = createControlComponent<ZoomControlProps>(control.zoom as ControlFactory)
 export const NavigationControl: (props: NavigationControlProps) => JSX.Element = createControlComponent<NavigationControlProps>(control.navigation as ControlFactory)
 export const GeocoderControl: (props: GeocoderControlProps) => JSX.Element = createControlComponent<GeocoderControlProps>(control.geocoder as ControlFactory)
-export const FullscreenControl: (props: ControlProps) => JSX.Element = createControlComponent<ControlProps>(control.fullscreen as ControlFactory)
+export const FullscreenControl: (props: FullscreenControlProps) => JSX.Element = createControlComponent<FullscreenControlProps>(control.fullscreen as ControlFactory)
 export const LocateControl: (props: LocateControlProps) => JSX.Element = createControlComponent<LocateControlProps>(control.locate as ControlFactory)
 export const ScaleControl: (props: ControlProps) => JSX.Element = createControlComponent<ControlProps>(control.scale as ControlFactory)
 export const AttributionControl: (props: ControlProps) => JSX.Element = createControlComponent<ControlProps>(control.attribution as ControlFactory)

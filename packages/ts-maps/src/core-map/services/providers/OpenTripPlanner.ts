@@ -71,11 +71,11 @@ function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
 
-function legToStep(leg: OtpLeg, next: OtpLeg | undefined): RouteStep {
+function legToStep(leg: OtpLeg, next: OtpLeg | undefined, language?: string): RouteStep {
   const geometry: LatLngLike[] = leg.legGeometry?.points ? decodePolyline(leg.legGeometry.points) : [{ lat: leg.from.lat, lng: leg.from.lon }, { lat: leg.to.lat, lng: leg.to.lon }]
   if (leg.mode === 'WALK' || leg.mode === 'BICYCLE' || !leg.route) {
     // Walking to the next stop, or to the destination at the end.
-    return { distance: leg.distance, duration: leg.duration, instruction: walkInstruction(next ? leg.to.name : undefined), geometry, maneuver: 'walk' }
+    return { distance: leg.distance, duration: leg.duration, instruction: walkInstruction(next ? leg.to.name : undefined, language), geometry, maneuver: 'walk' }
   }
   const transit = {
     vehicle: transitVehicle(leg.mode),
@@ -91,7 +91,7 @@ function legToStep(leg: OtpLeg, next: OtpLeg | undefined): RouteStep {
     arrival: new Date(leg.endTime),
     stops: (leg.intermediateStops?.length ?? 0) + 1,
   }
-  return { distance: leg.distance, duration: leg.duration, instruction: transitInstruction(transit), geometry, maneuver: 'transit', name: transit.line, transit }
+  return { distance: leg.distance, duration: leg.duration, instruction: transitInstruction(transit, language), geometry, maneuver: 'transit', name: transit.line, transit }
 }
 
 export class OpenTripPlannerDirections implements DirectionsProvider {
@@ -140,7 +140,7 @@ export class OpenTripPlannerDirections implements DirectionsProvider {
     if (body.errors?.length)
       throw new Error(`OpenTripPlanner: ${body.errors.map(e => e.message).join('; ')}`)
     return (body.data?.plan?.itineraries ?? []).map((it) => {
-      const steps = it.legs.map((leg, i) => legToStep(leg, it.legs[i + 1]))
+      const steps = it.legs.map((leg, i) => legToStep(leg, it.legs[i + 1], opts.language))
       return {
         distance: it.legs.reduce((sum, leg) => sum + leg.distance, 0),
         duration: it.duration,

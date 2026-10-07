@@ -33,6 +33,7 @@ export const optionsJson = JSON.stringify({
   simulate: $props.simulate,
   alternatives: $props.alternatives,
   destinationName: $props.destinationName,
+  locale: $props.locale,
 })
 </script>
 

@@ -30,6 +30,8 @@
   /** A `TrafficLayer`, for a Traffic switch on the card. Read at mount. */
   export let traffic: MapTypeControlOptions['traffic'] = undefined
   export let showTraffic: boolean | undefined = undefined
+  /** The language of its words. Default the map's `locale`, else the browser's. */
+  export let locale: string | undefined = undefined
 
   /* eslint-disable no-unused-vars */
   export let onReady: ((control: MapTypeControl) => void) | undefined = undefined
@@ -49,7 +51,7 @@
   onMount(() => {
     const map = useMap()
     if (!map) return
-    picker = new MapTypeControl({ types, value, position, title, traffic })
+    picker = new MapTypeControl({ types, value, position, title, traffic, locale })
     picker.addTo(map)
     unlisten = picker.listen((type, e) => {
       // Kept in step, so `bind:value`, `bind:open` and `bind:showTraffic`
@@ -64,7 +66,7 @@
 
   // The control follows `value`, `open` and `showTraffic` only when they
   // change, so one already in step is left alone.
-  $: if (picker) picker.sync({ types, value, open, position, showTraffic })
+  $: if (picker) picker.sync({ types, value, open, position, showTraffic, locale })
 
   onDestroy(() => {
     unlisten?.()

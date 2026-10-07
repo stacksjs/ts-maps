@@ -37,6 +37,8 @@ export const MapType = defineComponent({
     /** A `TrafficLayer`, for a Traffic switch on the card. Read at mount. */
     traffic: { type: Object as PropType<MapTypeControlOptions['traffic']>, default: undefined },
     showTraffic: { type: Boolean, default: undefined },
+    /** The language of its words. Default the map's `locale`, else the browser's. */
+    locale: { type: String, default: undefined },
   },
   emits: [...Object.keys(MAP_TYPE_EVENTS), 'ready', 'update:value', 'update:open', 'update:showTraffic'],
   setup(props, { emit, expose }) {
@@ -49,6 +51,7 @@ export const MapType = defineComponent({
       open: props.open,
       position: props.position,
       showTraffic: props.showTraffic,
+      locale: props.locale,
     })
 
     const stop = watch(
@@ -56,7 +59,7 @@ export const MapType = defineComponent({
       (map) => {
         if (!map || picker)
           return
-        picker = new MapTypeControl({ types: props.types, value: props.value, position: props.position, title: props.title, traffic: props.traffic })
+        picker = new MapTypeControl({ types: props.types, value: props.value, position: props.position, title: props.title, traffic: props.traffic, locale: props.locale })
         picker.addTo(map)
         unlisten = picker.listen((type, e) => {
           emit(type, e)
@@ -77,7 +80,7 @@ export const MapType = defineComponent({
     // change, so the card closed by its own ✕ stays closed when another prop
     // changes.
     watch(
-      [() => props.types, () => props.value, () => props.open, () => props.position, () => props.showTraffic],
+      [() => props.types, () => props.value, () => props.open, () => props.position, () => props.showTraffic, () => props.locale],
       () => picker?.sync(target()),
     )
 

@@ -38,7 +38,8 @@ type ControlFactory = (options?: any) => { addTo: (map: any) => unknown, remove:
  * Options are read through a ref rather than listed in the dependency array so
  * an inline object literal — the normal way to write these props — does not
  * tear the control down and rebuild it on every render. Changing `position`
- * does rebuild, because that is what moving a control means.
+ * does rebuild, because that is what moving a control means, and so does
+ * changing `locale`: a control writes its titles when it is built.
  */
 function createControlComponent<P extends ControlProps>(
   factory: ControlFactory,
@@ -65,7 +66,7 @@ function createControlComponent<P extends ControlProps>(
         instance.remove()
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [map, props.position])
+    }, [map, props.position, (props as { locale?: string }).locale])
 
     return null
   }
@@ -75,11 +76,15 @@ function createControlComponent<P extends ControlProps>(
 }
 
 export interface ZoomControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
   zoomInTitle?: string
   zoomOutTitle?: string
 }
 
 export interface NavigationControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
   showZoom?: boolean
   showCompass?: boolean
   visualizePitch?: boolean
@@ -103,12 +108,16 @@ export interface GeocoderControlProps extends ControlProps {
 }
 
 export interface FullscreenControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
   container?: HTMLElement
   title?: string
   titleCancel?: string
 }
 
 export interface LocateControlProps extends ControlProps {
+  /** The language of its titles. Default the map's `locale`, else the browser's. */
+  locale?: string
   zoom?: number | null
   follow?: boolean
   showMarker?: boolean

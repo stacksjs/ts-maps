@@ -10,6 +10,7 @@ export {
   type ControlPosition,
   type ControlProps,
   FullscreenControl,
+  type FullscreenControlProps,
   GeocoderControl,
   type GeocoderControlProps,
   LocateControl,
@@ -18,6 +19,7 @@ export {
   type NavigationControlProps,
   ScaleControl,
   ZoomControl,
+  type ZoomControlProps,
 } from './controls'
 export { type MapEventHandler, useMapEvent } from './useMapEvent'
 export type { MapProps } from './Map'
