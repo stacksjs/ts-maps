@@ -2380,6 +2380,24 @@ a.tsmap-control-locate-denied::after {
   }
 }
 
+/* Results too close to tell apart, as one bubble with how many: the colour
+ * of the kind most of them are. They come apart as the map zooms in. */
+.tsmap-search-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--pin);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+  color: #fff;
+  font: 700 14px/1 -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  cursor: pointer;
+}
+
 .tsmap-search-area {
   position: absolute;
   z-index: 1000;

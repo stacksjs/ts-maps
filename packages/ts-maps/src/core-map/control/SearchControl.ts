@@ -9,6 +9,7 @@ import * as DomUtil from '../dom/DomUtil'
 import { DivIcon } from '../layer/marker/DivIcon'
 import { Marker } from '../layer/marker/Marker'
 import { categoriesMatching, categoryForQuery, kindLabel, SEARCH_CATEGORIES } from '../search/categories'
+import { clusterPins, PIN_CLUSTER_RADIUS } from '../search/pins'
 import { describePlace, distanceMeters, SearchEngine, SearchHistory } from '../search/SearchEngine'
 import { PhotonGeocoder } from '../services/providers/Photon'
 import { formatDistance, prefersImperial } from '../services/instructions'
@@ -147,6 +148,11 @@ export class SearchControl extends Control {
   declare _resultsFor?: { query?: string, category?: SearchCategory, center: LatLngLike, zoom: number }
   declare _place?: SearchPlace
   declare _pins: Map<string, Marker>
+  /** The places with pins, most important first, and the one chosen. */
+  declare _pinned: SearchPlace[]
+  declare _selectedId?: string
+  /** The clusters drawn now, so a zoom that changes none redraws nothing. */
+  declare _pinLayout?: string
   declare _areaButton?: HTMLElement
   declare _timer?: ReturnType<typeof setTimeout>
   declare _abort?: AbortController
@@ -162,6 +168,7 @@ export class SearchControl extends Control {
     this._active = -1
     this._results = []
     this._pins = new Map()
+    this._pinned = []
   }
 
   onAdd(map: any): HTMLElement {
@@ -201,6 +208,7 @@ export class SearchControl extends Control {
     this._body.addEventListener('click', e => this._onBodyClick(e))
 
     map.on('moveend', this._onMoveEnd, this)
+    map.on('zoomend', this._layoutPins, this)
     map.on('resize', this._fit, this)
     this._container = container
     // Laid out once it is in the page.
@@ -216,6 +224,7 @@ export class SearchControl extends Control {
     this._clearPins()
     this._areaButton?.remove()
     map.off('moveend', this._onMoveEnd, this)
+    map.off('zoomend', this._layoutPins, this)
     map.off('resize', this._fit, this)
   }
 
@@ -250,17 +259,6 @@ export class SearchControl extends Control {
     this._place = place
     this.history.add({ place })
     this._pin(place, true)
-    // The inner element: the marker's own carries its position.
-    for (const [id, pin] of this._pins) {
-      const chosen = id === place.id
-      const icon = (pin as any)._icon as HTMLElement | undefined
-      const head = icon?.querySelector(`.${CLASS}-pin`)
-      if (chosen)
-        head?.classList.add(`${CLASS}-pin-selected`)
-      else
-        head?.classList.remove(`${CLASS}-pin-selected`)
-      pin.setZIndexOffset(chosen ? 1000 : 0)
-    }
     const map = this._map
     if (place.bbox && place.kind !== 'street') {
       const [w, s, e, n] = place.bbox
@@ -662,8 +660,8 @@ export class SearchControl extends Control {
     const c = this._map.getCenter()
     this._resultsFor = { ...what, center: { lat: c.lat, lng: c.lng }, zoom: this._map.getZoom() }
     this._clearPins()
-    for (const place of places)
-      this._pin(place, false)
+    this._pinned = [...places]
+    this._layoutPins()
     this._fitResults(places)
     this._show('results')
     this._emit('results', { ...what, places })
@@ -715,9 +713,45 @@ export class SearchControl extends Control {
   // ---------------------------------------------------------------------------
 
   /** Apple's balloon pin: the category's colour and glyph, on a stem. */
+  /** Give a place a pin, chosen or not, among the others. */
   _pin(place: SearchPlace, selected: boolean): void {
-    if (this._pins.has(place.id))
+    if (!this._pinned.some(p => p.id === place.id))
+      this._pinned.push(place)
+    if (selected)
+      this._selectedId = place.id
+    this._layoutPins()
+  }
+
+  /**
+   * Draw the pins, gathering those that would overlap into a numbered
+   * bubble. Run again as the map zooms, so they come apart as it zooms in.
+   * The chosen pin is never gathered.
+   */
+  _layoutPins(): void {
+    const map = this._map
+    if (!map)
       return
+    const byId = new Map(this._pinned.map(place => [place.id, place]))
+    const points = this._pinned.map((place) => {
+      const p = map.latLngToContainerPoint([place.center.lat, place.center.lng])
+      return { id: place.id, x: p.x, y: p.y }
+    })
+    const clusters = clusterPins(points, PIN_CLUSTER_RADIUS, this._selectedId)
+    const layout = `${this._selectedId ?? ''}|${clusters.map(c => c.ids.join(',')).join(';')}`
+    if (layout === this._pinLayout && this._pins.size)
+      return
+    this._removePins()
+    this._pinLayout = layout
+    for (const cluster of clusters) {
+      const members = cluster.ids.map(id => byId.get(id)!)
+      if (members.length === 1)
+        this._addPin(members[0]!, members[0]!.id === this._selectedId)
+      else
+        this._addCluster(members)
+    }
+  }
+
+  _addPin(place: SearchPlace, selected: boolean): void {
     const category = POI_CATEGORIES[place.icon] ?? POI_CATEGORIES.place!
     const html = `<div class="${CLASS}-pin${selected ? ` ${CLASS}-pin-selected` : ''}" style="--pin:${category.color}">
       <div class="${CLASS}-pin-head"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" fill-rule="evenodd" d="${category.glyph}"/></svg></div>
@@ -732,10 +766,51 @@ export class SearchControl extends Control {
     this._pins.set(place.id, marker)
   }
 
-  _clearPins(): void {
+  /**
+   * A bubble for several results, in the colour of the kind most of them
+   * are, with how many. Tapping it zooms to them; where they cannot come
+   * apart, it chooses the first.
+   */
+  _addCluster(members: SearchPlace[]): void {
+    const counts = new Map<string, number>()
+    for (const place of members)
+      counts.set(place.icon, (counts.get(place.icon) ?? 0) + 1)
+    const icon = [...counts].sort((a, b) => b[1] - a[1])[0]![0]
+    const category = POI_CATEGORIES[icon] ?? POI_CATEGORIES.place!
+    const first = members[0]!
+    const label = `${members.length} results`
+    const html = `<div class="${CLASS}-cluster" style="--pin:${category.color}" role="button" aria-label="${escape(label)}">${members.length}</div>`
+    const marker = new Marker([first.center.lat, first.center.lng], {
+      icon: new DivIcon({ className: `${CLASS}-pin-icon`, html, iconSize: [36, 36], iconAnchor: [18, 18] }),
+      title: label,
+      zIndexOffset: 500,
+    })
+    marker.on('click', () => {
+      const map = this._map
+      const lats = members.map(p => p.center.lat)
+      const lngs = members.map(p => p.center.lng)
+      const same = Math.max(...lats) - Math.min(...lats) < 1e-5 && Math.max(...lngs) - Math.min(...lngs) < 1e-5
+      if (same || map.getZoom() >= (map.getMaxZoom?.() ?? 20) - 0.5) {
+        this.select(first)
+        return
+      }
+      map.fitBounds([[Math.min(...lats), Math.min(...lngs)], [Math.max(...lats), Math.max(...lngs)]], { padding: [80, 80], maxZoom: map.getMaxZoom?.() ?? 19 })
+    })
+    marker.addTo(this._map)
+    this._pins.set(`cluster:${members.map(p => p.id).join(',')}`, marker)
+  }
+
+  _removePins(): void {
     for (const pin of this._pins.values())
       pin.remove()
     this._pins.clear()
+    this._pinLayout = undefined
+  }
+
+  _clearPins(): void {
+    this._removePins()
+    this._pinned = []
+    this._selectedId = undefined
   }
 
   _clearResults(): void {

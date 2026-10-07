@@ -79,7 +79,10 @@ control.search({ turnByTurn: nav }).addTo(map)
   street, e.g. "Café · 0.3 mi · Market Street". The typed part is in bold.
 - **A category, or Enter on a query:** a pin drops for every result and they
   are listed, nearest first. Move the map, and **Search This Area** runs the
-  search again there.
+  search again there. Where pins would overlap, they gather into a bubble
+  with how many, in the colour of their kind, and come apart as the map
+  zooms in; tapping one zooms to what is in it. The chosen result always
+  has a pin of its own.
 - **Choosing a place:** the map flies to it and opens its card: kind, distance,
   address, coordinates, and **Directions**. Directions previews the route on
   the `TurnByTurn` you pass, from `origin` (the device's position by default)
