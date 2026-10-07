@@ -42,6 +42,23 @@ export interface BasemapStyleOptions {
   name?: string
   glyphs?: string
   sprite?: string
+  /**
+   * Fonts for the labels, by the three faces the style uses: `regular` for
+   * street and POI names, `semibold` for places, `italic` for water. Each is a
+   * `text-font` stack; a face left out keeps the default.
+   */
+  fonts?: BasemapFonts
+  /**
+   * Read tiles through the shared offline cache, so the basemap draws from
+   * what a "download for offline" stored. See `offlineCache` on a source.
+   */
+  offlineCache?: boolean
+}
+
+export interface BasemapFonts {
+  regular?: string[]
+  semibold?: string[]
+  italic?: string[]
 }
 
 export type SourceLayerKey
@@ -84,6 +101,7 @@ function rasterStyle(palette: Palette, options: BasemapStyleOptions, name: strin
         minzoom: options.minzoom ?? 0,
         maxzoom: options.maxzoom ?? 19,
         attribution: options.attribution,
+        ...(options.offlineCache ? { offlineCache: true } : {}),
       },
     },
     layers: [
@@ -111,6 +129,7 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
         minzoom: options.minzoom ?? 0,
         maxzoom: options.maxzoom ?? 14,
         attribution: options.attribution,
+        ...(options.offlineCache ? { offlineCache: true } : {}),
       },
     },
     // Order is the whole game in a basemap: ground, areas, water, roads,
@@ -390,11 +409,29 @@ function isDark(palette: Palette): boolean {
   return 0.2126 * r! + 0.7152 * g! + 0.0722 * b! < 0.4
 }
 
+/**
+ * Swaps in the caller's fonts. A label's face is read off the font the style
+ * gave it: none is regular, `['Semibold']` and `['Italic']` are the others.
+ */
+function applyFonts(style: StyleSpec, fonts: BasemapFonts): StyleSpec {
+  for (const layer of style.layers) {
+    if (layer.type !== 'symbol')
+      continue
+    const layout = (layer.layout ??= {}) as { 'text-font'?: string[] }
+    const current = layout['text-font']?.[0]
+    const face = current === 'Semibold' ? fonts.semibold : current === 'Italic' ? fonts.italic : fonts.regular
+    if (face)
+      layout['text-font'] = [...face]
+  }
+  return style
+}
+
 function build(base: Palette, options: BasemapStyleOptions, name: string): StyleSpec {
   const palette: Palette = { ...base, ...options.palette }
-  return options.mode === 'raster'
-    ? rasterStyle(palette, options, name)
-    : vectorStyle(palette, options, name)
+  if (options.mode === 'raster')
+    return rasterStyle(palette, options, name)
+  const style = vectorStyle(palette, options, name)
+  return options.fonts ? applyFonts(style, options.fonts) : style
 }
 
 /** The dark basemap. Pair it with `theme: 'dark'` so the chrome matches. */

@@ -117,11 +117,13 @@ Set `publicUrl` whenever a proxy or CDN sits in front: TileJSON tile URLs must b
 Anything that reads TileJSON works unchanged. In ts-maps:
 
 ```ts
-const tilejson = await (await fetch('https://tiles.example.com/tiles.json')).json()
-const style = styles.light({ tiles: tilejson.tiles[0], attribution: tilejson.attribution })
+const found = await resolveTileJSON(['https://tiles.example.com/tiles.json', 'https://tiles.openfreemap.org/planet'])
+const style = styles.light({ tiles: found!.tiles, maxzoom: found!.maxzoom, attribution: found!.attribution })
 ```
 
-An app that resolves its basemap through a TileJSON URL (Wildloop's `VECTOR_TILEJSON`, which today points at `https://tiles.openfreemap.org/planet`) switches by changing that one constant to `https://tiles.example.com/tiles.json` (or the bare base path; both answer TileJSON) and its attribution to the OpenMapTiles / OpenStreetMap credit. Same schema, same styles; only the host changes.
+`resolveTileJSON` tries each TileJSON in turn with a timeout and keeps the answer for the session; see [Styles & theming](./styles-and-theming.md#choosing-a-source). An app that resolves its basemap through a list like that (Wildloop's `VECTOR_TILEJSON_SOURCES`) switches by putting its own `https://tiles.example.com/tiles.json` (or the bare base path; both answer TileJSON) first. Same schema, same styles; only the host changes.
+
+The [playground](/playground/)'s real-world demos run on exactly this: Wildloop's weekly planet build, a PMTiles archive in R2 behind the Worker in section 7 at `https://tiles.wildloop.org/tiles.json`, with OpenFreeMap behind it.
 
 ## 6. Serving straight from R2 / a bucket, no server
 

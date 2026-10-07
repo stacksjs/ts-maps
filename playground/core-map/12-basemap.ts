@@ -1,8 +1,8 @@
 /**
  * Phase 12 demo — a full-bleed, real-world basemap.
  *
- * The page to hold next to Apple Maps or Google Maps: OpenFreeMap's keyless
- * OpenMapTiles vector tiles, the built-in light/dark style, and nothing else on
+ * The page to hold next to Apple Maps or Google Maps: keyless OpenMapTiles
+ * vector tiles from Wildloop's planet (OpenFreeMap as a fallback), the built-in light/dark style, and nothing else on
  * the page. Scroll, pinch, drag and double-click here and there and the two
  * should feel the same — labels included.
  *
@@ -10,6 +10,7 @@
  */
 
 import { control, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
@@ -29,17 +30,8 @@ const map = new TsMap('map', {
 control.navigation().addTo(map)
 control.scale({ transient: true }).addTo(map)
 
-// OpenFreeMap versions its tile URLs; the current one is in its TileJSON.
-fetch('https://tiles.openfreemap.org/planet')
-  .then(r => r.json())
-  .then((tilejson) => {
-    const build = theme === 'dark' ? styles.dark : styles.light
-    map.setStyle(build({
-      tiles: tilejson.tiles[0],
-      maxzoom: tilejson.maxzoom ?? 14,
-      attribution: '© OpenFreeMap © OpenMapTiles © OpenStreetMap',
-    }))
-  })
+// Tile URLs carry the build they come from; the current one is in the TileJSON.
+void loadBasemap(map, theme)
 
 const scope = globalThis as unknown as { demo: unknown }
 scope.demo = { map, styles }

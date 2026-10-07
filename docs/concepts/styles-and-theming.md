@@ -54,6 +54,24 @@ map.setStyle(styles.dark({
 Check the attribution each service requires — it is a licence condition, not a
 courtesy, and `AttributionControl` renders it for you.
 
+`resolveTileJSON` does that fetch with what a real page needs around it: each
+source raced against a timeout, the next one tried when it fails, and the
+answer kept in `sessionStorage` so only the first page of a visit waits. It
+resolves to `null` when nothing answers, which is the cue for a raster
+fallback:
+
+```ts
+import { resolveTileJSON, styles } from 'ts-maps'
+
+const found = await resolveTileJSON([
+  'https://tiles.example.com/tiles.json', // your own, first
+  'https://tiles.openfreemap.org/planet',
+])
+map.setStyle(found
+  ? styles.light({ tiles: found.tiles, maxzoom: found.maxzoom, attribution: found.attribution })
+  : styles.light({ mode: 'raster', tiles: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png' }))
+```
+
 For a source on a different schema, remap the layer names rather than forking
 the style:
 
@@ -75,6 +93,20 @@ Override individual entries without rebuilding the style:
 ```ts
 styles.dark({ tiles, palette: { water: '#0b1f38', roadMajor: '#4a5160' } })
 ```
+
+### Fonts and offline tiles
+
+Labels use three faces: `regular` for street and POI names, `semibold` for
+places, `italic` for water. Give any of them your app's own font stack; a face
+left out keeps the default:
+
+```ts
+styles.light({ tiles, fonts: { regular: ['Geist Medium'], semibold: ['Geist Semibold'] } })
+```
+
+`offlineCache: true` reads the basemap's tiles through the shared offline
+cache, so a page that saved an area with `saveOfflineRegion` draws it with no
+connection.
 
 ### Points of interest
 

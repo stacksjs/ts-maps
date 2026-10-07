@@ -10,7 +10,8 @@
  * `?theme=dark`, `?select` to open the area picker straight away.
  */
 
-import { control, offlineMaps, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, offlineMaps, TsMap } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap, TILEJSON_SOURCES } from './basemap'
 
 const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
@@ -20,18 +21,12 @@ const map = new TsMap('map', { center: [37.7793, -122.4193], zoom: 13, theme, zo
 control.navigation().addTo(map)
 // The TileJSON is kept with each download, so the map can be rebuilt from it
 // with no connection.
-const TILEJSON = 'https://tiles.openfreemap.org/planet'
-const offline = control.offlineMaps({ resources: [TILEJSON] }).addTo(map)
+const offline = control.offlineMaps({ resources: TILEJSON_SOURCES }).addTo(map)
 
-fetch(TILEJSON)
-  .catch(() => offlineMaps().lookup(TILEJSON).then(hit => new Response(hit?.data as BodyInit | undefined)))
-  .then(r => r.json())
-  .then((tilejson) => {
-    const build = theme === 'dark' ? styles.dark : styles.light
-    map.setStyle(build({ tiles: tilejson.tiles[0], maxzoom: tilejson.maxzoom ?? 14, attribution: '© OpenFreeMap © OpenMapTiles © OpenStreetMap' }))
-    if (params.has('select'))
-      setTimeout(() => offline.selectArea(), 1500)
-  })
+void loadBasemap(map, theme).then(() => {
+  if (params.has('select'))
+    setTimeout(() => offline.selectArea(), 1500)
+})
 
 const scope = globalThis as unknown as { demo: unknown }
 scope.demo = { map, offline, maps: offlineMaps() }

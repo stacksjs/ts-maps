@@ -9,7 +9,8 @@
  * `?theme=dark`, `?q=coffee` to search straight away, `?units=metric`.
  */
 
-import { control, offlineMaps, styles, TsMap, turnByTurn } from '../../packages/ts-maps/src/core-map'
+import { control, TsMap, turnByTurn } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
@@ -27,17 +28,11 @@ const search = control.search({
   origin: () => ({ lat: 37.7925, lng: -122.4065 }),
 }).addTo(map)
 
-const TILEJSON = 'https://tiles.openfreemap.org/planet'
-fetch(TILEJSON)
-  .catch(() => offlineMaps().lookup(TILEJSON).then(hit => new Response(hit?.data as BodyInit | undefined)))
-  .then(r => r.json())
-  .then((tilejson) => {
-    const build = theme === 'dark' ? styles.dark : styles.light
-    map.setStyle(build({ tiles: tilejson.tiles[0], maxzoom: tilejson.maxzoom ?? 14, attribution: '© OpenFreeMap © OpenMapTiles © OpenStreetMap' }))
-    const q = params.get('q')
-    if (q)
-      setTimeout(() => search.search(q), 2500)
-  })
+void loadBasemap(map, theme).then(() => {
+  const q = params.get('q')
+  if (q)
+    setTimeout(() => search.search(q), 2500)
+})
 
 const scope = globalThis as unknown as { demo: unknown }
 scope.demo = { map, search, nav }

@@ -109,6 +109,8 @@ import * as services from './services/index'
 import * as styles from './styles/index'
 
 export { services, styles }
+export { resolveTileJSON } from './styles/tilejson'
+export type { ResolvedTileJSON, ResolveTileJSONOptions } from './styles/tilejson'
 // The static renderer rides in the main entry too, so an app that loads
 // ts-maps as one browser chunk can draw a share card's map with what it has.
 export { mercatorX, mercatorY, renderStaticMap, staticMapSvg, staticMapView, staticMapZoom } from './static/index'

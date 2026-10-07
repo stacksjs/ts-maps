@@ -9,7 +9,8 @@
  * away, and `?from=lat,lng&to=lat,lng` change the trip.
  */
 
-import { control, styles, TsMap, turnByTurn } from '../../packages/ts-maps/src/core-map'
+import { control, TsMap, turnByTurn } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
@@ -22,12 +23,7 @@ const point = (value: string | null, fallback: [number, number]): { lat: number,
 const map = new TsMap('map', { center: [37.7793, -122.4193], zoom: 13, theme, zoomControl: false })
 control.navigation().addTo(map)
 
-fetch('https://tiles.openfreemap.org/planet')
-  .then(r => r.json())
-  .then((tilejson) => {
-    const build = theme === 'dark' ? styles.dark : styles.light
-    map.setStyle(build({ tiles: tilejson.tiles[0], maxzoom: tilejson.maxzoom ?? 14, attribution: '© OpenFreeMap © OpenMapTiles © OpenStreetMap' }))
-  })
+void loadBasemap(map, theme)
 
 const nav = turnByTurn(map, {
   units: (params.get('units') as 'metric' | 'imperial' | null) ?? undefined,

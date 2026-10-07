@@ -17,6 +17,7 @@ import { Style } from './Style'
 import type { LayerSpecification, SourceSpecification, Style as StyleSpec } from '../style-spec/types'
 import { diffStyles } from '../style-spec/diff'
 import type { OfflineMaps } from '../offline/OfflineMaps'
+import type { Control } from '../control/Control'
 import { activeOfflineMaps, offlineFetch, offlineMaps } from '../offline/OfflineMaps'
 import { buildTerrainMesh } from '../geo/terrainMesh'
 import { TerrainSource } from '../geo/TerrainSource'
@@ -195,6 +196,10 @@ export class TsMap extends Evented {
 
   // Runtime slots populated by initialize / hooks.
   declare options: MapOptions
+  // Mixed in by control/Control.ts with `TsMap.include`; declared here so they
+  // are on the type, not only on the prototype at runtime.
+  declare addControl: (control: Control) => this
+  declare removeControl: (control: Control) => this
   declare _handlers: any[]
   declare _layers: Record<number, any>
   declare _zoomBoundLayers: Record<number, any>
