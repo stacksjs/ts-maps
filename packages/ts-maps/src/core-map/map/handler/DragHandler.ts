@@ -86,13 +86,13 @@ export class DragHandler extends Handler {
       this._offsetLimit = null
     }
 
-    // A pitched map is dragged by the ground, not the pane: remember what was
+    // A pitched map, or the globe, is dragged by the ground, not the pane: remember what was
     // grabbed so it can be kept under the pointer.
     this._groundAnchor = undefined
     this._groundStart = undefined
     this._groundCursor = undefined
     const d = this._draggable as any
-    if (map._pitch && d?._startPoint) {
+    if (map._groundCamera() && d?._startPoint) {
       const rect = map._container.getBoundingClientRect()
       // Grabbed near the horizon, the ground under the pointer is so far off
       // that following it would fling the map; hold on lower down instead.
@@ -150,7 +150,7 @@ export class DragHandler extends Handler {
   _onPreDragPitch(): void {
     const map = this._map
     const d = this._draggable as any
-    if (!map._pitch || !this._groundAnchor || !this._groundStart)
+    if (!map._groundCamera() || !this._groundAnchor || !this._groundStart)
     return
 
     const offset = d._newPos.subtract(d._startPos)
@@ -168,7 +168,7 @@ export class DragHandler extends Handler {
   }
 
   _onPreDragLimit(): void {
-    if (this._map._pitch)
+    if (this._map._groundCamera())
     return
     if (!this._viscosity || !this._offsetLimit)
     return
@@ -187,7 +187,7 @@ export class DragHandler extends Handler {
   }
 
   _onPreDragWrap(): void {
-    if (this._map._pitch)
+    if (this._map._groundCamera())
     return
     const d = this._draggable as any
     const worldWidth = this._worldWidth
@@ -229,7 +229,7 @@ export class DragHandler extends Handler {
       else {
         // Pitched, the glide continues from where the pointer let go, so it
         // carries on at the speed the ground under it was moving.
-        const around = map._pitch ? this._groundCursor : undefined
+        const around = map._groundCamera() ? this._groundCursor : undefined
         if (!around)
         offset = map._limitOffset(offset, map.options.maxBounds)
         requestAnimationFrame(() => {

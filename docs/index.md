@@ -27,7 +27,7 @@ features:
     details: "fill-extrusion, setFog, setSky, DEM-based setTerrain, and a CustomLayerInterface."
   - title: "Globe"
     icon: "🌍"
-    details: "Seamless Mercator-to-globe transition around zoom 5.5, with an atmosphere halo."
+    details: "A WebGL globe drawn from the same tiles, fading into the flat map at zoom 6."
   - title: "Services"
     icon: "🧭"
     details: "Keyless geocoding, directions, isochrones, and distance matrix. Mapbox / Google / Maptiler / Photon opt-in."

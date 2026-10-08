@@ -1,9 +1,9 @@
 /**
- * Phase 8 demo — Globe view with atmosphere halo.
+ * Phase 8 demo — the globe.
  *
  * Enables the globe projection, sets the vector basemap, and wires a
  * zoom slider so the viewer can cross the Mercator transition window
- * (zoom ≈ 5.5) and watch the atmosphere halo cross-fade.
+ * (zoom 5.5 to 6) and watch the globe fade into the flat map.
  */
 
 import { TsMap } from '../../packages/ts-maps/src/core-map'
@@ -35,12 +35,12 @@ const panel = document.createElement('div')
 // The playground's own controls card (shared.css), top right.
 panel.className = 'demo-panel'
 panel.innerHTML = `
-  <div style="font-weight:600;margin-bottom:8px;">Globe atmosphere</div>
+  <div style="font-weight:600;margin-bottom:8px;">Globe</div>
   <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
     Zoom <input id="zoom" type="range" min="1" max="8" step="0.1" value="2" style="flex:1;" />
     <span id="z-read" style="min-width:30px;text-align:right;">2.0</span>
   </label>
-  <div id="mix" style="margin-top:6px;font-size:12px;opacity:0.8;">halo mix: 1.00</div>
+  <div id="mix" style="margin-top:6px;font-size:12px;opacity:0.8;">globe: 100%</div>
 `
 map.getContainer().appendChild(panel)
 
@@ -50,7 +50,7 @@ const mixRead = panel.querySelector('#mix') as HTMLElement
 
 function updateReadout(): void {
   zRead.textContent = map.getZoom().toFixed(1)
-  mixRead.textContent = `halo mix: ${map._globeAtmosphereMix().toFixed(2)}`
+  mixRead.textContent = `globe: ${Math.round(map._globeAtmosphereMix() * 100)}%`
 }
 
 zoomInput.addEventListener('input', () => {

@@ -52,6 +52,7 @@ import { earcut, flatten } from '../../geometry/earcut'
 import { ortho } from '../../renderer/webgl/mat4'
 import { WebGLUnsupportedError } from '../../renderer/webgl/GLContext'
 import { WebGLTileRenderer } from '../../renderer/webgl/WebGLTileRenderer'
+import { globeProject } from '../../map/GlobeView'
 import { GridLayer } from './GridLayer'
 import { composeTileUrl, getSubdomain } from './urlTemplate'
 
@@ -573,6 +574,8 @@ export class VectorTileMapLayer extends GridLayer {
         // Swallow repaint errors — the next tile cycle will retry via fetch.
       }
     }
+    // For whatever reads the tiles' pictures, as the globe does.
+    this.fire('repaint')
   }
 
   // -------------------------------------------------------------------------
@@ -1052,6 +1055,21 @@ export class VectorTileMapLayer extends GridLayer {
     const cx = view.x / 2
     const cy = view.y / 2
     const pos = map._getMapPanePos()
+
+    // Round the globe: the tile pixel's place, onto the sphere. Labels well
+    // round towards the rim are left off, where the globe turns
+    // away and they would crowd together.
+    if (map._globeActive?.()) {
+      const cam = map._globeCamera()
+      const world = map.options.crs.scale(coords.z)
+      return (x, y) => {
+        const fx = (coords.x * size + x) / world
+        const fy = (coords.y * size + y) / world
+        const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * fy))) * 180 / Math.PI
+        const g = globeProject(cam, lat, fx * 360 - 180)
+        return g.z < 0.35 ? null : { x: g.x, y: g.y }
+      }
+    }
 
     if (!map._bearing && !map._pitch)
       return (x, y) => ({ x: x * k + ox + pos.x, y: y * k + oy + pos.y })

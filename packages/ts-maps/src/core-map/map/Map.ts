@@ -13,6 +13,8 @@ import { LatLng } from '../geo/LatLng'
 import { LatLngBounds } from '../geo/LatLngBounds'
 import { Bounds } from '../geometry/Bounds'
 import { Point } from '../geometry/Point'
+import type { GlobeCamera } from './GlobeView'
+import { GlobeView, globeProject, globeRadius, globeUnproject } from './GlobeView'
 import { Style } from './Style'
 import type { LayerSpecification, SourceSpecification, Style as StyleSpec } from '../style-spec/types'
 import { diffStyles } from '../style-spec/diff'
@@ -161,6 +163,8 @@ export interface FogOptions {
   range?: [number, number]
   'high-color'?: string
   'star-intensity'?: number
+  /** Round the globe: the colour of space. */
+  'space-color'?: string
 }
 
 // Sky-layer settings. Same WebGL-only caveat as FogOptions.
@@ -340,6 +344,7 @@ export class TsMap extends Evented {
   // inside the map's container and is driven entirely via inline CSS
   // gradients so it works identically on Canvas2D and WebGL backends.
   declare _atmosphereOverlay?: HTMLElement
+  declare _globeView?: GlobeView
   // Pending DEM fetches keyed by tile URL — used to debounce repeated
   // fetches for the same tile during camera movement.
   declare _terrainFetchInFlight?: Map<string, Promise<void>>
@@ -369,6 +374,8 @@ export class TsMap extends Evented {
     this._initLayout()
     this._initEvents()
     this._wireTerrainCameraHooks()
+    // The globe draws itself, where WebGL allows (GlobeView.ts).
+    this._syncGlobeView()
 
     if (options.maxBounds)
     this.setMaxBounds(options.maxBounds)
@@ -503,7 +510,7 @@ export class TsMap extends Evented {
     offset = new Point(offset).round()
     options ??= {}
 
-    if (this._pitch && this._loaded)
+    if (this._groundCamera() && this._loaded)
     return this._panGround(offset, options)
 
     if (!offset.x && !offset.y)
@@ -562,9 +569,18 @@ export class TsMap extends Evented {
     if (!shift.x && !shift.y)
     return this.fire('moveend')
 
-    this._stop()
     const from = this.project(this.getCenter(), zoom)
-    const to = from.add(shift)
+    return this._glideCenter(from, from.add(shift), options)
+  }
+
+  /**
+   * Move the centre from one world point to another at the current zoom, in
+   * the curve a flat pan eases along — the pan of a camera that moves over
+   * the ground rather than sliding the pane.
+   */
+  _glideCenter(from: Point, to: Point, options: any): this {
+    const zoom = this._zoom
+    this._stop()
 
     if (!options.noMoveStart)
     this.fire('movestart')
@@ -947,6 +963,9 @@ export class TsMap extends Evented {
     this._panes = {} as any
     delete (this as any)._mapPane
     delete this._renderer
+
+    this._globeView?.remove()
+    this._globeView = undefined
 
     // Tear down terrain state + overlay canvas + atmospheric DOM.
     this._destroyTerrainOverlay()
@@ -1449,6 +1468,12 @@ export class TsMap extends Evented {
 
   containerPointToLayerPoint(point: any): Point {
     const p = new Point(point)
+    // Round the globe, the point on the sphere under it — on the rim, past it.
+    if (this._globeActive()) {
+      const { lat, lng } = globeUnproject(this._globeCamera(), p.x, p.y)
+      // Unrounded: a drag or a zoom anchored here measures from it.
+      return this.project(new LatLng(lat, lng)).subtract(this.getPixelOrigin())
+    }
     if (!this._bearing && !this._pitch)
     return p.subtract(this._getMapPanePos())
     // With rotation and/or pitch, the CSS transform on `_mapPane` is
@@ -1472,6 +1497,12 @@ export class TsMap extends Evented {
 
   layerPointToContainerPoint(point: any): Point {
     const p = new Point(point)
+    if (this._globeActive()) {
+      const ll = this.layerPointToLatLng(p)
+      const g = globeProject(this._globeCamera(), ll.lat, ll.lng)
+      // Round the back: nowhere on screen, as behind a tilted camera.
+      return g.z < 0 ? new Point(g.x < 0 ? -1e7 : 1e7, 1e7) : new Point(g.x, g.y)
+    }
     if (!this._bearing && !this._pitch)
     return p.add(this._getMapPanePos())
     const center = this.getSize()._divideBy(2)
@@ -1954,6 +1985,16 @@ export class TsMap extends Evented {
   * changes nothing.
   */
   _clampToGround(containerPoint: Point, minScale: number = 1 / 16): Point {
+    // Round the globe, the ground is the disc, short of its rim, where a
+    // pixel reaches round to the far side.
+    if (this._globeActive()) {
+      const cam = this._globeCamera()
+      const dx = containerPoint.x - cam.cx
+      const dy = containerPoint.y - cam.cy
+      const r = Math.hypot(dx, dy)
+      const max = cam.radius * 0.85
+      return r > max ? new Point(cam.cx + dx * max / r, cam.cy + dy * max / r) : containerPoint
+    }
     if (!this._pitch)
     return containerPoint
     const limit = this.getSize().y / 2 - (1 - minScale) * this._horizonDistance()
@@ -1994,21 +2035,21 @@ export class TsMap extends Evented {
   * map the two are the same thing.
   */
   _latLngToUprightPoint(latlng: any): Point {
-    if (!this._bearing && !this._pitch)
+    if (!this._bearing && !this._pitch && !this._globeActive())
     return this.latLngToLayerPoint(latlng)
     return this.latLngToContainerPoint(latlng).subtract(this._getMapPanePos())
   }
 
   /** Inverse of `_latLngToUprightPoint`. */
   _uprightPointToLatLng(point: Point): LatLng {
-    if (!this._bearing && !this._pitch)
+    if (!this._bearing && !this._pitch && !this._globeActive())
     return this.layerPointToLatLng(point)
     return this.containerPointToLatLng(point.add(this._getMapPanePos()))
   }
 
   /** A point in an upright pane, in container pixels. */
   _uprightPointToContainerPoint(point: Point): Point {
-    if (!this._bearing && !this._pitch)
+    if (!this._bearing && !this._pitch && !this._globeActive())
     return this.layerPointToContainerPoint(point)
     return point.add(this._getMapPanePos())
   }
@@ -2173,6 +2214,16 @@ export class TsMap extends Evented {
   }
 
   _tryAnimatedPan(center: any, options?: any): boolean {
+    // Round the globe, an offset on screen reaches somewhere else than the
+    // same offset on the flat map: go to the centre itself, the short way
+    // round.
+    if (this._globeActive() && this._loaded) {
+      const target = new LatLng(center)
+      const here = this.getCenter()
+      const lng = here.lng + ((((target.lng - here.lng + 180) % 360) + 360) % 360) - 180
+      this._glideCenter(this.project(here, this._zoom), this.project(new LatLng(target.lat, lng), this._zoom), options ?? {})
+      return true
+    }
     const offset = this._getCenterOffset(center)._trunc()
     if (options?.animate !== true && !this.getSize().contains(offset))
     return false
@@ -3797,6 +3848,7 @@ export class TsMap extends Evented {
 
     const options = this.options as any
     options.projection = projection
+    this._syncGlobeView()
 
     // The atmosphere halo is drawn only for the globe, and cross-fades with
     // the Mercator transition, so it has to be re-evaluated either way.
@@ -3954,6 +4006,57 @@ export class TsMap extends Evented {
   }
 
   /**
+   * Whether the globe is drawn now: the globe projection, zoomed out past
+   * the hand-over to the flat map, in a browser with WebGL. Without WebGL the
+   * flat map stands in, with the halo round it.
+   */
+  _globeActive(): boolean {
+    return !!this._globeView?.active()
+  }
+
+  /**
+   * Whether the camera moves over the ground rather than the pane sliding
+   * under it: tilted, or round the globe. Pans move the centre then.
+   */
+  _groundCamera(): boolean {
+    return !!this._pitch || this._globeActive()
+  }
+
+  /**
+   * Where the globe is: the centre of the view and the sphere's size. The
+   * centre is the flat map's, read without the globe's own maths, which ask
+   * for it.
+   */
+  _globeCamera(): GlobeCamera {
+    const size = this.getSize()
+    // The centre asked for, exactly, while the pane is where it was put;
+    // the pixel origin is rounded.
+    const center = this._lastCenter && !this._moved()
+      ? this._lastCenter
+      : this.layerPointToLatLng(size.divideBy(2).subtract(this._getMapPanePos()))
+    const zoom = this.getZoom()
+    return {
+      lat: center.lat,
+      lng: center.lng,
+      radius: globeRadius(this.options.crs!.scale(zoom), zoom, center.lat),
+      cx: size.x / 2,
+      cy: size.y / 2,
+      bearing: this._bearing ?? 0,
+    }
+  }
+
+  /** Start or stop drawing the globe, as the projection says. */
+  _syncGlobeView(): void {
+    const want = this._isGlobeProjection() && !!this._container
+    if (want && !this._globeView)
+      this._globeView = new GlobeView(this as any)
+    else if (!want && this._globeView) {
+      this._globeView.remove()
+      this._globeView = undefined
+    }
+  }
+
+  /**
    * Smoothstep for the atmosphere halo — `1` when fully spherical,
    * falling to `0` as we zoom past the Mercator transition.
    */
@@ -3994,9 +4097,11 @@ export class TsMap extends Evented {
     if (!container || typeof container.appendChild !== 'function')
       return
 
-    const hasSky = this._sky !== null && this._sky !== undefined
-    const hasFog = this._fog !== null && this._fog !== undefined
-    const globeMix = this._isGlobeProjection() ? this._globeAtmosphereMix() : 0
+    // The globe paints its own space and halo.
+    const globe = this._globeActive()
+    const hasSky = !globe && this._sky !== null && this._sky !== undefined
+    const hasFog = !globe && this._fog !== null && this._fog !== undefined
+    const globeMix = this._isGlobeProjection() && !globe ? this._globeAtmosphereMix() : 0
     const hasHalo = globeMix > 0
 
     // Where the horizon is on screen, in pixels from the top. Tilted steeply

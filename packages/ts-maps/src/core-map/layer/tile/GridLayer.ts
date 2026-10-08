@@ -624,6 +624,29 @@ export class GridLayer extends Layer {
     const pixelCenter = map.project(center, this._tileZoom as number).floor()
     const size = map.getSize()
 
+    // Round the globe, the ground the sphere shows: a grid of points over the
+    // view, each taken back onto the sphere — or its rim, past the edge of the
+    // disc. Never more than one world across.
+    if (map._globeActive?.()) {
+      const z = this._tileZoom as number
+      let min = new Point(Infinity, Infinity)
+      let max = new Point(-Infinity, -Infinity)
+      const steps = 8
+      for (let i = 0; i <= steps; i++) {
+        for (let j = 0; j <= steps; j++) {
+          const p: Point = map.project(map.containerPointToLatLng([size.x * i / steps, size.y * j / steps]), z)
+          min = new Point(Math.min(min.x, p.x), Math.min(min.y, p.y))
+          max = new Point(Math.max(max.x, p.x), Math.max(max.y, p.y))
+        }
+      }
+      const world = map.options.crs.scale(z)
+      if (max.x - min.x > world) {
+        min = new Point(pixelCenter.x - world / 2, min.y)
+        max = new Point(pixelCenter.x + world / 2, max.y)
+      }
+      return new Bounds(min, max)
+    }
+
     // Rotated or tilted, the view covers more ground than its own rectangle —
     // the corners of a rotated view reach past it, and the top of a tilted one
     // reaches far into the distance. Cover the ground the corners actually
@@ -688,7 +711,7 @@ export class GridLayer extends Layer {
       return
     }
 
-    if ((map._bearing || map._pitch) && map._groundOffset) {
+    if ((map._bearing || map._pitch) && map._groundOffset && !map._globeActive?.()) {
       this._updateCovering(center)
       return
     }
