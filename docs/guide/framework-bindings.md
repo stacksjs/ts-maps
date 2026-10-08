@@ -65,14 +65,27 @@ The basic components grew separately, and these differences are real today:
 
 | | React | Vue | Svelte | Solid | stx | React Native |
 |---|---|---|---|---|---|---|
-| Map style | `style` prop | `style` prop | none: call `setStyle` in a child | none: `style` is the container's CSS | `basemap` + `tilejson`, or `styleSpec` | `styleSpec` prop |
-| Container size | `containerStyle`, `className` | `containerStyle`, `containerClass`, `class` | fills its parent | `style`, `class` | `containerStyle`, `className` | `style` |
-| Map events | `onMoveEnd` props | `@moveend` | `useMapEvent` in a child | `useMapEvent` in a child | `onMapEvent(el, …)` | `onMove`, `onClick` |
-| Map instance | `useMap()`, `onLoad` | `useMap()`, `@load-map`, template ref | `useMap()` in a child | `useMap()` in a child | `findMap(el)` | `onReady(api)` |
-| Control options | plain props | `options` | `options` | plain props | `options` | `controls` array |
-| `<Marker>` | `position`, `options`, `onClick`, `onDragEnd` | `position`, `options`, `@click`, `@dragend` | `position`, `draggable`, `title` | `position`, `draggable`, `title` | `lat`, `lng`, `html`, … | `markers` array |
-| `<Source>` / `<Layer>` | spec objects: `source`, `layer` | spec objects: `source`, `layer` | flat props | flat props | flat props | — |
+| Map style | `style` prop, read once | `style` prop, read once | `style` prop, followed | `style` prop, followed | `basemap` + `tilejson`, or `styleSpec` | `styleSpec` prop |
+| Container | `containerStyle`, `className` | `containerStyle`, `containerClass`, `class` | fills its parent; `containerStyle`, `class` | `containerStyle`, `class` | `containerStyle`, `className` | `style` |
+| Map events | `onMoveEnd` props | `@moveend` | `onMoveEnd` props | `onMoveEnd` props | `onMapEvent(el, …)` | `onMove`, `onClick` |
+| Map instance | `useMap()`, `onLoad` | `useMap()`, `@load-map`, template ref | `useMap()`, `onLoad` | `useMap()`, `onLoad` | `findMap(el)` | `onReady(api)` |
+| Control options | plain props | `options` | plain props or `options` | plain props | `options` | `controls` array |
+| `<Marker>` | `position`, `options`, `onClick`, `onDragEnd` | `position`, `options`, `@click`, `@dragend` | the same as React, plus `draggable`, `title`, `bind:position` | the same as React, plus `draggable`, `title` | `lat`, `lng`, `html`, … | `markers` array |
+| `<Source>` / `<Layer>` | spec objects: `source`, `layer` | spec objects: `source`, `layer` | spec objects or flat props | spec objects or flat props | flat props | — |
 | `useMap()` outside a map | throws | throws | `null` | `null` | — | — |
+
+Every binding with a `useMap()` also has `useMapOptional()`, which returns
+`null` outside a map.
+
+The map events are the same set in React, Svelte and Solid, by the same
+names. Vue emits most of them, under the core's names. In each, `onLoad` (Vue:
+`@load-map`) hands over the map, the map's `load` event reaches a handler even
+when the map loaded before the handler was bound, and `style.load` is
+`onStyleLoad` (Vue: `@style-load`).
+
+`center`, `zoom`, `bearing` and `pitch` are followed everywhere. React and Vue
+call `setView` when the prop changes identity, so an inline array moves the
+camera back on every render; Svelte and Solid compare the values.
 
 The per-framework pages show each of these in use.
 
@@ -144,12 +157,13 @@ are the same in every binding; the framework pages show how to write them.
 
 Every control takes `position` (`'topleft'`, `'topright'`, `'bottomleft'` or
 `'bottomright'`) and `options`, an object of anything else the control
-accepts. React and Solid also take the control's options as plain props. The
+accepts. React, Svelte and Solid also take the control's options as plain
+props. The
 zoom, navigation, locate and fullscreen controls take `locale`.
 
-A control is built when it mounts. React rebuilds it when `position` or
-`locale` changes, Vue when `position`, `locale` or `options` changes, Svelte
-when `locale` changes, and Solid when any prop changes.
+A control is built when it mounts. React and Svelte rebuild it when
+`position` or `locale` changes, Vue when `position`, `locale` or `options`
+changes, and Solid when any prop changes.
 
 The map has a zoom control and an attribution control of its own. Only stx's
 `<Map>` can turn them off (`:zoomControl="false"`); elsewhere, call

@@ -84,8 +84,12 @@
     disconnect = target && to ? target.connect(to) : null
   }
 
+  // Read during initialisation: `getContext` is not available in onMount
+  // under Svelte 4, nor in onDestroy under Svelte 5.
+  const contextMap = useMap()
+
   onMount(() => {
-    map = useMap()
+    map = contextMap
   })
 
   $: if (map) build(venue, minZoom, language, locale)

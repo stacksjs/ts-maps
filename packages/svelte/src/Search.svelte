@@ -61,8 +61,12 @@
     onResults, onSelect, onDetails, onDirections, onSave, onUnsave, onClear,
   } as Record<string, ((e: any) => void) | undefined>)[prop]
 
+  // Read during initialisation: `getContext` is not available in onMount
+  // under Svelte 4, nor in onDestroy under Svelte 5.
+  const contextMap = useMap()
+
   onMount(() => {
-    const map = useMap()
+    const map = contextMap
     if (!map) return
     search = new SearchControl({ position, placeholder, provider, offline, categories, recents, units, location, turnByTurn, origin, lookAround, language, locale, details, shareUrl, saved, showSaved })
     search.addTo(map)

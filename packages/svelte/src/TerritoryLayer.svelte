@@ -28,8 +28,12 @@
   // it in onDestroy throws — which left the layer attached to a dead map.
   let attachedTo: any = null
 
+  // Read during initialisation: `getContext` is not available in onMount
+  // under Svelte 4, nor in onDestroy under Svelte 5.
+  const contextMap = useMap()
+
   onMount(() => {
-    const map = useMap()
+    const map = contextMap
     if (!map) return
     attachedTo = map
     layer = new TsTerritoryLayer({

@@ -7,6 +7,9 @@
    * the named components (`NavigationControl`, `GeocoderControl`, …) are
    * one-line wrappers around it. Nothing is forked per control.
    *
+   * A control's own options can be props, as in React and Solid
+   * (`<NavigationControl showCompass={false} />`), or go in `options`.
+   *
    * `LayersControl` is deliberately absent: it takes dictionaries of live
    * layer instances, which is imperative by nature. Use `useMap()` and
    * `control.layers(...)` for that one.
@@ -32,18 +35,24 @@
   /** The language of its titles. Default the map's `locale`, else the browser's. */
   export let locale: string | undefined = undefined
 
-  let map: ReturnType<typeof useMap> = null
+  // Read during initialisation: `getContext` is not available in onMount
+  // under Svelte 4, nor in onDestroy under Svelte 5.
+  const map = useMap()
+  let mounted = false
   let instance: { remove?: () => unknown } | null = null
 
-  // Made again for a new `locale`: a control writes its titles when it is built.
-  function build(lang: string | undefined): void {
+  // Made again for a new `position` or `locale`, as in React: moving a control
+  // is making it again, and a control writes its titles when it is built.
+  // Its other options, as props or in `options`, are read then.
+  function build(at: typeof position, lang: string | undefined): void {
     instance?.remove?.()
     instance = null
     const factory = (control as unknown as Record<string, (o?: unknown) => any>)[type]
     if (!map || typeof factory !== 'function') return
 
     instance = factory({
-      ...(position ? { position } : {}),
+      ...$$restProps,
+      ...(at ? { position: at } : {}),
       ...(lang ? { locale: lang } : {}),
       ...options,
     })
@@ -51,10 +60,10 @@
   }
 
   onMount(() => {
-    map = useMap()
+    mounted = true
   })
 
-  $: if (map) build(locale)
+  $: if (mounted) build(position, locale)
 
   onDestroy(() => {
     instance?.remove?.()

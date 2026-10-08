@@ -17,6 +17,6 @@
   }
 
   onMount(() => {
-    onmap(useMap())
+    onmap(map)
   })
 </script>

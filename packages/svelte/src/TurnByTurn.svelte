@@ -51,8 +51,12 @@
     onPreview, onRouteSelect, onStart, onProgress, onInstruction, onReroute, onArrive, onEnd, onError,
   } as Record<string, ((e: any) => void) | undefined>)[prop]
 
+  // Read during initialisation: `getContext` is not available in onMount
+  // under Svelte 4, nor in onDestroy under Svelte 5.
+  const contextMap = useMap()
+
   onMount(() => {
-    const map = useMap()
+    const map = contextMap
     if (!map) return
     nav = new TsTurnByTurn(map, { profile, units, voice, simulate, alternatives, destinationName, directions, locale })
     for (const [event, prop] of Object.entries(TURN_BY_TURN_EVENTS))

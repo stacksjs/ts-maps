@@ -1,12 +1,14 @@
-export { MapContext, useMap } from './context'
-export { Map } from './Map'
-export { Marker } from './Marker'
-export { Popup } from './Popup'
-export { TileLayer } from './TileLayer'
-export { Source } from './Source'
-export { Layer } from './Layer'
+export { MapContext, useMap, useMapOptional } from './context'
+export { type MapEventProps } from './eventProps'
+export { Map, type MapProps } from './Map'
+export { Marker, type MarkerProps } from './Marker'
+export { Popup, type PopupProps } from './Popup'
+export { TileLayer, type TileLayerProps } from './TileLayer'
+export { Source, type SourceProps } from './Source'
+export { Layer, type LayerProps } from './Layer'
 export {
   AttributionControl,
+  type AttributionControlProps,
   type ControlPosition,
   type ControlProps,
   FullscreenControl,
@@ -18,11 +20,11 @@ export {
   NavigationControl,
   type NavigationControlProps,
   ScaleControl,
+  type ScaleControlProps,
   ZoomControl,
   type ZoomControlProps,
 } from './controls'
 export { type MapEventHandler, useMapEvent } from './useMapEvent'
-export type { MapProps } from './Map'
 export type { RunTrailLayerProps, TerritoryLayerProps } from './TerritoryLayer'
 export { RunTrailLayer, TerritoryLayer } from './TerritoryLayer'
 export { OfflineMaps, type OfflineMapsProps } from './OfflineMaps'

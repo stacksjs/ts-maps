@@ -50,8 +50,12 @@
     onChange, onProgress, onComplete, onError, onDelete, onModeChange, onOpenChange,
   } as Record<string, ((e: any) => void) | undefined>)[prop]
 
+  // Read during initialisation: `getContext` is not available in onMount
+  // under Svelte 4, nor in onDestroy under Svelte 5.
+  const contextMap = useMap()
+
   onMount(() => {
-    const map = useMap()
+    const map = contextMap
     if (!map) return
     offline = new OfflineMapsControl({ position, maps, geocoder, resources, showStatus, title, locale })
     offline.addTo(map)

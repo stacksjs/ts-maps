@@ -54,8 +54,12 @@
     onReady?.(trees)
   }
 
+  // Read during initialisation: `getContext` is not available in onMount
+  // under Svelte 4, nor in onDestroy under Svelte 5.
+  const contextMap = useMap()
+
   onMount(() => {
-    map = useMap()
+    map = contextMap
   })
 
   $: if (map) follow({ spacing, maxPerTile, minZoom, minPitch, colors, height, match })

@@ -36,42 +36,32 @@ import '@ts-maps/svelte/styles.css'
 
 ## A first map
 
-Svelte's `<Map>` has no `style` prop. Set the style from a child component,
-which can reach the map:
-
 ```svelte
-<!-- Basemap.svelte -->
-<script lang="ts">
-  import { useMap } from '@ts-maps/svelte'
-  import { styles } from 'ts-maps'
-
-  useMap()?.setStyle(styles.light({ url: 'https://tiles.openfreemap.org/planet' }))
-</script>
-```
-
-```svelte
-<!-- App.svelte -->
 <script lang="ts">
   import { Map } from '@ts-maps/svelte'
-  import Basemap from './Basemap.svelte'
+  import { styles } from 'ts-maps'
   import '@ts-maps/svelte/styles.css'
+
+  const basemap = styles.light({ url: 'https://tiles.openfreemap.org/planet' })
 </script>
 
 <div style="height: 480px">
-  <Map center={[40.758, -73.9855]} zoom={13}>
-    <Basemap />
-  </Map>
+  <Map center={[40.758, -73.9855]} zoom={13} style={basemap} />
 </div>
 ```
 
 That draws [OpenFreeMap](https://openfreemap.org)'s planet, free and keyless.
+The examples below reuse `basemap`.
 
 - `center` is `[lat, lng]`.
-- The map's container fills its parent, so give the parent a height. `<Map>`
-  takes no class or style of its own.
-- `center`, `zoom`, `bearing` and `pitch` are read when the map is built.
-  Move the camera later with `map.setView()` or `map.flyTo()`. `locale` is
-  followed.
+- `style` is the map's style: a style object, or the URL of one. A new one is
+  set with `map.setStyle()`.
+- The map's container fills its parent, so give the parent a height.
+  `containerStyle` adds CSS to the container, and `class` a class.
+
+`center`, `zoom`, `bearing`, `pitch` and `locale` are followed as they change.
+A prop is passed on when its value changes: a parent that updates with the
+same `center` does not undo a pan.
 
 Children of `<Map>` are created once the map exists, so `useMap()` in a
 child's script returns it.
@@ -81,63 +71,76 @@ child's script returns it.
 ```svelte
 <script lang="ts">
   import { Map, Marker, Popup } from '@ts-maps/svelte'
-  import Basemap from './Basemap.svelte'
 
-  const timesSquare: [number, number] = [40.758, -73.9855]
+  let timesSquare: [number, number] = [40.758, -73.9855]
 </script>
 
 <div style="height: 480px">
-  <Map center={timesSquare} zoom={14}>
-    <Basemap />
-    <Marker position={timesSquare} title="Times Square" draggable />
-    <Popup position={timesSquare} content="Times Square" />
+  <Map center={timesSquare} zoom={14} style={basemap}>
+    <Marker
+      bind:position={timesSquare}
+      draggable
+      title="Times Square"
+      onDragEnd={e => console.log(e.target.getLatLng())}
+    />
+    <Popup position={timesSquare} content="Times Square" options={{ offset: [0, -27] }} />
   </Map>
 </div>
 ```
 
-`<Marker>` takes `position`, `draggable` and `title`. `<Popup>` takes
-`position` and `content`, an HTML string, and opens when it is created. Both
-are read once: a new `position` does not move them. Svelte's marker has no
-events and no custom icon, and a popup is not tied to a marker. For those,
-use the core `Marker` from a child component:
+`<Marker>` takes `position`, `options` (anything the core `Marker` takes:
+`icon`, `title`, `draggable`, `opacity`, …), `onClick` and `onDragEnd`.
+`draggable` and `title` are short for those options. A new `position` moves
+the marker, and with `bind:position` a drag writes the new place back.
+
+`<Popup>` takes `position`, `content`, an HTML string, and `options`. It opens
+when it is created. A new `position` or `content` is followed. A popup is not
+tied to a marker, so open one from a click:
 
 ```svelte
-<!-- Pin.svelte -->
 <script lang="ts">
-  import { onDestroy } from 'svelte'
-  import { useMap } from '@ts-maps/svelte'
-  import { divIcon, marker } from 'ts-maps'
-
-  export let position: [number, number]
-  export let label: string
-
-  const map = useMap()
-  const pin = marker(position, { icon: divIcon({ html: '<span class="pin"></span>', iconSize: [24, 24], iconAnchor: [12, 24] }) })
-    .bindPopup(label)
-  if (map)
-    pin.addTo(map)
-  onDestroy(() => pin.remove())
+  let open = false
 </script>
+
+<Map center={timesSquare} zoom={14} style={basemap} onPopupClose={() => (open = false)}>
+  <Marker position={timesSquare} onClick={() => (open = true)} />
+  {#if open}
+    <Popup position={timesSquare} content="<b>Times Square</b>" options={{ offset: [0, -27] }} />
+  {/if}
+</Map>
 ```
+
+For your own pin, give the marker a `divIcon`:
+
+```svelte
+<script lang="ts">
+  import { divIcon } from 'ts-maps'
+
+  const pin = divIcon({ html: '<span class="pin"></span>', iconSize: [24, 24], iconAnchor: [12, 24] })
+</script>
+
+<Marker position={timesSquare} options={{ icon: pin }} />
+```
+
+`options` is read when the marker is made.
 
 ## Your own data
 
-`<Source>` adds a style-spec source and `<Layer>` a layer that draws it.
-Their props are the spec's fields:
+`<Source>` adds a style-spec source and `<Layer>` a layer that draws it. Give
+the spec as one object, as in React and Vue, or its fields as props:
 
-- `Source`: `id`, `type`, `tiles`, `tileSize`, `data`.
-- `Layer`: `id`, `type`, `source`, `sourceLayer`, `paint`, `layout`,
-  `filter`.
+- `Source`: `id`, and `source`, the spec; or `type`, `url`, `tiles`,
+  `tileSize`, `data`. `url` is a TileJSON.
+- `Layer`: `layer`, the spec; or `id`, `type`, `source`, `sourceLayer`,
+  `paint`, `layout`, `filter`. Either way, `before` is the id of a layer to
+  put it under.
 
-Both are read once.
-
-They can go straight inside `<Map>`, after `<Basemap />`: added while the
+Both are read once. They can go straight inside `<Map>`: added while the
 basemap is still loading, they are kept and put on it when it arrives.
 
 ```svelte
 <script lang="ts">
   import { Layer, Map, Source } from '@ts-maps/svelte'
-  import Basemap from './Basemap.svelte'
 
   const stations = {
     type: 'FeatureCollection',
@@ -149,19 +152,26 @@ basemap is still loading, they are kept and put on it when it arrives.
 </script>
 
 <div style="height: 480px">
-  <Map center={[40.754, -73.982]} zoom={14}>
-    <Basemap />
-    <Source id="stations" type="geojson" data={stations} />
-    <Layer id="stations" type="circle" source="stations" paint={{ 'circle-radius': 7, 'circle-color': '#e11d48' }} />
+  <Map center={[40.754, -73.982]} zoom={14} style={basemap}>
+    <Source id="stations" source={{ type: 'geojson', data: stations }} />
+    <Layer layer={{ id: 'stations', type: 'circle', source: 'stations', paint: { 'circle-radius': 7, 'circle-color': '#e11d48' } }} />
   </Map>
 </div>
+```
+
+The same with fields:
+
+```svelte
+<Source id="stations" type="geojson" data={stations} />
+<Layer id="stations" type="circle" source="stations" paint={{ 'circle-radius': 7, 'circle-color': '#e11d48' }} />
 ```
 
 GeoJSON coordinates are `[lng, lat]`, as GeoJSON has them. To change a
 source's data, call `map.setSourceData('stations', next)`.
 
-`<TileLayer>` adds raster tiles. It takes `url`, `attribution`, `subdomains`,
-`tileSize`, `minZoom` and `maxZoom`, read once:
+`<TileLayer>` adds raster tiles. It takes `url`, `options`, and
+`attribution`, `subdomains`, `tileSize`, `minZoom` and `maxZoom` as props. A
+new `url` swaps the tiles; the rest are read once:
 
 ```svelte
 <script lang="ts">
@@ -169,7 +179,7 @@ source's data, call `map.setSourceData('stations', next)`.
   import { styles } from 'ts-maps'
 </script>
 
-<TileLayer url={styles.ESRI_WORLD_IMAGERY} attribution={styles.ESRI_WORLD_IMAGERY_ATTRIBUTION} />
+<TileLayer url={styles.ESRI_WORLD_IMAGERY} options={{ attribution: styles.ESRI_WORLD_IMAGERY_ATTRIBUTION, opacity: 0.6 }} />
 ```
 
 ## Controls
@@ -177,27 +187,26 @@ source's data, call `map.setSourceData('stations', next)`.
 ```svelte
 <script lang="ts">
   import { FullscreenControl, GeocoderControl, LocateControl, Map, ScaleControl } from '@ts-maps/svelte'
-  import Basemap from './Basemap.svelte'
 </script>
 
 <div style="height: 480px">
-  <Map center={[40.758, -73.9855]} zoom={13}>
-    <Basemap />
-    <GeocoderControl options={{ placeholder: 'Search for a place' }} />
+  <Map center={[40.758, -73.9855]} zoom={13} style={basemap}>
+    <GeocoderControl placeholder="Search for a place" />
     <FullscreenControl position="topright" />
-    <LocateControl position="topright" options={{ follow: true }} />
-    <ScaleControl position="bottomleft" options={{ imperial: false }} />
+    <LocateControl position="topright" follow />
+    <ScaleControl position="bottomleft" imperial={false} />
   </Map>
 </div>
 ```
 
-A control takes `position` and `options`; its own options, such as
-`showCompass` or `placeholder`, go in `options`. `ZoomControl`,
-`NavigationControl`, `FullscreenControl` and `LocateControl` also take
-`locale`. The control is built again when `locale` changes; `position` and
-`options` are read once. `<MapControl type="scale" />` builds any of them by
-name. See [Controls](../concepts/controls.md) for the options. The map has a
-zoom control of its own; with `<NavigationControl>` you may want
+A control takes `position`, `options`, and its own options as plain props,
+the same ones as in React: `showCompass`, `placeholder`, `imperial` and so
+on. `ZoomControl`, `NavigationControl`, `FullscreenControl` and
+`LocateControl` also take `locale`. A control is built again when `position`
+or `locale` changes; the other props are read once.
+`<MapControl type="scale" />` builds any of them by name. See
+[Controls](../concepts/controls.md) for the options. The map has a zoom
+control of its own; with `<NavigationControl>` you may want
 `map.zoomControl.remove()`.
 
 ## Apple Maps-style components
@@ -221,15 +230,13 @@ can change itself is bindable:
 <script lang="ts">
   import type { TurnByTurn as Navigation } from 'ts-maps'
   import { Map, Search, TurnByTurn } from '@ts-maps/svelte'
-  import Basemap from './Basemap.svelte'
 
   let nav: Navigation | undefined
   let chosen = ''
 </script>
 
 <div style="height: 600px">
-  <Map center={[37.7955, -122.3937]} zoom={15}>
-    <Basemap />
+  <Map center={[37.7955, -122.3937]} zoom={15} style={basemap}>
     <TurnByTurn onReady={n => (nav = n)} />
     <Search turnByTurn={nav} onSelect={e => (chosen = e.place.name)} />
   </Map>
@@ -316,8 +323,7 @@ To navigate without search, set `from`, `to` and `active`:
 ### Landmarks and trees
 
 ```svelte
-<Map center={[37.7952, -122.4028]} zoom={17} pitch={60}>
-  <Basemap />
+<Map center={[37.7952, -122.4028]} zoom={17} pitch={60} style={basemap}>
   <Landmark model="/models/transamerica.glb" position={[37.7952, -122.4028]} rotation={45} />
   <Trees spacing={12} />
 </Map>
@@ -334,9 +340,38 @@ To navigate without search, set `from`, `to` and `active`:
 
 ## Map events
 
-`<Map>` has no event props. Subscribe from a child with `useMapEvent`, which
-takes the core event name and unsubscribes when the component is destroyed.
-Call it in the component's script, not in `onMount`:
+`<Map>` takes an `on` prop for each map event, the core name in PascalCase,
+as in React: `onClick`, `onDblClick`, `onContextMenu`, `onMouseMove`,
+`onMove`, `onMoveStart`, `onMoveEnd`, `onZoom`, `onZoomStart`, `onZoomEnd`,
+`onDrag`, `onDragStart`, `onDragEnd`, `onResize`, `onPopupOpen`,
+`onPopupClose`, `onLocationFound`, `onLocationError`, and the rest of the
+core's mouse, layer and tooltip events.
+
+```svelte
+<Map
+  center={[40.758, -73.9855]}
+  zoom={13}
+  style={basemap}
+  onClick={e => console.log(e.latlng)}
+  onMoveEnd={e => console.log(e.target.getCenter())}
+/>
+```
+
+Three names differ from the pattern:
+
+- `onLoad` is not the map's `load` event. It is called once with the `TsMap`,
+  right after the map is built.
+- `onLoadEvent` is the map's `load` event. A map that loaded while it was
+  being built calls it once, just after the prop is bound.
+- `onStyleLoad` is `style.load`, called each time a style is in place.
+  `onStyleDataLoading` listens for `styledataloading`, which the map does not
+  fire.
+
+A handler is read when the event fires, so a new one takes over.
+
+Inside the map, `useMapEvent` subscribes to any event, by its core name, and
+unsubscribes when the component is destroyed. Call it in the component's
+script, not in `onMount`:
 
 ```svelte
 <!-- CameraLog.svelte -->
@@ -345,48 +380,32 @@ Call it in the component's script, not in `onMount`:
 
   const map = useMap()
   useMapEvent('moveend', () => console.log(map?.getCenter(), map?.getZoom()))
-  useMapEvent('click', e => console.log(e.latlng))
+  useMapEvent('style.load', () => console.log('the style is in'))
 </script>
 ```
 
 ## Reaching the map
 
-`useMap()` returns the `TsMap`, or `null` outside a `<Map>`. The map lives on
-the context, so only a child of `<Map>` can read it. To hand it to the page,
-pass it up:
-
-```svelte
-<!-- MapHandle.svelte -->
-<script lang="ts">
-  import type { TsMap } from 'ts-maps'
-  import { useMap } from '@ts-maps/svelte'
-
-  export let onmap: (map: TsMap) => void
-
-  const map = useMap()
-  if (map)
-    onmap(map)
-</script>
-```
+`onLoad` hands the `TsMap` to the component that renders `<Map>`:
 
 ```svelte
 <script lang="ts">
   import type { TsMap } from 'ts-maps'
   import { Map } from '@ts-maps/svelte'
-  import Basemap from './Basemap.svelte'
-  import MapHandle from './MapHandle.svelte'
 
   let map: TsMap | undefined
 </script>
 
 <div style="height: 480px">
-  <Map center={[40.758, -73.9855]} zoom={13}>
-    <Basemap />
-    <MapHandle onmap={m => (map = m)} />
-  </Map>
+  <Map center={[40.758, -73.9855]} zoom={13} style={basemap} onLoad={m => (map = m)} />
 </div>
 <button on:click={() => map?.flyTo([51.5072, -0.1276], 12)}>London</button>
 ```
+
+Inside the map, `useMap()` returns the `TsMap`, or `null` outside a `<Map>`.
+`useMapOptional()` is the same, named as in React and Vue, where `useMap()`
+throws outside a map. Call either in a component's script: they read Svelte's
+context, which is not there in `onMount` or `onDestroy`.
 
 `MAP_CONTEXT_KEY` is the context key, if you need the context itself.
 
@@ -399,13 +418,13 @@ empty container and none of its children.
 
 | Component | Props |
 |---|---|
-| `Map` | `center`, `zoom`, `bearing`, `pitch`, `locale` |
-| `Marker` | `position`, `draggable`, `title` |
-| `Popup` | `position`, `content` |
-| `TileLayer` | `url`, `attribution`, `subdomains`, `tileSize`, `minZoom`, `maxZoom` |
-| `Source` | `id`, `type`, `tiles`, `tileSize`, `data` |
-| `Layer` | `id`, `type`, `source`, `sourceLayer`, `paint`, `layout`, `filter` |
-| Controls | `position`, `options`, and `locale` on zoom, navigation, fullscreen and locate |
-| `MapControl` | `type`, `position`, `options`, `locale` |
+| `Map` | `center`, `zoom`, `bearing`, `pitch`, `style`, `locale`, `containerStyle`, `class`, `onLoad`, and the event props |
+| `Marker` | `position`, `options`, `draggable`, `title`, `onClick`, `onDragEnd` |
+| `Popup` | `position`, `content`, `options` |
+| `TileLayer` | `url`, `options`, `attribution`, `subdomains`, `tileSize`, `minZoom`, `maxZoom` |
+| `Source` | `id`, `source`, or `type`, `url`, `tiles`, `tileSize`, `data` |
+| `Layer` | `layer`, or `id`, `type`, `source`, `sourceLayer`, `paint`, `layout`, `filter`; and `before` |
+| Controls | `position`, `options`, the control's own options, and `locale` on zoom, navigation, fullscreen and locate |
+| `MapControl` | `type`, `position`, `options`, `locale`, the control's own options |
 
-Functions: `useMap`, `useMapEvent`.
+Functions: `useMap`, `useMapOptional`, `useMapEvent`.
