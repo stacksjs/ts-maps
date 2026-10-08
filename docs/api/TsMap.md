@@ -143,6 +143,7 @@ The root class. An instance owns one DOM container, one camera, one style docume
 | `click` / `contextmenu` / `mousemove` / `mouseover` / `mouseout` | `{ latlng, containerPoint, layerPoint, features? }` | Pointer events (add a layer id as middle arg to scope). |
 | `resize` | — | Container size changed. |
 | `styledata` | — | `setStyle` / `addSource` / `addStyleLayer` / etc. |
+| `style.load` | — | Once per `setStyle`, when the style is in — after its TileJSON sources are read. |
 | `fogchange` | `{ fog }` | `setFog()` called. |
 | `skychange` | `{ sky }` | `setSky()` called. |
 | `terrainchange` | `{ terrain }` | `setTerrain()` called (including `null`). |

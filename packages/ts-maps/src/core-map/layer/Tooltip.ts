@@ -127,6 +127,19 @@ Tooltip.setDefaultOptions( {
   opacity: 0.9,
 })
 
+declare module './Layer' {
+  interface Layer {
+    bindTooltip: (content: Tooltip | string | HTMLElement, options?: Record<string, unknown>) => this
+    unbindTooltip: () => this
+    openTooltip: (latlng?: unknown) => this
+    closeTooltip: () => this
+    toggleTooltip: () => this
+    isTooltipOpen: () => boolean
+    setTooltipContent: (content: string | HTMLElement) => this
+    getTooltip: () => Tooltip | undefined
+  }
+}
+
 TsMap.include( {
   openTooltip(this: any, tooltip: any, latlng?: any, options?: any) {
     this._initOverlay(Tooltip, tooltip, latlng, options).openOn(this)

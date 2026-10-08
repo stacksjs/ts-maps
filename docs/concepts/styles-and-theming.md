@@ -41,15 +41,21 @@ the two cannot drift apart as the style grows.
 
 The presets default to the **OpenMapTiles** schema, which is what the public
 services publish. A keyless option is [OpenFreeMap](https://openfreemap.org),
-whose current tile URL is published through a TileJSON:
+whose current tile URL is published through a TileJSON. `url` names it, as a
+Mapbox or MapLibre style names a source's:
 
 ```ts
-const tilejson = await fetch('https://tiles.openfreemap.org/planet').then(r => r.json())
-map.setStyle(styles.dark({
-  tiles: tilejson.tiles[0],
-  attribution: '© OpenFreeMap © OpenStreetMap',
-}))
+map.setStyle(styles.dark({ url: 'https://tiles.openfreemap.org/planet' }))
+
+map.on('style.load', () => {
+  // The style is in: add your own sources and layers.
+})
 ```
+
+The map reads the TileJSON when the style is set, and takes the tiles, zoom
+range and attribution from it; what the source says itself wins. Any style
+whose sources have a `url` loads the same way, and `style.load` fires once
+they have all been read.
 
 Check the attribution each service requires — it is a licence condition, not a
 courtesy, and `AttributionControl` renders it for you.

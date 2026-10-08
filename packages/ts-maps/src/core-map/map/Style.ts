@@ -82,10 +82,15 @@ export class Style {
     layout: Record<string, unknown>
   } {
     const l = layer as any
+    // A geojson source publishes its features under its own id, and a layer
+    // over one names no `source-layer` (the spec has none for it): left
+    // undefined, the renderer looked for a tile layer called "undefined" and
+    // drew nothing.
+    const geojson = (this.spec.sources?.[l.source] as { type?: string } | undefined)?.type === 'geojson'
     return {
       id: l.id,
       type: l.type,
-      sourceLayer: l['source-layer'] ?? l.sourceLayer,
+      sourceLayer: l['source-layer'] ?? l.sourceLayer ?? (geojson ? l.source : undefined),
       minzoom: l.minzoom,
       maxzoom: l.maxzoom,
       filter: l.filter,

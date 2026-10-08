@@ -104,7 +104,11 @@ export class GridLayer extends Layer {
   redraw(): this {
     if (this._map) {
       this._removeAllTiles()
-      const tileZoom = this._clampZoom(this._map.getZoom())
+      // A whole tile level, as `_setView` chooses one. The map zooms in
+      // fractions, and an unrounded zoom asked for tiles at level 13.5, which
+      // no tile pyramid has: a source redrawn mid-zoom (new data, a layer
+      // added to it) went blank until the next zoom.
+      const tileZoom = this._tileZoomFor(this._map.getZoom())
       if (tileZoom !== this._tileZoom) {
         this._tileZoom = tileZoom
         this._updateLevels()
@@ -387,17 +391,18 @@ export class GridLayer extends Layer {
     return zoom
   }
 
+  /** The tile level for a map zoom: the nearest whole one, clamped, or none outside the layer's range. */
+  _tileZoomFor(zoom: number): number | undefined {
+    const tileZoom = Math.round(zoom)
+    if ((this.options!.maxZoom !== undefined && tileZoom > this.options!.maxZoom)
+      || (this.options!.minZoom !== undefined && tileZoom < this.options!.minZoom)) {
+      return undefined
+    }
+    return this._clampZoom(tileZoom)
+  }
+
   _setView(center: any, zoom: number, noPrune?: boolean, noUpdate?: boolean): void {
-    let tileZoom: number | undefined = Math.round(zoom)
-    if (
-    (this.options!.maxZoom !== undefined && tileZoom > this.options!.maxZoom)
-    || (this.options!.minZoom !== undefined && tileZoom < this.options!.minZoom)
-    ) {
-      tileZoom = undefined
-    }
-    else {
-      tileZoom = this._clampZoom(tileZoom)
-    }
+    const tileZoom = this._tileZoomFor(zoom)
 
     const tileZoomChanged = this.options!.updateWhenZooming && (tileZoom !== this._tileZoom)
 

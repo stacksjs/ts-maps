@@ -2445,6 +2445,7 @@ export class TsMap extends Evented {
         this._style.spec.metadata = style.metadata
         this._syncStyleBackground()
         this.fire('styledata')
+        this.fire('style.load')
         return this
       }
       // Fall through to full reset.
@@ -2471,6 +2472,10 @@ export class TsMap extends Evented {
     this._initGlyphSource()
     this._syncStyleBackground()
     this.fire('styledata')
+    // A whole style is in place, as Mapbox and MapLibre say it: the moment to
+    // add sources and layers of the page's own, after a style set by URL or
+    // with TileJSON sources has arrived.
+    this.fire('style.load')
     return this
   }
 
@@ -2978,8 +2983,20 @@ export class TsMap extends Evented {
     this._style.layerSpecs.set(layer.id, layer)
     // Repaint the source host so the new layer takes effect.
     if ((layer as any).source) {
-      const host = this._style.sourceLayers.get((layer as any).source)
-      if (typeof (host as any)?.setStyleLayers === 'function') {
+      const sourceId = (layer as any).source as string
+      const host = this._style.sourceLayers.get(sourceId)
+      const spec = this._style.spec.sources[sourceId] as SourceSpecification | undefined
+      // A source with nothing drawing it yet (a `raster-dem` added for
+      // terrain, then given a `hillshade`) gets its host now, as `setStyle`
+      // would have made it with the layer already there.
+      if (!host && spec) {
+        const made = this._makeSourceLayer(sourceId, spec)
+        if (made) {
+          this._installFeatureStateLookup(sourceId, made);
+          (this as any).addLayer(made as any)
+        }
+      }
+      else if (typeof (host as any)?.setStyleLayers === 'function') {
         // Rebuild its style-layer list.
         const next = layers
           .filter(l => l.type !== 'background' && l.type !== 'raster' && (l as any).source === (layer as any).source)

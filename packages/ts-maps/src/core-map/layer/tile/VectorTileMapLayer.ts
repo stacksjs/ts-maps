@@ -812,10 +812,12 @@ export class VectorTileMapLayer extends GridLayer {
 
     const localSource = this.options!.localSource
     if (localSource) {
-      // Local tiles are built in memory, so this stays synchronous — but
-      // `done` is still called the same way, keeping GridLayer's bookkeeping
-      // identical for both kinds of source.
-      this._drawLocalTile(localSource, canvas, entry, coords, done)
+      // Local tiles are built in memory, synchronously, but `done` waits for
+      // a microtask: GridLayer registers the tile only once `createTile`
+      // returns, and a tile reported ready before then was never marked
+      // loaded, so it stayed `visibility: hidden`. Every geojson style source
+      // drew its tiles and showed none of them.
+      this._drawLocalTile(localSource, canvas, entry, coords, (err, tile) => queueMicrotask(() => done(err, tile)))
       return canvas
     }
 
@@ -1640,9 +1642,15 @@ export class VectorTileMapLayer extends GridLayer {
     coords: Point & { z: number },
     done: (err: any, tile: HTMLElement) => void,
   ): void {
+    // Asked in the source's own tile numbers, as a remote tile's URL is: the
+    // grid runs a level behind them for 512px tiles, and past the source's
+    // top zoom the grid tile is a quarter of a source tile, which `_drawTile`
+    // cuts out. Asked in grid numbers, a 512px geojson source answered for
+    // the wrong square of the world and its features drew nowhere.
+    const sub = this._subTile(coords)
     let tile: DecodedTile | null
     try {
-      tile = source.getTile(coords.z, coords.x, coords.y) as DecodedTile | null
+      tile = source.getTile(this._getZoomForUrl(sub.z), sub.x, sub.y) as DecodedTile | null
     }
     catch (err) {
       done(err, canvas)

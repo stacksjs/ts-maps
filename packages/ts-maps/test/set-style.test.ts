@@ -42,6 +42,20 @@ describe('map.setStyle', () => {
     expect(count).toBeGreaterThanOrEqual(1)
   })
 
+  test('fires style.load once the style is in, each time it changes', () => {
+    const map = makeMap()
+    const seen: string[] = []
+    map.on('styledata', () => seen.push('styledata'))
+    map.on('style.load', () => seen.push('style.load'))
+    map.setStyle(minimalStyle)
+    // Again, with a change: the diff path.
+    map.setStyle({ ...minimalStyle, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#fff' } }] } as StyleSpec)
+    // Once for each, after the style's own styledata.
+    expect(seen.filter(e => e === 'style.load').length).toBe(2)
+    expect(seen.at(-1)).toBe('style.load')
+    expect(seen.slice(0, 2)).toEqual(['styledata', 'style.load'])
+  })
+
   test('rejects an invalid style when validate=true', () => {
     const map = makeMap()
     expect(() => map.setStyle({ version: 7 } as any)).toThrow()
@@ -147,5 +161,51 @@ describe('map.setPaintProperty / setLayoutProperty / setFilter', () => {
     map.setFilter('osm-bg', ['==', ['get', 'k'], 'v'])
     const style = map.getStyle()!
     expect((style.layers[0] as any).filter).toEqual(['==', ['get', 'k'], 'v'])
+  })
+})
+
+describe('geojson sources added after the style', () => {
+  test('draw at a fractional zoom, from whole tile levels, under the source\'s own layer', () => {
+    const map = makeMap({ center: [40.76, -73.98], zoom: 13.5 })
+    map.setStyle({ version: 8, sources: {}, layers: [] } as unknown as StyleSpec)
+    map.addSource('area', {
+      type: 'geojson',
+      data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[-73.99, 40.75], [-73.97, 40.75], [-73.97, 40.77], [-73.99, 40.75]]] } },
+    } as any)
+    map.addStyleLayer({ id: 'area', type: 'fill', source: 'area', paint: { 'fill-color': '#4f46e5' } } as any)
+    const host = (map as any)._geoJSONSources.area.layer
+    const entries = [...host._decodedTiles.values()] as Array<{ coords: { z: number }, tile: unknown }>
+    expect(entries.length).toBeGreaterThan(0)
+    expect(entries.every(e => Number.isInteger(e.coords.z))).toBe(true)
+    // The polygon is in view, so some tile has it, under the layer the
+    // style layer draws from: the source's own id.
+    expect(entries.some(e => e.tile)).toBe(true)
+    expect(host._styleLayers.map((l: { sourceLayer: string }) => l.sourceLayer)).toEqual(['area'])
+  })
+
+  test('their tiles are marked loaded, so they show', async () => {
+    const map = makeMap({ center: [40.76, -73.98], zoom: 14 })
+    map.setStyle({ version: 8, sources: {}, layers: [] } as unknown as StyleSpec)
+    map.addSource('area', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [-73.98, 40.76] } } } as any)
+    map.addStyleLayer({ id: 'area', type: 'circle', source: 'area', paint: { 'circle-radius': 6 } } as any)
+    await Promise.resolve()
+    const host = (map as any)._geoJSONSources.area.layer
+    const tiles = Object.values(host._tiles) as Array<{ el: HTMLElement }>
+    expect(tiles.length).toBeGreaterThan(0)
+    // A tile left without this is `visibility: hidden` in ts-maps.css.
+    expect(tiles.every(t => t.el.classList.contains('tsmap-tile-loaded'))).toBe(true)
+  })
+})
+
+describe('a source given its first drawing layer later', () => {
+  test('a raster-dem added for terrain gets a hillshade when one is added', () => {
+    const map = makeMap({ center: [45.97, 7.65], zoom: 11 })
+    map.setStyle({ version: 8, sources: {}, layers: [] } as unknown as StyleSpec)
+    map.addSource('dem', { type: 'raster-dem', tiles: ['https://dem.test/{z}/{x}/{y}.png'], tileSize: 256, encoding: 'terrarium' } as any)
+    expect((map as any)._style.sourceLayers.get('dem')).toBeUndefined()
+    map.addStyleLayer({ id: 'hillshade', type: 'hillshade', source: 'dem' } as any)
+    const host = (map as any)._style.sourceLayers.get('dem')
+    expect(host).toBeDefined()
+    expect(map.hasLayer(host)).toBe(true)
   })
 })
