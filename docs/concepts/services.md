@@ -63,7 +63,7 @@ import { geocoderChain, NominatimGeocoder, PhotonGeocoder } from 'ts-maps/servic
 const geocoder = geocoderChain([new PhotonGeocoder(), new NominatimGeocoder()], { fallThroughOnEmpty: true })
 ```
 
-Nominatim's policy forbids search-as-you-type, so suggestions as someone types should come from Photon, your own gazetteer, or a paid provider.
+Nominatim's policy forbids search-as-you-type, so suggestions as someone types should come from Photon, your own gazetteer, or a paid provider. `NominatimGeocoder` says so: its `autocomplete` is `false` for the public server, and the geocoder control then searches on Enter. It also spaces its requests to the public server a second apart, in order, as the policy asks (`interval` changes that; your own server has none).
 
 ### Self-hosted place search
 

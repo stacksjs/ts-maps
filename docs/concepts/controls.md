@@ -182,7 +182,8 @@ use [`control.search()`](./search.md).
 import { control, services } from 'ts-maps'
 
 control.geocoder({
-  // Any GeocoderProvider from services. Photon is built for search-as-you-type.
+  // Any GeocoderProvider from services. Default: Photon, keyless and built
+  // for search as you type.
   provider: new services.PhotonGeocoder(),
   placeholder: 'Search for a place',
   limit: 5,
@@ -196,12 +197,16 @@ control.geocoder({
 }).addTo(map)
 ```
 
-The values shown are the defaults, apart from `provider` and `placeholder`.
-Without a `provider` the box uses Nominatim, which needs no key, but whose
-usage policy forbids searching as the user types. Pass Photon, or another
-provider from [Services](./services.md#geocoding).
+The values shown are the defaults, apart from `placeholder`. Any provider
+from [Services](./services.md#geocoding) works.
 
-Requests wait for a pause in typing, and the one in flight is cancelled on
+Given the public Nominatim server, the box searches when you press Enter
+rather than as you type: Nominatim's usage policy forbids autocomplete, and
+the provider says so (`autocomplete: false`). The first Enter asks, the next
+takes a result. Your own Nominatim (`baseUrl`) is searched as you type.
+`searchAsYouType` overrides either way.
+
+Searching as you type, requests wait for a pause, and the one in flight is cancelled on
 each keystroke. That spares a shared server, and keeps a slow early answer
 from landing after a quick later one and filling the list for a query the
 user has moved past.

@@ -28,6 +28,12 @@ export interface GeocoderOptions {
 
 export interface GeocoderProvider {
   name: string
+  /**
+   * Whether the provider may be asked on every keystroke. Absent means yes.
+   * The public Nominatim server's policy forbids search-as-you-type, so the
+   * geocoder control searches it only when asked to (Enter).
+   */
+  autocomplete?: boolean
   search: (query: string, opts?: GeocoderOptions) => Promise<GeocodingResult[]>
   reverse: (center: LatLngLike, opts?: GeocoderOptions) => Promise<GeocodingResult[]>
 }

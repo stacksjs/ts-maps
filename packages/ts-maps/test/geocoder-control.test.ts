@@ -203,3 +203,41 @@ describe('GeocoderControl', () => {
     expect(provider.calls[1].opts?.proximity).toBeUndefined()
   })
 })
+
+describe('GeocoderControl and its provider', () => {
+  test('defaults to Photon, which may be searched as you type', () => {
+    const geocoder: any = control.geocoder().addTo(makeMap())
+    expect(geocoder._provider().name).toBe('photon')
+    expect(geocoder._typeahead()).toBe(true)
+  })
+
+  test('a provider that mustn\'t autocomplete is searched on Enter, not while typing', async () => {
+    const provider = new FakeProvider()
+    ;(provider as any).autocomplete = false
+    const geocoder: any = control.geocoder({ provider, debounce: 0 }).addTo(makeMap())
+
+    type(geocoder, 'venice')
+    expect(provider.calls.length).toBe(0)
+
+    key(geocoder, 'Enter')
+    expect(provider.calls.length).toBe(1)
+    expect(provider.calls[0].query).toBe('venice')
+    provider.calls[0].resolve([result('Venice', 45.44, 12.33)])
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(geocoder._results.length).toBe(1)
+
+    // Typing again drops results for the old query.
+    type(geocoder, 'veni')
+    expect(geocoder._results.length).toBe(0)
+    expect(provider.calls.length).toBe(1)
+  })
+
+  test('searchAsYouType overrides what the provider says', () => {
+    const provider = new FakeProvider()
+    ;(provider as any).autocomplete = false
+    const geocoder: any = control.geocoder({ provider, debounce: 0, searchAsYouType: true }).addTo(makeMap())
+    type(geocoder, 'venice')
+    expect(provider.calls.length).toBe(1)
+  })
+})

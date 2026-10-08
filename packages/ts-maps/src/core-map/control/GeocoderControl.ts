@@ -3,7 +3,7 @@ import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { DivIcon } from '../layer/marker/DivIcon'
 import { Marker } from '../layer/marker/Marker'
-import { defaultGeocoder } from '../services/index'
+import { PhotonGeocoder } from '../services/providers/Photon'
 import { Control } from './Control'
 
 /**
@@ -12,8 +12,11 @@ import { Control } from './Control'
  *
  * The adapters have always been there; what was missing was the control that
  * makes them usable without hand-rolling an input, a debounce, a result list
- * and keyboard handling on every map. The default provider is Nominatim, which
- * needs no key — so `control.geocoder().addTo(map)` searches out of the box.
+ * and keyboard handling on every map. The default provider is Photon, which
+ * needs no key and is made for search as you type — so
+ * `control.geocoder().addTo(map)` searches out of the box. Given a provider
+ * that mustn't be asked on every keystroke (the public Nominatim server, whose
+ * policy forbids it), the box searches when you press Enter instead.
  *
  * Requests are debounced and the in-flight one is aborted on every keystroke.
  * That is politeness towards a public endpoint as much as it is correctness:
@@ -22,8 +25,13 @@ import { Control } from './Control'
  */
 export interface GeocoderControlOptions {
   position?: string
-  /** Defaults to the keyless Nominatim provider. */
+  /** Defaults to Photon (keyless, built for search as you type). */
   provider?: GeocoderProvider
+  /**
+   * Search while typing, or only on Enter. Defaults to what the provider
+   * allows: on, except for the public Nominatim server.
+   */
+  searchAsYouType?: boolean
   placeholder?: string
   title?: string
   /** Maximum results to request and show. Default 5. */
@@ -53,6 +61,7 @@ const CLASS = 'tsmap-control-geocoder'
 
 export class GeocoderControl extends Control {
   declare _input?: HTMLInputElement
+  declare _defaultProvider?: GeocoderProvider
   declare _list?: HTMLUListElement
   declare _toggle?: HTMLAnchorElement
   declare _results: GeocodingResult[]
@@ -153,8 +162,27 @@ export class GeocoderControl extends Control {
     this._toggle?.setAttribute('aria-expanded', String(expanded))
   }
 
+  /** The provider asked: the one given, or Photon, made once. */
+  _provider(): GeocoderProvider {
+    const options = this.options as GeocoderControlOptions
+    return options.provider ?? (this._defaultProvider ??= new PhotonGeocoder())
+  }
+
+  _typeahead(): boolean {
+    const options = this.options as GeocoderControlOptions
+    return options.searchAsYouType ?? this._provider().autocomplete !== false
+  }
+
   _onInput(): void {
-    this._search(this._input?.value ?? '')
+    if (this._typeahead()) {
+      this._search(this._input?.value ?? '')
+      return
+    }
+    // Searched on Enter: what's listed is for a query that's now changed.
+    this._cancelPending()
+    this._results = []
+    this._selected = -1
+    this._renderList()
   }
 
   _search(query: string): void {
@@ -180,7 +208,7 @@ export class GeocoderControl extends Control {
 
   _request(query: string): void {
     const options = this.options as GeocoderControlOptions
-    const provider = options.provider ?? defaultGeocoder()
+    const provider = this._provider()
     const controller = typeof AbortController === 'function' ? new AbortController() : undefined
 
     this._abort = controller
@@ -259,9 +287,12 @@ export class GeocoderControl extends Control {
       case 'Enter':
         DomEvent.stop(event as any)
         // Enter with nothing highlighted takes the top hit, which is what a
-        // search box is expected to do.
+        // search box is expected to do. Searched on Enter, the first Enter
+        // asks, and the next one takes a result.
         if (this._results.length)
           this.select(this._selected >= 0 ? this._selected : 0)
+        else if (!this._typeahead() && (this._input?.value ?? '').trim())
+          this._request((this._input?.value ?? '').trim())
         break
       case 'Escape':
         DomEvent.stop(event as any)

@@ -173,3 +173,26 @@ describe('NominatimGeocoder', () => {
     expect(calls[0].url.startsWith('https://nominatim.example.com/search?')).toBe(true)
   })
 })
+
+describe('NominatimGeocoder and the usage policy', () => {
+  test('the public server is not for autocomplete; your own is', () => {
+    expect(new NominatimGeocoder().autocomplete).toBe(false)
+    expect(new NominatimGeocoder({ baseUrl: 'https://nominatim.example.org' }).autocomplete).toBe(true)
+    expect(new NominatimGeocoder({ autocomplete: true }).autocomplete).toBe(true)
+  })
+
+  test('requests asked for together all run, in order, spaced apart', async () => {
+    const order: string[] = []
+    const at: number[] = []
+    const fetcher = (async (input: FetchInput) => {
+      order.push(new URL(String(input)).searchParams.get('q')!)
+      at.push(Date.now())
+      return { ok: true, status: 200, statusText: 'OK', json: async () => [] } as unknown as Response
+    }) as typeof fetch
+    const geocoder = new NominatimGeocoder({ fetch: fetcher, interval: 40 })
+    await Promise.all(['a', 'b', 'c'].map(q => geocoder.search(q)))
+    expect(order).toEqual(['a', 'b', 'c'])
+    expect(at[1]! - at[0]!).toBeGreaterThanOrEqual(35)
+    expect(at[2]! - at[1]!).toBeGreaterThanOrEqual(35)
+  })
+})
