@@ -167,7 +167,7 @@ export const Map = defineComponent({
         const m = mapRef.value
         if (!m || key === undefined || key === previous)
           return
-        m.setStyle(props.style as Parameters<MapInstance['setStyle']>[0])
+        m.setStyle(props.style as unknown as Parameters<MapInstance['setStyle']>[0])
       },
     )
 

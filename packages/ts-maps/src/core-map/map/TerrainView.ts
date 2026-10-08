@@ -48,6 +48,9 @@
 import { buildTerrainGrid, type TerrainGrid } from '../geo/terrainMesh'
 import type { TerrainSource } from '../geo/TerrainSource'
 
+/** Tile pixels to the screen point on the surface, or null where hidden. Named, so the declaration build reads it. */
+export type TileProjection = (x: number, y: number) => { x: number, y: number } | null
+
 const DEG = Math.PI / 180
 /** The Earth's radius in metres, as Web Mercator (EPSG:3857) has it. */
 const EARTH_RADIUS = 6378137
@@ -691,7 +694,7 @@ export class TerrainView {
    * ground drawn at under a third of its size at the centre are left off, as
    * on the flat map.
    */
-  tileProjector(ox: number, oy: number, k: number): (x: number, y: number) => { x: number, y: number } | null {
+  tileProjector(ox: number, oy: number, k: number): TileProjection {
     const frame = this.frame()
     const cam = frame.cam
     const depth = this._depthMap(frame)
