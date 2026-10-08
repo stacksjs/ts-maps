@@ -53,6 +53,7 @@ import { ortho } from '../../renderer/webgl/mat4'
 import { WebGLUnsupportedError } from '../../renderer/webgl/GLContext'
 import { WebGLTileRenderer } from '../../renderer/webgl/WebGLTileRenderer'
 import { globeProject } from '../../map/GlobeView'
+import { polygonLabelPoints } from '../../symbols/polylabel'
 import { GridLayer } from './GridLayer'
 import { composeTileUrl, getSubdomain } from './urlTemplate'
 
@@ -2629,9 +2630,12 @@ function buildSymbolCandidates(
     return
   }
 
-  // Point placement. Multi-point features place one symbol per vertex.
-  if (feature.type !== 1)
+  // Point placement. Multi-point features place one symbol per vertex; a
+  // polygon, one at the point inside it with the most room (`polylabel.ts`).
+  // A line has no point to stand on and is left to line placement.
+  if (feature.type === 2)
     return
+  const anchors: Array<{ x: number, y: number, area?: number }> = feature.type === 3 ? polygonLabelPoints(rings, 8) : rings.flat()
 
   const anchor = ((resolve(layout?.['text-anchor']) as TextAnchor | undefined) ?? 'center')
   const offset = offsetPixels(resolve(layout?.['text-offset']), textSize)
@@ -2748,27 +2752,30 @@ function buildSymbolCandidates(
   // can round either side of a cell edge; the identity is what lets the
   // placer see those as one label (see `LabelPlacer`).
   const identity = `${styleLayer.id}\u0000${text}\u0000${iconId}`
-  for (const ring of rings) {
-    for (const pt of ring) {
-      const at = context.toTile(pt.x, pt.y)
-      const key = `${identity}\u0000${context.spot(at.x, at.y, 21)}`
-      out.push({
-        ...base,
-        kind: 'point',
-        identity,
-        // A bare name over a point is an area's — a district, a city — and
-        // stays in view over the buildings; one with an icon marks a place
-        // on the ground, and hides behind them.
-        occludable: !!iconEntry,
-        key,
-        order: context.next(),
-        x: at.x,
-        y: at.y,
-        box,
-        paint: paintLabel,
-        signature: signature || key,
-      })
-    }
+  for (const pt of anchors) {
+    const at = context.toTile(pt.x, pt.y)
+    // A polygon a tile edge cuts in two is one label, whichever tiles hold
+    // its pieces: keyed by the feature, and the biggest piece placed first,
+    // so the name stands where the room is.
+    const piece = pt.area !== undefined && feature.id !== undefined
+    const key = piece ? `${identity}\u0000#${feature.id}` : `${identity}\u0000${context.spot(at.x, at.y, 21)}`
+    out.push({
+      ...base,
+      ...(piece ? { sortKey: sortKey - pt.area! * 1e-12 } : {}),
+      kind: 'point',
+      identity,
+      // A bare name over a point is an area's — a district, a city — and
+      // stays in view over the buildings; one with an icon marks a place
+      // on the ground, and hides behind them.
+      occludable: !!iconEntry,
+      key,
+      order: context.next(),
+      x: at.x,
+      y: at.y,
+      box,
+      paint: paintLabel,
+      signature: signature || key,
+    })
   }
 }
 
