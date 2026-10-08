@@ -16,7 +16,7 @@ import { Point } from '../geometry/Point'
 import type { GlobeCamera } from './GlobeView'
 import { GlobeView, globeProject, globeRadius, globeUnproject } from './GlobeView'
 import { Style } from './Style'
-import type { LayerSpecification, SourceSpecification, Style as StyleSpec } from '../style-spec/types'
+import type { LayerSpecification, RasterLayerSpecification, SourceSpecification, Style as StyleSpec } from '../style-spec/types'
 import { diffStyles } from '../style-spec/diff'
 import type { OfflineMaps } from '../offline/OfflineMaps'
 import type { Control } from '../control/Control'
@@ -2819,6 +2819,15 @@ export class TsMap extends Evented {
     else {
       this._style.spec.sources[sourceId] = source
     }
+    // A source named by a TileJSON (`url: 'https://…/tiles.json'`) has no
+    // tiles until that is read. It is in the style meanwhile, so getStyle()
+    // shows it and layers added for it wait in the style for it.
+    if (this._awaitingTileJSON(sourceId)) {
+      // The style's own copy: what it holds is what is checked on arrival.
+      this._resolveSourceTileJSON(sourceId, this._style.spec.sources[sourceId]!)
+      this.fire('styledata')
+      return this
+    }
     const host = this._makeSourceLayer(sourceId, source)
     if (host) {
       this._installFeatureStateLookup(sourceId, host);
@@ -2826,6 +2835,39 @@ export class TsMap extends Evented {
     }
     this.fire('styledata')
     return this
+  }
+
+  /** The source is in the style but its TileJSON has not been read yet. */
+  _awaitingTileJSON(sourceId: string): boolean {
+    const spec = this._style?.spec.sources[sourceId]
+    return !!spec && tileJSONSources({ sources: { [sourceId]: spec } }).length > 0
+  }
+
+  /**
+  * Read a source's TileJSON, as `setStyle` does for a style's, then build it
+  * with whatever layers have been added for it in the meantime.
+  */
+  _resolveSourceTileJSON(sourceId: string, source: SourceSpecification): void {
+    resolveStyleSources({ sources: { [sourceId]: source } }, url => offlineFetch(url))
+      .then((resolved) => {
+        // Removed, replaced or swept away by a new style while it was read:
+        // what arrived is for a source that is no longer there.
+        if (this._style?.spec.sources[sourceId] !== source)
+          return
+        const spec = resolved.sources[sourceId] as SourceSpecification
+        this._style.spec.sources[sourceId] = spec
+        const host = this._makeSourceLayer(sourceId, spec)
+        if (host) {
+          this._installFeatureStateLookup(sourceId, host);
+          (this as any).addLayer(host as any)
+        }
+        this.fire('sourcedata', { sourceId, isSourceLoaded: true })
+        this.fire('styledata')
+      })
+      .catch((error) => {
+        if (this._style?.spec.sources[sourceId] === source)
+          this.fire('error', { error, sourceId })
+      })
   }
 
   getSource(sourceId: string): SourceSpecification | undefined {
@@ -2853,11 +2895,17 @@ export class TsMap extends Evented {
   // VectorTileMapLayer → GridLayer → Layer → (include on TsMap).
   _makeSourceLayer(sourceId: string, source: SourceSpecification): unknown {
     if (source.type === 'raster') {
-      const { TileLayer } = require('../layer/tile/TileLayer')
       const urls = source.tiles ?? []
       const url = urls[0]
       if (!url) throw new Error(`source "${sourceId}" has no tiles URL`)
-      const tile = new TileLayer(url, {
+      // Drawn through its `raster` layers, as a style says, and not at all
+      // without one — as a `raster-dem` with no `hillshade` is not.
+      const rasterLayers = this._rasterLayersFor(sourceId)
+      if (!rasterLayers.length)
+        return undefined
+      const { StyleRasterLayer } = require('../layer/tile/StyleRasterLayer')
+      const tile = new StyleRasterLayer(url, {
+        rasterLayers,
         tileSize: source.tileSize ?? 256,
         // Native, not display: above the source's top zoom the tiles are
         // scaled up rather than the layer being hidden.
@@ -3123,8 +3171,9 @@ export class TsMap extends Evented {
       const spec = this._style.spec.sources[sourceId] as SourceSpecification | undefined
       // A source with nothing drawing it yet (a `raster-dem` added for
       // terrain, then given a `hillshade`) gets its host now, as `setStyle`
-      // would have made it with the layer already there.
-      if (!host && spec) {
+      // would have made it with the layer already there. One whose TileJSON
+      // is still being read is built with this layer when it arrives.
+      if (!host && spec && !this._awaitingTileJSON(sourceId)) {
         const made = this._makeSourceLayer(sourceId, spec)
         if (made) {
           this._installFeatureStateLookup(sourceId, made);
@@ -3139,6 +3188,9 @@ export class TsMap extends Evented {
         const hostAny = host as any
         hostAny.setStyleLayers(next)
         hostAny.redraw?.()
+      }
+      else if (typeof (host as any)?.setRasterLayers === 'function') {
+        (host as any).setRasterLayers(this._rasterLayersFor(sourceId))
       }
     }
     this.fire('styledata')
@@ -3163,6 +3215,10 @@ export class TsMap extends Evented {
         hostAny.setStyleLayers(next)
         hostAny.redraw?.()
       }
+      // Its last raster layer gone, a raster source draws nothing.
+      else if (typeof (host as any)?.setRasterLayers === 'function') {
+        (host as any).setRasterLayers(this._rasterLayersFor((removed as any).source))
+      }
     }
     this.fire('styledata')
     return this
@@ -3170,6 +3226,11 @@ export class TsMap extends Evented {
 
   getStyleLayer(id: string): LayerSpecification | undefined {
     return this._style?.layerSpecs.get(id)
+  }
+
+  /** The style's `raster` layers over a source, in drawing order. */
+  _rasterLayersFor(sourceId: string): RasterLayerSpecification[] {
+    return (this._style?.spec.layers ?? []).filter(l => l.type === 'raster' && l.source === sourceId) as RasterLayerSpecification[]
   }
 
   setPaintProperty(layerId: string, name: string, value: unknown): this {
@@ -3188,6 +3249,14 @@ export class TsMap extends Evented {
 
   setFilter(layerId: string, filter: unknown): this {
     this._style?.setFilter(layerId, filter)
+    this._syncStyleLayer(layerId)
+    this.fire('styledata')
+    return this
+  }
+
+  /** Set the zoom range a style layer draws in: from `minzoom`, up to but not including `maxzoom`. */
+  setLayerZoomRange(layerId: string, minzoom?: number, maxzoom?: number): this {
+    this._style?.setLayerZoomRange(layerId, minzoom, maxzoom)
     this._syncStyleLayer(layerId)
     this.fire('styledata')
     return this
@@ -3222,6 +3291,13 @@ export class TsMap extends Evented {
     if (spec.type === 'hillshade' && typeof host?.setShading === 'function') {
       const { hillshadeShading } = require('../layer/tile/RasterDEMLayer')
       host.setShading(hillshadeShading(spec.paint ?? {}))
+      return
+    }
+    // A raster layer's zoom range, visibility and paint are its source's
+    // tile layer's to apply.
+    if (spec.type === 'raster') {
+      if (typeof host?.setRasterLayers === 'function')
+        host.setRasterLayers(this._rasterLayersFor(sourceId))
       return
     }
     if (!host || typeof host.updateStyleLayers !== 'function')

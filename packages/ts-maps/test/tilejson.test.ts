@@ -206,4 +206,82 @@ describe('TileJSON sources in a style', () => {
       globalThis.fetch = real
     }
   })
+
+  describe('addSource with a TileJSON url', () => {
+    async function withFetch(answers: Record<string, Answer>, run: (map: TsMap) => Promise<void>): Promise<void> {
+      const real = globalThis.fetch
+      globalThis.fetch = stubFetch(answers).fetch
+      const container = document.createElement('div')
+      document.body.appendChild(container)
+      try {
+        await run(new TsMap(container, { center: [0, 0], zoom: 2 }))
+      }
+      finally {
+        globalThis.fetch = real
+        container.remove()
+      }
+    }
+
+    test('reads the TileJSON, then builds the source with the layers added meanwhile', async () => {
+      await withFetch({ 'https://tiles.test/planet': TILEJSON }, async (map) => {
+        const ready = new Promise<any>(resolve => map.once('sourcedata', resolve))
+        expect(() => map.addSource('basemap', { type: 'vector', url: 'https://tiles.test/planet', maxzoom: 12 } as any)).not.toThrow()
+        // In the style straight away, as given.
+        expect(map.getStyle()!.sources.basemap).toEqual({ type: 'vector', url: 'https://tiles.test/planet', maxzoom: 12 } as any)
+        expect(() => map.addStyleLayer({ id: 'water', type: 'fill', source: 'basemap', 'source-layer': 'water' } as any)).not.toThrow()
+        const e = await ready
+        expect(e.sourceId).toBe('basemap')
+        const source = map.getStyle()!.sources.basemap as any
+        expect(source.tiles).toEqual(TILEJSON.tiles)
+        expect(source.maxzoom).toBe(12)
+        expect(source.minzoom).toBe(0)
+        expect(source.attribution).toBe('© OpenMapTiles')
+        expect(source.url).toBe('https://tiles.test/planet')
+        const host = map._style!.sourceLayers.get('basemap') as any
+        expect(host).toBeDefined()
+        expect(host.options.layers.map((l: any) => l.id)).toEqual(['water'])
+      })
+    })
+
+    test('raster and raster-dem sources too', async () => {
+      await withFetch({ 'https://r.test/tiles.json': { tiles: ['https://r.test/{z}/{x}/{y}.png'], maxzoom: 9 }, 'https://dem.test/tiles.json': { tiles: ['./{z}/{x}/{y}.png'], encoding: 'terrarium' } }, async (map) => {
+        let ready = 0
+        const both = new Promise<void>(resolve => map.on('sourcedata', () => ++ready === 2 && resolve()))
+        map.addSource('relief', { type: 'raster', url: 'https://r.test/tiles.json' } as any)
+        map.addSource('dem', { type: 'raster-dem', url: 'https://dem.test/tiles.json' } as any)
+        await both
+        expect((map.getSource('relief') as any).tiles).toEqual(['https://r.test/{z}/{x}/{y}.png'])
+        expect((map.getSource('relief') as any).maxzoom).toBe(9)
+        expect((map.getSource('dem') as any).tiles).toEqual(['https://dem.test/{z}/{x}/{y}.png'])
+        expect((map.getSource('dem') as any).encoding).toBe('terrarium')
+      })
+    })
+
+    test('a TileJSON that cannot be read fires an error naming the source', async () => {
+      await withFetch({ 'https://tiles.test/planet': 404 }, async (map) => {
+        const failed = new Promise<any>(resolve => map.once('error', resolve))
+        map.addSource('basemap', { type: 'vector', url: 'https://tiles.test/planet' } as any)
+        const e = await failed
+        expect(e.sourceId).toBe('basemap')
+        expect(String(e.error.message)).toContain('source "basemap"')
+      })
+    })
+
+    test('a source removed before its TileJSON arrives stays removed', async () => {
+      await withFetch({ 'https://tiles.test/planet': TILEJSON }, async (map) => {
+        map.addSource('basemap', { type: 'vector', url: 'https://tiles.test/planet' } as any)
+        map.removeSource('basemap')
+        await new Promise(resolve => setTimeout(resolve, 20))
+        expect(map.getSource('basemap')).toBeUndefined()
+        expect(map._style!.sourceLayers.get('basemap')).toBeUndefined()
+      })
+    })
+
+    test('a pmtiles:// url is read directly, as before', async () => {
+      await withFetch({}, async (map) => {
+        map.addSource('archive', { type: 'vector', url: 'pmtiles://https://x.test/a.pmtiles' } as any)
+        expect(map._style!.sourceLayers.get('archive')).toBeDefined()
+      })
+    })
+  })
 })
