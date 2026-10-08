@@ -19,6 +19,7 @@ import { diffStyles } from '../style-spec/diff'
 import type { OfflineMaps } from '../offline/OfflineMaps'
 import type { Control } from '../control/Control'
 import { activeOfflineMaps, offlineFetch, offlineMaps } from '../offline/OfflineMaps'
+import { resolveStyleSources, tileJSONSources } from '../styles/tilejson'
 import { buildTerrainMesh } from '../geo/terrainMesh'
 import { TerrainSource } from '../geo/TerrainSource'
 import { WebGLTileRenderer } from '../renderer/webgl/WebGLTileRenderer'
@@ -2387,6 +2388,24 @@ export class TsMap extends Evented {
             return
           this.setStyle(spec as StyleSpec, opts)
           this._styleUrl = style
+        })
+        .catch(error => this.fire('error', { error, style }))
+      return this
+    }
+
+    // Sources named by a TileJSON (`url: 'https://…/tiles.json'`, as Mapbox
+    // and MapLibre styles write them) are read first, and the style set once
+    // they are, as for a style URL.
+    if (tileJSONSources(style).length) {
+      const token = (this._styleLoadToken = (this._styleLoadToken ?? 0) + 1)
+      resolveStyleSources(style, url => offlineFetch(url))
+        .then((resolved) => {
+          if (token !== this._styleLoadToken)
+            return
+          // Loaded from a style URL, it keeps saying so.
+          const url = this._styleUrl
+          this.setStyle(resolved, opts)
+          this._styleUrl = url
         })
         .catch(error => this.fire('error', { error, style }))
       return this

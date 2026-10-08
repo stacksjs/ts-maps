@@ -19,10 +19,16 @@ import { POI_ICON_PREFIX, poiCategoryExpression, poiColorExpression } from '../s
  */
 export interface BasemapStyleOptions {
   /**
-   * Tile URL template(s) with `{z}/{x}/{y}`. Required for `mode: 'vector'`
-   * (the default) and for raster.
+   * Tile URL template(s) with `{z}/{x}/{y}`. This, or `url`.
    */
-  tiles: string | string[]
+  tiles?: string | string[]
+  /**
+   * A TileJSON to read the tiles from, as Mapbox and MapLibre styles name
+   * their sources: `'https://tiles.openfreemap.org/planet'`. The map reads it
+   * when the style is set, and its zoom range and attribution with it. This,
+   * or `tiles`.
+   */
+  url?: string
   /**
    * `'vector'` builds the full styled basemap. `'raster'` wraps pre-rendered
    * image tiles in a one-layer style — the fallback for a source that only
@@ -94,19 +100,35 @@ const OPENMAPTILES: Record<SourceLayerKey, string> = {
 
 const SOURCE_ID = 'basemap'
 
+/** Where the tiles come from: the templates given, or the TileJSON to read them from. */
+function tileSource(options: BasemapStyleOptions, zooms: { minzoom: number, maxzoom: number }): Record<string, unknown> {
+  if (options.tiles === undefined && options.url) {
+    // The TileJSON says its own zoom range; only what was asked for overrides it.
+    return {
+      url: options.url,
+      ...(options.minzoom !== undefined ? { minzoom: options.minzoom } : {}),
+      ...(options.maxzoom !== undefined ? { maxzoom: options.maxzoom } : {}),
+    }
+  }
+  if (options.tiles === undefined)
+    throw new Error('A basemap style needs `tiles` or `url`')
+  return {
+    tiles: Array.isArray(options.tiles) ? options.tiles : [options.tiles],
+    minzoom: options.minzoom ?? zooms.minzoom,
+    maxzoom: options.maxzoom ?? zooms.maxzoom,
+  }
+}
+
 function rasterStyle(palette: Palette, options: BasemapStyleOptions, name: string): StyleSpec {
-  const tiles = Array.isArray(options.tiles) ? options.tiles : [options.tiles]
   return {
     version: 8,
     name,
     sources: {
       [SOURCE_ID]: {
         type: 'raster',
-        tiles,
+        ...tileSource(options, { minzoom: 0, maxzoom: 19 }),
         tileSize: options.tileSize ?? 256,
-        minzoom: options.minzoom ?? 0,
-        maxzoom: options.maxzoom ?? 19,
-        attribution: options.attribution,
+        ...(options.attribution ? { attribution: options.attribution } : {}),
         ...(options.offlineCache ? { offlineCache: true } : {}),
       },
     },
@@ -120,7 +142,6 @@ function rasterStyle(palette: Palette, options: BasemapStyleOptions, name: strin
 }
 
 function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: string): StyleSpec {
-  const tiles = Array.isArray(options.tiles) ? options.tiles : [options.tiles]
   const layer = { ...OPENMAPTILES, ...options.sourceLayers }
 
   return {
@@ -131,10 +152,8 @@ function vectorStyle(palette: Palette, options: BasemapStyleOptions, name: strin
     sources: {
       [SOURCE_ID]: {
         type: 'vector',
-        tiles,
-        minzoom: options.minzoom ?? 0,
-        maxzoom: options.maxzoom ?? 14,
-        attribution: options.attribution,
+        ...tileSource(options, { minzoom: 0, maxzoom: 14 }),
+        ...(options.attribution ? { attribution: options.attribution } : {}),
         ...(options.offlineCache ? { offlineCache: true } : {}),
       },
     },

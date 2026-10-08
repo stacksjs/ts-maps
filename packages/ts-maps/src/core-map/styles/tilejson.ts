@@ -137,3 +137,54 @@ export async function resolveTileJSON(sources: string | readonly string[], optio
   }
   return null
 }
+
+/** The style's sources that name a TileJSON (`url`) and no tiles of their own. */
+export function tileJSONSources(style: { sources?: Record<string, unknown> }): string[] {
+  return Object.entries(style.sources ?? {})
+    .filter(([, source]) => {
+      const s = source as { type?: string, url?: unknown, tiles?: unknown }
+      return (s.type === 'vector' || s.type === 'raster' || s.type === 'raster-dem')
+        && typeof s.url === 'string' && !s.url.startsWith('pmtiles://')
+        && !(Array.isArray(s.tiles) && s.tiles.length)
+    })
+    .map(([id]) => id)
+}
+
+/**
+ * A style with every TileJSON source read: `{ type: 'vector', url }` becomes
+ * `{ type: 'vector', tiles, minzoom, maxzoom, attribution }`, as Mapbox and
+ * MapLibre styles are written and as `setStyle` needs them. What the source
+ * says itself wins over the TileJSON. A TileJSON that cannot be read is an
+ * error naming the source.
+ */
+export async function resolveStyleSources<T extends { sources?: Record<string, unknown> }>(style: T, fetcher: (url: string) => Promise<Response>, timeoutMs: number = 10000): Promise<T> {
+  const ids = tileJSONSources(style)
+  if (!ids.length)
+    return style
+  const sources = { ...style.sources }
+  await Promise.all(ids.map(async (id) => {
+    const source = sources[id] as Record<string, unknown>
+    const url = source.url as string
+    const response = await Promise.race([
+      fetcher(url),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`TileJSON for source "${id}" timed out: ${url}`)), timeoutMs)),
+    ])
+    if (!response.ok)
+      throw new Error(`HTTP ${response.status} fetching TileJSON for source "${id}": ${url}`)
+    const json = await response.json() as { tiles?: string[], minzoom?: number, maxzoom?: number, attribution?: string, bounds?: number[], scheme?: string, encoding?: string }
+    if (!Array.isArray(json.tiles) || !json.tiles.length)
+      throw new Error(`TileJSON for source "${id}" has no tiles: ${url}`)
+    // Relative tile URLs are relative to the TileJSON.
+    const tiles = json.tiles.map(t => new URL(t, new URL(url, globalThis.location?.href ?? 'http://localhost/')).href.replace(/%7B/g, '{').replace(/%7D/g, '}'))
+    sources[id] = {
+      ...(json.minzoom !== undefined ? { minzoom: json.minzoom } : {}),
+      ...(json.maxzoom !== undefined ? { maxzoom: json.maxzoom } : {}),
+      ...(json.attribution ? { attribution: json.attribution } : {}),
+      ...(json.bounds ? { bounds: json.bounds } : {}),
+      ...(json.encoding ? { encoding: json.encoding } : {}),
+      ...source,
+      tiles,
+    }
+  }))
+  return { ...style, sources }
+}
