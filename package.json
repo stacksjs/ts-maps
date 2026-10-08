@@ -62,7 +62,7 @@
     "release:patch": "bunx --bun @stacksjs/bumpx patch --recursive --commit --tag --push --yes"
   },
   "devDependencies": {
-    "@stacksjs/bunpress": "^0.2.17",
+    "@stacksjs/bunpress": "^0.2.18",
     "@stacksjs/ts-cloud": "^0.16.47",
     "better-dx": "^0.2.15"
   },
