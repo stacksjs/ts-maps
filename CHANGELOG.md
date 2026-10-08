@@ -1,5 +1,51 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.4.0...v0.5.0)
+
+## 🚀 Features
+
+- **terrain**: the ground stands up in 3D ([1f53e68](https://github.com/stacksjs/ts-maps/commit/1f53e68)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **svelte, solid**: the same map, props and events as React and Vue ([2c99946](https://github.com/stacksjs/ts-maps/commit/2c99946)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **expressions**: type assertions, and an error for an unknown operator ([ea1586f](https://github.com/stacksjs/ts-maps/commit/ea1586f)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🐛 Bug Fixes
+
+- `version` reads the package's own version ([143ae69](https://github.com/stacksjs/ts-maps/commit/143ae69)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **build**: declarations the package builds can read ([eece79d](https://github.com/stacksjs/ts-maps/commit/eece79d)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **editor**: examples that import a subpath run in the editor too ([cf09cfd](https://github.com/stacksjs/ts-maps/commit/cf09cfd)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **react, vue**: follow the style prop, and stop re-binding events every render ([dfa568f](https://github.com/stacksjs/ts-maps/commit/dfa568f)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **style**: TileJSON in addSource, and raster layers that follow their style ([f4ec693](https://github.com/stacksjs/ts-maps/commit/f4ec693)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **map**: bounds, queries and feature state as Mapbox code expects them ([9a591f7](https://github.com/stacksjs/ts-maps/commit/9a591f7)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **geocoder**: search Photon as you type, and Nominatim only on Enter ([1104bee](https://github.com/stacksjs/ts-maps/commit/1104bee)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **examples**: the terrain example does what it says ([3786e81](https://github.com/stacksjs/ts-maps/commit/3786e81)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **hillshade**: paint changes reach the hillshade being drawn ([aee7b9a](https://github.com/stacksjs/ts-maps/commit/aee7b9a)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **bindings**: load and style.load reach React, Vue and React Native ([1039ef2](https://github.com/stacksjs/ts-maps/commit/1039ef2)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **style**: keep what a page adds while its style loads, and say when it's in ([8520b15](https://github.com/stacksjs/ts-maps/commit/8520b15)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## ♻️ Code Refactoring
+
+- **map**: the map is Map ([d260015](https://github.com/stacksjs/ts-maps/commit/d260015)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 📚 Documentation
+
+- **terrain**: the Matterhorn in 3D, as setTerrain now draws it ([76eefa3](https://github.com/stacksjs/ts-maps/commit/76eefa3)) _(by Chris <chrisbreuer93@gmail.com>)_
+- bounds, queries, feature state, TileJSON sources, raster layers and type assertions as they now work ([ffd5d8b](https://github.com/stacksjs/ts-maps/commit/ffd5d8b)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **readme**: the README and the npm page, accurate and runnable ([01e6572](https://github.com/stacksjs/ts-maps/commit/01e6572)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **api**: the reference and migration guides, checked line by line ([1b009cb](https://github.com/stacksjs/ts-maps/commit/1b009cb)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **concepts**: every concept checked against the code, and four new pages ([e033fa3](https://github.com/stacksjs/ts-maps/commit/e033fa3)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **guide**: every framework binding, as it is ([fadab5b](https://github.com/stacksjs/ts-maps/commit/fadab5b)) _(by Chris <chrisbreuer93@gmail.com>)_
+- one way in — introduction, installation, getting started ([380952e](https://github.com/stacksjs/ts-maps/commit/380952e)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.0 ([031fa5b](https://github.com/stacksjs/ts-maps/commit/031fa5b)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **release**: publish through pantry, not a script of our own ([f5a8de8](https://github.com/stacksjs/ts-maps/commit/f5a8de8)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **release**: publish the framework bindings too ([65bf670](https://github.com/stacksjs/ts-maps/commit/65bf670)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.23...v0.4.0)
 
 ## 🚀 Features
