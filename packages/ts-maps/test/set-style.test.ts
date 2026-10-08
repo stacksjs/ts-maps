@@ -42,18 +42,49 @@ describe('map.setStyle', () => {
     expect(count).toBeGreaterThanOrEqual(1)
   })
 
-  test('fires style.load once the style is in, each time it changes', () => {
+  test('fires style.load once the style is in, after its styledata', async () => {
     const map = makeMap()
     const seen: string[] = []
     map.on('styledata', () => seen.push('styledata'))
     map.on('style.load', () => seen.push('style.load'))
     map.setStyle(minimalStyle)
+    await Promise.resolve()
     // Again, with a change: the diff path.
     map.setStyle({ ...minimalStyle, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#fff' } }] } as StyleSpec)
-    // Once for each, after the style's own styledata.
+    await Promise.resolve()
     expect(seen.filter(e => e === 'style.load').length).toBe(2)
     expect(seen.at(-1)).toBe('style.load')
     expect(seen.slice(0, 2)).toEqual(['styledata', 'style.load'])
+  })
+
+  test('style.load is heard when the style comes with the constructor', async () => {
+    const container = createContainer()
+    cleanup.push(container)
+    const map = new TsMap(container, { center: [0, 0], zoom: 4, style: minimalStyle })
+    let heard = 0
+    map.on('style.load', () => heard++)
+    await Promise.resolve()
+    expect(heard).toBe(1)
+  })
+
+  test('a style replaced before it loads fires once, for the one that won', async () => {
+    const map = makeMap()
+    let heard = 0
+    map.on('style.load', () => heard++)
+    map.setStyle(minimalStyle)
+    map.setStyle({ ...minimalStyle, name: 'second' } as StyleSpec)
+    await Promise.resolve()
+    expect(heard).toBe(1)
+    expect(map.getStyle()!.name).toBe('second')
+  })
+
+  test('a diff that only changes GeoJSON data applies it', () => {
+    const map = makeMap()
+    const data = (n: number): unknown => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { n }, geometry: { type: 'Point', coordinates: [0, 0] } }] })
+    const style = (n: number): StyleSpec => ({ version: 8, sources: { pts: { type: 'geojson', data: data(n) } }, layers: [{ id: 'p', type: 'circle', source: 'pts' }] } as any)
+    map.setStyle(style(1))
+    map.setStyle(style(2))
+    expect((map.getStyle()!.sources.pts as any).data).toEqual(data(2))
   })
 
   test('rejects an invalid style when validate=true', () => {

@@ -142,6 +142,52 @@ describe('TileJSON sources in a style', () => {
     expect(() => styles.light({})).toThrow('`tiles` or `url`')
   })
 
+  test('sources and layers added while the style loads are carried onto it', async () => {
+    const real = globalThis.fetch
+    const { fetch: fetcher } = stubFetch({ 'https://tiles.test/planet': TILEJSON })
+    globalThis.fetch = fetcher
+    try {
+      const container = document.createElement('div')
+      document.body.appendChild(container)
+      const map = new TsMap(container, { center: [0, 0], zoom: 2, style: styles.light({ url: 'https://tiles.test/planet' }) })
+      // As a framework binding's <Source> and <Layer> do, mounting with the map.
+      map.addSource('mine', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
+      map.addStyleLayer({ id: 'mine-dots', type: 'circle', source: 'mine' } as any)
+      map.addSource('gone', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
+      map.removeSource('gone')
+      const landed = new Promise(resolve => map.once('style.load', resolve))
+      await landed
+      const style = map.getStyle()!
+      expect(style.sources.basemap).toBeDefined()
+      expect(style.sources.mine).toBeDefined()
+      expect(style.sources.gone).toBeUndefined()
+      expect(map.getStyleLayer('mine-dots')).toBeDefined()
+      container.remove()
+    }
+    finally {
+      globalThis.fetch = real
+    }
+  })
+
+  test('a style set outright drops what was waiting for the one it replaced', async () => {
+    const real = globalThis.fetch
+    const { fetch: fetcher } = stubFetch({ 'https://tiles.test/planet': TILEJSON })
+    globalThis.fetch = fetcher
+    try {
+      const container = document.createElement('div')
+      document.body.appendChild(container)
+      const map = new TsMap(container, { center: [0, 0], zoom: 2, style: styles.light({ url: 'https://tiles.test/planet' }) })
+      map.addSource('mine', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
+      map.setStyle({ version: 8, sources: {}, layers: [] } as any)
+      await new Promise(resolve => setTimeout(resolve, 20))
+      expect(map.getStyle()!.sources.mine).toBeUndefined()
+      container.remove()
+    }
+    finally {
+      globalThis.fetch = real
+    }
+  })
+
   test('setStyle reads the TileJSON, then sets the style', async () => {
     const real = globalThis.fetch
     const { fetch: fetcher } = stubFetch({ 'https://tiles.test/planet': TILEJSON })

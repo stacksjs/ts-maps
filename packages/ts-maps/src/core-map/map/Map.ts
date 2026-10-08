@@ -253,6 +253,9 @@ export class TsMap extends Evented {
     heatmapWeightKey?: string
   }>
   declare _styleLoadToken?: number
+  // Sources and layers added while a style is still on its way (a URL, or
+  // TileJSON sources being read), to carry onto it when it lands.
+  declare _styleCarry?: Array<{ kind: 'source', id: string, spec: SourceSpecification } | { kind: 'layer', layer: LayerSpecification, before?: string }>
   declare _spriteToken?: number
   declare _glyphSource?: any
   declare _theme?: 'light' | 'dark' | 'auto'
@@ -2437,10 +2440,14 @@ export class TsMap extends Evented {
           // A slower earlier request must not overwrite a later style.
           if (token !== this._styleLoadToken)
             return
-          this.setStyle(spec as StyleSpec, opts)
+          this._landStyle(() => this.setStyle(spec as StyleSpec, opts))
           this._styleUrl = style
         })
-        .catch(error => this.fire('error', { error, style }))
+        .catch((error) => {
+          this._styleCarry = undefined
+          this.fire('error', { error, style })
+        })
+      this._styleCarry ??= []
       return this
     }
 
@@ -2455,10 +2462,14 @@ export class TsMap extends Evented {
             return
           // Loaded from a style URL, it keeps saying so.
           const url = this._styleUrl
-          this.setStyle(resolved, opts)
+          this._landStyle(() => this.setStyle(resolved, opts))
           this._styleUrl = url
         })
-        .catch(error => this.fire('error', { error, style }))
+        .catch((error) => {
+          this._styleCarry = undefined
+          this.fire('error', { error, style })
+        })
+      this._styleCarry ??= []
       return this
     }
 
@@ -2466,6 +2477,8 @@ export class TsMap extends Evented {
     // from one — unless it is that URL's document, which says so on arrival.
     this._styleUrl = undefined
     this._styleLoadToken = (this._styleLoadToken ?? 0) + 1
+    // A style set outright replaces what was added for one still loading.
+    this._styleCarry = undefined
 
     const useDiff = opts?.diff !== false
     const validate = opts?.validate !== false
@@ -2496,7 +2509,7 @@ export class TsMap extends Evented {
         this._style.spec.metadata = style.metadata
         this._syncStyleBackground()
         this.fire('styledata')
-        this.fire('style.load')
+        this._fireStyleLoad()
         return this
       }
       // Fall through to full reset.
@@ -2523,11 +2536,58 @@ export class TsMap extends Evented {
     this._initGlyphSource()
     this._syncStyleBackground()
     this.fire('styledata')
-    // A whole style is in place, as Mapbox and MapLibre say it: the moment to
-    // add sources and layers of the page's own, after a style set by URL or
-    // with TileJSON sources has arrived.
-    this.fire('style.load')
+    this._fireStyleLoad()
     return this
+  }
+
+  /**
+   * `style.load`: a whole style is in place, as Mapbox and MapLibre say it —
+   * the moment to add sources and layers of the page's own.
+   *
+   * A microtask late, as theirs is asynchronous. A style given to the
+   * constructor with nothing to fetch is in place before the constructor
+   * returns, and fired then, `map.on('style.load', …)` on the next line never
+   * heard it. A style replaced in the meantime fires for the one that won.
+   */
+  /**
+   * Set a style that has just arrived, then put back the sources and layers
+   * added while it was on its way.
+   *
+   * A page — or a framework binding, whose `<Source>` mounts with the map —
+   * adds its own data as soon as it has a map, and a style named by URL or
+   * with TileJSON sources is still loading then. Setting it replaced the
+   * style those additions were made to, so they vanished. The carry is taken
+   * out first, so the style's own add/remove commands don't touch it; a
+   * style that goes on loading (a URL whose document has TileJSON sources)
+   * keeps carrying it.
+   */
+  _landStyle(set: () => void): void {
+    const carry = this._styleCarry
+    this._styleCarry = undefined
+    set()
+    // `set` may have started another load, which carries on from here.
+    const pending = this._styleCarry as typeof carry
+    if (pending) {
+      pending.unshift(...(carry ?? []))
+      return
+    }
+    for (const item of carry ?? []) {
+      if (item.kind === 'source') {
+        if (!this._style?.spec.sources[item.id])
+          this.addSource(item.id, item.spec)
+      }
+      else if (!this.getStyleLayer(item.layer.id)) {
+        this.addStyleLayer(item.layer, item.before)
+      }
+    }
+  }
+
+  _fireStyleLoad(): void {
+    const token = this._styleLoadToken
+    queueMicrotask(() => {
+      if (token === this._styleLoadToken && this._style)
+        this.fire('style.load')
+    })
   }
 
   /**
@@ -2737,6 +2797,8 @@ export class TsMap extends Evented {
   }
 
   addSource(sourceId: string, source: SourceSpecification): this {
+    // Added while a style is loading: carried onto it when it lands.
+    this._styleCarry?.push({ kind: 'source', id: sourceId, spec: source })
     if (!this._style) {
       this._style = new Style({ version: 8, sources: { [sourceId]: source }, layers: [] })
     }
@@ -2757,6 +2819,8 @@ export class TsMap extends Evented {
   }
 
   removeSource(sourceId: string): this {
+    if (this._styleCarry)
+      this._styleCarry = this._styleCarry.filter(i => i.kind === 'source' ? i.id !== sourceId : (i.layer as { source?: string }).source !== sourceId)
     if (!this._style) return this
     const host = this._style.sourceLayers.get(sourceId)
     if (host) {
@@ -2982,6 +3046,11 @@ export class TsMap extends Evented {
     const entry = this._geoJSONSources?.[sourceId]
     if (!entry)
       throw new Error(`source "${sourceId}" is not a geojson source on this map`)
+    // The style says what the source holds now, so getStyle() and the next
+    // diff agree with what is drawn.
+    const spec = this._style?.spec.sources[sourceId] as { data?: unknown } | undefined
+    if (spec)
+      spec.data = data
 
     const apply = (value: unknown): void => {
       const features = (value as any)?.type === 'FeatureCollection'
@@ -3021,7 +3090,14 @@ export class TsMap extends Evented {
   // base Layer instance via the mixin in `layer/Layer.ts`. We distinguish
   // here by the argument having a `type` string literal and an `id`.
   addStyleLayer(layer: LayerSpecification, before?: string): this {
-    if (!this._style) throw new Error('addStyleLayer requires a loaded style')
+    // Added while a style is loading: carried onto it when it lands. With no
+    // style at all yet, that is the only place it can go.
+    this._styleCarry?.push({ kind: 'layer', layer, before })
+    if (!this._style) {
+      if (this._styleCarry)
+        return this
+      throw new Error('addStyleLayer requires a loaded style')
+    }
     const layers = this._style.spec.layers
     if (before) {
       const idx = layers.findIndex(l => l.id === before)
@@ -3062,6 +3138,8 @@ export class TsMap extends Evented {
   }
 
   removeStyleLayer(id: string): this {
+    if (this._styleCarry)
+      this._styleCarry = this._styleCarry.filter(i => i.kind !== 'layer' || i.layer.id !== id)
     if (!this._style) return this
     const idx = this._style.spec.layers.findIndex(l => l.id === id)
     if (idx < 0) return this
@@ -3406,7 +3484,24 @@ export class TsMap extends Evented {
         this._style?.setLayerZoomRange(layerId, minzoom, maxzoom)
         break
       }
-      // Other commands are no-ops for now.
+      // A style whose only change is a GeoJSON source's data.
+      case 'setSourceData': {
+        const [sourceId, data] = cmd.args
+        this.setSourceData(sourceId, data)
+        break
+      }
+      // Kept in the style, so getStyle() returns what was set; nothing
+      // draws light or transitions yet.
+      case 'setLight': {
+        if (this._style)
+          (this._style.spec as any).light = cmd.args[0]
+        break
+      }
+      case 'setTransition': {
+        if (this._style)
+          (this._style.spec as any).transition = cmd.args[0]
+        break
+      }
     }
   }
 
