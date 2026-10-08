@@ -27,7 +27,7 @@ features:
     details: "Fractional zoom, rotation, and tilt to 85° with a sky at the horizon. flyTo, easeTo and jumpTo, and two-finger twist and tilt on touch screens."
   - title: "3D"
     icon: "🏙️"
-    details: "Extruded buildings with roofs, glTF landmarks and trees, drawn together in WebGL so each hides what is behind it. Hillshading and ground heights from elevation tiles, fog, sky, and custom WebGL layers."
+    details: "Extruded buildings with roofs, glTF landmarks and trees, drawn together in WebGL so each hides what is behind it. Terrain raised from elevation tiles, with labels and markers standing on it; hillshading, fog, sky, and custom WebGL layers."
   - title: "The globe"
     icon: "🌍"
     details: "projection: 'globe' draws a WebGL sphere textured with the same tiles as the flat map, and fades into the flat map between zoom 5.5 and 6. Labels and markers ride it."

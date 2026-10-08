@@ -3,7 +3,7 @@
 Elevation comes into a map as a `raster-dem` source: image tiles whose colours encode height. One source can feed two things:
 
 - a **`hillshade` layer**, which shades the slopes so the relief shows on the map;
-- **`setTerrain`**, which keeps the heights for the view, so you can ask the elevation at any point and download it with an offline map.
+- **`setTerrain`**, which raises the ground into 3D by those heights, and keeps them so you can ask the elevation at any point and download it with an offline map.
 
 Buildings, landmarks, sky and the globe are on [3D and the globe](./3d.md).
 
@@ -15,8 +15,10 @@ Buildings, landmarks, sky and the globe are on [3D and the globe](./3d.md).
 import { styles, TsMap } from 'ts-maps'
 
 const map = new TsMap('map', {
-  center: [45.9763, 7.6586], // The Matterhorn
-  zoom: 12,
+  center: [45.992, 7.69], // Looking at the Matterhorn
+  zoom: 13,
+  pitch: 65,
+  bearing: 235,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
 })
 
@@ -106,11 +108,28 @@ map.getTerrain() // { source: 'dem', exaggeration: 1.3 }
 map.setTerrain(null)
 ```
 
-`source` names a `raster-dem` source already on the map. `exaggeration` scales the heights and defaults to `1`. A missing `source` throws a `TypeError`, and an exaggeration that is negative or not finite a `RangeError`.
+`source` names a `raster-dem` source on the map. `exaggeration` multiplies the heights and defaults to `1`; `0` lays the ground flat again. Calling `setTerrain` again with a new `exaggeration` changes it in place. A missing `source` throws a `TypeError`, and an exaggeration that is negative or not finite a `RangeError`.
 
-With terrain on, the map fetches the DEM tile under each tile in view, at the map's whole zoom. Past the DEM's `maxzoom`, and wherever a tile is missing, a part of the nearest ancestor (up to six levels up) stands in. The encoding and tile size are read from the source on the first `setTerrain` call; call `setTerrain(null)` first to switch to a DEM with a different encoding. `setTerrain(null)` frees the heights and cancels fetches.
+### What it draws
 
-`setTerrain` does not yet raise the map into a 3D surface: the map is drawn flat, and the relief you see is the hillshade. What it gives you today is the heights.
+With terrain on, the ground is a 3D surface. Mountains stand up and valleys sink, seen through the same camera as the flat map, at any pitch and bearing. The surface is draped with exactly what the map's tile layers draw: the basemap's vector tiles, raster tiles, the hillshade. Above the horizon, the sky and fog are drawn as on a flat map, and distant ridges stand against them.
+
+Heights are measured from the ground at the centre of the view, not from the sea. The centre stays where it is and the relief around it moves; as you pan, the camera rides over the ground. Raised from the sea, a view in the Alps at zoom 14 would lift right off the top of the screen.
+
+Labels, markers, popups and tooltips stand on the surface: a peak's name sits on the peak, not on the flat map under it. Labels behind a ridge are hidden. A click, and the `latlng` of every pointer event, lands on the slope under the pointer, so `queryTerrainElevation(e.latlng)` is the height of what was clicked. A marker dragged over the terrain lands on the ground under it.
+
+The ground rises as its DEM tiles arrive. Until a tile has loaded, its ground is drawn at the height of the centre; a coarse tile comes first and the detail follows. The map fetches, for each tile of the basemap in view, the DEM one level finer, and one tile four levels up. Past the DEM's `maxzoom`, and wherever a tile is missing, a part of the nearest ancestor (up to six levels up) stands in. A tile the source has nothing for is not asked for again.
+
+The encoding and tile size are read from the source. Calling `setTerrain` before `addSource` is fine; they are read when the first DEM tile is fetched. Naming another source starts again with that one's heights. `setTerrain(null)` frees the heights and cancels fetches.
+
+### Limits
+
+- It needs WebGL. Without it the map is drawn flat, as before, and `queryTerrainElevation` still answers.
+- With the globe showing (`projection: 'globe'` below zoom 6), the globe is drawn and the terrain is not.
+- Vector overlays — `Polyline`, `Polygon`, `Circle`, `GeoJSON` layers — and 3D buildings are drawn on the flat map at the height of the centre, not draped on the slopes.
+- Dragging pans the flat map at the height of the centre under the pointer. Ground much higher or lower than that moves a little faster or slower than the pointer.
+- Where the ground sinks far below the centre, the edge of the view can show ground that has no tiles loaded yet, and so no picture.
+- Markers and popups are not hidden behind ridges; only labels are.
 
 ### Elevation at a point
 
@@ -121,7 +140,7 @@ map.on('click', (e) => {
 })
 ```
 
-`queryTerrainElevation({ lat, lng })` returns metres, bilinearly sampled from the DEM tile at the map's zoom, or the nearest coarser one that has loaded. It is `null` when terrain is off or no tile covering the point has loaded yet. It does not include the exaggeration.
+`queryTerrainElevation({ lat, lng })` returns metres above sea level, bilinearly sampled from the finest DEM tile loaded there (one level finer than the map's zoom, or the nearest coarser one). It is `null` when terrain is off or no tile covering the point has loaded yet. It does not include the exaggeration. With terrain drawn, `e.latlng` in a click handler is the place on the surface, so the two go together.
 
 For heights along a line, such as a route's climb, the elevation services are a better fit; see [Services](./services.md#drawing-a-route).
 
@@ -133,7 +152,7 @@ To feed heights from a worker or a file rather than the network:
 map.addTerrainTile({ z: 12, x: 2132, y: 1457 }, pixels)
 ```
 
-`pixels` is RGBA bytes (`Uint8Array` or `Uint8ClampedArray`), `demSize * demSize * 4` long, decoded with the source's encoding. It does nothing while terrain is off. `map.getTerrainSource()` returns the `TerrainSource` behind it, which also takes decoded heights (`addTileElevation`) and answers `hasTile`, `queryElevation` and `size`.
+`pixels` is RGBA bytes (`Uint8Array` or `Uint8ClampedArray`), `demSize * demSize * 4` long, decoded with the source's encoding. It fires `terrainload`, and the ground it covers rises on the next frame. It does nothing while terrain is off. `map.getTerrainSource()` returns the `TerrainSource` behind it, which also takes decoded heights (`addTileElevation`) and answers `hasTile`, `queryElevation` and `size`.
 
 ### Events
 
@@ -142,7 +161,7 @@ map.on('terrainchange', ({ terrain }) => { /* null when turned off */ })
 map.on('terrainload', ({ coord }) => { /* { z, x, y }: a DEM tile arrived */ })
 ```
 
-`terrainchange` fires on every `setTerrain` call. `terrainload` fires when a DEM tile fetch finishes, which suits a progress indicator.
+`terrainchange` fires on every `setTerrain` call. `terrainload` fires when a DEM tile fetch finishes, found or not, and when `addTerrainTile` adds one, which suits a progress indicator.
 
 ## Offline
 
@@ -150,4 +169,4 @@ With terrain on, a downloaded offline map keeps the DEM tiles too, to zoom 12 by
 
 ## Try it
 
-The [terrain example](../examples/06-terrain.md) is the Matterhorn with the source, hillshade and `setTerrain` above, and a slider for the exaggeration.
+The [terrain example](../examples/06-terrain.md) is the Matterhorn in 3D with the source, hillshade and `setTerrain` above, a slider for the exaggeration and one for the shading, and the height of wherever you click.

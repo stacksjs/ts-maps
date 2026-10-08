@@ -8,8 +8,8 @@
 
 ts-maps is an interactive map library written in TypeScript, with no runtime
 dependencies. It draws vector tiles styled with the Mapbox GL Style Spec,
-tilts and rotates the camera, puts the world on a globe, shades terrain and
-raises 3D buildings. You build a map the way Leaflet does it: a map, layers
+tilts and rotates the camera, puts the world on a globe, raises terrain and
+3D buildings. You build a map the way Leaflet does it: a map, layers
 you `addTo` it, markers with popups.
 
 It needs no API key. Every example here draws
@@ -36,7 +36,8 @@ It needs no API key. Every example here draws
   custom WebGL2 layers.
 - **Globe.** With `projection: 'globe'`, the map zoomed out is a sphere drawn
   from the same tiles.
-- **Terrain.** Hillshading and ground heights from a `raster-dem` source.
+- **Terrain.** The ground raised in 3D from a `raster-dem` source, with
+  labels and markers standing on it, plus hillshading and ground heights.
 - **Your own data.** GeoJSON sources with clustering and heatmaps, styled like
   the basemap. Leaflet-style `Marker`, `Popup`, `Polyline`, `Polygon`,
   `Circle` and `GeoJSON` layers on top.
@@ -319,8 +320,10 @@ Tiles](https://registry.opendata.aws/terrain-tiles/) are free and need no key:
 
 ```ts
 const map = new TsMap('map', {
-  center: [45.9763, 7.6586], // The Matterhorn
-  zoom: 12,
+  center: [45.992, 7.69], // Looking at the Matterhorn
+  zoom: 13,
+  pitch: 65,
+  bearing: 235,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
 })
 
@@ -336,8 +339,8 @@ map.on('style.load', () => {
   // Shade the slopes.
   map.addStyleLayer({ id: 'hillshade', type: 'hillshade', source: 'dem', paint: { 'hillshade-exaggeration': 0.6 } })
 
-  // Keep the heights, to ask for them.
-  map.setTerrain({ source: 'dem' })
+  // Raise the ground.
+  map.setTerrain({ source: 'dem', exaggeration: 1 })
 })
 
 map.on('click', (e) => {
@@ -346,10 +349,12 @@ map.on('click', (e) => {
 })
 ```
 
-The relief you see is the `hillshade` layer. `setTerrain` does not yet raise
-the map into a 3D surface: the map is still drawn flat. What it gives you is
-the heights, for `queryTerrainElevation`, and the DEM tiles in an offline
-download. See [Terrain](https://ts-maps.stacksjs.com/concepts/terrain).
+`setTerrain` raises the ground by the DEM's heights: mountains stand up and
+valleys sink, draped with the map's own tiles. Labels, markers and popups
+stand on the surface, and a click lands on the slope under the pointer. It
+needs WebGL; without it the map stays flat and the heights are still there
+for `queryTerrainElevation`. See
+[Terrain](https://ts-maps.stacksjs.com/concepts/terrain).
 
 ### Search and turn-by-turn
 

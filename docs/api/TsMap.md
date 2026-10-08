@@ -409,9 +409,9 @@ it does not fire `movestart` or `moveend`.
 
 | Method | |
 | ------ | - |
-| `setTerrain({ source, exaggeration? })` | Load a `raster-dem` source's heights, for `queryTerrainElevation` and offline downloads. The map is still drawn flat; relief comes from a `hillshade` layer. `exaggeration` defaults to `1`. `null` turns terrain off. |
+| `setTerrain({ source, exaggeration? })` | Raise the ground by a `raster-dem` source's heights, measured from the ground at the centre of the view. Labels, markers and popups stand on it. Needs WebGL; without it the map stays flat. `exaggeration` multiplies the heights and defaults to `1`. `null` turns terrain off. |
 | `getTerrain()` | The terrain options, or `null`. |
-| `queryTerrainElevation({ lat, lng })` | Metres at a point, from the DEM tiles loaded, or `null`. |
+| `queryTerrainElevation({ lat, lng })` | Metres above sea level at a point, from the DEM tiles loaded, or `null`. |
 | `getTerrainSource()` | The `TerrainSource` holding the decoded DEM tiles. |
 | `addTerrainTile({ z, x, y }, rgba)` | Feed a DEM tile in yourself, as RGBA bytes. |
 

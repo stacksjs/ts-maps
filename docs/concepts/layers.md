@@ -301,8 +301,8 @@ new RasterDEMLayer('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/
 ```
 
 In a styled map, a `hillshade` layer over a `raster-dem` source does the
-same, and `setTerrain` on that source gives you the ground's height
-anywhere; see [Terrain](./terrain.md).
+same, and `setTerrain` on that source raises the ground into 3D and gives
+you its height anywhere; see [Terrain](./terrain.md).
 
 ## Image, video and SVG overlays
 

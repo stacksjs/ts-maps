@@ -4,8 +4,8 @@
 
 ts-maps is an interactive map library written in TypeScript, with no runtime
 dependencies. It draws vector tiles styled with the Mapbox GL Style Spec,
-tilts and rotates the camera, puts the world on a globe, shades terrain and
-raises 3D buildings. You drive it with the API Leaflet made familiar: a map, layers
+tilts and rotates the camera, puts the world on a globe, raises terrain and
+3D buildings. You drive it with the API Leaflet made familiar: a map, layers
 you `addTo` it, markers with popups.
 
 ## Why
