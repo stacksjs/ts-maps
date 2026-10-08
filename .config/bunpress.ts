@@ -19,12 +19,15 @@ function exampleLinks(): Array<{ text: string, link: string }> {
   })
 }
 
-/** The playground's demos, from their pages' `<title>Title — ts-maps playground</title>`. */
+/**
+ * The playground's demos, from their pages' `<title>Title — ts-maps playground</title>`,
+ * each at its docs page (scripts/build-demo-pages.ts) so it opens with the sidebar.
+ */
 function playgroundLinks(): Array<{ text: string, link: string }> {
   const decode = (text: string): string => text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
   return numbered('playground/core-map', 'html').map((file) => {
     const title = readFileSync(join(ROOT, 'playground/core-map', file), 'utf8').match(/<title>(.*?)(?: — ts-maps playground)?<\/title>/)?.[1] ?? file
-    return { text: decode(title), link: `/playground/${file}` }
+    return { text: decode(title), link: `/demos/${file.replace(/\.html$/, '')}` }
   })
 }
 
@@ -98,7 +101,7 @@ const config: BunPressConfig = {
     {
       text: 'Playground',
       items: [
-        { text: 'All demos', link: '/playground/' },
+        { text: 'All demos', link: '/demos/' },
         ...playgroundLinks(),
       ],
     },
@@ -116,7 +119,7 @@ const config: BunPressConfig = {
     { text: 'Home', link: '/' },
     { text: 'Guide', link: '/guide/getting-started' },
     { text: 'Examples', link: '/examples/' },
-    { text: 'Playground', link: '/playground/' },
+    { text: 'Playground', link: '/demos/' },
     { text: 'API', link: '/api/' },
     { text: 'GitHub', link: 'https://github.com/stacksjs/ts-maps' },
   ],

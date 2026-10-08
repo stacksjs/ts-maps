@@ -60,8 +60,13 @@ if (existsSync(worker)) {
   }
 }
 
+// Opened in the docs (`?embed`, scripts/build-demo-pages.ts), a demo leaves
+// out its own info card: the docs page around it says the same.
+const EMBED = `<script>if (/[?&]embed\\b/.test(location.search)) document.documentElement.classList.add('embedded')</script>`
+
 for (const page of pages) {
   const html = readFileSync(join(SRC, page), 'utf8')
+    .replace(/<head>/, `<head>\n    ${EMBED}`)
     .replace(/(['"])(?:\.\.\/)+packages\/ts-maps\/src\/core-map\/ts-maps\.css\1/g, '$1./ts-maps.css$1')
     .replace(/src=(['"])\.\/([\w-]+)\.ts\1/g, 'src=$1./$2.js$1')
   writeFileSync(join(OUT, page), html)

@@ -129,6 +129,11 @@ body.demo #map {
   font-size: 12.5px;
 }
 
+/* In the docs, the page around the demo says what it shows. */
+html.embedded .demo-info {
+  display: none;
+}
+
 /* Above the scale bar, where a demo shows one. */
 body.demo:has(.tsmap-control-scale) .demo-info {
   bottom: 52px;

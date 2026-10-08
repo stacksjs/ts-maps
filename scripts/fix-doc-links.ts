@@ -16,6 +16,9 @@
  *     on GitHub, since the site does not serve sources.
  *
  * Anything else (absolute paths, anchors, other sites) is left alone.
+ *
+ * It also undoes BunPress escaping a title twice: a page called "Raster &
+ * heatmap" was titled `Raster &amp;amp; heatmap`, and the tab said so.
  */
 
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
@@ -78,7 +81,7 @@ if (import.meta.main) {
     if (!source)
       continue
     const html = readFileSync(page, 'utf8')
-    const next = html.replace(/href="([^"]+)"/g, (whole, href: string) => {
+    const next = html.replace(/<title>(.*?)<\/title>/, (_, title: string) => `<title>${title.replace(/&amp;(amp|lt|gt|quot|#39);/g, '&$1;')}</title>`).replace(/href="([^"]+)"/g, (whole, href: string) => {
       const to = siteHref(source, href)
       if (to === undefined)
         return whole

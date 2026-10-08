@@ -123,7 +123,7 @@ const style = styles.light({ tiles: found!.tiles, maxzoom: found!.maxzoom, attri
 
 `resolveTileJSON` tries each TileJSON in turn with a timeout and keeps the answer for the session; see [Styles & theming](./styles-and-theming.md#choosing-a-source). An app that resolves its basemap through a list like that (Wildloop's `VECTOR_TILEJSON_SOURCES`) switches by putting its own `https://tiles.example.com/tiles.json` (or the bare base path; both answer TileJSON) first. Same schema, same styles; only the host changes.
 
-The [playground](/playground/)'s real-world demos run on exactly this: Wildloop's weekly planet build, a PMTiles archive in R2 behind the Worker in section 7 at `https://tiles.wildloop.org/tiles.json`, with OpenFreeMap behind it.
+The [playground](/demos/)'s real-world demos run on exactly this: Wildloop's weekly planet build, a PMTiles archive in R2 behind the Worker in section 7 at `https://tiles.wildloop.org/tiles.json`, with OpenFreeMap behind it.
 
 ## 6. Serving straight from R2 / a bucket, no server
 
