@@ -1,6 +1,6 @@
 # 03 · Vector tiles, styled from scratch
 
-The same OpenMapTiles planet the basemap draws, with a style of our own: three layers picked by `source-layer` and painted with expressions. Click a road, a building or the river to see what its tile says about it, through `queryRenderedFeatures`.
+The same OpenMapTiles planet the basemap draws, with a style of our own: a background and three layers picked by `source-layer`, painted with expressions. Click a road, a building or the river to see what its tile says about it, through `queryRenderedFeatures`.
 
 <iframe class="ts-maps-demo" src="/playground/examples/03-vector-tile.html" title="Vector tiles, styled from scratch, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
 
@@ -19,11 +19,16 @@ const map = new TsMap('map', {
       { id: 'roads', type: 'line', source: 'planet', 'source-layer': 'transportation', paint: {
         'line-color': ['match', ['get', 'class'], ['motorway', 'trunk', 'primary'], '#f2a33a', '#b9b2a6'],
       } },
+      { id: 'buildings', type: 'fill', source: 'planet', 'source-layer': 'building', minzoom: 14, paint: { 'fill-color': '#d8d1c4' } },
     ],
   },
 })
 
-map.on('click', e => console.log(map.queryRenderedFeatures(e.containerPoint, { layers: ['roads'] })))
+map.on('click', (e) => {
+  const [hit] = map.queryRenderedFeatures(e.containerPoint, { layers: ['roads', 'buildings', 'water'] })
+  if (hit)
+    console.log(hit.layer.id, hit.feature.properties)
+})
 ```
 
 ---

@@ -33,7 +33,7 @@ To see more of the library at once, open the [playground](/demos/): its demos go
   <a href='./06-terrain.md' style='display: flex; flex-direction: column; border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit;'>
     <img src='/playground/examples/thumbs/06-terrain.jpg' alt='' loading='lazy' style='display: block; width: 100%; aspect-ratio: 8 / 5; object-fit: cover; margin: 0;' />
     <span style='display: block; padding: 10px 12px 2px; font-weight: 600;'>06 · Terrain and hillshade</span>
-    <span style='display: block; padding: 0 12px 12px; font-size: 0.86em; opacity: 0.75; line-height: 1.45;'>The Matterhorn in 3D, from real elevation.</span>
+    <span style='display: block; padding: 0 12px 12px; font-size: 0.86em; opacity: 0.75; line-height: 1.45;'>The Matterhorn, shaded from real elevation.</span>
   </a>
   <a href='./07-clusters.md' style='display: flex; flex-direction: column; border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit;'>
     <img src='/playground/examples/thumbs/07-clusters.jpg' alt='' loading='lazy' style='display: block; width: 100%; aspect-ratio: 8 / 5; object-fit: cover; margin: 0;' />

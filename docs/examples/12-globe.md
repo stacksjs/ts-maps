@@ -13,6 +13,9 @@ const map = new TsMap('map', {
   projection: 'globe',
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
 })
+
+// The halo round it, and the space behind.
+map.setFog({ 'color': '#ffffff', 'space-color': '#dfe7f0' })
 ```
 
 ---

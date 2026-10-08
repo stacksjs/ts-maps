@@ -54,7 +54,8 @@ map.on('click', (e: any) => {
     info.textContent = 'Nothing here. Try a road, a building or the river.'
     return
   }
-  const props = Object.entries(top.properties ?? {}).filter(([, v]) => v !== undefined && v !== null)
+  // A hit is the feature, its style layer and the tile it came from.
+  const props = Object.entries(top.feature?.properties ?? {}).filter(([, v]) => v !== undefined && v !== null)
   info.innerHTML = `<b>${top.layer?.id ?? top.sourceLayer}</b><br>${props.map(([k, v]) => `${k}: ${String(v)}`).join('<br>')}`
 })
 

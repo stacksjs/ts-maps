@@ -1,6 +1,6 @@
 # 06 · Terrain and hillshade
 
-The Matterhorn in 3D, from real elevation: AWS's open [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Terrarium encoding, no key). One `raster-dem` source feeds both the `hillshade` layer, which shades the slopes, and `setTerrain`, which lifts the map onto them.
+The Matterhorn, shaded from real elevation: AWS's open [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Terrarium encoding, no key). One `raster-dem` source feeds both the `hillshade` layer, which shades the slopes, and `setTerrain`, which lets the map say how high the ground is: click anywhere. The slider sets how strongly the slopes are shaded.
 
 <iframe class="ts-maps-demo" src="/playground/examples/06-terrain.html" title="Terrain and hillshade, running" loading="lazy" style="width: 100%; height: 480px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
 
@@ -15,7 +15,11 @@ map.on('style.load', () => {
     encoding: 'terrarium',
   })
   map.addStyleLayer({ id: 'hillshade', type: 'hillshade', source: 'dem' }, 'water')
-  map.setTerrain({ source: 'dem', exaggeration: 1.3 })
+  map.setTerrain({ source: 'dem' })
+})
+
+map.on('click', (e) => {
+  const metres = map.queryTerrainElevation(e.latlng) // null until that tile has loaded
 })
 ```
 
