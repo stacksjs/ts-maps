@@ -14,7 +14,7 @@ Five pieces, usable separately:
 | `RunTrailLayer` | The live trail, and what closing it now would be worth. |
 | `TerritoryLog` | Keeps every client's map identical when captures race. |
 
-See `playground/core-map/11-territory.html` for them wired together.
+The playground's [territory demo](../demos/11-territory.md) has them wired together. All of it is exported from `ts-maps`.
 
 ## The short version
 
@@ -59,7 +59,11 @@ const detector = new LoopDetector({
 })
 ```
 
-Those three defaults are the difference between a game that feels fair and one
+Those are the defaults. `minPoints` (default `4`) is the fewest points a loop may have, and `carryOver` (default `1`) how many points are kept after a loop closes. A point less than half a metre from the last one is ignored.
+
+`push` returns `null`, or the loop: `{ ring, area, perimeter, startIndex, endIndex, closure }`, where `closure` is `'crossing'` or `'proximity'`. `detector.track` is the path so far, and `reset()` starts again.
+
+The three distances are the difference between a game that feels fair and one
 that does not. `snapDistance` is a tolerance rather than a precision: consumer
 GPS is good to about five metres in the open and much worse between buildings.
 The two floors exist because a receiver sitting still wanders by a few metres,
@@ -136,6 +140,11 @@ which is the number that makes people run one more block.
 `new TerritoryStore({ steal: false })` lets territories overlap and counts
 ground held by more than one player for each of them.
 
+Pieces smaller than `minFragmentArea` (default 25 m²) left over after a steal
+are dropped, so a capture does not leave slivers behind. The store fires
+`change` whenever a territory changes, and has `get(owner)`,
+`set(owner, territory)`, `owners()` and `clear()` besides the methods above.
+
 ## Drawing it
 
 ```ts
@@ -168,6 +177,19 @@ Area labels appear only where the territory is big enough on screen to hold one
 — a label that does not fit inside the shape it names belongs to whichever
 neighbour the reader guesses.
 
+| Option | Default | |
+| --- | --- | --- |
+| `store` | | The `TerritoryStore` to draw. `setStore` changes it |
+| `self` | | The viewer, drawn with emphasis |
+| `styles` | | Per owner: `color`, `fillOpacity`, `weight`, `glow`, `hatch`, `label` |
+| `labelMinZoom` | `13` | No area labels zoomed out further |
+| `captureDuration` | `900` | Milliseconds |
+| `units` | | `'metric'` or `'imperial'` for the labels |
+
+By default the viewer's own territory has a fill opacity of 0.28, a 3px border
+and a glow; everyone else's 0.16 and 2px. `hatch` adds diagonal hatching,
+which reads as "contested" without needing a colour.
+
 Clicking works through the map, because the canvas takes no pointer events and
 so does not make the map undraggable over your own ground:
 
@@ -184,7 +206,9 @@ taking it.
 ## The live trail
 
 ```ts
-const trail = new RunTrailLayer({ color: '#38bdf8', showPotential: true })
+import { RunTrailLayer } from 'ts-maps'
+
+const trail = new RunTrailLayer({ color: '#38bdf8' })
 map.addLayer(trail)
 
 // each GPS tick
@@ -192,9 +216,21 @@ trail.setTrack(detector.track)
 ```
 
 The trail fades toward its tail, because the runner's recent path is what
-matters now and the start of it is history. With `showPotential`, it also shades
-the shape the trail would enclose if the runner closed it from where they are —
-the closing leg dashed, since it is the only part they have not actually run.
+matters now and the start of it is history. It also shades the shape the trail
+would enclose if the runner closed it from where they are, the closing leg
+dashed, since it is the only part they have not actually run.
+
+| Option | Default | |
+| --- | --- | --- |
+| `color` | `'#38bdf8'` | |
+| `weight` | `4` | |
+| `opacity` | `0.95` | At the head; the tail fades to nothing |
+| `showPotential` | `true` | Shade what closing the loop now would claim |
+| `potentialOpacity` | `0.12` | |
+| `showHead` | `true` | A marker at the runner's position |
+| `pulse` | `true` | Pulse that marker, so it reads as live |
+
+`addPoint(point)` extends the trail by one point, and `clear()` empties it.
 
 ## More than one player
 
@@ -225,14 +261,16 @@ socket.on('capture', event => log.apply(event))
 socket.on('ack', ({ id, seq }) => log.confirm(id, seq))
 ```
 
-The order is computed from the event alone — server `seq` if present, then
-`at`, then `id` — so every participant derives the same one. That last tiebreak
+The order is computed from the event alone, so every participant derives the
+same one: events the server has numbered come first, by `seq`; then the rest,
+by `at`, then `id`. That last tiebreak
 is not a formality: phone clocks disagree often enough that identical
 timestamps are common, and without it two clients would order the same pair
 differently and diverge.
 
 Event ids double as idempotency keys, so a client resending after a timeout is
-not paid twice for one run.
+not paid twice for one run. That holds for the events the log still keeps;
+ids folded away by `compact` are forgotten.
 
 ```ts
 log.apply(event).duplicate  // true the second time
@@ -248,7 +286,10 @@ doing.
 
 `log.store` is a stable object: a replay refolds it in place rather than
 handing back a new one, so a layer given it once keeps working. The log fires
-`rebuilt` when that happens, if you want to react to it.
+`rebuilt` when that happens. A replay folds every kept event through
+`store.capture` again, so the store's `capture` event fires for each of them:
+with a log, tell players about captures from the log's `applied` event, which
+fires once per event, rather than from the store.
 
 ## Geometry from a real device
 
@@ -271,6 +312,8 @@ The first throws; the other two are repaired, because they are valid runs
 described awkwardly rather than bad data.
 
 ```ts
+import { InvalidGeometryError } from 'ts-maps'
+
 try {
   store.capture('me', loop.ring)
 }
@@ -290,14 +333,23 @@ worst single capture in that run took 10 ms.
 
 ## In a framework
 
-Both layers have components in every binding, with the same names and props:
+Both layers have components in React, Vue, Svelte and Solid as
+`TerritoryLayer` and `RunTrailLayer` (Vue registers them as
+`TsTerritoryLayer` and `TsRunTrailLayer`, Nuxt as `TsMapsTerritoryLayer` and
+`TsMapsRunTrailLayer`). `TerritoryLayer` takes `store`, `self`, `styles`,
+`labelMinZoom`, `captureDuration` and `units`; `RunTrailLayer` takes `track`,
+`color`, `weight` and `showPotential`.
 
 ```tsx
 <Map center={[34.02, -118.47]} zoom={16}>
   <TerritoryLayer store={store} self="me" />
-  <RunTrailLayer track={track} />
+  <RunTrailLayer track={[...detector.track]} />
 </Map>
 ```
+
+`detector.track` is the detector's own array, changed in place as points
+arrive, so pass a copy: a framework that compares props by reference would
+not see the new points.
 
 React Native takes them as props rather than components, because its map lives
 in a WebView and a store cannot cross that boundary — the geometry it produced
@@ -308,15 +360,17 @@ can:
   runtime={runtime}
   self="me"
   territories={[{ owner: 'me', geometry: store.get('me') }]}
-  runTrail={detector.track}
+  runTrail={[...detector.track]}
 />
 ```
 
 stx announces each layer through a DOM event when it builds one, for the same
-reason — a store is a live object markup cannot carry:
+reason (a store is a live object markup cannot carry), and its components take
+no `store` or `track`:
 
 ```js
 container.addEventListener('territory:ready', e => e.detail.layer.setStore(store))
+container.addEventListener('runtrail:ready', e => e.detail.layer.setTrack(track))
 ```
 
 ## The geometry underneath
@@ -326,12 +380,15 @@ The pieces above are built on operations that are useful on their own:
 ```ts
 import { difference, formatArea, intersection, ringArea, union } from 'ts-maps'
 
-ringArea(ring)             // m², signed — the sign distinguishes a hole
-union(a, b)                // MultiPolygon
+ringArea(ring)             // m², signed: the sign distinguishes a hole
+union(a, b)                // MultiPolygon in, MultiPolygon out
 difference(a, b)
 intersection(a, b)
 formatArea(12043)          // '1.2 ha'
 ```
+
+`xor`, `intersects` and `contains` are there too, and `validateRing` and
+`prepareClaim` are the checks and repairs `capture` runs.
 
 Two things worth knowing about them.
 
