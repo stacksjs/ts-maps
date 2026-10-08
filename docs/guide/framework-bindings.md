@@ -1,655 +1,286 @@
 # Framework bindings
 
-ts-maps ships thin bindings for React, Vue, Svelte, Solid, stx, Nuxt and React
-Native. They are wrappers, not forks: all behaviour lives in the core library,
-and each binding exposes the same component names and prop shapes so a screen
-sketched in one framework reads the same in another.
+ts-maps has bindings for React, Vue, Svelte, Solid, stx, Nuxt and React
+Native. Each one is a thin wrapper: a component builds a core object when it
+mounts and removes it when it unmounts, and the behaviour lives in the core
+library. `<Search>` in React is the core `SearchControl`; `<Marker>` is the
+core `Marker`. Anything the core can do, you can reach from a binding through
+the map instance.
 
-| | React | Vue | Svelte | Solid | stx | Nuxt | React Native |
-|---|---|---|---|---|---|---|---|
-| `Map` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `MapView` |
-| `TileLayer` `Source` `Layer` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| `Marker` `Popup` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `markers` prop |
-| Controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `controls` prop |
-| `TurnByTurn` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `turnByTurn` prop |
-| `OfflineMaps` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `offlineMaps` prop |
-| `Search` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `search` prop |
-| `MapType` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `mapType` prop |
-| `IndoorMap` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `indoor` prop |
-| `LookAround` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `lookAround` prop |
-| `Landmark` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `landmarks` prop |
-| `Trees` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | `trees` prop |
-| Map access | `useMap` | `useMap` | `useMap` | `useMap` | `findMap` | auto-imported | `onReady` |
-| Event subscription | `useMapEvent` | `useMapEvent` | `useMapEvent` | `useMapEvent` | `onMapEvent` | auto-imported | ✅ |
+This page covers what the bindings share and where they differ. Each
+framework has its own page with runnable examples:
 
-Two bindings render the map somewhere a child component cannot reach it, and
-say so with a different shape rather than pretending otherwise: React Native
-puts it in a WebView, and stx emits a component's script once per definition
-rather than per use. Both are covered below.
+- [React](./react.md)
+- [Vue](./vue.md)
+- [Nuxt](./nuxt.md)
+- [Svelte](./svelte.md)
+- [Solid](./solid.md)
+- [stx](./stx.md)
+- [React Native](./react-native.md)
 
-## Controls
+## Install
 
-Every control is a component, placed inside `<Map>` like any other child:
+| Framework | Package | Peer dependencies | Stylesheet |
+|---|---|---|---|
+| React | `@ts-maps/react` | `react`, `react-dom` >= 18 | `import '@ts-maps/react/styles.css'` |
+| Vue | `@ts-maps/vue` | `vue` >= 3.4 | `import '@ts-maps/vue/styles.css'` |
+| Nuxt | `ts-maps-nuxt` | `@nuxt/kit` (Nuxt >= 3.12) | added by the module |
+| Svelte | `@ts-maps/svelte` | `svelte` >= 4 | `import '@ts-maps/svelte/styles.css'` |
+| Solid | `@ts-maps/solid` | `solid-js` >= 1.8 | `import '@ts-maps/solid/styles.css'` |
+| stx | `@ts-maps/stx` | — | `@ts-maps/stx/styles.css`, or a `<link>` |
+| React Native | `@ts-maps/react-native` | `react`, `react-native`, `react-native-webview` | in the WebView runtime |
 
-::: code-group
+Every package depends on `ts-maps`, so it is installed with the binding. Each
+binding's `styles.css` is the core stylesheet; `import 'ts-maps/styles.css'`
+is the same file. Without it the map's panes are not positioned and the tiles
+stack down the page.
 
-```tsx [React]
-import { GeocoderControl, Map, NavigationControl, ScaleControl } from '@ts-maps/react'
+All packages are at 0.4.0.
 
-<Map center={[34.02, -118.47]} zoom={14}>
-  <NavigationControl position="topright" showCompass />
-  <GeocoderControl placeholder="Search for a place" />
-  <ScaleControl position="bottomleft" />
+## The parity rule
+
+The rule: a component has the same name, the same props and the same events
+in every binding, so a screen written in one framework reads the same in
+another. The Apple Maps-style components keep it: `<Search>`, `<TurnByTurn>`,
+`<OfflineMaps>` and the rest take the same props everywhere, and their events
+have the core's names.
+
+What changes is how each framework spells things:
+
+| | React | Vue / Nuxt | Svelte | Solid | stx |
+|---|---|---|---|---|---|
+| A prop | `turnByTurn={nav}` | `:turn-by-turn="nav"` | `turnByTurn={nav}` | `turnByTurn={nav()}` | `:prop="…"`, data only |
+| An event | `onSelect={fn}` | `@select="fn"` | `onSelect={fn}` | `onSelect={fn}` | `search:select` DOM event |
+| The underlying control | `onReady` | `@ready` | `onReady` | `onReady` | `search:ready` DOM event |
+| Two-way state | callback | `v-model:open` | `bind:open` | callback | — |
+
+React Native takes no children: the map runs in a WebView, so each component
+is a prop of `<MapView>` carrying plain data, and each component's events
+arrive at one callback, such as `onSearch({ type: 'select', data })`. See
+[React Native](./react-native.md).
+
+### Where the bindings really differ
+
+The basic components grew separately, and these differences are real today:
+
+| | React | Vue | Svelte | Solid | stx | React Native |
+|---|---|---|---|---|---|---|
+| Map style | `style` prop | `style` prop | none: call `setStyle` in a child | none: `style` is the container's CSS | `basemap` + `tilejson`, or `styleSpec` | `styleSpec` prop |
+| Container size | `containerStyle`, `className` | `containerStyle`, `containerClass`, `class` | fills its parent | `style`, `class` | `containerStyle`, `className` | `style` |
+| Map events | `onMoveEnd` props | `@moveend` | `useMapEvent` in a child | `useMapEvent` in a child | `onMapEvent(el, …)` | `onMove`, `onClick` |
+| Map instance | `useMap()`, `onLoad` | `useMap()`, `@load-map`, template ref | `useMap()` in a child | `useMap()` in a child | `findMap(el)` | `onReady(api)` |
+| Control options | plain props | `options` | `options` | plain props | `options` | `controls` array |
+| `<Marker>` | `position`, `options`, `onClick`, `onDragEnd` | `position`, `options`, `@click`, `@dragend` | `position`, `draggable`, `title` | `position`, `draggable`, `title` | `lat`, `lng`, `html`, … | `markers` array |
+| `<Source>` / `<Layer>` | spec objects: `source`, `layer` | spec objects: `source`, `layer` | flat props | flat props | flat props | — |
+| `useMap()` outside a map | throws | throws | `null` | `null` | — | — |
+
+The per-framework pages show each of these in use.
+
+## The basemap
+
+The examples in these pages draw [OpenFreeMap](https://openfreemap.org)'s
+planet with the built-in light style. It is free and needs no key:
+
+```ts
+import { styles } from 'ts-maps'
+
+const basemap = styles.light({ url: 'https://tiles.openfreemap.org/planet' })
+```
+
+`url` names a TileJSON. The map fetches it, then sets the style, and fires
+`style.load` when the style is in. Use a raster `<TileLayer>` only when you
+want raster tiles; OpenStreetMap's own tile server does not allow app traffic.
+
+### Adding your own data
+
+`<Source>` and `<Layer>` go straight inside `<Map>`. While the map fetches
+its style (from a URL, or a TileJSON like OpenFreeMap's), a source or layer
+added to it is kept and put on the style when it lands:
+
+```tsx
+<Map center={[40.758, -73.9855]} zoom={13} style={basemap}>
+  <Source id="stations" source={{ type: 'geojson', data: stations }} />
+  <Layer layer={{ id: 'stations', type: 'circle', source: 'stations' }} />
 </Map>
 ```
 
-```vue [Vue]
-<script setup lang="ts">
-import { GeocoderControl, Map, NavigationControl } from '@ts-maps/vue'
-</script>
-
-<template>
-  <Map :center="[34.02, -118.47]" :zoom="14">
-    <NavigationControl position="topright" :options="{ showCompass: true }" />
-    <GeocoderControl :options="{ placeholder: 'Search for a place' }" />
-  </Map>
-</template>
-```
-
-```svelte [Svelte]
-<script lang="ts">
-  import { GeocoderControl, Map, NavigationControl } from '@ts-maps/svelte'
-</script>
-
-<Map center={[34.02, -118.47]} zoom={14}>
-  <NavigationControl position="topright" options={{ showCompass: true }} />
-  <GeocoderControl options={{ placeholder: 'Search for a place' }} />
-</Map>
-```
-
-```tsx [Solid]
-import { GeocoderControl, Map, NavigationControl } from '@ts-maps/solid'
-
-<Map center={[34.02, -118.47]} zoom={14}>
-  <NavigationControl position="topright" showCompass />
-  <GeocoderControl placeholder="Search for a place" />
-</Map>
-```
-
-```stx [stx]
-<Map :center="[34.02, -118.47]" :zoom="14">
-  <NavigationControl position="topright" />
-  <GeocoderControl :options="{ placeholder: 'Search for a place' }" />
-</Map>
-```
-
-```vue [Nuxt]
-<template>
-  <TsMapsMap :center="[34.02, -118.47]" :zoom="14">
-    <TsMapsNavigationControl position="topright" />
-    <TsMapsGeocoderControl :options="{ placeholder: 'Search' }" />
-  </TsMapsMap>
-</template>
-```
-
-:::
-
-The available components are `ZoomControl`, `NavigationControl`,
-`GeocoderControl`, `FullscreenControl`, `LocateControl`, `ScaleControl` and
-`AttributionControl` — see [Controls](../concepts/controls.md) for what each
-one does and the options it takes.
-
-Every control takes `position` (`'topleft' | 'topright' | 'bottomleft' |
-'bottomright'`) and an `options` object for anything else. React and Solid also
-accept the common options as plain props; Vue and Svelte take them through
-`options`, matching how those frameworks handle pass-through props elsewhere.
-
-Adding a control mounts it; unmounting the component removes it. Changing
-`position` rebuilds it, because that is what moving a control means. In React,
-passing a fresh `options` object literal on every render does **not** rebuild
-the control — only `position` does.
-
-### LayersControl
-
-`LayersControl` is deliberately not a component in any binding. It takes
-dictionaries of live layer instances rather than plain data, which does not
-translate to props. Reach for the map directly:
-
-```tsx
-const map = useMap()
-useEffect(() => {
-  const layers = control.layers({ Streets: streetsLayer }, { Traffic: trafficLayer })
-  layers.addTo(map)
-  return () => { layers.remove() }
-}, [map])
-```
-
-## Turn-by-turn navigation
-
-`TurnByTurn` puts Apple Maps–style navigation on the map (see
-[services](../concepts/services.md#turn-by-turn-navigation)). It is declarative
-in every binding: `from` and `to` preview the routes between two places, and
-`active` starts guidance — set it false, or tap End, to stop. Places are
-`[lat, lng]`, the order `center` takes, or `{ lat, lng }`.
-
-```tsx
-// React and Solid
-<Map center={[37.79, -122.39]} zoom={13}>
-  <TurnByTurn
-    from={[37.7955, -122.3937]}
-    to={[37.8029, -122.4484]}
-    active={driving}
-    destinationName="Palace of Fine Arts"
-    onProgress={e => setEta(e.progress.arrival)}
-    onArrive={() => setDriving(false)}
-  />
-</Map>
-```
-
-```vue
-<!-- Vue, and Nuxt as <TsMapsTurnByTurn> -->
-<TsTurnByTurn :from="start" :to="end" :active="driving" @arrive="driving = false" />
-```
-
-```svelte
-<TurnByTurn from={start} to={end} active={driving} onArrive={() => (driving = false)} />
-```
-
-The events are the same everywhere — `preview`, `routeselect`, `start`,
-`progress`, `instruction`, `reroute`, `arrive`, `end`, `error` — spelled as each
-framework spells an event: `onArrive` props in React, Solid and Svelte, `@arrive`
-in Vue, and a bubbling `turnbyturn:arrive` DOM event in stx. A `ready` event
-(`onReady`, `@ready`, `turnbyturn:ready`) hands over the underlying
-`TurnByTurn`, for `selectRoute`, `recenter` and feeding positions with
-`update`. The other options — `profile`, `units`, `voice`, `simulate`,
-`alternatives`, `destinationName`, `directions` — are followed as they change
-too. Another `profile` or `directions` fetches a showing preview again; during
-guidance it applies from the next reroute rather than pulling the route from
-under the driver. `units` and `destinationName` redraw the cards in place.
-
-On React Native it is a prop of `MapView`, carried over the bridge like
-`markers` and followed as it changes, options included, with every event
-arriving at one `onTurnByTurn({ type, data })` as plain data. Only plain data
-crosses the bridge, so `directions` is the WebView's default:
-
-```tsx
-<MapView
-  runtime={runtime}
-  turnByTurn={{ from: start, to: end, active: driving, destinationName: 'Home' }}
-  onTurnByTurn={e => e.type === 'arrive' && setDriving(false)}
-/>
-```
-
-## Offline maps
-
-`OfflineMaps` adds Apple Maps–style offline maps (see
-[offline maps](../concepts/offline.md)): a button opening the list of downloaded
-maps, an area picker with an estimated size, and a pill when the connection
-drops. Two props are followed as they change — `open` shows the panel, and
-`onlyOffline` keeps map data off the network — and both report back when the
-panel's own ✕ or switch changes them.
-
-```tsx
-// React and Solid
-<Map center={[37.78, -122.42]} zoom={13}>
-  <OfflineMaps
-    open={showOffline}
-    onOpenChange={e => setShowOffline(e.open)}
-    onComplete={e => toast(`${e.region.name} is ready offline`)}
-  />
-</Map>
-```
-
-```vue
-<!-- Vue, and Nuxt as <TsMapsOfflineMaps> -->
-<TsOfflineMaps v-model:open="showOffline" v-model:onlyOffline="offlineOnly" @complete="done" />
-```
-
-```svelte
-<OfflineMaps bind:open={showOffline} bind:onlyOffline onComplete={done} />
-```
-
-The events are the same everywhere — `change` (`{ regions }`), `progress`,
-`complete` and `error` (`{ region }`), `delete` (`{ id }`), `modechange`
-(`{ onlyOffline }`) and `openchange` (`{ open }`) — as `onComplete` props in
-React, Solid and Svelte, `@complete` in Vue, and a bubbling
-`offlinemaps:complete` DOM event in stx. `ready` hands over the control, whose
-`maps` is the manager for downloading, listing and deleting from code. The other
-options — `position`, `maps`, `geocoder`, `resources`, `showStatus`, `title` —
-are followed as they change. A new `maps` moves the list and every event onto
-that manager; a new `position` moves the button.
-
-On React Native it is a prop of `MapView`, with every event arriving at one
-`onOfflineMaps({ type, data })`. The manager is reached through `api.call`, whose
-method names can now reach one level in:
-
-```tsx
-<MapView
-  runtime={runtime}
-  offlineMaps={{ open: showOffline, onlyOffline }}
-  onOfflineMaps={e => e.type === 'complete' && refresh()}
-  onReady={api => api.call('offline.list').then(setRegions)}
-/>
-```
-
-Downloads made in the WebView are kept in its IndexedDB, unless `offlineStore`
-keeps them in the app's own files, out of the OS's reach when space runs low:
-
-```tsx
-import * as FileSystem from 'expo-file-system/legacy'
-import { expoFileSystemStore } from '@ts-maps/react-native'
-
-<MapView runtime={runtime} offlineMaps={{}} offlineStore={expoFileSystemStore(FileSystem)} />
-```
-
-`reactNativeFsStore(RNFS)` does the same with `react-native-fs`.
-
-## Search
-
-`Search` adds Apple Maps–style search (see [the search control](../concepts/controls.md#search)):
-
-- "Search Maps", with Find Nearby and Recents;
-- suggestions from the map itself as you type;
-- a pin for every result;
-- a place card with Directions and Save, Favorites shown as stars on the map.
-
-`query` is followed as it changes: set it and the map searches, and a category's
-name runs the category. Set it to `''` to clear. `turnByTurn` is followed too,
-so Directions can use a `TurnByTurn` whose `ready` arrives after mount.
-
-```tsx
-// React and Solid
-<Map center={[37.79, -122.41]} zoom={15}>
-  <TurnByTurn onReady={setNav} />
-  <Search turnByTurn={nav} onSelect={e => setPlace(e.place)} />
-</Map>
-```
-
-```vue
-<!-- Vue, and Nuxt as <TsMapsSearch> -->
-<TsSearch :query="query" :turn-by-turn="nav" @select="({ place }) => (chosen = place)" />
-```
-
-```svelte
-<Search {query} turnByTurn={nav} onSelect={e => (chosen = e.place)} />
-```
-
-The events are the same everywhere. `results` carries
-`{ query, category, places }`, `select` and `directions` carry `{ place }`,
-`details` carries `{ place, details }` once a chosen place's hours, phone and
-website arrive, `save` and `unsave` carry `{ place }` when Save on its card
-adds it to Favorites or takes it out, and `clear` carries nothing. They arrive as `onSelect` props in React, Solid and
-Svelte, `@select` in Vue, and a bubbling `search:select` DOM event in stx.
-`ready` hands over the control, for `search`, `searchCategory`, `select` and
-`cancel`. The other options — `position`, `placeholder`, `provider`, `offline`,
-`categories`, `recents`, `units`, `location`, `origin`, `language`, `details`,
-`shareUrl`, `saved` (where Save keeps Favorites — default the page's
-`savedPlaces()`, `null` for none), `showSaved` — are followed as they change: a new `provider` is asked from the next query on, and
-new `categories` redraw Find Nearby in place. In stx, a `<Search>` and a `<TurnByTurn>` in
-the same map are linked automatically.
-
-On React Native it is a prop of `MapView`, with every event arriving at one
-`onSearch({ type, data })`. Directions previews the route on the map's
-`turnByTurn` when there is one, and the `directions` event reaches the app
-either way. A store cannot cross the bridge, so `saved` is not there: Save
-keeps Favorites in the WebView's own storage, `showSaved` is followed, and
-`save` and `unsave` reach `onSearch` too:
-
-```tsx
-<MapView
-  runtime={runtime}
-  search={{ query }}
-  onSearch={e => e.type === 'directions' && setTrip({ to: e.data.place })}
-/>
-```
-
-## Map type
-
-`MapType` adds Apple Maps' map type picker (see
-[the map type control](../concepts/controls.md#map-type)): a button opening a
-card of Explore, Driving, Transit and Satellite. Choosing one sets the map's style and
-keeps the layers the page added to it. `types` says what to offer —
-`mapTypes({ tiles, imagery })` builds Apple's three from one basemap source and
-one imagery source. Two props are followed as they change — `value` shows a
-type, and `open` shows the card — and both report back when the card changes
-them.
-
-```tsx
-// React and Solid
-const types = useMemo(() => mapTypes({ tiles, imagery }), [tiles])
-<Map center={[37.78, -122.42]} zoom={13}>
-  <MapType types={types} value={type} onChange={e => setType(e.value)} />
-</Map>
-```
-
-```vue
-<!-- Vue, and Nuxt as <TsMapsMapType> -->
-<TsMapType :types="types" v-model:value="type" v-model:open="picking" />
-```
-
-```svelte
-<MapType {types} bind:value={type} bind:open={picking} />
-```
-
-The events are the same everywhere — `change` (`{ value }`) when a type is
-chosen, `openchange` (`{ open }`), and `trafficchange` (`{ traffic }`) when the
-card's Traffic switch is turned — as `onChange` props in React, Solid and
-Svelte, `@change` in Vue, and a bubbling `maptype:change` DOM event in stx.
-`ready` hands over the control, for `select`. `types` and `position` are
-followed as they change too.
-
-Given a `traffic` layer, the card has a Traffic switch (see
-[traffic](../concepts/controls.md#traffic)), and `showTraffic` turns it on or
-off — followed as it changes, and bindable as `v-model:showTraffic` in Vue and
-`bind:showTraffic` in Svelte:
-
-```tsx
-const traffic = useMemo(() => trafficLayer({ source: trafficSources.tomtom(key), incidents: new TomTomIncidents({ key }) }), [key])
-<MapType types={types} traffic={traffic} showTraffic={on} onTrafficChange={e => setOn(e.traffic)} />
-```
-
-A style cannot be written in markup, so stx's `<MapType>` takes the plain
-options of `mapTypes()` — `tiles`, `imagery`, `imageryAttribution`,
-`attribution`, `maxzoom`, `theme`, `labels` — and builds the types in the
-browser. A traffic layer cannot be written in markup either, so it takes
-`trafficProvider` (`mapbox` or `tomtom`), `trafficKey`, and with TomTom
-`incidents`, alongside `showTraffic`. React Native does the same inside the
-WebView, with every event arriving at one `onMapType({ type, data })`:
-
-```tsx
-<MapView
-  runtime={runtime}
-  mapType={{ tiles, value: type, trafficProvider: 'tomtom', trafficKey: key, showTraffic: on }}
-  onMapType={e => e.type === 'change' && setType(e.data.value)}
-/>
-```
-
-## Indoor maps
-
-`IndoorMap` draws a venue's floor plan, after Apple Maps: zoomed in on an
-airport or a mall, its [IMDF](https://docs.ogc.org/cs/20-094/index.html)
-archive is drawn over the map one level at a time, with a level picker beside
-it. `venue` is the archive — a `.zip` URL, a folder URL, its bytes, its files,
-or a venue already loaded with `loadIMDF` — and is read when the control is
-made, with `minZoom` (default 16) and `language`; a new one makes the control
-again, so keep its identity stable across renders. `level` (an ordinal, 0 the
-ground floor) and `position` are followed as they change. Given a `search` —
-the control from `<Search>`'s `ready` — the venue's shops and gates are found
-there, and choosing one goes to its level.
-
-```tsx
-// React and Solid
-<Map center={[37.6155, -122.3866]} zoom={17}>
-  <Search onReady={setSearch} />
-  <IndoorMap venue="/imdf/sfo.zip" search={search} level={level} onLevelChange={e => setLevel(e.level)} />
-</Map>
-```
-
-```vue
-<!-- Vue, and Nuxt as <TsMapsIndoorMap> -->
-<TsIndoorMap venue="/imdf/sfo.zip" :search="search" v-model:level="level" />
-```
-
-```svelte
-<IndoorMap venue="/imdf/sfo.zip" {search} bind:level />
-```
-
-The events are the same everywhere — `load` (`{ venue }`), `levelchange`
-(`{ level, name }`) when the picker or a search changes the level, and
-`visibilitychange` (`{ visible }`) as the venue comes into view close enough
-to see inside — as `onLevelChange` props in React, Solid and Svelte,
-`@levelchange` in Vue, and a bubbling `indoor:levelchange` DOM event in stx.
-`ready` hands over the control, for `setLevel`, `search` and `levels`.
-
-stx's `<IndoorMap>` takes the archive's URL as `venue`, and is linked to a
-`<Search>` in the same map without being told. React Native loads it inside
-the WebView, linked to its `search`, with every event arriving at one
-`onIndoor({ type, data })` — the venue reduced to `{ id, name, levels }`:
-
-```tsx
-<MapView
-  runtime={runtime}
-  search={{}}
-  indoor={{ venue: 'https://example.org/imdf/sfo.zip', level }}
-  onIndoor={e => e.type === 'levelchange' && setLevel(e.data.level as number)}
-/>
-```
-
-## Look Around
-
-`LookAround` adds Apple Maps' Look Around: a binoculars button that shows the
-streets with pictures in blue, and a full-bleed viewer to turn in and walk
-through them, with a small map in the corner. `provider` says where pictures
-come from — `new PanoramaxImagery()` (the default, open, no key) or
-`new MapillaryImagery({ accessToken })`. `choosing` shows the streets and
-waits for a tap, `at` opens the viewer at the picture nearest a place (`null`
-closes it), and `heading` turns it — each followed only when it changes, so
-the viewer closed by its own Done stays closed. `provider` and `position` are
-followed as they change; `miniMap`, `locale` and `title` are read when the
-control is made, and a new one makes it again. Given to `Search` as
-`lookAround`, a place's card offers the pictures near it.
-
-```tsx
-// React and Solid
-<Map center={[48.8606, 2.3376]} zoom={16}>
-  <LookAround onReady={setLook} at={at} onClose={() => setAt(null)} />
-  <Search lookAround={look} />
-</Map>
-```
-
-```vue
-<!-- Vue, and Nuxt as <TsMapsLookAround> -->
-<TsLookAround v-model:choosing="choosing" :at="at" @ready="look = $event" />
-<TsSearch :look-around="look" />
-```
-
-```svelte
-<LookAround bind:choosing {at} onReady={(c) => (look = c)} />
-<Search lookAround={look} />
-```
-
-The events are the same everywhere — `open` and `imagechange` (`{ image }`),
-`close`, `viewchange` (`{ heading, pitch, fov }`), `choosingchange`
-(`{ choosing }`) and `notfound` (`{ at }`) when there is no picture near — as
-`onOpen` props in React, Solid and Svelte, `@open` in Vue, and a bubbling
-`lookaround:open` DOM event in stx. `ready` hands over the control, for
-`open`, `close`, `setView` and `step`.
-
-A provider cannot be written in markup, so stx's `<LookAround>` names one —
-`provider` `panoramax` (`endpoint` for another instance) or `mapillary` with
-an `accessToken` — and is linked to a `<Search>` in the same map without being
-told. React Native does the same inside the WebView, linked to its `search`
-by `lookAround: true`, with every event arriving at one
-`onLookAround({ type, data })` — a picture reduced to
-`{ id, provider, lat, lng, heading, capturedAt }`:
-
-```tsx
-<MapView
-  runtime={runtime}
-  search={{ lookAround: true }}
-  lookAround={{ at, provider: 'mapillary', accessToken: token }}
-  onLookAround={e => e.type === 'close' && setAt(null)}
-/>
-```
-
-## Landmarks and trees
-
-`Landmark` stands a glTF model where a building is, after Apple Maps'
-landmarks: drawn with the buildings, hiding the labels behind it, and by
-default leaving out the extruded building it stands on (`replace`). `model`
-is a `.glb` or `.gltf` URL, a `.glb`'s bytes, or a parsed glTF, and is read
-when the landmark is made, with `replace` and `minZoom` (default 15); a new
-one makes it again, so keep its identity stable across renders. `position`,
-`rotation` (degrees clockwise), `scale`, `altitude` and `opacity` are
-followed as they change. `Trees` plants low-poly trees in the basemap's woods
-and parks as the map tilts, one set per map, following `spacing`,
-`maxPerTile`, `minZoom`, `minPitch`, `colors`, `height` and `match`. Both need
-a vector basemap and WebGL; see [3D](../concepts/3d.md#landmarks).
-
-```tsx
-// React and Solid
-<Map center={[37.7952, -122.4028]} zoom={17} pitch={60}>
-  <Landmark model="/models/transamerica.glb" position={[37.7952, -122.4028]} rotation={45} />
-  <Trees spacing={12} />
-</Map>
-```
-
-```vue
-<!-- Vue, and Nuxt as <TsMapsLandmark> and <TsMapsTrees> -->
-<TsLandmark model="/models/transamerica.glb" :position="[37.7952, -122.4028]" :rotation="45" />
-<TsTrees :spacing="12" />
-```
-
-```svelte
-<Landmark model="/models/transamerica.glb" position={[37.7952, -122.4028]} rotation={45} />
-<Trees spacing={12} />
-```
-
-Neither has events of its own. `onReady` (`ready` in Vue) hands over the
-landmark, for `ready()` and the setters, or the trees, for `setOptions`.
-
-stx's `<Landmark>` takes the model's URL, or a glTF's JSON, as `model`, and
-hands the instances over as bubbling `landmark:ready` and `trees:ready` DOM
-events; `match` cannot be written in markup. React Native loads each model
-inside the WebView from its URL, matching landmarks across updates by `id`:
-
-```tsx
-<MapView
-  runtime={runtime}
-  pitch={60}
-  landmarks={[{ id: 'transamerica', model: 'https://example.org/models/transamerica.glb', position: [37.7952, -122.4028], rotation: 45 }]}
-  trees
-/>
-```
+stx is the exception: a basemap from `tilejson` is read by the binding and set
+outright once it arrives, which replaces what was added before. The
+[stx page](./stx.md#your-own-data) shows what to do instead.
+
+## Components
+
+Every binding except React Native exports these. React Native has the same
+features as props of `<MapView>`.
+
+| Component | What it is | Concepts |
+|---|---|---|
+| `Map` | The map; everything else goes inside it | [The map](../concepts/map.md) |
+| `Marker`, `Popup` | A pin, and a bubble pointing at a place | [Layers](../concepts/layers.md) |
+| `TileLayer` | Raster tiles from a `{z}/{x}/{y}` URL | [Layers](../concepts/layers.md) |
+| `Source`, `Layer` | A style-spec source, and a layer that draws it | [Style spec](../concepts/style-spec.md) |
+| `ZoomControl`, `NavigationControl`, `GeocoderControl`, `FullscreenControl`, `LocateControl`, `ScaleControl`, `AttributionControl` | Map controls | [Controls](../concepts/controls.md) |
+| `Search` | Apple Maps-style search | [Search](../concepts/search.md) |
+| `TurnByTurn` | Route preview and guidance | [Turn-by-turn](../concepts/services.md#turn-by-turn-navigation) |
+| `OfflineMaps` | Download areas for use with no connection | [Offline maps](../concepts/offline.md) |
+| `MapType` | Explore, Driving, Transit and Satellite | [Map type](../concepts/map-types.md) |
+| `IndoorMap` | A venue's IMDF floor plan, a level at a time | [Indoor maps](../concepts/indoor.md) |
+| `LookAround` | Street-level pictures | [Look Around](../concepts/look-around.md) |
+| `Landmark` | A glTF model standing where a building is | [3D](../concepts/3d.md#landmarks) |
+| `Trees` | Low-poly trees in the basemap's woods and parks | [3D](../concepts/3d.md#trees) |
+| `TerritoryLayer`, `RunTrailLayer` | Captured ground and a runner's trail | [Territory capture](../concepts/territory-capture.md) |
+
+Svelte and stx also export `MapControl`, which takes a control's `type`. stx
+also has `RouteLayer`, for a recorded route.
+
+`LayersControl` is not a component in any binding. It takes dictionaries of
+live layer instances, which do not fit props. Use `control.layers(...)` on the
+map instance.
+
+The sections below list each component's props and events once. The names
+are the same in every binding; the framework pages show how to write them.
+
+### Controls
+
+Every control takes `position` (`'topleft'`, `'topright'`, `'bottomleft'` or
+`'bottomright'`) and `options`, an object of anything else the control
+accepts. React and Solid also take the control's options as plain props. The
+zoom, navigation, locate and fullscreen controls take `locale`.
+
+A control is built when it mounts. React rebuilds it when `position` or
+`locale` changes, Vue when `position`, `locale` or `options` changes, Svelte
+when `locale` changes, and Solid when any prop changes.
+
+The map has a zoom control and an attribution control of its own. Only stx's
+`<Map>` can turn them off (`:zoomControl="false"`); elsewhere, call
+`map.zoomControl.remove()` on the instance.
+
+### Search
+
+`query`, `position`, `placeholder`, `provider`, `offline`, `categories`,
+`recents`, `units`, `location`, `turnByTurn`, `origin`, `lookAround`,
+`language`, `locale`, `details`, `shareUrl`, `saved`, `showSaved`.
+
+Every prop is followed as it changes. Set `query` and the map searches; a
+category's name runs the category, and `''` clears. Give it a `TurnByTurn`
+from that component's `ready`, and Directions on a place's card previews the
+route.
+
+| Event | Carries |
+|---|---|
+| `results` | `{ query, category, places }` |
+| `select`, `directions`, `save`, `unsave` | `{ place }` |
+| `details` | `{ place, details }`: hours, phone and website |
+| `clear` | nothing |
+| `ready` | the `SearchControl` |
+
+### Turn-by-turn navigation
+
+`from`, `to`, `active`, `profile`, `units`, `voice`, `simulate`,
+`alternatives`, `destinationName`, `directions`, `locale`.
+
+`from` and `to` (`[lat, lng]` or `{ lat, lng }`) preview the routes between
+them. `active` starts guidance; set it false, or tap End, to stop. Every prop
+is followed as it changes.
+
+Events: `preview`, `routeselect`, `start`, `progress`, `instruction`,
+`reroute`, `arrive`, `end`, `error`, and `ready` with the core `TurnByTurn`,
+for `selectRoute`, `recenter` and `update`.
+
+### Offline maps
+
+`open`, `onlyOffline`, `position`, `maps`, `geocoder`, `resources`,
+`showStatus`, `title`, `locale`.
+
+`open` shows the list of downloaded maps. `onlyOffline` keeps map data off
+the network. Both report back when the panel changes them.
+
+| Event | Carries |
+|---|---|
+| `change` | `{ regions }` |
+| `progress`, `complete` | `{ region }` |
+| `error` | `{ region, error }` |
+| `delete` | `{ id }` |
+| `modechange` | `{ onlyOffline }` |
+| `openchange` | `{ open }` |
+| `ready` | the `OfflineMapsControl`; its `maps` is the manager |
+
+### Map type
+
+`types` (required), `value`, `open`, `position`, `title`, `traffic`,
+`showTraffic`, `locale`.
+
+`types` is what to offer. `mapTypes({ url })` builds Explore, Driving, Transit
+and Satellite from one basemap. Choosing a type sets the map's style and keeps
+the layers the page added. Given a `TrafficLayer` as `traffic`, the card has a
+Traffic switch, which `showTraffic` turns.
+
+Events: `change` (`{ value }`), `openchange` (`{ open }`), `trafficchange`
+(`{ traffic }`), and `ready` with the control.
+
+### Indoor maps
+
+`venue` (required), `level`, `position`, `minZoom`, `language`, `locale`,
+`search`.
+
+`venue` is an IMDF archive: a `.zip` URL, a folder URL, its bytes, its files,
+or a venue loaded with `loadIMDF`. It is read when the control is made, with
+`minZoom`, `language` and `locale`; a new one makes the control again, so keep
+its identity stable. `level` and `position` are followed. Given a `search`,
+the venue's places are found there.
+
+Events: `load` (`{ venue }`), `levelchange` (`{ level, name }`),
+`visibilitychange` (`{ visible }`), and `ready` with the control.
+
+### Look Around
+
+`provider`, `position`, `miniMap`, `locale`, `title`, `choosing`, `at`,
+`heading`.
+
+`provider` is `new PanoramaxImagery()` (the default, no key) or
+`new MapillaryImagery({ accessToken })`. `choosing` shows the streets with
+pictures; `at` opens the viewer at the picture nearest a place, and `null`
+closes it. `miniMap`, `locale` and `title` are read when the control is made.
+
+Events: `open` and `imagechange` (`{ image }`), `close`, `viewchange`
+(`{ heading, pitch, fov }`), `choosingchange` (`{ choosing }`), `notfound`
+(`{ at }`), and `ready` with the control. Give that control to `Search` as
+`lookAround` and a place's card shows the pictures near it.
+
+### Landmarks and trees
+
+`Landmark`: `model` (required), `position` (required), `altitude`,
+`rotation`, `scale`, `replace`, `minZoom`, `opacity`. `model`, `replace` and
+`minZoom` are read when the landmark is made; the rest are followed.
+
+`Trees`: `spacing`, `maxPerTile`, `minZoom`, `minPitch`, `colors`, `height`,
+`match`. All followed. One per map.
+
+Both need a vector basemap and WebGL. Neither has events; `ready` hands over
+the instance.
+
+### Territories
+
+`TerritoryLayer`: `store`, `styles`, `self`, `captureDuration`,
+`labelMinZoom`, `units`, `options`. A new `store` swaps what is drawn without
+rebuilding the layer.
+
+`RunTrailLayer`: `track` (`[lng, lat]` positions), `color`, `weight`,
+`showPotential`, `options`. `track` is followed.
 
 ## Localization
 
-`locale` on the map is the language its built-in controls speak: search,
-Offline Maps, the map type and level pickers, the zoom, compass, locate and
-fullscreen buttons, and turn-by-turn. Default the browser's. A control's own
-`locale` wins over the map's; see [Localization](../concepts/localization.md).
+`locale` on the map is the language its controls speak, `'de'` for German.
+The default is the browser's. A component's own `locale` wins over the map's.
+See [Localization](../concepts/localization.md).
 
-```tsx
-// React, Solid and Svelte; Vue as <TsMap locale="de">, Nuxt as <TsMapsMap locale="de">
-<Map center={[52.52, 13.405]} zoom={13} locale="de">
-  <Search />            {/* "Karten durchsuchen" */}
-  <ZoomControl />       {/* "Vergrößern" */}
-  <OfflineMaps locale="en" />
-</Map>
-```
+`Search`, `OfflineMaps`, `MapType` and `TurnByTurn` follow a new `locale` in
+place. `IndoorMap`, `LookAround` and the zoom, navigation, locate and
+fullscreen controls are made again. A change to the map's own `locale`
+reaches a control without one the next time that control draws its words.
 
-What follows a change:
+## Examples
 
-- `Search`, `OfflineMaps`, `MapType` and `TurnByTurn` follow their own
-  `locale` as it changes, relabelling in place.
-- `IndoorMap`, `LookAround` and the control components (`ZoomControl`,
-  `NavigationControl`, `LocateControl`, `FullscreenControl`) are made again
-  for a new `locale`; in stx they are read when built.
-- The map's `locale` is read when it is built in stx. In the other bindings a
-  change sets `map.options.locale`, which a control without its own picks up
-  the next time it draws its words. Give the control its own `locale` to
-  relabel it at once.
-
-React Native takes `locale` on `MapView`. It is baked into the document, and
-a change after load goes over the bridge: search, offline maps, the map type
-picker and turn-by-turn relabel in place, and the indoor map and Look Around
-are made again.
-`controls` keep the language they were built in.
-
-```tsx
-<MapView runtime={runtime} locale="de" search={{}} offlineMaps={{}} />
-```
-
-## Subscribing to events
-
-`useMapEvent` binds a handler for the lifetime of the calling component, in
-every binding:
-
-```ts
-useMapEvent('moveend', () => console.log(map.getCenter()))
-```
-
-One difference worth knowing: in React and Vue, `useMap()` throws when called
-outside a `<Map>` (with `useMapOptional()` for the tolerant version). In Svelte
-and Solid, `useMap()` returns `null` instead. That follows each ecosystem's own
-convention for missing context.
-
-## stx
-
-Everything is a component, and a page needs no client script of its own:
-
-```stx
-<Map :center="[34.02, -118.47]" :zoom="14" theme="dark"
-     basemap="dark" tiles="{{ tileUrl }}">
-  <NavigationControl position="topright" />
-
-  <Marker :lat="34.02" :lng="-118.47">
-    <Popup>Ocean Park</Popup>
-  </Marker>
-</Map>
-```
-
-Register `@ts-maps/stx/stx-plugin` in `stx.config.ts` and link the stylesheet
-from your layout. Two rules are worth knowing up front:
-
-- Write `className`, never `class`. stx seeds every prop into the client scope
-  as a variable, and `class` is a reserved word — the generated script then
-  fails to parse.
-- Children are read once, when the map mounts. stx emits a component's script
-  once per *definition* rather than per use, so a marker cannot build itself;
-  instead each child renders inert markup and `<Map>` walks its subtree and
-  builds what it finds. Markers added to the DOM later are not picked up — add
-  those through the map. `<OfflineMaps>`, `<Search>`, `<TurnByTurn>`,
-  `<MapType>`, `<IndoorMap>`, `<LookAround>`, `<Landmark>` and `<Trees>` keep following their props after that: a change to the markup is handed to the
-  control. Live objects such as `maps` or `provider` cannot be written in
-  markup; pass them to the control's `sync` from its `ready` event.
-
-Reach the map with `findMap(el)`, and subscribe with `onMapEvent(el, type, fn)`.
-Marker taps arrive as a bubbling `marker:click` DOM event, since a callback
-cannot cross a prop boundary that carries only data.
-
-See [`@ts-maps/stx`](https://github.com/stacksjs/ts-maps/tree/main/packages/stx)
-for the full component list, and `playground/incident-map` for the same screen
-built both imperatively and with these components.
-
-## React Native
-
-The map runs inside a `react-native-webview`, so `MapView` takes no children.
-Controls and markers are declared as data and built on the other side of the
-bridge:
-
-```tsx
-import { MapView } from '@ts-maps/react-native'
-
-<MapView
-  runtime={{ source: 'cdn', url: 'https://unpkg.com/ts-maps' }}
-  center={[34.02, -118.47]}
-  zoom={14}
-  controls={[
-    { type: 'navigation', position: 'topright' },
-    { type: 'geocoder', options: { placeholder: 'Search' } },
-  ]}
-  markers={incidents.map(i => ({
-    id: i.id,
-    coordinate: i.coords,
-    html: `<span class="pin">${i.emoji}</span>`,
-    iconSize: [46, 46],
-    iconAnchor: [23, 23],
-    popupHtml: `<b>${i.title}</b>`,
-  }))}
-  onMarkerPress={e => select(e.id)}
-  onReady={api => api.call('setTheme', 'dark')}
-/>
-```
-
-`markers` is live: changing the array updates the map over the bridge, which is
-what a feed of moving or filtered points needs. `controls` is read when the map
-is built, so changing it after mount needs a remount — the same rule as
-`runtime`.
-
-`html` and `popupHtml` are inserted as markup inside the WebView. Treat them
-the way you would `dangerouslySetInnerHTML`, and do not build them from
-untrusted input.
-
-For anything else, `onReady` hands you an `api` whose `call(method, ...args)`
-invokes a method on the map inside the WebView.
+The core library's [examples](../examples/index.md) are small runnable pages,
+one feature each, and the [demos](../demos/index.md) are larger. They use the
+core API; every binding builds the same objects.

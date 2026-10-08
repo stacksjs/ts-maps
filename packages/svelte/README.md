@@ -5,7 +5,7 @@ Svelte bindings for [ts-maps](https://github.com/stacksjs/ts-maps): a zero-depen
 ## Install
 
 ```sh
-bun add @ts-maps/svelte ts-maps svelte
+bun add @ts-maps/svelte
 ```
 
 `svelte` (>= 4) is a peer dependency. `ts-maps` is a normal dependency.
@@ -18,11 +18,15 @@ bun add @ts-maps/svelte ts-maps svelte
   import '@ts-maps/svelte/styles.css'
 </script>
 
-<Map center={[34.02, -118.47]} zoom={14}>
-  <NavigationControl position="topright" options={{ showCompass: true }} />
-  <GeocoderControl options={{ placeholder: 'Search for a place' }} />
-</Map>
+<div style="height: 480px">
+  <Map center={[34.02, -118.47]} zoom={14}>
+    <NavigationControl position="topright" options={{ showCompass: true }} />
+    <GeocoderControl options={{ placeholder: 'Search for a place' }} />
+  </Map>
+</div>
 ```
+
+`center` is `[lat, lng]`. The map fills its parent, so give the parent a height. `<Map>` has no prop for the map's style: set it from a child component with `useMap()?.setStyle(styles.light({ url: 'https://tiles.openfreemap.org/planet' }))`. The guide shows how.
 
 ## Components
 
@@ -35,7 +39,7 @@ bun add @ts-maps/svelte ts-maps svelte
 
 The package ships its Svelte source, which your Svelte build compiles.
 
-See the [framework bindings guide](https://ts-maps.stacksjs.com/guide/framework-bindings) for every component's props and events.
+See the [Svelte guide](https://ts-maps.stacksjs.com/guide/svelte) for every component's props and events, with examples.
 
 ## License
 

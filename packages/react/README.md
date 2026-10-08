@@ -1,66 +1,71 @@
 # @ts-maps/react
 
-React bindings for [ts-maps](https://github.com/stacksjs/ts-maps) — a zero-dependency TypeScript library for interactive SVG-based vector maps.
+React bindings for [ts-maps](https://github.com/stacksjs/ts-maps): a zero-dependency, TypeScript-native interactive mapping library with vector tiles, 3D, a globe, search, turn-by-turn and offline maps.
 
 ## Install
 
 ```sh
-bun add @ts-maps/react ts-maps react react-dom
+bun add @ts-maps/react
 ```
 
-`react` and `react-dom` are peer dependencies (>= 18). `ts-maps` is a normal dependency.
+`react` and `react-dom` (>= 18) are peer dependencies. `ts-maps` is a normal dependency.
 
 ## Usage
 
 ```tsx
-import { Map, Marker, Popup, TileLayer } from '@ts-maps/react'
+import { Map, Marker, NavigationControl, Popup } from '@ts-maps/react'
+import { styles } from 'ts-maps'
 import '@ts-maps/react/styles.css'
+
+const basemap = styles.light({ url: 'https://tiles.openfreemap.org/planet' })
 
 export default function App() {
   return (
     <Map
-      containerStyle={{ width: '100%', height: 480 }}
-      center={[51.505, -0.09]}
+      center={[40.758, -73.9855]}
       zoom={13}
-      onLoad={(map) => console.log('map ready', map)}
+      style={basemap}
+      containerStyle={{ height: 480 }}
+      onLoad={map => console.log('map ready', map)}
     >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <Marker position={[51.505, -0.09]} />
-      <Popup position={[51.505, -0.09]} content="Hello!" />
+      <NavigationControl position="topright" showCompass />
+      <Marker position={[40.758, -73.9855]} />
+      <Popup position={[40.758, -73.9855]} options={{ offset: [0, -27] }}>Times Square</Popup>
     </Map>
   )
 }
 ```
 
+`center` is `[lat, lng]`. `style` is the map's style (a style object or a URL), not CSS; `containerStyle` and `className` go on the container `<div>`.
+
 ## Components
 
-- `<Map>` — owns the `TsMap` instance. Accepts camera props (`center`, `zoom`, `bearing`, `pitch`), a `style` prop (style-spec or URL), and React-style camelCase event props (`onClick`, `onMove`, `onStyleLoad`, …).
-- `<Marker>`, `<Popup>`, `<TileLayer>` — register legacy layers.
-- `<Source>`, `<Layer>` — register style-spec sources and layers (Mapbox-style).
+- `<Map>`: owns the `TsMap`. Camera props (`center`, `zoom`, `bearing`, `pitch`), `style`, `locale`, `onLoad` (called with the map), and an `on` prop per map event (`onClick`, `onMoveEnd`, `onZoomEnd`, …).
+- `<Marker>`, `<Popup>`, `<TileLayer>`.
+- `<Source>`, `<Layer>`: style-spec sources and layers.
+- Controls: `<ZoomControl>`, `<NavigationControl>`, `<GeocoderControl>`, `<FullscreenControl>`, `<LocateControl>`, `<ScaleControl>`, `<AttributionControl>`.
+- Apple Maps-style: `<Search>`, `<TurnByTurn>`, `<OfflineMaps>`, `<MapType>`, `<IndoorMap>`, `<LookAround>`, `<Landmark>`, `<Trees>`.
+- `<TerritoryLayer>`, `<RunTrailLayer>`.
 
 ## Hooks
 
-- `useMap()` — returns the current `TsMap` from context; throws outside of `<Map>`.
-- `useMapOptional()` — same, but returns `null` outside a map.
-- `useMapEvent(event, handler)` — subscribe to a `TsMap` event for the lifetime of the caller.
+- `useMap()`: the current `TsMap`; throws outside a `<Map>`.
+- `useMapOptional()`: the same, or `null` outside a map.
+- `useMapEvent(event, handler)`: subscribe to a map event, by its core name (`'moveend'`, `'style.load'`), for the life of the component.
 
 ## Styles
-
-The `ts-maps` stylesheet is re-exported so you can import it directly:
 
 ```ts
 import '@ts-maps/react/styles.css'
 ```
 
-Or import from `ts-maps` itself:
-
-```ts
-import 'ts-maps/styles.css'
-```
+It is the same file as `ts-maps/styles.css`.
 
 ## SSR
 
-`<Map>` defers all DOM work to `useEffect`, so server rendering is safe and produces an empty container div.
+`<Map>` builds the map in an effect, so server rendering produces the empty container and none of its children.
+
+See the [React guide](https://ts-maps.stacksjs.com/guide/react) for every component, with examples.
 
 ## License
 

@@ -5,7 +5,7 @@ SolidJS bindings for [ts-maps](https://github.com/stacksjs/ts-maps): a zero-depe
 ## Install
 
 ```sh
-bun add @ts-maps/solid ts-maps solid-js
+bun add @ts-maps/solid
 ```
 
 `solid-js` (>= 1.8) is a peer dependency. `ts-maps` is a normal dependency.
@@ -18,13 +18,15 @@ import '@ts-maps/solid/styles.css'
 
 export function App() {
   return (
-    <Map center={[34.02, -118.47]} zoom={14}>
+    <Map center={[34.02, -118.47]} zoom={14} style={{ height: '480px' }}>
       <NavigationControl position="topright" showCompass />
       <GeocoderControl placeholder="Search for a place" />
     </Map>
   )
 }
 ```
+
+`center` is `[lat, lng]`. `style` and `class` go on the container `<div>`; `<Map>` has no prop for the map's style. Set it from a child component with `useMap()?.setStyle(styles.light({ url: 'https://tiles.openfreemap.org/planet' }))`. The guide shows how.
 
 ## Components
 
@@ -37,7 +39,7 @@ export function App() {
 
 The package ships its TSX source, which your Solid build compiles.
 
-See the [framework bindings guide](https://ts-maps.stacksjs.com/guide/framework-bindings) for every component's props and events.
+See the [Solid guide](https://ts-maps.stacksjs.com/guide/solid) for every component's props and events, with examples.
 
 ## License
 

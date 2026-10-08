@@ -4,7 +4,8 @@ stx components for [ts-maps](https://github.com/stacksjs/ts-maps).
 
 ```stx
 <Map :center="[34.02, -118.47]" :zoom="14" theme="dark"
-     basemap="dark" tiles="{{ tileUrl }}">
+     basemap="dark" tilejson="https://tiles.openfreemap.org/planet"
+     containerStyle="height: 480px">
   <NavigationControl position="topright" />
   <GeocoderControl :options="{ placeholder: 'Search' }" />
 
@@ -52,9 +53,11 @@ tiles somewhere below the fold.
 | `Marker` | A pin, default or your own markup |
 | `Popup` | A bubble, bound to a marker or free-standing |
 | `RouteLayer` | A recorded route: cased line, start and finish, distance markers, framed to fit |
-| `ZoomControl` `NavigationControl` `GeocoderControl` `FullscreenControl` `LocateControl` `ScaleControl` `AttributionControl` | Map controls |
+| `TerritoryLayer` `RunTrailLayer` | Captured ground and a runner's trail; handed over on `territory:ready` and `runtrail:ready` |
+| `ZoomControl` `NavigationControl` `GeocoderControl` `FullscreenControl` `LocateControl` `ScaleControl` `AttributionControl` `MapControl` | Map controls |
+| `Search` `TurnByTurn` `OfflineMaps` `MapType` `IndoorMap` `LookAround` `Landmark` `Trees` | Apple Maps-style components; events arrive as `search:*`, `turnbyturn:*`, … DOM events |
 
-Same names and prop shapes as the React, Vue, Svelte and Solid bindings.
+Same names as the React, Vue, Svelte and Solid components. Props are data, so callbacks become DOM events and live objects are handed over on a `ready` event.
 
 `LayersControl` is deliberately not a component: it takes dictionaries of live
 layer instances rather than plain data. Use the map directly for that one.
@@ -90,6 +93,10 @@ almost always): one finger or a plain wheel scrolls the page, two fingers or
 ⌘/Ctrl + wheel move the map, with a hint saying so.
 
 `styleSpec` — a full style object or a URL, when you want your own.
+
+A basemap from `tilejson` arrives after the map has built its children, and
+replaces the sources and layers `<Source>` and `<Layer>` added. On a map with
+those, give the basemap `tiles`, read from the TileJSON on the server.
 
 `className`, `containerStyle` — the container. Give it a height.
 
@@ -154,7 +161,7 @@ container.addEventListener('route:ready', (e) => {
 ### `<Search>`
 
 ```stx
-<Map center="[37.79, -122.41]" zoom="15">
+<Map :center="[37.79, -122.41]" :zoom="15">
   <TurnByTurn />
   <Search query="coffee" :showSaved="true" />
 </Map>
@@ -178,7 +185,7 @@ container.addEventListener('search:save', e => console.log('saved', e.detail.pla
 ### `<MapType>`
 
 ```stx
-<Map center="[37.78, -122.42]" zoom="13">
+<Map :center="[37.78, -122.42]" :zoom="13">
   <MapType tiles="{{ tileUrl }}" value="explore" />
 </Map>
 ```
@@ -203,7 +210,7 @@ switch reports `maptype:trafficchange` (`{ traffic }`):
 ### `<IndoorMap>`
 
 ```stx
-<Map center="[37.6155, -122.3866]" zoom="17">
+<Map :center="[37.6155, -122.3866]" :zoom="17">
   <Search />
   <IndoorMap venue="/imdf/sfo.zip" :level="1" />
 </Map>
@@ -225,7 +232,7 @@ container.addEventListener('indoor:levelchange', e => console.log('now on', e.de
 ### `<LookAround>`
 
 ```stx
-<Map center="[48.8606, 2.3376]" zoom="16">
+<Map :center="[48.8606, 2.3376]" :zoom="16">
   <Search />
   <LookAround :at="[48.8606, 2.3376]" />
 </Map>
@@ -312,8 +319,9 @@ walks its subtree once on mount and builds what it finds. Two consequences:
 
 - **Children are read at mount.** Markers added to the DOM later are not picked
   up; add those through the map itself. `<TurnByTurn>`, `<Search>`,
-  `<OfflineMaps>` and `<MapType>` do follow their props after that: change a
-  child's `data-options` and its control's `sync` brings it into line.
+  `<OfflineMaps>`, `<MapType>`, `<IndoorMap>`, `<LookAround>`, `<Landmark>`
+  and `<Trees>` do follow their props after that: change a child's
+  `data-options` and its control's `sync` brings it into line.
 - **Nesting is the wiring.** There is no context to thread and no ids to match.
 
 Two further stx behaviours the components work around, noted here because they
@@ -338,3 +346,5 @@ canvas.
 `playground/incident-map` in this repo has the same screen twice: `/` builds
 everything imperatively in one client script, `/components` uses these
 components and has no client script at all.
+
+See the [stx guide](https://ts-maps.stacksjs.com/guide/stx) for more.

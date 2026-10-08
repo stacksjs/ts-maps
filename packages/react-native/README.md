@@ -5,27 +5,58 @@ React Native bindings for [ts-maps](https://github.com/stacksjs/ts-maps). ts-map
 ## Install
 
 ```sh
-bun add @ts-maps/react-native ts-maps react react-native react-native-webview
+bun add @ts-maps/react-native react-native-webview
 ```
 
-`react`, `react-native`, and `react-native-webview` are peer dependencies. `ts-maps` is a regular dependency.
+`react`, `react-native` (>= 0.72) and `react-native-webview` (>= 13) are peer dependencies. `ts-maps` is a regular dependency.
+
+## The runtime
+
+The WebView needs ts-maps as a classic script that sets `window.tsMaps`, plus the ts-maps stylesheet. The npm package ships ES modules, so build one with Bun:
+
+```ts
+// map-runtime/entry.ts
+import * as tsMaps from 'ts-maps'
+import css from 'ts-maps/styles.css' with { type: 'text' }
+
+const style = document.createElement('style')
+style.textContent = css
+document.head.appendChild(style)
+;(window as any).tsMaps = tsMaps
+```
+
+```ts
+// map-runtime/build.ts
+const result = await Bun.build({ entrypoints: ['./map-runtime/entry.ts'], format: 'iife', target: 'browser', minify: true })
+if (!result.success)
+  throw new AggregateError(result.logs, 'map runtime build failed')
+await Bun.write('./src/map-runtime.ts', `export default ${JSON.stringify(await result.outputs[0].text())}\n`)
+```
+
+Pass the string as `{ source: 'inline', bundledSource }`, or host the built script and pass `{ source: 'cdn', url }`.
 
 ## Usage
 
 ```tsx
 import { MapView } from '@ts-maps/react-native'
+import { styles } from 'ts-maps'
+import mapRuntime from './map-runtime'
+
+const runtime = { source: 'inline', bundledSource: mapRuntime } as const
+const basemap = styles.light({ url: 'https://tiles.openfreemap.org/planet' })
 
 export default function Screen() {
   return (
     <MapView
       style={{ flex: 1 }}
-      runtime={{ source: 'cdn', url: 'https://unpkg.com/ts-maps/dist/ts-maps.umd.js' }}
-      center={[0, 0]}
-      zoom={2}
-      onLoad={() => console.log('map ready')}
-      onMove={(e) => console.log('camera', e)}
+      runtime={runtime}
+      center={[40.758, -73.9855]}
+      zoom={13}
+      styleSpec={basemap}
+      markers={[{ id: 'ts', coordinate: [40.758, -73.9855], popupHtml: '<b>Times Square</b>' }]}
+      onMarkerPress={e => console.log('pressed', e.id)}
       onReady={(api) => {
-        api.call('getZoom').then((z) => console.log('zoom', z))
+        api.call('getZoom').then(z => console.log('zoom', z))
       }}
     />
   )
@@ -37,13 +68,18 @@ export default function Screen() {
 | Prop          | Type                                                            | Notes                                       |
 | ------------- | --------------------------------------------------------------- | ------------------------------------------- |
 | `runtime`     | `{ source: 'cdn', url } \| { source: 'inline', bundledSource }` | Required — how ts-maps reaches the WebView  |
-| `style`       | `ViewStyle`                                                     | Container style                             |
-| `center`      | `[number, number]`                                              | `[lng, lat]`                                |
-| `zoom`        | `number`                                                        | Initial zoom                                |
-| `bearing`     | `number`                                                        | Initial bearing (degrees)                   |
-| `pitch`       | `number`                                                        | Initial pitch (degrees)                     |
-| `styleSpec`   | `unknown`                                                       | Object passed to `TsMap.setStyle`           |
+| `style`       | `ViewStyle`                                                     | The WebView's style                         |
+| `center`      | `[number, number]`                                              | `[lat, lng]` — live                         |
+| `zoom`        | `number`                                                        | Live                                        |
+| `bearing`     | `number`                                                        | Degrees — live                              |
+| `pitch`       | `number`                                                        | Degrees — live                              |
+| `styleSpec`   | `unknown`                                                       | The map's style, JSON — live                |
 | `locale`      | `string`                                                        | The controls' language — live               |
+| `controls`    | `ControlSpec[]`                                                 | `{ type, position, options }` — read once   |
+| `markers`     | `MarkerSpec[]`                                                  | Markers, with popups — live                 |
+| `territories` | `TerritorySpec[]`                                               | Captured ground — live                      |
+| `self`        | `string`                                                        | The viewer's owner, for `territories`       |
+| `runTrail`    | `number[][]`                                                    | A runner's path, `[lng, lat]` — live        |
 | `turnByTurn`  | `TurnByTurnSpec`                                                | Navigation — live, options included         |
 | `offlineMaps` | `OfflineMapsSpec`                                               | Offline maps — live, options included       |
 | `offlineStore` | `{ get, set, delete }`                                         | Keep offline maps in the app's storage      |
@@ -53,10 +89,12 @@ export default function Screen() {
 | `lookAround`  | `LookAroundSpec`                                                | Look Around — live, options included        |
 | `landmarks`   | `LandmarkSpec[]`                                                | glTF landmarks — live, options included     |
 | `trees`       | `boolean \| TreesSpec`                                          | Trees in woods and parks — live             |
-| `onLoad`      | `() => void`                                                    | Fires when the inner map emits `load`       |
-| `onMove`      | `(e: { center, zoom, bearing, pitch }) => void`                 | Camera changes                              |
-| `onClick`     | `(e: { lngLat, point }) => void`                                | Map click                                   |
+| `onLoad`      | `() => void`                                                    | The inner map has loaded                    |
+| `onMove`      | `(e: { center, zoom, bearing, pitch }) => void`                 | Camera changes; `center` is `[lat, lng]`    |
+| `onClick`     | `(e: { lngLat, point }) => void`                                | Map tap; `[lng, lat]` and `[x, y]`          |
+| `onMarkerPress` | `(e: { id, index, coordinate }) => void`                      | Marker tap                                  |
 | `onError`     | `(e: { message }) => void`                                      | Errors from inside the WebView              |
+| `onTurnByTurn`, `onOfflineMaps`, `onSearch`, `onMapType`, `onIndoor`, `onLookAround` | `(e: { type, data }) => void` | Every event of that component |
 | `onReady`     | `(api: { call(method, ...args): Promise<unknown> }) => void`    | Escape hatch for imperative `TsMap` methods |
 
 `turnByTurn`, `offlineMaps` and `search` are live: change any field, options included, and the map follows over the bridge without reloading the WebView; a field removed returns to its default. Only data crosses the bridge, so the options the other bindings take as objects or functions — `directions` for navigation, `maps` and `geocoder` for offline maps, `provider`, `offline`, `location`, `origin`, `onDirections`, `details`, `shareUrl` and `saved` for search — are not available here, and the WebView's defaults are used (for transit, `turnByTurn: { profile: 'transit', otpUrl }` plans with OpenTripPlanner at that URL): Save keeps Favorites in the WebView's own `localStorage`, and `showSaved: false` keeps their stars off the map. Search's events, a chosen place's `details` and Save's `save` and `unsave` among them, reach `onSearch` as plain data. `controls` is read when the map is built.
@@ -140,9 +178,7 @@ SQLite table. `offlineMaps` and `onOfflineMaps` work exactly as they do
 without it. The store is read when the WebView is built, so give it from
 the first render.
 
-## Bundling the runtime
-
-If you'd rather not fetch from a CDN, bundle `ts-maps` as a UMD string at build time and hand it over as `runtime.bundledSource`. The HTML document injects it as an inline `<script>`.
+See the [React Native guide](https://ts-maps.stacksjs.com/guide/react-native) for more.
 
 ## License
 
