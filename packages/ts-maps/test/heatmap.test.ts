@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { HeatmapLayer } from '../src/core-map/layer/HeatmapLayer'
+import { densestCell, HeatmapLayer } from '../src/core-map/layer/HeatmapLayer'
 import { TsMap } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
@@ -26,7 +26,22 @@ describe('HeatmapLayer', () => {
     const layer = new HeatmapLayer()
     expect(layer.options!.radius).toBe(25)
     expect(layer.options!.blur).toBe(15)
-    expect(layer.options!.max).toBe(1)
+    // No max: it scales to the densest spot in view.
+    expect(layer.options!.max).toBeUndefined()
+  })
+
+  test('scales to its data: the densest spot sets the top of the ramp', () => {
+    const cluster = Array.from({ length: 40 }, () => ({ x: 100, y: 100, weight: 1 }))
+    const lone = { x: 300, y: 300, weight: 1 }
+    expect(densestCell([...cluster, lone], 25, 400, 400)).toBe(40)
+    // A spot reads 1 − 0.05^(its weight / peak): the cluster near the top,
+    // a lone point far down the ramp rather than red.
+    const reads = (total: number): number => 1 - 0.05 ** (total / 40)
+    expect(reads(40)).toBeCloseTo(0.95)
+    expect(reads(1)).toBeLessThan(0.1)
+    // Off screen does not count, but one heavy point is a floor.
+    expect(densestCell([{ x: -500, y: 0, weight: 3 }, { x: 10, y: 10, weight: 2 }], 25, 400, 400)).toBe(3)
+    expect(densestCell([], 25, 400, 400)).toBe(1)
   })
 
   test('accepts initial data in options', () => {

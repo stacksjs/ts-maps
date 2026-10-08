@@ -12,6 +12,12 @@ export interface HeatmapLayerOptions {
   data?: HeatmapPoint[]
   radius?: number
   blur?: number
+  /**
+   * The weight one point needs to read as hottest on its own. Left out, the
+   * heatmap scales to its data: the densest spot in view is the top of the
+   * ramp and everything else is shaded against it, so a thousand points do
+   * not all run together into one red blob.
+   */
   max?: number
   gradient?: Record<number, string>
   minOpacity?: number
@@ -135,7 +141,7 @@ export class HeatmapLayer extends Layer {
     const radius = (opts.radius ?? 25) as number
     const blur = (opts.blur ?? 15) as number
     const minOpacity = (opts.minOpacity ?? 0.05) as number
-    const max = (opts.max ?? 1) as number
+    const max = opts.max as number | undefined
 
     // Map container offset: the canvas sits at pane origin, points are in
     // container pixel space, so we shift by the map pane position.
@@ -152,14 +158,26 @@ export class HeatmapLayer extends Layer {
     // Pre-build a single reusable gradient blob — sampled by drawImage for each point.
     const blob = this._intensityBlob(totalRadius, radius, blur)
 
+    const points: Array<{ x: number, y: number, weight: number }> = []
     for (const pt of this._data) {
       const lp = this._map.latLngToContainerPoint([pt.lat, pt.lng]) as Point
-      const x = lp.x - paneOffset.x
-      const y = lp.y - paneOffset.y
-      const weight = Math.max(0, Math.min((pt.weight ?? 1) / max, 1))
-      if (weight <= 0) continue
-      bctx.globalAlpha = Math.max(minOpacity, weight)
-      bctx.drawImage(blob, x - totalRadius, y - totalRadius)
+      const weight = Math.max(0, pt.weight ?? 1)
+      if (weight > 0)
+        points.push({ x: lp.x - paneOffset.x, y: lp.y - paneOffset.y, weight })
+    }
+
+    // Without a `max`, the densest spot in view sets it. Overlapping points
+    // multiply their transparency: give each 1 − 0.05^(weight / peak), and a
+    // spot reads 1 − 0.05^(total weight there / peak): 95% at the densest
+    // spot, less wherever there is less. Totals are taken over cells a radius
+    // wide, about as far as one point's blob reaches.
+    const peak = max === undefined ? densestCell(points, radius, canvas.width, canvas.height) : 0
+    for (const pt of points) {
+      const alpha = max === undefined
+        ? 1 - 0.05 ** (pt.weight / peak)
+        : Math.max(minOpacity, Math.min(pt.weight / max, 1))
+      bctx.globalAlpha = alpha
+      bctx.drawImage(blob, pt.x - totalRadius, pt.y - totalRadius)
     }
     bctx.globalAlpha = 1
 
@@ -218,10 +236,26 @@ export class HeatmapLayer extends Layer {
   }
 }
 
+/** The most weight in any `cell`-wide square of the canvas: at least that of the heaviest single point. */
+export function densestCell(points: ReadonlyArray<{ x: number, y: number, weight: number }>, cell: number, width: number, height: number): number {
+  const size = Math.max(1, cell)
+  const totals = new Map<number, number>()
+  let peak = 0
+  for (const p of points) {
+    peak = Math.max(peak, p.weight)
+    if (p.x < -size || p.y < -size || p.x > width + size || p.y > height + size)
+      continue
+    const key = Math.floor(p.y / size) * 100003 + Math.floor(p.x / size)
+    const total = (totals.get(key) ?? 0) + p.weight
+    totals.set(key, total)
+    peak = Math.max(peak, total)
+  }
+  return peak || 1
+}
+
 HeatmapLayer.setDefaultOptions({
   radius: 25,
   blur: 15,
-  max: 1,
   minOpacity: 0.05,
   pane: 'overlayPane',
 })
