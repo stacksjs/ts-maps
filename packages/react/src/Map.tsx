@@ -102,6 +102,10 @@ export function Map(props: MapProps): ReactElement {
         const h = handler as (e: any) => void
         map.on(event, h)
         bindings.push({ event, handler: h })
+        // The map fires `load` from its constructor, before any listener
+        // can exist: a map already loaded is told to this one now.
+        if (event === 'load' && (map as any)._loaded)
+          queueMicrotask(() => h({ type: 'load', target: map }))
       }
     }
     return () => {

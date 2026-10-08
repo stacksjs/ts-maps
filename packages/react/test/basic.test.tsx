@@ -27,7 +27,7 @@ describe('@ts-maps/react exports', () => {
   test('event prop mapping covers the common TsMap events', () => {
     expect(EVENT_PROPS.onClick).toBe('click')
     expect(EVENT_PROPS.onMove).toBe('move')
-    expect(EVENT_PROPS.onStyleLoad).toBe('styleload')
+    expect(EVENT_PROPS.onStyleLoad).toBe('style.load')
     expect(EVENT_PROPS.onZoomEnd).toBe('zoomend')
   })
 

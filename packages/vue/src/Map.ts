@@ -133,11 +133,15 @@ export const Map = defineComponent({
         instance.on(name, handler)
         bindings.push({ event: name, handler })
       }
+      // The map fires `load` from its constructor, before the listener above
+      // existed: a map already loaded says so now.
+      if ((instance as any)._loaded)
+        queueMicrotask(() => emit('load', { type: 'load', target: instance }))
       const styleLoadHandler = (e: any): void => {
         emit('style-load', e)
       }
-      instance.on('styleload', styleLoadHandler)
-      bindings.push({ event: 'styleload', handler: styleLoadHandler })
+      instance.on('style.load', styleLoadHandler)
+      bindings.push({ event: 'style.load', handler: styleLoadHandler })
     })
 
     watch(

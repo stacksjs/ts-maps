@@ -1,6 +1,6 @@
 /**
  * Maps React-style camelCase event props (e.g. `onStyleLoad`) to the
- * underlying `TsMap` event names (e.g. `styleload`). We do this up front so
+ * underlying `TsMap` event names (e.g. `style.load`). We do this up front so
  * binding logic stays a flat loop.
  */
 export const EVENT_PROPS: Readonly<Record<string, string>> = {
@@ -41,7 +41,7 @@ export const EVENT_PROPS: Readonly<Record<string, string>> = {
   onPopupClose: 'popupclose',
   onTooltipOpen: 'tooltipopen',
   onTooltipClose: 'tooltipclose',
-  onStyleLoad: 'styleload',
+  onStyleLoad: 'style.load',
   onStyleDataLoading: 'styledataloading',
 }
 
