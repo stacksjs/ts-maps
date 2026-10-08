@@ -29,7 +29,7 @@
       "development": "./src/index.tsx",
       "import": "./src/index.tsx"
     },
-    "./styles.css": "./../ts-maps/src/core-map/ts-maps.css"
+    "./styles.css": "./dist/styles.css"
   },
   "main": "./src/index.tsx",
   "module": "./src/index.tsx",
@@ -40,7 +40,7 @@
     "src"
   ],
   "scripts": {
-    "build": "bun --bun tsc -p tsconfig.build.json",
+    "build": "bun --bun tsc -p tsconfig.build.json && cp ../ts-maps/src/core-map/ts-maps.css dist/styles.css",
     "prepublishOnly": "bun --bun run build",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",

@@ -27,7 +27,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./../ts-maps/src/core-map/ts-maps.css"
+    "./styles.css": "./dist/styles.css"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -38,7 +38,7 @@
     "src"
   ],
   "scripts": {
-    "build": "bun --bun tsc -p tsconfig.build.json",
+    "build": "bun --bun tsc -p tsconfig.build.json && cp ../ts-maps/src/core-map/ts-maps.css dist/styles.css",
     "prepublishOnly": "bun --bun run build",
     "lint": "bunx --bun pickier .",
     "lint:fix": "bunx --bun pickier . --fix",

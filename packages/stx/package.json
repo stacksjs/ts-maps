@@ -38,7 +38,7 @@
       "bun": "./stx-plugin.ts",
       "import": "./stx-plugin.ts"
     },
-    "./styles.css": "./../ts-maps/src/core-map/ts-maps.css"
+    "./styles.css": "./dist/styles.css"
   },
   "main": "./src/index.ts",
   "module": "./src/index.ts",
@@ -50,7 +50,7 @@
     "stx-plugin.ts"
   ],
   "scripts": {
-    "build": "bun --bun tsc -p tsconfig.build.json",
+    "build": "bun --bun tsc -p tsconfig.build.json && cp ../ts-maps/src/core-map/ts-maps.css dist/styles.css",
     "prepublishOnly": "bun --bun run build",
     "test": "bun test",
     "lint": "bunx --bun pickier .",

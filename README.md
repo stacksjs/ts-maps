@@ -79,11 +79,13 @@ bun add ts-maps
 ### Framework bindings
 
 ```bash
-npm install ts-maps ts-maps-react    # React
-npm install ts-maps ts-maps-vue      # Vue
-npm install ts-maps ts-maps-svelte   # Svelte
-npm install ts-maps ts-maps-solid    # SolidJS
-npm install ts-maps-nuxt             # Nuxt module
+npm install ts-maps @ts-maps/react          # React
+npm install ts-maps @ts-maps/vue            # Vue
+npm install ts-maps @ts-maps/svelte         # Svelte
+npm install ts-maps @ts-maps/solid          # SolidJS
+npm install ts-maps @ts-maps/stx            # stx
+npm install ts-maps @ts-maps/react-native   # React Native
+npm install ts-maps-nuxt                    # Nuxt module
 ```
 
 ## Quick start
