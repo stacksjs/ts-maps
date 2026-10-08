@@ -7,7 +7,10 @@
 * for details; all identifiers and classnames here are part of ts - maps.
 */
 
-export const version: string = '0.4.0'
+import pkg from '../../package.json'
+
+// From the package itself, so a release can't leave it behind.
+export const version: string = pkg.version
 
 export * from './control/index'
 export * from './core/index'
