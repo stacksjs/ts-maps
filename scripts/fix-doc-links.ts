@@ -78,12 +78,14 @@ if (import.meta.main) {
     if (!source)
       continue
     const html = readFileSync(page, 'utf8')
-    const next = html.replace(/href="([^"]+)"/g, (whole, href: string) => {
+    // Either quote: markdown's links come out double-quoted, a page's own
+    // HTML (the examples gallery) may use single.
+    const next = html.replace(/href=(["'])([^"']+)\1/g, (whole, quote: string, href: string) => {
       const to = siteHref(source, href)
       if (to === undefined)
         return whole
       links++
-      return `href="${to}"`
+      return `href=${quote}${to}${quote}`
     })
     if (next !== html) {
       writeFileSync(page, next)

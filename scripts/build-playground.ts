@@ -142,5 +142,12 @@ if (examples.length) {
 `)
   }
   copyFileSync(join(SRC, 'examples.css'), join(EXAMPLES_OUT, 'examples.css'))
+  // The examples gallery's pictures of them (scripts/playground-thumbs.ts --examples).
+  const pictures = join(EXAMPLES, 'thumbs')
+  if (existsSync(pictures)) {
+    mkdirSync(join(EXAMPLES_OUT, 'thumbs'), { recursive: true })
+    for (const file of readdirSync(pictures).filter(f => f.endsWith('.jpg')))
+      copyFileSync(join(pictures, file), join(EXAMPLES_OUT, 'thumbs', file))
+  }
   console.log(`[build-playground] ${examples.length} examples → ${EXAMPLES_OUT}`)
 }

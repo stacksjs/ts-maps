@@ -1,17 +1,20 @@
 #!/usr/bin/env bun
 /* eslint-disable no-console */
 /**
- * Pictures of each playground demo, for the gallery at /playground/.
+ * Pictures of each playground demo, for the gallery at /playground/, and of
+ * each docs example, for the one at /examples/.
  *
- *   bun scripts/playground-thumbs.ts [baseUrl] [demo…]
+ *   bun scripts/playground-thumbs.ts [baseUrl] [--examples] [name…]
  *
  * Opens every demo in headless Chrome, waits for its map to finish drawing,
  * and saves the top of the window (above the demo's info card) as
- * playground/core-map/thumbs/<demo>.jpg. baseUrl is where the built
- * playground is served, default http://localhost:4173/playground/. Name
- * demos (`7-3d`) to take only those again. Run it after a demo changes how it
- * looks, and commit the pictures. WebGL is drawn in software here and a busy
- * page can miss the capture: run again for the ones it names.
+ * playground/core-map/thumbs/<demo>.jpg. With `--examples`, the docs'
+ * examples instead, whole, as docs/examples/thumbs/<example>.jpg. baseUrl is
+ * where the built playground is served, default
+ * http://localhost:4173/playground/. Name demos (`7-3d`, `12-globe`) to take
+ * only those again. Run it after a demo changes how it looks, and commit the pictures.
+ * WebGL is drawn in software here and a busy page can miss the capture: run
+ * again for the ones it names.
  */
 
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -19,19 +22,24 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..')
-const SRC = join(ROOT, 'playground', 'core-map')
+const args = process.argv.slice(2)
+const EXAMPLES = args.includes('--examples')
+const only = args.filter(a => a !== '--examples')
+const base = only[0]?.startsWith('http') ? only.shift() : undefined
+const SRC = EXAMPLES ? join(ROOT, 'docs', 'examples') : join(ROOT, 'playground', 'core-map')
 const OUT = join(SRC, 'thumbs')
-const BASE = process.argv[2] ?? 'http://localhost:4173/playground/'
+const BASE = `${(base ?? 'http://localhost:4173/playground/').replace(/\/?$/, '/')}${EXAMPLES ? 'examples/' : ''}`
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const WIDTH = 640
-const HEIGHT = 600
-const SHOT = { width: 640, height: 360 }
+// An example is the map and its own controls, all of it; a demo, the map
+// above its info card.
+const HEIGHT = EXAMPLES ? 400 : 600
+const SHOT = { width: 640, height: EXAMPLES ? 400 : 360 }
 const SETTLE_MS = 7000
 
-const only = process.argv.slice(3)
 const demos = readdirSync(SRC)
-  .filter(f => /^\d+-.+\.html$/.test(f))
-  .map(f => f.replace(/\.html$/, ''))
+  .filter(f => (EXAMPLES ? /^\d+-.+\.ts$/ : /^\d+-.+\.html$/).test(f))
+  .map(f => f.replace(/\.(html|ts)$/, ''))
   .filter(d => !only.length || only.includes(d))
 mkdirSync(OUT, { recursive: true })
 
