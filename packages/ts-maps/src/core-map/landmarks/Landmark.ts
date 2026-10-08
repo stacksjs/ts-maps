@@ -265,6 +265,19 @@ export function replacedPoints(map: any, landmarks: Iterable<Landmark>, tile: { 
   return points
 }
 
+/** Cleared ground (`Scene3D.cleared`) over a tile, in its pixels. */
+export function clearedBoxes(map: any, cleared: Iterable<[number, number, number, number]> | undefined, tile: { x: number, y: number, z: number }, tileSize: number): Array<{ minX: number, minY: number, maxX: number, maxY: number }> {
+  const boxes: Array<{ minX: number, minY: number, maxX: number, maxY: number }> = []
+  for (const [w, s, e, n] of cleared ?? []) {
+    const nw = map.project([n, w], tile.z)
+    const se = map.project([s, e], tile.z)
+    const box = { minX: nw.x - tile.x * tileSize, minY: nw.y - tile.y * tileSize, maxX: se.x - tile.x * tileSize, maxY: se.y - tile.y * tileSize }
+    if (box.maxX >= 0 && box.maxY >= 0 && box.minX <= tileSize && box.minY <= tileSize)
+      boxes.push(box)
+  }
+  return boxes
+}
+
 /** Whether (x, y) is inside a ring of points. */
 export function insideRing(ring: ReadonlyArray<{ x: number, y: number }>, x: number, y: number): boolean {
   let inside = false

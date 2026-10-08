@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { control, IndoorMap, loadIMDF, searchIndoor, styles, TsMap, unzip } from '../src/core-map'
+import { evaluate } from '../src/core-map/style-spec/expressions'
 
 // A two-level terminal at SFO, in IMDF: a venue, two levels, a few units,
 // a door, an amenity, and two occupants placed by anchors.
@@ -139,6 +140,29 @@ describe('IndoorMap', () => {
     buttons[0]!.click()
     expect(indoor.level).toBe(1)
     expect(levels).toEqual([1])
+  })
+
+  test('rooms are coloured by what they are', async () => {
+    const map = makeMap(17)
+    await new IndoorMap({ venue: FILES }).addTo(map).ready()
+    const units = map.getStyle()!.layers.find(l => l.id === 'ts-maps-indoor-units')!
+    const color = (category: string): unknown => evaluate((units.paint as any)['fill-color'], { zoom: 17, feature: { type: 3, properties: { category } } })
+    expect(color('restroom')).toBe('#dbe8f6')
+    expect(color('room')).toBe('#f3f1ec')
+  })
+
+  test('its plan takes the place of the building it is in while it shows', async () => {
+    const map = makeMap(17)
+    const indoor = await new IndoorMap({ venue: FILES }).addTo(map).ready()
+    map.fire('moveend')
+    expect([...(map as any)._scene3d.cleared.values()]).toEqual([indoor.venue!.bounds])
+    map.setZoom(13)
+    map.fire('moveend')
+    expect((map as any)._scene3d.cleared.size).toBe(0)
+    map.setZoom(17)
+    map.fire('moveend')
+    indoor.remove()
+    expect((map as any)._scene3d.cleared.size).toBe(0)
   })
 
   test('sync follows level when it changes, not on every render', async () => {

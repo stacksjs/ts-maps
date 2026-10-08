@@ -40,7 +40,7 @@ import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../render
 import type { Occluder, OcclusionSource } from '../../symbols/BuildingOcclusion'
 import { occluded, OccluderIndex } from '../../symbols/BuildingOcclusion'
 import { roofOf } from '../../renderer/webgl/roofs'
-import { insideRing, landmarkDraws, replacedPoints } from '../../landmarks/Landmark'
+import { clearedBoxes, insideRing, landmarkDraws, replacedPoints } from '../../landmarks/Landmark'
 import { isSceneHost, sceneBusy, sceneOf } from '../../landmarks/scene'
 import type { TreeFeature } from '../../landmarks/trees'
 import { buildTreeMesh, plantTrees, treeKind } from '../../landmarks/trees'
@@ -1206,6 +1206,8 @@ export class VectorTileMapLayer extends GridLayer {
       const map = this._map
       // Landmarks standing in for a building take its place.
       const replaced = map && isSceneHost(map, this) ? replacedPoints(map, sceneOf(map).landmarks, source, size) : []
+      // And an indoor plan showing takes the place of the building it is in.
+      const cleared = map && isSceneHost(map, this) ? clearedBoxes(map, sceneOf(map).cleared?.values(), source, size) : []
       const mpp = this._metresPerPixel(source, size)
 
       for (const styleLayer of layers) {
@@ -1232,6 +1234,8 @@ export class VectorTileMapLayer extends GridLayer {
           const color = parseCssColor((resolve(paint?.['fill-extrusion-color']) as string | undefined) ?? '#000', 1)
           const rings = feature.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x * scale, y: pt.y * scale })))
           if (replaced.length && rings[0] && replaced.some(([x, y]) => insideRing(rings[0]!, x, y)))
+            continue
+          if (cleared.length && rings[0] && clearedBy(rings[0], cleared))
             continue
           const roof = roofOf(feature.properties as Record<string, unknown>)
           footprints.push({ rings, height, base, color: [color[0], color[1], color[2], color[3]], ...(roof ? { roof } : {}) })
@@ -3410,4 +3414,14 @@ function distanceToSegmentSq(p: { x: number, y: number }, a: Point, b: Point): n
   const x = a.x + t * dx - p.x
   const y = a.y + t * dy - p.y
   return x * x + y * y
+}
+
+/**
+ * Whether a building stands on cleared ground: a corner of it inside the
+ * cleared box, or the box's middle or a corner of it inside the building — a
+ * terminal much bigger than the plan drawn over part of it.
+ */
+function clearedBy(ring: ReadonlyArray<{ x: number, y: number }>, boxes: Array<{ minX: number, minY: number, maxX: number, maxY: number }>): boolean {
+  return boxes.some(b => ring.some(p => p.x >= b.minX && p.x <= b.maxX && p.y >= b.minY && p.y <= b.maxY)
+    || [[(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2], [b.minX, b.minY], [b.maxX, b.minY], [b.minX, b.maxY], [b.maxX, b.maxY]].some(([x, y]) => insideRing(ring, x!, y!)))
 }

@@ -4,6 +4,7 @@ import { Control } from '../control/Control'
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { controlLocale, message } from '../i18n'
+import { clearGround } from '../landmarks/scene'
 import { iconForKind } from '../search/categories'
 import { label, loadIMDF, searchIndoor } from './imdf'
 
@@ -60,7 +61,7 @@ const UNIT_COLORS: Array<[string[], string]> = [
 function unitColor(): unknown {
   const match: unknown[] = ['match', ['get', 'category']]
   for (const [categories, color] of UNIT_COLORS)
-    match.push(['literal', categories], color)
+    match.push(categories, color)
   match.push('#f3f1ec')
   return match
 }
@@ -150,6 +151,8 @@ export class IndoorMap extends Control {
   }
 
   onRemove(map: any): void {
+    clearGround(map, this, null)
+    this._visible = false
     map.off('moveend zoomend', this._draw, this)
     map.off('styledata', this._ensureLayers, this)
     for (const id of ['ts-maps-indoor-labels', 'ts-maps-indoor-openings', 'ts-maps-indoor-walls', 'ts-maps-indoor-units']) {
@@ -217,6 +220,8 @@ export class IndoorMap extends Control {
       && w <= view.getEast() && e >= view.getWest() && s <= view.getNorth() && n >= view.getSouth()
     if (visible !== this._visible) {
       this._visible = visible
+      // The plan stands in for the building's 3D shape, as in Apple Maps.
+      clearGround(map, this, visible ? venue.bounds : null)
       this._emit('visibilitychange', { visible })
     }
     if (!this._list)

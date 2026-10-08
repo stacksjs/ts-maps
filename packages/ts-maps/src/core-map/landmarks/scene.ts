@@ -14,6 +14,12 @@ import type { Trees } from './trees'
 export interface Scene3D {
   landmarks: Set<Landmark>
   trees?: Trees
+  /**
+   * Ground cleared of buildings, `[west, south, east, north]`, by whoever
+   * cleared it: an indoor venue showing its plan, where the building's
+   * extruded shape would stand over it.
+   */
+  cleared?: Map<unknown, [number, number, number, number]>
 }
 
 export function sceneOf(map: any): Scene3D {
@@ -42,4 +48,27 @@ export function isSceneHost(map: any, layer: any): boolean {
       return candidate === layer
   }
   return false
+}
+
+/**
+ * Clear the buildings from `bounds`, or give the ground back with `null`.
+ * Rebuilds the buildings only when something changed.
+ */
+export function clearGround(map: any, owner: unknown, bounds: [number, number, number, number] | null): void {
+  if (!map)
+    return
+  const scene = sceneOf(map)
+  const had = scene.cleared?.get(owner)
+  if (bounds) {
+    if (had && had.every((v, i) => v === bounds[i]))
+      return
+    scene.cleared ??= new Map()
+    scene.cleared.set(owner, bounds)
+  }
+  else {
+    if (!had)
+      return
+    scene.cleared!.delete(owner)
+  }
+  sceneChanged(map, true)
 }
