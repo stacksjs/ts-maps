@@ -156,10 +156,14 @@ Where a layer draws:
   one with id `before`, or on top without it. A `before` from another source
   changes the order in the document, not on screen.
 
-`addSource` takes a vector or raster source by its `tiles`. A TileJSON `url`
-is read only by `setStyle`; to add one later, read the template with
-`resolveTileJSON` first (see
-[Styles & theming](./styles-and-theming.md#choosing-a-source)).
+`addSource` takes a vector or raster source by its `tiles`, or by a TileJSON
+`url`, which the map reads first, as `setStyle` does. The source is in the
+style at once and layers can be added for it; it draws once the TileJSON is
+in, and the map fires `sourcedata` then, or `error` if it cannot be read.
+
+A `raster` source draws only through the `raster` layers over it, with their
+`minzoom`, `maxzoom`, `visibility` and `raster-opacity`. A raster source no
+layer uses draws nothing.
 
 ### Data that changes
 
@@ -241,7 +245,8 @@ The older filter syntax, such as `['==', 'class', 'park']`, still works. The
 ## Querying features
 
 `map.queryRenderedFeatures(point, { layers })` returns the features drawn at
-a point on screen, or inside a box `[[x1, y1], [x2, y2]]`. Each hit is
+a point on screen, or inside a box: `queryRenderedFeatures([[x1, y1], [x2, y2]], { layers })`.
+A `filter` option narrows the result further. Each hit is
 `{ feature, layer, tile }`, with the feature's properties at
 `hit.feature.properties`:
 
@@ -282,9 +287,8 @@ map.on('click', 'buildings', (e) => {
 ```
 
 `getFeatureState(lookup)` reads it back and `removeFeatureState(lookup, key?)`
-clears one value or all of them. The feature needs an `id`. On a GeoJSON
-source, pass the source's id as `sourceLayer` too, since that is the name of
-its one layer.
+clears one value or all of them. The feature needs an `id`. A GeoJSON source
+has one layer, so `{ source, id }` is enough there.
 
 ## Swapping styles
 

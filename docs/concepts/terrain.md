@@ -44,7 +44,7 @@ A `raster-dem` source on its own draws nothing. Its colours are data, not a pict
 | `minzoom`, `maxzoom` | | The zooms the DEM is published at. Past `maxzoom` its top tiles are scaled up, not requested |
 | `attribution` | | Shown by the attribution control |
 
-A source named by a TileJSON (`{ type: 'raster-dem', url }`) is read when it is part of a style passed to `setStyle` or the `style` option, and its `tiles`, zooms and `encoding` come from the TileJSON. `addSource` does not read TileJSON, so give it `tiles`.
+A source named by a TileJSON (`{ type: 'raster-dem', url }`) is read first, in a style passed to `setStyle` or the `style` option and by `addSource`, and its `tiles`, zooms and `encoding` come from the TileJSON. Added with `addSource`, it is ready when the map fires `sourcedata` for it; call `setTerrain` then, so the terrain is decoded with the TileJSON's `encoding`.
 
 ### Encodings
 

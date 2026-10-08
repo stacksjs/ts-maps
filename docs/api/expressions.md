@@ -126,11 +126,23 @@ check without compiling.
 
 | Operator | |
 | -------- | - |
+| `["string", v, fallback…]` | The first argument that is a string. None is an error. |
+| `["number", v, fallback…]` | The first argument that is a number. |
+| `["boolean", v, fallback…]` | The first argument that is a boolean. |
+| `["object", v, fallback…]` | The first argument that is an object, not an array. |
+| `["array", v]`, `["array", type, v]`, `["array", type, n, v]` | `v`, if it is an array of `type` (`"string"`, `"number"` or `"boolean"`) and of length `n`. Anything else is an error. |
 | `["to-string", v]` | |
-| `["to-number", v, fallback…]` | The first argument that converts. |
+| `["to-number", v, fallback…]` | The first argument that converts. `null` is `0`, as in Mapbox. |
 | `["to-boolean", v]` | |
 | `["to-color", v, fallback…]` | The first argument that parses as a colour. |
 | `["to-rgba", color]` | `[r, g, b, a]`, channels 0–255 and alpha 0–1. |
+
+The type assertions give a default to a value that may be missing. Before a
+feature has been hovered, its `hover` state is `null`, so this is `false`:
+
+```js
+['boolean', ['feature-state', 'hover'], false]
+```
 
 ## Variables
 
@@ -184,15 +196,16 @@ compile lets every feature through rather than hiding them all.
 
 ## Not supported
 
-These parts of the Mapbox spec are not implemented: the type assertions
-`array`, `boolean`, `number`, `string` and `object`; `typeof`;
+These parts of the Mapbox spec are not implemented: `typeof`;
 `interpolate-hcl` and `interpolate-lab`; `image`; `collator` and
 `is-supported-script`; `accumulated`; `config` and `global-state`; `pitch`,
 `distance-from-center` and `sky-radial-progress`.
 
-An array whose first item is not a known operator is read as plain data, not
-as an error. `['typeof', x]` evaluates to the array `['typeof', x]` itself, so
-an unsupported operator shows up as a wrong value rather than a message. Where
-a type assertion only guards a value, drop it:
-`['boolean', ['feature-state', 'hover'], false]` becomes
-`['coalesce', ['feature-state', 'hover'], false]`.
+An array whose first item is a string that names no operator is an error, as
+in Mapbox, and the error names it: `['typeof', x]` fails with
+`unknown expression operator "typeof"`. `validateStyle` reports it for the
+property it is in. In a paint or layout property, a value that fails draws the
+property's default; a filter that fails lets every feature through. To put an
+array of strings inside an expression as data, wrap it: `['literal', ['a', 'b']]`.
+Arrays that lead with a number, like `[0, 2]`, are data as they are, and so are
+property values that are plain arrays, like a `text-font` stack.

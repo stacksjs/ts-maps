@@ -175,12 +175,12 @@ Mapbox.
 
 | Mapbox GL JS | ts-maps |
 | ------------ | ------- |
-| `map.addSource(id, source)` | The same. Give a vector source `tiles`: TileJSON `url`s are only read by `setStyle`. |
+| `map.addSource(id, source)` | The same, TileJSON `url`s included |
 | `map.getSource(id).setData(data)` | `map.setSourceData(id, data)` — `getSource` returns the source's spec, not an object with methods |
 | `map.addLayer(layer, beforeId)` | `map.addStyleLayer(layer, beforeId)` |
 | `map.getLayer(id)` | `map.getStyleLayer(id)` |
 | `map.removeLayer(id)` | `map.removeStyleLayer(id)` |
-| `map.setPaintProperty`, `setLayoutProperty`, `setFilter` | The same |
+| `map.setPaintProperty`, `setLayoutProperty`, `setFilter`, `setLayerZoomRange` | The same |
 | `map.setStyle(style)` | The same; changes are diffed in place |
 | `map.addLayer({ type: 'custom', … })` | `map.addCustomLayer({ id, type: 'custom', render })` |
 | `map.setTerrain`, `setFog`, `setProjection('globe')` | The same |
@@ -192,11 +192,10 @@ Mapbox.
 | `e.lngLat` | `e.latlng` |
 | `e.point` | `e.containerPoint` |
 | `e.features[0].properties` | `e.features[0].feature.properties` |
-| `map.queryRenderedFeatures(point, { layers })` | The same |
-| `map.queryRenderedFeatures([[x1, y1], [x2, y2]], { layers })` | `map.queryRenderedFeatures({ bbox: [[x1, y1], [x2, y2]], layers })` |
+| `map.queryRenderedFeatures(point, { layers, filter })` | The same |
+| `map.queryRenderedFeatures([[x1, y1], [x2, y2]], { layers })` | The same |
 | `map.on('mousemove', layerId, fn)` | `map.on('pointermove', layerId, fn)` |
 | `map.on('mouseenter' / 'mouseleave', layerId, fn)` | Not available. Use `pointermove` on the layer and on the map. |
-| `map.setFeatureState({ source, id }, state)` on a geojson source | `map.setFeatureState({ source, sourceLayer: source, id }, state)` |
 
 A query result is `{ feature, layer, tile }`; the GeoJSON-like feature is
 `result.feature`, with `properties`, `id` and `toGeoJSON(x, y, z)`.
@@ -236,16 +235,16 @@ any source that uses the OpenMapTiles schema.
 These parts of a style are read but not applied: the root `center`, `zoom`,
 `bearing` and `pitch` (set them on the map), and `projection`, `terrain` and
 `fog` (call `setProjection`, `setTerrain` and `setFog`). A `raster` source is
-drawn as an image tile layer whether or not a `raster` layer uses it, at every
-zoom; the layer's zoom range and `raster-*` paint are not applied. Styles that
-carry a raster source for low-zoom shading, as several OpenMapTiles styles do,
-show it at every zoom: remove the source. An `image` or `video` source, or a `sky` or `model` layer, fails
+drawn through its `raster` layers, with their zoom range, `visibility` and
+`raster-opacity`; the other `raster-*` paint properties are approximated with
+a CSS filter. An `image` or `video` source, or a `sky` or `model` layer, fails
 validation; use `ImageOverlay`, `VideoOverlay` and `setSky` instead. The
 Mapbox Standard style's `imports`, `config` and slots are not supported.
 
-The expression language is the same; [Expressions](../api/expressions.md)
-lists the operators ts-maps has and the ones it does not, the type assertions
-(`['boolean', …]`, `['number', …]`) among the latter.
+The expression language is the same, type assertions such as
+`['boolean', ['feature-state', 'hover'], false]` included;
+[Expressions](../api/expressions.md) lists the operators ts-maps has and the
+few it does not. An unknown operator is an error that names it, as in Mapbox.
 
 ## Services
 

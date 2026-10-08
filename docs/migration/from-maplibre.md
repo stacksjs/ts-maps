@@ -44,15 +44,14 @@ control.navigation().addTo(map)
 from the same OpenFreeMap tiles. A style URL works too —
 `style: 'https://example.com/style.json'` — and is fetched for you.
 
-Two things to watch with a style from elsewhere:
+With a style from elsewhere, give the map `center` and `zoom`. ts-maps does
+not take the view from the style's root `center` and `zoom`, and a map with
+neither has no view.
 
-- **Give the map `center` and `zoom`.** ts-maps does not take the view from the
-  style's root `center` and `zoom`, and a map with neither has no view.
-- **Raster sources are always drawn.** A style's `raster` source is drawn at
-  every zoom whether or not a layer uses it. OpenFreeMap's Positron, Bright
-  and Liberty styles carry a low-zoom shaded-relief raster (`ne2_shaded`) that
-  would then cover the land at street level; load the JSON and delete that
-  source before `setStyle`.
+A `raster` source shows only where a `raster` layer uses it, within that
+layer's zoom range and with its `raster-opacity`, as in MapLibre. OpenFreeMap's
+low-zoom shaded relief (`ne2_shaded`) fades out by zoom 7 in Liberty, and
+Positron, which has no layer for it, does not draw it.
 
 ## The globe
 

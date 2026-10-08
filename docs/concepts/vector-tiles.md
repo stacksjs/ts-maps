@@ -54,7 +54,7 @@ A `vector` source takes:
 | `attribution` | from the TileJSON | Shown by the attribution control |
 | `offlineCache` | | `true` reads tiles through the shared tile cache; see [Offline maps](./offline.md#tile-cache) |
 
-The style can be passed as the `style` option or to `map.setStyle()`. Either way, sources named by a TileJSON are fetched first, and the style goes in once they arrive; the map fires `style.load` then. `map.addSource()` does not fetch TileJSON, so give it `tiles` (or a `pmtiles://` URL). `resolveStyleSources(style, fetch)` and `tileJSONSources(style)` are exported if you want to read them yourself.
+The style can be passed as the `style` option or to `map.setStyle()`. Either way, sources named by a TileJSON are fetched first, and the style goes in once they arrive; the map fires `style.load` then. `map.addSource()` reads a TileJSON `url` too, and fires `sourcedata` when the source is ready. `resolveStyleSources(style, fetch)` and `tileJSONSources(style)` are exported if you want to read them yourself.
 
 Style layers, paint and layout properties and expressions are covered in [Style spec](./style-spec.md). A PMTiles archive, on your own server or straight from a bucket, is in [Self-hosted vector tiles](./tile-server.md).
 
@@ -129,11 +129,11 @@ map.on('click', (e) => {
 
 `map.queryRenderedFeatures` asks every source on a styled map; a layer made with `vectorTileLayer` has the same method. It takes:
 
-- a point in container pixels, as above, or as `{ point: [x, y] }`;
-- a rectangle, as `{ bbox: [[x1, y1], [x2, y2]] }`;
+- a point in container pixels, as above, as `[x, y]`, or as `{ point: [x, y] }`;
+- a rectangle, as `[[x1, y1], [x2, y2]]` or `{ bbox: [[x1, y1], [x2, y2]] }`;
 - nothing, for every feature in every decoded tile.
 
-`layers` limits it to those style-layer ids. Each hit is `{ feature, layer, tile }`: the decoded feature (`properties`, `id`, `type`, `loadGeometry()`), the style layer that drew it, and the tile it came from. Features are tested against their real geometry: inside a polygon, near a line, within a circle's radius. A feature cut by tile edges can appear once per tile.
+Options go second, or alone. `layers` limits it to those style-layer ids, and `filter` is an expression the features must also pass. Each hit is `{ feature, layer, tile }`: the decoded feature (`properties`, `id`, `type`, `loadGeometry()`), the style layer that drew it, and the tile it came from. Features are tested against their real geometry: inside a polygon, near a line, within a circle's radius. A feature cut by tile edges can appear once per tile.
 
 `map.querySourceFeatures(sourceId, { sourceLayer, filter })` returns every feature of a source in the tiles that have loaded, drawn or not. Features with an `id` are returned once.
 

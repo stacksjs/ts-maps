@@ -178,7 +178,7 @@ Starting a camera move cancels the one running.
 | `getBearing()` | `number`, `[0, 360)` |
 | `getPitch()` | `number` |
 | `getCamera()` | `{ center, zoom, bearing, pitch }` |
-| `getBounds()` | `LatLngBounds` of the view |
+| `getBounds()` | `LatLngBounds` of what is on screen. On a turned or tilted map, it holds the whole view; above the horizon it stops at the farthest ground still drawn legibly. |
 | `getBoundsZoom(bounds, inside?, padding?)` | The zoom that fits `bounds` (or fills the view with it, `inside: true`) |
 | `getMinZoom()` / `getMaxZoom()` | `number` |
 | `getSize()` | Container size as a `Point` |
@@ -196,7 +196,7 @@ added with `addLayer` — see [Layers and controls](#layers-and-controls).
 | `setStyle(style, options?)` | Replace the style. `style` is an object or a URL. `options`: `{ diff?: boolean = true, validate?: boolean = true }`. |
 | `getStyle()` | A copy of the current style document, or `undefined`. |
 | `isStyleLoaded()` | Whether the map has a style yet. |
-| `addSource(id, source)` | Add a source. Creates an empty style if there is none. |
+| `addSource(id, source)` | Add a source. Creates an empty style if there is none. A TileJSON `url` is read first; see Loading below. |
 | `getSource(id)` | The source's spec object. |
 | `removeSource(id)` | |
 | `setSourceData(id, data)` | Replace a `geojson` source's data: a GeoJSON object or a URL. Fires `sourcedata`. |
@@ -206,6 +206,7 @@ added with `addLayer` — see [Layers and controls](#layers-and-controls).
 | `setPaintProperty(id, name, value)` | Throws for an unknown layer id. |
 | `setLayoutProperty(id, name, value)` | `'visibility'`, `'text-field'`, … |
 | `setFilter(id, filter)` | An [expression](./expressions.md) or a legacy filter. |
+| `setLayerZoomRange(id, minzoom?, maxzoom?)` | The zooms the layer draws at: from `minzoom`, up to but not including `maxzoom`. |
 | `getGlyphSource()` | The style's `glyphs` server, when it names one. |
 | `isFontAvailable(textFont)` | Whether the browser has a `text-font` stack. |
 
@@ -234,11 +235,27 @@ use `ImageOverlay` and `VideoOverlay`.
 **Layers.** `background`, `fill`, `fill-extrusion`, `line`, `circle`,
 `symbol`, `raster`, `hillshade` and `heatmap`.
 
+A `raster` source is drawn only through `raster` layers that use it. With none,
+it draws nothing. The layer's `minzoom`, `maxzoom` and `visibility` decide when
+it shows, and outside them its tiles are not fetched. `raster-opacity` is
+applied, and can change with the zoom. `raster-brightness-min`,
+`raster-brightness-max`, `raster-contrast`, `raster-saturation` and
+`raster-hue-rotate` become a CSS filter on the layer, close to Mapbox's but not
+the same. If several raster layers use one source, the first one that shows at
+the current zoom is drawn.
+
 **Loading.** A style given as a URL is fetched; one whose sources name a
 TileJSON `url` has those read first. Either way `setStyle` returns at once and
 the style goes in when they arrive. Sources and layers added in the meantime
-are put on it then. `addSource` does not read TileJSON: give it
-`tiles`, or a `pmtiles://` URL; `resolveTileJSON(url)` reads one for you.
+are put on it then.
+
+`addSource` reads a TileJSON `url` too, for `vector`, `raster` and `raster-dem`
+sources. The source is in the style at once, with its `url`, and layers can be
+added for it straight away; it draws once the TileJSON is in, with `tiles`,
+`minzoom`, `maxzoom`, `attribution`, `bounds` and `encoding` filled in from it.
+What the source says itself wins. The map fires `sourcedata` with `sourceId`
+when it is ready, or `error` with `sourceId` if the TileJSON cannot be read. A
+`pmtiles://` URL is read in place, as before.
 
 When both the old and the new style are in place, `setStyle` applies the
 difference rather than rebuilding, so swapping a light basemap for a dark one
@@ -260,11 +277,18 @@ again on `style.load`.
 | `queryRenderedFeatures(point?, options?)` | Features drawn at a container point, in a box, or everywhere. |
 | `querySourceFeatures(sourceId, { sourceLayer?, filter? })` | Every feature of a source in the tiles loaded, drawn or not. |
 
-`point` is a container `Point` (or `{ x, y }`). The options are `layers`,
-`point` and `bbox`, with `bbox` as `[[minX, minY], [maxX, maxY]]` in container
-pixels. To query a box, pass it in the options:
-`queryRenderedFeatures({ bbox, layers })`. With no point and no box, every
-feature in the loaded tiles that passes the layer filters is returned.
+The first argument is a point or a box, in container pixels: a `Point`,
+`{ x, y }` or `[x, y]`, or a box as `[[x1, y1], [x2, y2]]`. A box returns the
+features that touch it. Options go second, or on their own as the only
+argument: `layers`, a list of style layer ids, and `filter`, an expression the
+features must also pass. The options may carry the geometry themselves, as
+`point` or `bbox`. With no point and no box, every feature in the loaded tiles
+that passes the filters is returned.
+
+```ts
+map.queryRenderedFeatures([[0, 0], [200, 100]], { layers: ['poi'] })
+map.queryRenderedFeatures({ layers: ['roads'], filter: ['==', ['get', 'class'], 'motorway'] })
+```
 
 Each result is `{ feature, layer, tile }`: `feature.properties`, `feature.id`
 and `feature.type` (1 point, 2 line, 3 polygon), `layer` the style layer that
@@ -291,17 +315,18 @@ does not refetch them.
 | `getFeatureState({ source, sourceLayer?, id })` | The feature's state, or `{}`. |
 | `removeFeatureState({ source, sourceLayer?, id }, key?)` | Remove one key, or all of it. |
 
-`sourceLayer` is the `source-layer` the feature is in. For a `geojson` source
-it is the source's own id, and must be given:
+`sourceLayer` is the `source-layer` the feature is in, and a `vector` source
+needs it. A `geojson` source has only one, so `{ source, id }` is enough, as in
+Mapbox; giving the source's id as `sourceLayer` reaches the same state.
 
 ```ts
 map.on('pointermove', 'parks', (e) => {
   const id = e.features[0].feature.id
-  map.setFeatureState({ source: 'parks', sourceLayer: 'parks', id }, { hover: true })
+  map.setFeatureState({ source: 'parks', id }, { hover: true })
 })
 
 map.setPaintProperty('parks', 'fill-opacity',
-  ['case', ['==', ['feature-state', 'hover'], true], 0.6, 0.3])
+  ['case', ['boolean', ['feature-state', 'hover'], false], 0.6, 0.3])
 ```
 
 ## Events
@@ -356,9 +381,9 @@ it does not fire `movestart` or `moveend`.
 | ----- | ------- | ---- |
 | `style.load` | — | A style is in place, after any URL and TileJSON sources are read. A microtask late, so a listener added after the constructor hears it. |
 | `styledata` | — | The style changed: `setStyle`, `addSource`, `addStyleLayer`, `setPaintProperty`, … |
-| `sourcedata` | `{ sourceId, isSourceLoaded }` | `setSourceData` replaced a source's data. |
+| `sourcedata` | `{ sourceId, isSourceLoaded }` | `setSourceData` replaced a source's data, or a source added with a TileJSON `url` is ready. |
 | `spriteload` | `{ sprite, id, icons, added }` | A sprite sheet loaded. |
-| `error` | `{ error }`, with `style`, `sprite` or `sourceId` | A style, sprite or data URL failed. |
+| `error` | `{ error }`, with `style`, `sprite` or `sourceId` | A style, sprite, TileJSON or data URL failed. |
 
 ### Other events
 

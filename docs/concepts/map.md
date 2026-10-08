@@ -84,7 +84,7 @@ covers what that does to the picture.
 | `getBearing()` | the bearing in degrees, `[0, 360)` |
 | `getPitch()` | the pitch in degrees |
 | `getCamera()` | all four at once: `{ center, zoom, bearing, pitch }` |
-| `getBounds()` | a `LatLngBounds` the size of the map around its centre. It does not account for bearing or pitch, so on a turned or tilted map it is not the whole area on screen. |
+| `getBounds()` | a `LatLngBounds` of what is on screen. On a turned or tilted map it holds the whole view; above the horizon it stops at the farthest ground still drawn legibly. |
 | `getSize()` | the container's size in pixels, a `Point` |
 | `getMinZoom()`, `getMaxZoom()` | the zoom limits in force |
 
