@@ -373,7 +373,7 @@ export async function shutdownDecodePool(): Promise<void> {
 
 export class VectorTileMapLayer extends GridLayer {
   declare _styleLayers: VectorTileStyleLayer[]
-  declare _decodedTiles: Map<HTMLCanvasElement, DecodedTileEntry>
+  declare _decodedTiles: globalThis.Map<HTMLCanvasElement, DecodedTileEntry>
   /**
    * Decoded ancestors, shared by every tile that draws from them.
    *
@@ -388,9 +388,9 @@ export class VectorTileMapLayer extends GridLayer {
    */
   declare _workersUsable: boolean
   declare _glyphs?: { source: unknown, provider: GlyphProvider }
-  declare _sourceCache: Map<string, { tile: DecodedTile, index: RTree<RTreeItem>, refs: number }>
+  declare _sourceCache: globalThis.Map<string, { tile: DecodedTile, index: RTree<RTreeItem>, refs: number }>
   /** Ancestors currently being fetched, so siblings await one request. */
-  declare _sourcePending: Map<string, { promise: Promise<{ tile: DecodedTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
+  declare _sourcePending: globalThis.Map<string, { promise: Promise<{ tile: DecodedTile, index: RTree<RTreeItem> }>, refs: number, abort: AbortController }>
   declare _symbolOverlay?: SymbolOverlay
   declare _symbolHandlers?: Record<string, () => void>
   declare _labelPlacer?: LabelPlacer
@@ -402,13 +402,13 @@ export class VectorTileMapLayer extends GridLayer {
    * grid tiles show parts of one source tile, and meshing it for each would
    * build — and draw — the same buildings a dozen times.
    */
-  declare _buildingMeshes?: Map<string, { version: number, meshes: Array<{ layer: string, mesh: BuildingMesh }>, occluders: OccluderIndex }>
+  declare _buildingMeshes?: globalThis.Map<string, { version: number, meshes: Array<{ layer: string, mesh: BuildingMesh }>, occluders: OccluderIndex }>
   /** Each source tile's trees, built when they are first shown. */
-  declare _treeMeshes?: Map<string, { version: number, mesh: BuildingMesh }>
+  declare _treeMeshes?: globalThis.Map<string, { version: number, mesh: BuildingMesh }>
   /** This frame's buildings and camera, for hiding the labels behind them. */
   declare _occlusion?: { sources: OcclusionSource[], camera: { x: number, y: number }, rise: number } | null
   /** Occlusion answers by label, kept while the camera has not moved. */
-  declare _occlusionMemo?: { signature: string, results: Map<string, boolean> }
+  declare _occlusionMemo?: { signature: string, results: globalThis.Map<string, boolean> }
   /** Bumped whenever cached label candidates stop being valid. */
   declare _labelVersion: number
   declare _featureStateLookup?: (src: string, srcLayer: string, id: number | string) => Record<string, unknown>
@@ -427,9 +427,9 @@ export class VectorTileMapLayer extends GridLayer {
   initialize(options?: VectorTileMapLayerOptions): void {
     super.initialize(options)
     this._styleLayers = this.options!.layers ?? []
-    this._decodedTiles = new Map()
-    this._sourceCache = new Map()
-    this._sourcePending = new Map()
+    this._decodedTiles = new globalThis.Map()
+    this._sourceCache = new globalThis.Map()
+    this._sourcePending = new globalThis.Map()
     this._labelVersion = 0
     this._glyphAtlas = this.options!.glyphAtlas
     this._iconAtlas = this.options!.iconAtlas
@@ -586,7 +586,7 @@ export class VectorTileMapLayer extends GridLayer {
   }
 
   // Re-rasterize every already-decoded tile without refetching. Called from
-  // TsMap when feature-state changes — pure paint-side update.
+  // Map when feature-state changes — pure paint-side update.
   _repaintDecodedTiles(): void {
     this._invalidateLabels()
     for (const entry of this._decodedTiles.values()) {
@@ -1219,7 +1219,7 @@ export class VectorTileMapLayer extends GridLayer {
    */
   _buildingsFor(entry: DecodedTileEntry, layers: VectorTileStyleLayer[]): Array<{ layer: string, mesh: BuildingMesh }> {
     const key = this._sourceKey(entry.coords)
-    this._buildingMeshes ??= new Map()
+    this._buildingMeshes ??= new globalThis.Map()
     const cached = this._buildingMeshes.get(key)
     if (cached && cached.version === this._labelVersion)
       return cached.meshes
@@ -1323,7 +1323,7 @@ export class VectorTileMapLayer extends GridLayer {
     if (!options || !tile)
       return undefined
     const key = treeKey(entry.coords)
-    this._treeMeshes ??= new Map()
+    this._treeMeshes ??= new globalThis.Map()
     const cached = this._treeMeshes.get(key)
     if (cached && cached.version === this._labelVersion)
       return cached
@@ -1368,7 +1368,7 @@ export class VectorTileMapLayer extends GridLayer {
     const signature = `${occlusion.camera.x.toFixed(1)},${occlusion.camera.y.toFixed(1)},${occlusion.rise.toFixed(1)},${map.getZoom()},${occlusion.sources.length},${this._labelVersion}`
     let memo = this._occlusionMemo
     if (!memo || memo.signature !== signature)
-      memo = this._occlusionMemo = { signature, results: new Map() }
+      memo = this._occlusionMemo = { signature, results: new globalThis.Map() }
     const results = memo.results
     return (x, y, key) => {
       let hidden = results.get(key)
@@ -1409,7 +1409,7 @@ export class VectorTileMapLayer extends GridLayer {
       return false
     }
 
-    const opacity = new Map<string, number>()
+    const opacity = new globalThis.Map<string, number>()
     for (const l of active) {
       const value = resolvePaintExpression(l.paint?.['fill-extrusion-opacity'], mapZoom, undefined, undefined)
       opacity.set(l.id, typeof value === 'number' ? Math.max(0, Math.min(1, value)) : 1)
@@ -1432,12 +1432,12 @@ export class VectorTileMapLayer extends GridLayer {
     // pixel or two, and a tile of them is thousands of triangles.
     const treeEnd = h * 4
     const occlusionSources: OcclusionSource[] = []
-    const meshes = this._buildingMeshes ??= new Map()
+    const meshes = this._buildingMeshes ??= new globalThis.Map()
     const drawn = new Set<string>()
     const ready = (e: DecodedTileEntry): boolean => meshes.get(this._sourceKey(e.coords))?.version === this._labelVersion
     const entries = this._labelEntries(ready)
     // The shown tiles of each source tile, for their trees.
-    const shown = new Map<string, DecodedTileEntry[]>()
+    const shown = new globalThis.Map<string, DecodedTileEntry[]>()
     for (const entry of entries) {
       const key = this._sourceKey(entry.coords)
       shown.set(key, [...(shown.get(key) ?? []), entry])

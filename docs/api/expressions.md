@@ -52,7 +52,7 @@ check without compiling.
 | `["properties"]` | All of the feature's properties. |
 | `["id"]` | The feature's id. |
 | `["geometry-type"]` | `"Point"`, `"LineString"` or `"Polygon"`. |
-| `["feature-state", key]` | State set with [`map.setFeatureState`](./TsMap.md#feature-state). |
+| `["feature-state", key]` | State set with [`map.setFeatureState`](./Map.md#feature-state). |
 | `["literal", value]` | An array or object taken as data, not as an expression. |
 | `["at", index, array]` | An array item. |
 | `["length", stringOrArray]` | |

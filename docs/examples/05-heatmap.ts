@@ -5,10 +5,10 @@
  * ramp every two seconds to show how HeatmapLayer options are reactive.
  */
 
-import { HeatmapLayer, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { HeatmapLayer, Map, styles } from '../../packages/ts-maps/src/core-map'
 
 const CENTER: [number, number] = [40.758, -73.9855]
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: CENTER,
   zoom: 12,
   maxZoom: 17,

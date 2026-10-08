@@ -64,9 +64,9 @@ free vector tiles.
 
 ```ts
 import 'ts-maps/styles.css'
-import { Marker, styles, TsMap } from 'ts-maps'
+import { Map, Marker, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855], // [lat, lng]
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

@@ -7,7 +7,7 @@ The whole world on a sphere, drawn from the same basemap tiles as the flat map. 
 [Open it full screen](/playground/examples/12-globe.html) · [Edit and run it](/playground/examples/edit.html?example=12-globe) · Full source: [`12-globe.ts`](./12-globe.ts)
 
 ```ts
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [30, 10],
   zoom: 2.5,
   projection: 'globe',

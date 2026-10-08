@@ -4,9 +4,9 @@ import * as DomUtil from '../../dom/DomUtil'
 import { Handler } from '../../core/Handler'
 import { LatLngBounds } from '../../geo/LatLngBounds'
 import { Bounds } from '../../geometry/Bounds'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions( { boxZoom: true })
+Map.mergeOptions( { boxZoom: true })
 
 export class BoxZoomHandler extends Handler {
   declare _container: HTMLElement
@@ -136,4 +136,4 @@ export class BoxZoomHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'boxZoom', BoxZoomHandler)
+Map.addInitHook('addHandler', 'boxZoom', BoxZoomHandler)

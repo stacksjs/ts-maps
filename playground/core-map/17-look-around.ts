@@ -10,11 +10,11 @@
  * uses Mapillary instead.
  */
 
-import { control, LookAround, MapillaryImagery, PanoramaxImagery, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, LookAround, Map, MapillaryImagery, PanoramaxImagery } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [Number(params.get('lat') ?? 48.8606), Number(params.get('lng') ?? 2.3376)],
   zoom: Number(params.get('zoom') ?? 16),
   maxZoom: 19,

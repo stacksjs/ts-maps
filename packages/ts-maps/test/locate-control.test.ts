@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { control, TsMap } from '../src/core-map'
+import { control, Map } from '../src/core-map'
 
 /**
  * The blue dot and the accuracy halo used to be drawn through a `map.circle`
- * factory that TsMap has never had, so `_updateMarker` returned early and the
+ * factory that Map has never had, so `_updateMarker` returned early and the
  * control silently reported a fix with nothing on the map. These tests pin the
  * layers themselves, not just the button state.
  */
@@ -40,19 +40,19 @@ function stubGeolocation(): void {
   }
 }
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '800px'
   container.style.height = '600px'
   document.body.appendChild(container)
   // zoomAnimation off: the animated path reaches DOM APIs the test shim does
   // not implement, and the animation is not what these tests are about.
-  const map = new TsMap(container, { zoomAnimation: false })
+  const map = new Map(container, { zoomAnimation: false })
   map.setView([0, 0], 5)
   return map
 }
 
-function layerCount(map: TsMap, className: string): number {
+function layerCount(map: Map, className: string): number {
   return Object.values((map as any)._layers)
     .filter((layer: any) => layer.options?.className === className).length
 }

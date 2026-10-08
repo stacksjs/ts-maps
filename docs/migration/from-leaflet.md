@@ -27,10 +27,10 @@ L.marker([51.5, -0.09]).addTo(map).bindPopup('Hello').openPopup()
 ts-maps, line for line:
 
 ```ts
-import { marker, tileLayer, TsMap } from 'ts-maps'
+import { Map, marker, tileLayer } from 'ts-maps'
 import 'ts-maps/styles.css'
 
-const map = new TsMap('map').setView([51.505, -0.09], 13)
+const map = new Map('map').setView([51.505, -0.09], 13)
 
 tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
@@ -45,10 +45,10 @@ zoom, with labels that stay upright when the map turns — give the map a style
 and drop the tile layer:
 
 ```ts
-import { marker, styles, TsMap } from 'ts-maps'
+import { Map, marker, styles } from 'ts-maps'
 import 'ts-maps/styles.css'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.505, -0.09],
   zoom: 13,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -64,8 +64,8 @@ its TileJSON, which the map reads for the tile URLs and the attribution.
 
 | Leaflet | ts-maps |
 | ------- | ------- |
-| `L.map(id, options)` | `new TsMap(id, options)`, or `map(id, options)` |
-| `L.Map` | `TsMap` (also exported as `Map`) |
+| `L.map(id, options)` | `new Map(id, options)`, or `map(id, options)` |
+| `L.Map` | `Map` (also exported as `Map`) |
 | `L.marker`, `L.tileLayer`, `L.geoJSON`, `L.polyline`, … | `marker`, `tileLayer`, `geoJSON`, `polyline`, … as named imports |
 | `L.Marker`, `L.TileLayer`, … | `Marker`, `TileLayer`, … |
 | `L.control.zoom()`, `L.control.layers()`, `L.control.scale()` | `control.zoom()`, `control.layers()`, `control.scale()` |
@@ -87,7 +87,7 @@ and `Handler`.
 at any zoom, not only whole levels. For Leaflet's behaviour:
 
 ```ts
-const map = new TsMap('map', { zoomSnap: 1 })
+const map = new Map('map', { zoomSnap: 1 })
 ```
 
 **Pointer events, not mouse events.** The map and its layers fire
@@ -132,7 +132,7 @@ move that has to animate.
 so Leaflet code that never mentions them is unaffected.
 
 ```ts
-const map = new TsMap('map', { center: [40.758, -73.9855], zoom: 16, bearing: 30, pitch: 60 })
+const map = new Map('map', { center: [40.758, -73.9855], zoom: 16, bearing: 30, pitch: 60 })
 
 map.easeTo({ bearing: 0, pitch: 0, duration: 800 })
 map.jumpTo({ center: [48.8566, 2.3522], zoom: 14 })

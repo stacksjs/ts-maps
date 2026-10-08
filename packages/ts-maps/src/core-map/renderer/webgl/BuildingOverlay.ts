@@ -265,7 +265,7 @@ export interface BuildingCamera {
   /** Degrees. */
   bearing: number
   pitch: number
-  /** Camera height above the ground in pixels (`TsMap._cameraGeometry().h`). */
+  /** Camera height above the ground in pixels (`Map._cameraGeometry().h`). */
   h: number
   /** Map pane offset, CSS pixels. */
   pos: [number, number]

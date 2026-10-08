@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { GeoJSONTileSource, TsMap } from '../src/core-map'
+import { GeoJSONTileSource, Map } from '../src/core-map'
 
 function point(lng: number, lat: number, properties: Record<string, unknown> = {}): any {
   return { type: 'Feature', properties, geometry: { type: 'Point', coordinates: [lng, lat] } }
@@ -15,12 +15,12 @@ function collection(...features: any[]): any {
  * attached to a positioned map explodes in `_initTile`. These tests are about
  * source wiring, which happens before a single tile is asked for.
  */
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '400px'
   container.style.height = '400px'
   document.body.appendChild(container)
-  return new TsMap(container, { zoomAnimation: false })
+  return new Map(container, { zoomAnimation: false })
 }
 
 describe('GeoJSONTileSource', () => {

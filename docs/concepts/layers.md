@@ -17,9 +17,9 @@ want to click, drag, animate or change one at a time. A map can carry both.
 The examples below assume a map like this one:
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

@@ -8,9 +8,9 @@ import { useMap } from './useMap'
  * Territories on the map.
  *
  * ```vue
- * <TsMap :center="[34.02, -118.47]" :zoom="16">
+ * <MapInstance :center="[34.02, -118.47]" :zoom="16">
  *   <TsTerritoryLayer :store="store" self="me" />
- * </TsMap>
+ * </MapInstance>
  * ```
  */
 export const TerritoryLayer = defineComponent({

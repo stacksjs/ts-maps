@@ -1,6 +1,6 @@
 import type { CustomLayerInterface, FogOptions, SkyOptions } from '../src/core-map/map/Map'
 import { describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function makeContainer(): HTMLElement {
   const el = document.createElement('div')
@@ -25,9 +25,9 @@ function attachWebGLCanvas(container: HTMLElement): { gl: object } {
   return { gl }
 }
 
-describe('TsMap.setFog / getFog', () => {
+describe('Map.setFog / getFog', () => {
   test('setFog stores the options and getFog returns the same shape', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     const fog: FogOptions = {
       'color': 'rgb(10, 20, 30)',
       'horizon-blend': 0.2,
@@ -46,7 +46,7 @@ describe('TsMap.setFog / getFog', () => {
   })
 
   test('setFog(null) clears the stored fog', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     map.setFog({ color: 'white' })
     expect(map.getFog()).not.toBeNull()
     map.setFog(null)
@@ -54,7 +54,7 @@ describe('TsMap.setFog / getFog', () => {
   })
 
   test('fogchange event fires on setFog', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     let fired = 0
     let lastPayload: unknown
     map.on('fogchange', (e: unknown) => {
@@ -69,20 +69,20 @@ describe('TsMap.setFog / getFog', () => {
   })
 
   test('invalid range throws RangeError', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     expect(() => map.setFog({ range: [5, 5] })).toThrow(RangeError)
     expect(() => map.setFog({ range: [10, 2] })).toThrow(RangeError)
   })
 
   test('negative star-intensity throws RangeError', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     expect(() => map.setFog({ 'star-intensity': -0.01 })).toThrow(RangeError)
   })
 })
 
-describe('TsMap.setSky / getSky', () => {
+describe('Map.setSky / getSky', () => {
   test('setSky round-trips through getSky', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     const sky: SkyOptions = {
       'sky-color': '#123456',
       'horizon-color': '#abcdef',
@@ -101,26 +101,26 @@ describe('TsMap.setSky / getSky', () => {
   })
 
   test('fog-ground-blend of 1.5 is clamped to 1', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     map.setSky({ 'fog-ground-blend': 1.5 })
     expect(map.getSky()!['fog-ground-blend']).toBe(1)
   })
 
   test('sun-intensity of -0.3 is clamped to 0', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     map.setSky({ 'sun-intensity': -0.3 })
     expect(map.getSky()!['sun-intensity']).toBe(0)
   })
 
   test('NaN values throw RangeError', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     expect(() => map.setSky({ 'fog-ground-blend': Number.NaN })).toThrow(RangeError)
     expect(() => map.setSky({ 'sun-intensity': Number.NaN })).toThrow(RangeError)
     expect(() => map.setSky({ 'sun-position': [Number.NaN, 10] })).toThrow(RangeError)
   })
 
   test('setSky(null) clears the stored sky and fires skychange', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     let fired = 0
     map.on('skychange', () => { fired++ })
     map.setSky({ 'sky-color': '#000' })
@@ -131,9 +131,9 @@ describe('TsMap.setSky / getSky', () => {
   })
 })
 
-describe('TsMap custom layers', () => {
+describe('Map custom layers', () => {
   test('addCustomLayer + getCustomLayer round-trips the object', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     const layer: CustomLayerInterface = {
       id: 'foo',
       type: 'custom',
@@ -144,14 +144,14 @@ describe('TsMap custom layers', () => {
   })
 
   test('adding twice with the same id throws', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     const layer: CustomLayerInterface = { id: 'dup', type: 'custom', render: () => {} }
     map.addCustomLayer(layer)
     expect(() => map.addCustomLayer(layer)).toThrow()
   })
 
   test('removeCustomLayer deletes the layer and fires customlayer:remove', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     const layer: CustomLayerInterface = { id: 'rm', type: 'custom', render: () => {} }
     map.addCustomLayer(layer)
     let removeFired = 0
@@ -166,11 +166,11 @@ describe('TsMap custom layers', () => {
 
   test('onAdd / onRemove fire when GL is available', () => {
     const container = makeContainer()
-    const map = new TsMap(container)
+    const map = new Map(container)
     const { gl } = attachWebGLCanvas(container)
 
-    let addCall: { map: TsMap, gl: unknown } | null = null
-    let removeCall: { map: TsMap, gl: unknown } | null = null
+    let addCall: { map: Map, gl: unknown } | null = null
+    let removeCall: { map: Map, gl: unknown } | null = null
     const layer: CustomLayerInterface = {
       id: 'gl-aware',
       type: 'custom',
@@ -189,7 +189,7 @@ describe('TsMap custom layers', () => {
   })
 
   test('customlayer:add event fires', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     let addFired = 0
     map.on('customlayer:add', () => { addFired++ })
     map.addCustomLayer({ id: 'evt', type: 'custom', render: () => {} })
@@ -197,7 +197,7 @@ describe('TsMap custom layers', () => {
   })
 
   test('getCustomLayers returns all registered layers', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     const a: CustomLayerInterface = { id: 'a', type: 'custom', render: () => {} }
     const b: CustomLayerInterface = { id: 'b', type: 'custom', render: () => {} }
     const c: CustomLayerInterface = { id: 'c', type: 'custom', render: () => {} }

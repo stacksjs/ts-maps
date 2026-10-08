@@ -100,13 +100,13 @@ describe('planning an area', () => {
   })
 
   test('with a map, asks each tile layer for its own URLs', async () => {
-    const { TsMap } = await import('../src/core-map/map/Map')
+    const { Map } = await import('../src/core-map/map/Map')
     const { TileLayer } = await import('../src/core-map/layer/tile/TileLayer')
     const el = document.createElement('div')
     Object.defineProperty(el, 'clientWidth', { value: 400 })
     Object.defineProperty(el, 'clientHeight', { value: 300 })
     document.body.appendChild(el)
-    const map = new TsMap(el, { center: [37.78, -122.42], zoom: 14, zoomAnimation: false })
+    const map = new Map(el, { center: [37.78, -122.42], zoom: 14, zoomAnimation: false })
     new TileLayer('https://{s}.img.test/{z}/{x}/{y}.png', { subdomains: 'ab' }).addTo(map)
     const planned = planArea({ bounds: AREA.bounds, minZoom: 15, maxZoom: 15, map })
     const { urls } = planned.build()
@@ -440,7 +440,7 @@ describe('offline directions', () => {
 describe('the key–value store', () => {
   /** A storage of strings, as an app's files would be, counting what it is asked. */
   function strings() {
-    const data = new Map<string, string>()
+    const data = new globalThis.Map<string, string>()
     const calls = { get: 0, set: 0, delete: 0 }
     return {
       data,

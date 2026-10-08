@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { SearchPlace } from '../src/core-map/search'
-import { control, TsMap } from '../src/core-map'
+import { control, Map } from '../src/core-map'
 import { MemorySavedPlaces, SavedPlaces } from '../src/core-map/search'
 
 const tartine: SearchPlace = { id: 'tartine', name: 'Tartine Bakery', center: { lat: 37.7614, lng: -122.4241 }, kind: 'bakery', icon: 'bakery', source: 'map', rank: 5 }
@@ -59,12 +59,12 @@ describe('SavedPlaces', () => {
   })
 })
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView([37.7605, -122.4255], 15)
   return map
 }

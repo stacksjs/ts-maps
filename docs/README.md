@@ -36,7 +36,7 @@ which `build:playground` builds; `build:site` runs it after `build:docs`.
 - `concepts/`: how each part works, one topic a page: the map, layers,
   controls, styles and theming, the style spec, vector tiles, self-hosted
   tiles, 3D, terrain, services, offline, localization, territory capture.
-- `api/`: the API reference, written by hand: `TsMap`, layers, expressions,
+- `api/`: the API reference, written by hand: `Map`, layers, expressions,
   geometry.
 - `examples/`: small runnable maps.
   - `NN-name.ts` is the example's source, and what runs.

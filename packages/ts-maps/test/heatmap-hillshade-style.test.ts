@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map'
+import { Map } from '../src/core-map'
 import { HeatmapLayer } from '../src/core-map/layer/HeatmapLayer'
 import { RasterDEMLayer } from '../src/core-map/layer/tile/RasterDEMLayer'
 import { heatmapGradient, heatmapPoints, heatmapWeightKey } from '../src/core-map/map/heatmapStyle'
@@ -10,12 +10,12 @@ import { validateStyle } from '../src/core-map/style-spec'
 // source was drawn as a picture — its RGB is elevation, so that shows as
 // coloured noise over the map.
 
-function makeMap(style?: any): TsMap {
+function makeMap(style?: any): Map {
   const container = document.createElement('div')
   container.style.width = '400px'
   container.style.height = '400px'
   document.body.appendChild(container)
-  return new TsMap(container, { zoomAnimation: false, fadeAnimation: false, style })
+  return new Map(container, { zoomAnimation: false, fadeAnimation: false, style })
 }
 
 const POINTS = {

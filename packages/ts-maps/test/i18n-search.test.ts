@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { addMessages, message, resolveLocale } from '../src/core-map/i18n'
-import { categoriesMatching, categoryForQuery, categoryLabel, control, kindLabel, SEARCH_CATEGORIES, TsMap } from '../src/core-map'
+import { categoriesMatching, categoryForQuery, categoryLabel, control, kindLabel, SEARCH_CATEGORIES, Map } from '../src/core-map'
 import { describeOpening } from '../src/core-map/search/details'
 import { formatDistance, formatInstruction, laneHint, parseManeuver, spokenInstruction } from '../src/core-map/services/instructions'
 
-function makeMap(locale?: string): TsMap {
+function makeMap(locale?: string): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false, ...(locale ? { locale } : {}) })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false, ...(locale ? { locale } : {}) })
   map.setView([52.52, 13.405], 14)
   return map
 }

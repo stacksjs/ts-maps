@@ -2,15 +2,15 @@
  * Camera demo — bearing (map rotation), pitch (camera tilt), and smooth
  * animated moves via `flyTo` / `easeTo`.
  *
- * A TsMap with the vector basemap and a marker. Range sliders drive
+ * A Map with the vector basemap and a marker. Range sliders drive
  * `map.setBearing(...)` and `map.setPitch(...)`. Buttons showcase the
  * unified camera animation engine: `flyTo` for zoom-out/zoom-in long hops,
  * `easeTo` for a tween of any `{center, zoom, bearing, pitch}` combination.
  * Markers stay visually upright because the marker / popup / tooltip panes
- * counter-rotate and counter-pitch (see `TsMap._applyCameraTransform`).
+ * counter-rotate and counter-pitch (see `Map._applyCameraTransform`).
  */
 
-import { DivIcon, LatLng, Marker, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, LatLng, Map, Marker } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
 const TIMES_SQUARE: [number, number] = [40.758, -73.9855]
@@ -18,7 +18,7 @@ const INITIAL_ZOOM = 13
 const INITIAL_BEARING = 0
 const INITIAL_PITCH = 0
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: TIMES_SQUARE,
   zoom: INITIAL_ZOOM,
   minZoom: 2,

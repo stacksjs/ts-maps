@@ -19,7 +19,7 @@
  * ## The camera
  *
  * The flat map tilts its ground panes with `perspective(h) rotateX(pitch)
- * rotate(-bearing)` about the view's centre (`TsMap._applyCameraTransform`):
+ * rotate(-bearing)` about the view's centre (`Map._applyCameraTransform`):
  * a ground point `(x, y)` from the centre, turned by the bearing, is drawn at
  * `h·(x, y·cos) / (h − y·sin)`. The terrain uses the same camera, with the
  * ground's height added along the tilted ground's up axis, `(0, −sin, cos)`
@@ -444,8 +444,8 @@ export class TerrainView {
   _imageSize = { w: 0, h: 0 }
   _anisotropy: { ext: any, max: number } | null = null
   /** One texture per tile picture, uploaded again only when it changes. */
-  _textures: Map<HTMLElement, { tex: WebGLTexture, dirty: boolean }> = new Map()
-  _patches: Map<string, Patch> = new Map()
+  _textures: globalThis.Map<HTMLElement, { tex: WebGLTexture, dirty: boolean }> = new globalThis.Map()
+  _patches: globalThis.Map<string, Patch> = new globalThis.Map()
   /** DEM tiles that arrived since the last frame, whose patches read heights again. */
   _arrived: Array<{ z: number, x: number, y: number }> = []
   _heightsVersion = -1
@@ -1295,7 +1295,7 @@ export class TerrainView {
     }
   }
 
-  _colors: Map<string, [number, number, number]> = new Map()
+  _colors: globalThis.Map<string, [number, number, number]> = new globalThis.Map()
 
   /** A CSS colour as 0–1 RGB, read back off a pixel so any CSS colour works. */
   _color(css: string | undefined, fallback: string): [number, number, number] {

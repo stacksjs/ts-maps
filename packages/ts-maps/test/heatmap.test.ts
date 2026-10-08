@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { densestCell, HeatmapLayer } from '../src/core-map/layer/HeatmapLayer'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const el = document.createElement('div')
@@ -15,10 +15,10 @@ afterEach(() => {
   for (const c of cleanup.splice(0)) c.remove()
 })
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const c = createContainer()
   cleanup.push(c)
-  return new TsMap(c, { center: [40, -74], zoom: 5 })
+  return new Map(c, { center: [40, -74], zoom: 5 })
 }
 
 describe('HeatmapLayer', () => {

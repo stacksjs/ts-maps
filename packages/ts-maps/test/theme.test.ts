@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map'
+import { Map } from '../src/core-map'
 
 function makeContainer(): HTMLElement {
   const container = document.createElement('div')
@@ -41,19 +41,19 @@ describe('map theme', () => {
   })
 
   test('defaults to light chrome', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     expect(map.getTheme()).toBe('light')
     expect(map.getContainer().classList.contains('tsmap-dark')).toBe(false)
   })
 
   test('theme: dark applies the class at construction', () => {
-    const map = new TsMap(makeContainer(), { theme: 'dark' })
+    const map = new Map(makeContainer(), { theme: 'dark' })
     expect(map.getTheme()).toBe('dark')
     expect(map.getContainer().classList.contains('tsmap-dark')).toBe(true)
   })
 
   test('setTheme toggles both ways and fires themechange', () => {
-    const map = new TsMap(makeContainer())
+    const map = new Map(makeContainer())
     const seen: Array<{ theme: string, dark: boolean }> = []
     map.on('themechange', (event: any) => seen.push({ theme: event.theme, dark: event.dark }))
 
@@ -71,7 +71,7 @@ describe('map theme', () => {
 
   test('theme: auto follows prefers-color-scheme and keeps following it', () => {
     const media = stubMatchMedia(true)
-    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    const map = new Map(makeContainer(), { theme: 'auto' })
 
     expect(map.getTheme()).toBe('auto')
     expect(map.getContainer().classList.contains('tsmap-dark')).toBe(true)
@@ -86,7 +86,7 @@ describe('map theme', () => {
 
   test('leaving auto detaches the media listener', () => {
     const media = stubMatchMedia(true)
-    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    const map = new Map(makeContainer(), { theme: 'auto' })
     expect(media.listeners).toBe(1)
 
     map.setTheme('light')
@@ -100,7 +100,7 @@ describe('map theme', () => {
   test('remove() cleans the class and the listener off the container', () => {
     const media = stubMatchMedia(true)
     const container = makeContainer()
-    const map = new TsMap(container, { theme: 'auto' })
+    const map = new Map(container, { theme: 'auto' })
 
     map.remove()
 
@@ -114,13 +114,13 @@ describe('map theme', () => {
     // dark map chrome inside a light page.
     stubMatchMedia(true)
     document.documentElement.setAttribute('data-theme', 'light')
-    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    const map = new Map(makeContainer(), { theme: 'auto' })
     expect(map.getContainer().classList.contains('tsmap-dark')).toBe(false)
   })
 
   test('theme: auto tracks the page toggle as it flips', async () => {
     stubMatchMedia(false)
-    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    const map = new Map(makeContainer(), { theme: 'auto' })
     const container = map.getContainer()
     expect(container.classList.contains('tsmap-dark')).toBe(false)
 
@@ -138,13 +138,13 @@ describe('map theme', () => {
   test('a value that is not light or dark falls through to the OS', () => {
     stubMatchMedia(true)
     document.documentElement.setAttribute('data-theme', 'system')
-    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    const map = new Map(makeContainer(), { theme: 'auto' })
     expect(map.getContainer().classList.contains('tsmap-dark')).toBe(true)
   })
 
   test('leaving auto stops watching the page', async () => {
     stubMatchMedia(false)
-    const map = new TsMap(makeContainer(), { theme: 'auto' })
+    const map = new Map(makeContainer(), { theme: 'auto' })
     map.setTheme('light')
 
     document.documentElement.setAttribute('data-theme', 'dark')
@@ -160,7 +160,7 @@ describe('container background', () => {
     // host's own colour on the first fitBounds.
     const container = makeContainer()
     container.style.backgroundColor = 'rgb(8, 11, 18)'
-    const map = new TsMap(container, { center: [0, 0], zoom: 1 })
+    const map = new Map(container, { center: [0, 0], zoom: 1 })
     map.setView([10, 10], 2, { animate: false })
     map._syncStyleBackground()
     expect(container.style.backgroundColor).toBe('rgb(8, 11, 18)')

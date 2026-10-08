@@ -95,7 +95,7 @@ const config: BunPressConfig = {
       text: 'API',
       items: [
         { text: 'Overview', link: '/api/' },
-        { text: 'TsMap', link: '/api/TsMap' },
+        { text: 'Map', link: '/api/Map' },
         { text: 'Layers', link: '/api/layer' },
         { text: 'Expressions', link: '/api/expressions' },
         { text: 'Geometry', link: '/api/geometry' },

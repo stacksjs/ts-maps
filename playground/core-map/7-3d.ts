@@ -7,10 +7,10 @@
  * globe-halo demo.
  */
 
-import { TsMap } from '../../packages/ts-maps/src/core-map'
+import { Map } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 13,
   minZoom: 2,

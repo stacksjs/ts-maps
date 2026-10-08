@@ -13,7 +13,7 @@
  */
 
 import type { VectorTileStyleLayer } from '../../packages/ts-maps/src/core-map'
-import { TsMap, vectorTileLayer } from '../../packages/ts-maps/src/core-map'
+import { Map, vectorTileLayer } from '../../packages/ts-maps/src/core-map'
 import { Pbf } from '../../packages/ts-maps/src/core-map/proto/Pbf'
 
 // ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ if (!customTiles)
 
 const LONDON: [number, number] = [51.5074, -0.1278]
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: LONDON,
   zoom: 6,
   minZoom: 1,

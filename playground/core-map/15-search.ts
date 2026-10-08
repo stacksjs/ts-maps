@@ -9,14 +9,14 @@
  * `?theme=dark`, `?q=coffee` to search straight away, `?units=metric`.
  */
 
-import { control, TsMap, turnByTurn } from '../../packages/ts-maps/src/core-map'
+import { control, Map, turnByTurn } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
 const theme = (params.get('theme') as 'light' | 'dark' | null) ?? (prefersDark ? 'dark' : 'light')
 
-const map = new TsMap('map', { center: [37.7925, -122.4065], zoom: 15, theme, zoomControl: false })
+const map = new Map('map', { center: [37.7925, -122.4065], zoom: 15, theme, zoomControl: false })
 control.navigation().addTo(map)
 control.offlineMaps().addTo(map)
 

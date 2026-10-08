@@ -27,10 +27,10 @@ map.addControl(new maplibregl.NavigationControl())
 ts-maps:
 
 ```ts
-import { control, styles, TsMap } from 'ts-maps'
+import { control, Map, styles } from 'ts-maps'
 import 'ts-maps/styles.css'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [48.8566, 2.3522], // [lat, lng]
   zoom: 12,
   zoomControl: false,
@@ -63,7 +63,7 @@ ts-maps takes a string, on the map:
 map.setProjection({ type: 'globe' })
 
 // ts-maps
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [30, 10],
   zoom: 2.5,
   projection: 'globe',

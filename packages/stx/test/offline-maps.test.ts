@@ -1,18 +1,18 @@
 import { describe, expect, test } from 'bun:test'
-import { MemoryOfflineStore, OfflineMaps as Manager, offlineMaps, TsMap } from 'ts-maps'
+import { Map as MapInstance, MemoryOfflineStore, offlineMaps, OfflineMaps as Manager } from 'ts-maps'
 import { mountChildren } from '../src/runtime'
 
 const png = async (): Promise<Response> => new Response(new Uint8Array([137, 80, 78, 71]) as unknown as BodyInit, { headers: { 'content-type': 'image/png' } })
 const tick = (): Promise<void> => new Promise(r => setTimeout(r, 0))
 
-function setup(): { root: HTMLElement, map: TsMap } {
+function setup(): { root: HTMLElement, map: MapInstance } {
   const root = document.createElement('div')
   document.body.appendChild(root)
   const mapEl = document.createElement('div')
   mapEl.style.width = '430px'
   mapEl.style.height = '800px'
   root.appendChild(mapEl)
-  return { root, map: new TsMap(mapEl, { center: [37.78, -122.42], zoom: 15 }) }
+  return { root, map: new MapInstance(mapEl, { center: [37.78, -122.42], zoom: 15 }) }
 }
 
 describe('offline-maps child', () => {

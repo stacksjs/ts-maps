@@ -15,13 +15,13 @@ describe('@ts-maps/vue exports', () => {
     expect(typeof mapKey).toBe('symbol')
   })
 
-  test('<Map> name matches TsMap', () => {
-    expect((Map as unknown as { name: string }).name).toBe('TsMap')
+  test('<Map> name matches MapInstance', () => {
+    expect((Map as unknown as { name: string }).name).toBe('MapInstance')
   })
 })
 
 describe('<Map> client mount', () => {
-  test('creates a TsMap instance via load-map emit', async () => {
+  test('creates a MapInstance instance via load-map emit', async () => {
     const host = document.createElement('div')
     document.body.appendChild(host)
 
@@ -39,7 +39,7 @@ describe('<Map> client mount', () => {
       },
     })
     app.mount(host)
-    // Size the rendered map container manually so TsMap can initialize.
+    // Size the rendered map container manually so MapInstance can initialize.
     const mapEl = host.querySelector('.ts-map-host') as HTMLElement | null
     if (mapEl) {
       mapEl.style.width = '800px'

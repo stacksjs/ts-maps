@@ -1,7 +1,7 @@
-import type { TsMap } from 'ts-maps'
+import type { Map as MapInstance } from 'ts-maps'
 
 export const MAP_CONTEXT_KEY: symbol = Symbol('ts-maps/svelte/map')
 
 export interface MapContextValue {
-  getMap: () => TsMap | null
+  getMap: () => MapInstance | null
 }

@@ -126,7 +126,7 @@ import {
   WMSTileLayer,
 } from './layer/index'
 import { routeEditor, runTrailLayer, territoryLayer } from './layer/index'
-import { createMap, TsMap } from './map/index'
+import { createMap, Map, TsMap } from './map/index'
 import * as services from './services/index'
 import * as styles from './styles/index'
 
@@ -146,7 +146,7 @@ function factory<A extends any[], T>(Ctor: new (...args: A) => T): Factory<A, T>
   return (...args: A): T => new Ctor(...args)
 }
 
-export const map: Factory < ConstructorParameters < typeof TsMap>, TsMap> = createMap
+export const map: Factory < ConstructorParameters < typeof Map>, Map> = createMap
 export const marker: Factory < ConstructorParameters < typeof Marker>, Marker> = factory(Marker)
 export const icon: Factory < ConstructorParameters < typeof Icon>, Icon> = factory(Icon)
 export const divIcon: Factory < ConstructorParameters < typeof DivIcon>, DivIcon> = factory(DivIcon)
@@ -234,7 +234,7 @@ const tsMap: Record<string, unknown> = {
   Draggable,
   PosAnimation,
   // map
-  Map: TsMap,
+  Map,
   TsMap,
   // layer
   Layer,

@@ -6,10 +6,10 @@
  * veto overlapping lower-priority neighbours.
  */
 
-import { DivIcon, Marker, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, Map, Marker, styles } from '../../packages/ts-maps/src/core-map'
 import { CollisionIndex } from '../../packages/ts-maps/src/core-map/symbols'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.7580,
   -73.9855],
   zoom: 14,

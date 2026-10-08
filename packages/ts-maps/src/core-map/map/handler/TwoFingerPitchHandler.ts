@@ -1,9 +1,9 @@
 import * as DomEvent from '../../dom/DomEvent'
 import * as PointerEvents from '../../dom/DomEvent.PointerEvents'
 import { Handler } from '../../core/Handler'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions({ touchPitch: true })
+Map.mergeOptions({ touchPitch: true })
 
 // Two-finger parallel-vertical drag tilts the map. Disambiguated from
 // rotate + zoom via simple thresholds: large |Δangle| → rotate, large
@@ -118,4 +118,4 @@ export class TwoFingerPitchHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'touchPitch', TwoFingerPitchHandler)
+Map.addInitHook('addHandler', 'touchPitch', TwoFingerPitchHandler)

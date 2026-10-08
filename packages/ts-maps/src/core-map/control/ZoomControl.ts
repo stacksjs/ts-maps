@@ -1,7 +1,7 @@
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { controlLocale, message } from '../i18n'
-import { TsMap } from '../map/Map'
+import { Map } from '../map/Map'
 import { Control } from './Control'
 
 export class ZoomControl extends Control {
@@ -91,9 +91,9 @@ ZoomControl.setDefaultOptions( {
   zoomOutText: '<span aria-hidden="true">&#x2212;</span>',
 })
 
-TsMap.mergeOptions( { zoomControl: true })
+Map.mergeOptions( { zoomControl: true })
 
-TsMap.addInitHook(function (this: any) {
+Map.addInitHook(function (this: any) {
   if (this.options.zoomControl) {
     this.zoomControl = new ZoomControl()
     this.addControl(this.zoomControl)

@@ -4,9 +4,9 @@ Street-level pictures you can turn in and walk through, as in Apple Maps'
 Look Around:
 
 ```ts
-import { control, lookAround, styles, TsMap } from 'ts-maps'
+import { control, lookAround, Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [48.8606, 2.3376],
   zoom: 16,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

@@ -7,11 +7,11 @@ Download an area once and the map, search and directions keep working there with
 The quickest route is the control. It adds a download button to the map:
 
 ```ts
-import { control, styles, TsMap } from 'ts-maps'
+import { control, Map, styles } from 'ts-maps'
 
 const TILEJSON = 'https://tiles.openfreemap.org/planet'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [48.8566, 2.3522], // Paris
   zoom: 13,
   style: styles.light({ url: TILEJSON }),
@@ -261,7 +261,7 @@ Tiles are stored as base64 next to their MIME type, and everything else as JSON,
 
 ## PMTiles archives
 
-A basemap read from a `pmtiles://` archive downloads like any other. Each tile is stored under a stable URL, `pmtiles://https://…/planet.pmtiles/{z}/{x}/{y}`, and the archive's TileJSON next to them, so a map with no connection still knows the top zoom and can overzoom past it. See [Self-hosted vector tiles](./tile-server.md#straight-from-a-bucket).
+A basemap read from a `pmtiles://` archive downloads like any other. Each tile is stored under a stable URL, `pmtiles://<https://…/planet.pmtiles/{z}/{x}/{y}>`, and the archive's TileJSON next to them, so a map with no connection still knows the top zoom and can overzoom past it. See [Self-hosted vector tiles](./tile-server.md#straight-from-a-bucket).
 
 ## Tile cache
 

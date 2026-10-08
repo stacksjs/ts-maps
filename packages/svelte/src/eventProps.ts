@@ -1,10 +1,10 @@
-import type { TsMap } from 'ts-maps'
+import type { Map as MapInstance } from 'ts-maps'
 
 /**
  * `<Map>`'s event props and the map events they stand for. The same names as
  * the React and Solid bindings: `onStyleLoad` is `style.load`.
  *
- * `onLoad` is not here: as in React, it hands over the `TsMap` once the
+ * `onLoad` is not here: as in React, it hands over the `Map` once the
  * component has built it. The map's own `load` event is `onLoadEvent`.
  */
 export const EVENT_PROPS: Readonly<Record<string, string>> = {
@@ -63,7 +63,7 @@ type Handler = (e: any) => void
  * on for a map that was loaded before anything listened.
  */
 export function syncEvents(
-  map: TsMap,
+  map: MapInstance,
   current: Record<string, Handler | undefined>,
   handlers: () => Record<string, Handler | undefined>,
   bound: Record<string, Handler>,
@@ -95,7 +95,7 @@ export function syncEvents(
 }
 
 /** Take every listener `syncEvents` bound off the map. */
-export function unbindEvents(map: TsMap, bound: Record<string, Handler>): void {
+export function unbindEvents(map: MapInstance, bound: Record<string, Handler>): void {
   for (const [prop, listener] of Object.entries(bound)) {
     map.off(EVENT_PROPS[prop], listener)
     delete bound[prop]

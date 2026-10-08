@@ -18,8 +18,8 @@ export { TileLayer } from './TileLayer'
 export { useMap, useMapOptional } from './useMap'
 export { type MapEventHandler, useMapEvent } from './useMapEvent'
 
-// Convenience alias — some users prefer `<TsMap>` to match the class name.
-export { Map as TsMap } from './Map'
+// Convenience alias — some users prefer `<MapInstance>` to match the class name.
+export { Map as MapInstance } from './Map'
 export { RunTrailLayer, TerritoryLayer } from './TerritoryLayer'
 export { OfflineMaps } from './OfflineMaps'
 export { MapType } from './MapType'

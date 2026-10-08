@@ -19,9 +19,9 @@ The playground's [territory demo](../demos/11-territory.md) has them wired toget
 ## The short version
 
 ```ts
-import { LoopDetector, TerritoryLayer, TerritoryStore, TsMap } from 'ts-maps'
+import { LoopDetector, Map, TerritoryLayer, TerritoryStore } from 'ts-maps'
 
-const map = new TsMap('map', { center: [34.02, -118.47], zoom: 16 })
+const map = new Map('map', { center: [34.02, -118.47], zoom: 16 })
 const store = new TerritoryStore()
 const detector = new LoopDetector()
 

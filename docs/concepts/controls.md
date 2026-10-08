@@ -4,9 +4,9 @@ Controls are the buttons and panels the map draws over itself. Each one is
 made by a function on `control` and added the same way:
 
 ```ts
-import { control, styles, TsMap } from 'ts-maps'
+import { control, Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 14,
   zoomControl: false, // navigation below has its own zoom buttons
@@ -320,10 +320,10 @@ A control is a `Control` with an `onAdd(map)` that returns its element, and
 an optional `onRemove(map)` to tidy up:
 
 ```ts
-import { Control, TsMap } from 'ts-maps'
+import { Control, Map } from 'ts-maps'
 
 class ResetView extends Control {
-  onAdd(map: TsMap): HTMLElement {
+  onAdd(map: Map): HTMLElement {
     const button = document.createElement('button')
     button.className = 'tsmap-bar'
     button.textContent = 'Reset'

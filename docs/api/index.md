@@ -6,16 +6,16 @@ how they fit together, with more examples.
 
 | Page | |
 | ---- | - |
-| [`TsMap`](./TsMap.md) | The map: options, camera, style, queries, feature state, events, 3D, projection, export. |
+| [`Map`](./Map.md) | The map: options, camera, style, queries, feature state, events, 3D, projection, export. |
 | [Layers](./layer.md) | Markers, popups, tile layers, vector tiles, GeoJSON, heatmaps, overlays, shapes, 3D objects. |
 | [Expressions](./expressions.md) | The style expression operators, and how to evaluate one yourself. |
 | [Geometry](./geometry.md) | `LatLng`, `LatLngBounds`, `Point`, `Bounds`, area, distance and polygon operations. |
 
 ```ts
-import { control, Marker, styles, TsMap } from 'ts-maps'
+import { control, Map, Marker, styles } from 'ts-maps'
 import 'ts-maps/styles.css'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5072, -0.1276],
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -33,8 +33,8 @@ common ones in one object; in a browser, importing `ts-maps` also sets it as
 
 | Export | |
 | ------ | - |
-| `TsMap`, `Map` | The map class. See [`TsMap`](./TsMap.md). |
-| `createMap(container, options)`, `map(...)` | `new TsMap(...)` as a function. |
+| `Map`, `Map` | The map class. See [`Map`](./Map.md). |
+| `createMap(container, options)`, `map(...)` | `new Map(...)` as a function. |
 | `MapOptions` | The options type. |
 | `DragHandler`, `ScrollWheelZoomHandler`, `PinchZoomHandler`, `BoxZoomHandler`, `DoubleClickZoomHandler`, `KeyboardHandler`, `TwoFingerRotateHandler`, `TwoFingerPitchHandler`, `TapHoldHandler`, `CooperativeGesturesHandler` | The interaction handlers, on every map as `map.dragging`, `map.scrollWheelZoom` and so on. |
 | `version` | The library's version string. |
@@ -88,7 +88,7 @@ Each is a class, and `control.*` makes one. See
 ## Styles
 
 `styles` holds the built-in styles. Each is a function that returns a style
-document for [`setStyle`](./TsMap.md#style).
+document for [`setStyle`](./Map.md#style).
 
 | Export | |
 | ------ | - |

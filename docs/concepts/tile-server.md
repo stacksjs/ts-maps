@@ -20,11 +20,11 @@ The bundled styles (`styles.light`, `styles.dark`) are written against the **Ope
 ```bash
 cd packages/ts-maps
 
-# Five-second smoke test: Monaco, skipping the 1.4 GB of global side data.
+# Five-second smoke test: Monaco, skipping the 1.4 GB of global side data
 bun scripts/build-tiles.ts --area=monaco --lite --fetch-java
 
-# A real region. Without --lite, planetiler also downloads ocean polygons,
-# Natural Earth and lake centerlines (~1.4 GB, kept in .tiles-build/).
+# A real region. Without --lite, planetiler also downloads ocean polygons
+# Natural Earth and lake centerlines (~1.4 GB, kept in .tiles-build/)
 bun scripts/build-tiles.ts --area=california
 bun scripts/build-tiles.ts --area=us --memory=16g
 ```
@@ -152,16 +152,16 @@ route.get('/tiles/tiles.json', request => tiles.fetch(request))
 route.get('/tiles/{z}/{x}/{y}', request => tiles.fetch(request))
 ```
 
-Set `publicUrl` whenever a proxy or CDN sits in front: TileJSON tile URLs must be absolute, and behind a proxy the request carries the internal address. `publicUrl` replaces the base outright, so include the path the tiles are served under (`https://example.com/tiles`, not `https://example.com`). The tile route must pass the extension through to the handler (`6332.pbf`), which picks the format from it.
+Set `publicUrl` whenever a proxy or CDN sits in front: TileJSON tile URLs must be absolute, and behind a proxy the request carries the internal address. `publicUrl` replaces the base outright, so include the path the tiles are served under (`<https://example.com/tiles>`, not `<https://example.com>`). The tile route must pass the extension through to the handler (`6332.pbf`), which picks the format from it.
 
 ## Point a map at it
 
 Anything that reads TileJSON works unchanged. In ts-maps, name it in the style:
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [34.05, -118.25],
   zoom: 12,
   style: styles.light({ url: 'https://tiles.example.com/tiles.json' }),
@@ -171,10 +171,10 @@ const map = new TsMap('map', {
 To keep a public host behind your own, `resolveTileJSON` tries each TileJSON in turn, with a timeout (6 seconds by default), and keeps the answer in `sessionStorage` for the rest of the visit:
 
 ```ts
-import { resolveTileJSON, styles, TsMap } from 'ts-maps'
+import { Map, resolveTileJSON, styles } from 'ts-maps'
 
 const found = await resolveTileJSON(['https://tiles.example.com/tiles.json', 'https://tiles.openfreemap.org/planet'])
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [34.05, -118.25],
   zoom: 12,
   style: styles.light({ tiles: found!.tiles, maxzoom: found!.maxzoom, attribution: found!.attribution }),
@@ -183,7 +183,7 @@ const map = new TsMap('map', {
 
 See [Styles & theming](./styles-and-theming.md#choosing-a-source). Same schema, same styles; only the host changes.
 
-The [playground](/demos/)'s real-world demos run on exactly this: a weekly planet build in R2 behind the Worker below at `https://tiles.wildloop.org/tiles.json`, with OpenFreeMap behind it.
+The [playground](/demos/)'s real-world demos run on exactly this: a weekly planet build in R2 behind the Worker below at `<https://tiles.wildloop.org/tiles.json>`, with OpenFreeMap behind it.
 
 ## Straight from a bucket
 
@@ -211,7 +211,7 @@ What happens:
 - **Zooms, bounds and credit come from the archive** when the source does not set them: `minzoom`, `maxzoom` and `bounds` from the header, `attribution` and `vector_layers` from the metadata. Past the archive's `maxzoom` tiles are overzoomed exactly as for a tile server. A source that does state a `maxzoom` (`styles.light` and `styles.dark` default to 14) keeps it.
 - **Empty tiles** (open sea, absent from the archive) draw blank, the same as a `204` from a server, and cost no tile request: the directory already says they are not there.
 - **Tiles are gzip-decompressed** in the browser with `DecompressionStream`.
-- **Offline works.** Each tile has a stable URL, `pmtiles://https://…/planet.pmtiles/{z}/{x}/{y}`, and that is the key the offline cache, `saveOfflineRegion` and downloaded maps (`map.offline.download`) store it under. The archive's TileJSON is stored next to its tiles under `pmtiles://https://…/planet.pmtiles`, so a map with no connection still knows the top zoom and can overzoom past it. See [Offline maps](./offline.md).
+- **Offline works.** Each tile has a stable URL, `pmtiles://<https://…/planet.pmtiles/{z}/{x}/{y}>`, and that is the key the offline cache, `saveOfflineRegion` and downloaded maps (`map.offline.download`) store it under. The archive's TileJSON is stored next to its tiles under `pmtiles://<https://…/planet.pmtiles>`, so a map with no connection still knows the top zoom and can overzoom past it. See [Offline maps](./offline.md).
 - **Rebuilds.** Publish each build under a new name (`planet/20261012.pmtiles`) and update the style or TileJSON. If an archive is overwritten in place anyway, an `ETag` change, a `412` or a `416` on a tile read makes the reader re-read the header once and retry; concurrent reads share that one reload.
 - **Never a full download.** A host that ignores `Range` and answers `200` with a body over 64 MiB (or of unknown length) is refused and the body cancelled, rather than streaming 90 GB into a tab.
 
@@ -296,7 +296,7 @@ How a tile is answered, cheapest first:
 
 All R2 reads go through the binding (`bucket.get(key, { range, onlyIf: { etagMatches } })`), not HTTP, so there is no public request and no egress. An archive overwritten in place fails the ETag precondition and is re-read rather than mixed with the old build, but the rule above stands: publish each build under a new key, then update `tiles.json`. Clients pick up the new tile URLs within the TileJSON's minute; a page that resolved its basemap with `resolveTileJSON` keeps its answer until the next visit.
 
-Nothing that already points at the hostname breaks. `pmtiles://https://tiles.example.com/planet/20261006.pmtiles` readers still range-read the archive (now through the Worker), and other files in the bucket are served unchanged. Offline regions saved earlier under `pmtiles://` tile URLs stay in their cache under those keys, so download new regions after the switch.
+Nothing that already points at the hostname breaks. `pmtiles://<https://tiles.example.com/planet/20261006.pmtiles>` readers still range-read the archive (now through the Worker), and other files in the bucket are served unchanged. Offline regions saved earlier under `pmtiles://` tile URLs stay in their cache under those keys, so download new regions after the switch.
 
 | Option | Default | |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const c = document.createElement('div')
@@ -10,14 +10,14 @@ function createContainer(): HTMLElement {
   return c
 }
 
-function stampSize(map: TsMap, w: number, h: number): void {
+function stampSize(map: Map, w: number, h: number): void {
   map._size = new Point(w, h)
   map._sizeChanged = false
 }
 
-describe('TsMap layer-scoped events', () => {
+describe('Map layer-scoped events', () => {
   test('map.on(type, layerId, fn) only fires when queryRenderedFeatures hits that layer', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 400, 400)
 
     const calls: any[] = []
@@ -37,7 +37,7 @@ describe('TsMap layer-scoped events', () => {
   })
 
   test('scoped handler skipped when no feature hit', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 400, 400)
 
     const calls: any[] = []
@@ -50,7 +50,7 @@ describe('TsMap layer-scoped events', () => {
   })
 
   test('map.off with (type, layerId, fn) removes the handler', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 400, 400)
 
     const calls: any[] = []
@@ -68,7 +68,7 @@ describe('TsMap layer-scoped events', () => {
   })
 
   test('map.on(type, fn) still works — legacy signature unaffected', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 400, 400)
 
     const calls: any[] = []
@@ -79,7 +79,7 @@ describe('TsMap layer-scoped events', () => {
   })
 
   test('map.once(type, layerId, fn) fires only once', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 400, 400)
     ;(map as any).queryRenderedFeatures = () => [{ feature: {}, layer: {}, tile: {} }]
 

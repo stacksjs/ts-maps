@@ -7,12 +7,12 @@
  * English and German; `addMessages` adds another.
  */
 
-import { control, mapTypes, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, Map, mapTypes, styles } from '../../packages/ts-maps/src/core-map'
 
 const BASEMAP = 'https://tiles.openfreemap.org/planet'
 const locale = new URLSearchParams(location.search).get('lang') ?? 'de'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [52.5200, 13.4050], // Berlin
   zoom: 14,
   locale,

@@ -6,9 +6,9 @@
  * from the map's own tiles and from Photon, OpenStreetMap's geocoder.
  */
 
-import { control, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, Map, styles } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5072, -0.1276],
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

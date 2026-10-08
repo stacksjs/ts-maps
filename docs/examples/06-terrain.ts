@@ -8,9 +8,9 @@
  * the surface. Click anywhere for the height of the ground there.
  */
 
-import { styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { Map, styles } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   // Above the Zmutt valley, looking south-west at the Matterhorn.
   center: [45.992, 7.69],
   zoom: 13.2,

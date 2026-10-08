@@ -1,16 +1,16 @@
 /**
  * Phase 0.3 demo — Basics.
  *
- * Creates a TsMap, sets the shared vector basemap, places a Marker at
+ * Creates a Map, sets the shared vector basemap, places a Marker at
  * Times Square, and binds a Popup. Uses the new core-map API.
  */
 
-import { DivIcon, Marker, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, Map, Marker } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
 const TIMES_SQUARE: [number, number] = [40.758, -73.9855]
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: TIMES_SQUARE,
   zoom: 13,
   minZoom: 2,

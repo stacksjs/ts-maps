@@ -16,9 +16,9 @@ a machine set to light mode still wants dark controls.
 one at a source of vector tiles and pass it as the map's `style`:
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [34.02, -118.47],
   zoom: 14,
   theme: 'dark',
@@ -225,7 +225,7 @@ fails. A slow answer cannot overwrite a style set after it.
 ## Theming the chrome
 
 ```ts
-const map = new TsMap('map', { theme: 'dark' })
+const map = new Map('map', { theme: 'dark' })
 map.setTheme('light')
 map.getTheme() // 'light'
 ```

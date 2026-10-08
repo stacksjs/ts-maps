@@ -1,9 +1,9 @@
 import * as DomEvent from '../../dom/DomEvent'
 import * as PointerEvents from '../../dom/DomEvent.PointerEvents'
 import { Handler } from '../../core/Handler'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions({ touchRotate: true })
+Map.mergeOptions({ touchRotate: true })
 
 // Rotates the map's bearing by the angular delta of a two-finger twist gesture.
 // Shares the pointerdown channel with PinchZoomHandler; both apply their
@@ -97,4 +97,4 @@ export class TwoFingerRotateHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'touchRotate', TwoFingerRotateHandler)
+Map.addInitHook('addHandler', 'touchRotate', TwoFingerRotateHandler)

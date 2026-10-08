@@ -1,7 +1,7 @@
 import { Handler } from '../../core/Handler'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions( { doubleClickZoom: true })
+Map.mergeOptions( { doubleClickZoom: true })
 
 export class DoubleClickZoomHandler extends Handler {
   addHooks(): void {
@@ -24,4 +24,4 @@ export class DoubleClickZoomHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'doubleClickZoom', DoubleClickZoomHandler)
+Map.addInitHook('addHandler', 'doubleClickZoom', DoubleClickZoomHandler)

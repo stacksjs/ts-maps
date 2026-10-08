@@ -7,9 +7,9 @@ A vector basemap, a draggable marker and its popup: the least a map needs. The b
 [Open it full screen](/playground/examples/01-basic-map.html) · [Edit and run it](/playground/examples/edit.html?example=01-basic-map) · Full source: [`01-basic-map.ts`](./01-basic-map.ts)
 
 ```ts
-import { DivIcon, Marker, styles, TsMap } from 'ts-maps'
+import { DivIcon, Map, Marker, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

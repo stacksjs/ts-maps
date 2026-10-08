@@ -4,7 +4,7 @@ import { laneHint, laneIcon, laneIndicationFor, lanesMatter, parseManeuver, spok
 import { Navigator } from '../src/core-map/services/navigator'
 import { OSRMDirections } from '../src/core-map/services/providers/OSRM'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { TurnByTurn } from '../src/core-map/navigation/TurnByTurn'
 
 const lane = (indications: string[], valid: boolean): LaneInfo => ({ indications, valid })
@@ -116,7 +116,7 @@ describe('lane guidance on the way', () => {
   test('the banner shows the lane strip', async () => {
     const el = document.createElement('div')
     document.body.appendChild(el)
-    const map = new TsMap(el, { center: P(5, 0), zoom: 15 })
+    const map = new Map(el, { center: P(5, 0), zoom: 15 })
     map._size = new Point(430, 860)
     map._sizeChanged = false
     map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)

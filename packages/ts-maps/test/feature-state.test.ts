@@ -1,22 +1,22 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { compile } from '../src/core-map/style-spec/expressions'
 
 // ---------------------------------------------------------------------------
-// Minimal TsMap harness — we don't need a full style to poke the feature-state
+// Minimal Map harness — we don't need a full style to poke the feature-state
 // API; the store lives on the map itself and is independent of the Style.
 // ---------------------------------------------------------------------------
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '256px'
   container.style.height = '256px'
   document.body.appendChild(container)
-  return new TsMap(container, { center: [0, 0], zoom: 0 } as any)
+  return new Map(container, { center: [0, 0], zoom: 0 } as any)
 }
 
-describe('TsMap feature-state API', () => {
-  let map: TsMap
+describe('Map feature-state API', () => {
+  let map: Map
 
   beforeEach(() => {
     map = makeMap()
@@ -61,7 +61,7 @@ describe('TsMap feature-state API', () => {
 })
 
 describe('feature state on a geojson source', () => {
-  function withGeoJSON(): TsMap {
+  function withGeoJSON(): Map {
     const map = makeMap()
     map.addSource('places', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
     map.addStyleLayer({ id: 'dots', type: 'circle', source: 'places' } as any)

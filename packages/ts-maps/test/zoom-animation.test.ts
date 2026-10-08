@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 // Frames are pumped by hand, so every intermediate camera can be inspected.
 let queue: Array<(t: number) => void> = []
@@ -27,10 +27,10 @@ function pump(ms = 16): void {
   for (const cb of due) cb(clock)
 }
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [37.77, -122.42], zoom: 12 })
+  const map = new Map(el, { center: [37.77, -122.42], zoom: 12 })
   map._size = new Point(800, 600)
   map._sizeChanged = false
   map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)

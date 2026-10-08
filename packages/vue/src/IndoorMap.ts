@@ -11,10 +11,10 @@ import { useMap } from './useMap'
  * picker beside it.
  *
  * ```vue
- * <TsMap :center="[37.6155, -122.3866]" :zoom="17">
+ * <MapInstance :center="[37.6155, -122.3866]" :zoom="17">
  *   <TsSearch @ready="search = $event" />
  *   <TsIndoorMap venue="/imdf/sfo.zip" :search="search" v-model:level="level" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * `level`, `position` and `search` are followed as they change; `level` works

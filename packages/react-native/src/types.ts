@@ -418,7 +418,7 @@ export interface MapViewProps {
 
   runtime: MapRuntime
 
-  /** Style-spec object forwarded to `TsMap.setStyle`. */
+  /** Style-spec object forwarded to `MapInstance.setStyle`. */
   styleSpec?: unknown
 
   /**

@@ -1,6 +1,6 @@
 import type { GeocoderProvider, GeocodingResult } from '../src/core-map/services/types'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { control, SEARCH_EVENTS, SearchControl, TsMap } from '../src/core-map'
+import { control, SEARCH_EVENTS, SearchControl, Map } from '../src/core-map'
 import { VectorTile } from '../src/core-map/mvt'
 import { MemoryOfflineStore, OfflineMaps } from '../src/core-map/offline'
 import { latToUnit, lngToUnit, unitToLat, unitToLng } from '../src/core-map/offline/plan'
@@ -56,7 +56,7 @@ function fakeHost(bytes: Uint8Array) {
 
 function fakeMap(center = at(2000, 2000)) {
   return {
-    _style: { sourceLayers: new Map([['basemap', fakeHost(TILE)]]) },
+    _style: { sourceLayers: new globalThis.Map([['basemap', fakeHost(TILE)]]) },
     getCenter: () => center,
     getZoom: () => 16,
     getBounds: () => ({ getWest: () => at(0, 0).lng, getEast: () => at(4096, 0).lng, getNorth: () => at(0, 0).lat, getSouth: () => at(0, 4096).lat }),
@@ -202,20 +202,20 @@ describe('SearchHistory', () => {
 // The control
 // ---------------------------------------------------------------------------
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '430px'
   container.style.height = '800px'
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView([at(2000, 2000).lat, at(2000, 2000).lng], 15)
   return map
 }
 
 /** The control, reading the fake tiles through the real map. */
-function addSearch(map: TsMap, options: Record<string, unknown> = {}) {
+function addSearch(map: Map, options: Record<string, unknown> = {}) {
   const search = control.search({ provider: null, offline: null, recents: false, units: 'metric', ...options }).addTo(map)
   search.engine.map = Object.assign(Object.create(map), { _style: fakeMap()._style })
   return search

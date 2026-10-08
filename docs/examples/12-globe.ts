@@ -5,9 +5,9 @@
  * map. Drag to turn it; zoom in past 5.5 and it fades into the flat map.
  */
 
-import { styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { Map, styles } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [30, 10],
   zoom: 2.5,
   projection: 'globe',

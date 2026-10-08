@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { control, TsMap } from '../src/core-map'
+import { control, Map } from '../src/core-map'
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '800px'
   container.style.height = '600px'
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false })
+  const map = new Map(container, { zoomAnimation: false })
   map.setView([0, 0], 5)
   return map
 }

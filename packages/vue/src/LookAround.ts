@@ -10,10 +10,10 @@ import { useMap } from './useMap'
  * with pictures, and a full-bleed viewer to turn in and walk through them.
  *
  * ```vue
- * <TsMap :center="[48.8606, 2.3376]" :zoom="16">
+ * <MapInstance :center="[48.8606, 2.3376]" :zoom="16">
  *   <TsLookAround v-model:choosing="choosing" :at="at" @ready="look = $event" />
  *   <TsSearch :look-around="look" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * `provider`, `position`, `choosing`, `at` and `heading` are followed as they

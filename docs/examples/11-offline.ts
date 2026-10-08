@@ -6,9 +6,9 @@
  * browser, so the map, search and directions all work with no connection.
  */
 
-import { control, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, Map, styles } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [48.8566, 2.3522],
   zoom: 13,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

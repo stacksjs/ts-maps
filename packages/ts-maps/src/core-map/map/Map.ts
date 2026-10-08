@@ -185,8 +185,8 @@ export interface CustomLayerInterface {
   id: string
   type: 'custom'
   renderingMode?: '2d' | '3d'
-  onAdd?: (map: TsMap, gl: WebGL2RenderingContext) => void
-  onRemove?: (map: TsMap, gl: WebGL2RenderingContext) => void
+  onAdd?: (map: Map, gl: WebGL2RenderingContext) => void
+  onRemove?: (map: Map, gl: WebGL2RenderingContext) => void
   render: (gl: WebGL2RenderingContext, projectionMatrix: Float32Array) => void
 }
 
@@ -213,12 +213,12 @@ export function prefersReducedMotion(): boolean {
 }
 
 // The central class of the API — used to create a map on a page and manipulate it.
-export class TsMap extends Evented {
+export class Map extends Evented {
   static _pointerEvents: string[] = ['click', 'dblclick', 'pointerover', 'pointerout', 'contextmenu']
 
   // Runtime slots populated by initialize / hooks.
   declare options: MapOptions
-  // Mixed in by control/Control.ts with `TsMap.include`; declared here so they
+  // Mixed in by control/Control.ts with `Map.include`; declared here so they
   // are on the type, not only on the prototype at runtime.
   declare addControl: (control: Control) => this
   declare removeControl: (control: Control) => this
@@ -240,8 +240,8 @@ export class TsMap extends Evented {
   declare _pitch: number
   declare _container: HTMLElement & { _tsmap_id?: number }
   declare _containerId?: number
-  // A plain record, not a Map: this module exports `Map` as an alias of TsMap
-  // (see the bottom of the file), so `new Map()` here builds a map of the
+  // A plain record, not a Map: this module exports `Map` as an alias of Map
+  // (see the bottom of the file), so `new globalThis.Map()` here builds a map of the
   // cartographic kind.
   declare _geoJSONSources?: Record<string, {
     index: any
@@ -350,7 +350,7 @@ export class TsMap extends Evented {
   declare _globeView?: GlobeView
   // Pending DEM fetches keyed by tile URL — used to debounce repeated
   // fetches for the same tile during camera movement.
-  declare _terrainFetchInFlight?: Map<string, Promise<void>>
+  declare _terrainFetchInFlight?: globalThis.Map<string, Promise<void>>
   // DEM tiles the source has none of (the sea, past its edge), by `z/x/y`:
   // asked for once, not again every frame.
   declare _terrainMissing?: Set<string>
@@ -679,7 +679,7 @@ export class TsMap extends Evented {
         const center = this.unproject(from.add(to.subtract(from).multiplyBy(u(s) / u1)), startZoom)
         const zoom = this.getScaleZoom(w0 / w(s), startZoom)
         if (bearingChanged)
-          this._bearing = TsMap._lerpBearing(startBearing, targetBearing, t)
+          this._bearing = Map._lerpBearing(startBearing, targetBearing, t)
         if (pitchChanged)
           this._pitch = startPitch + (targetPitch - startPitch) * t
         this._move(center, zoom, { flyTo: true })
@@ -1223,7 +1223,7 @@ export class TsMap extends Evented {
         const px = fromPx.add(toPx.subtract(fromPx).multiplyBy(t))
         const center = this.unproject(px, startZoom)
         if (bearingChanged)
-          this._bearing = TsMap._lerpBearing(startBearing, endBearing, t)
+          this._bearing = Map._lerpBearing(startBearing, endBearing, t)
         if (pitchChanged)
           this._pitch = startPitch + (endPitch - startPitch) * t
         this._move(center, lerpZoom, { easeTo: true })
@@ -1846,7 +1846,7 @@ export class TsMap extends Evented {
       t.fire(type, data, true)
       if (
       data.originalEvent._stopped
-      || (t.options?.bubblingPointerEvents === false && TsMap._pointerEvents.includes(type))
+      || (t.options?.bubblingPointerEvents === false && Map._pointerEvents.includes(type))
       ) {
         return
       }
@@ -2907,7 +2907,7 @@ export class TsMap extends Evented {
 
   // Build the concrete hosted Layer instance for a given source spec.
   // Uses dynamic `require` to avoid a module-init cycle: Map.ts →
-  // VectorTileMapLayer → GridLayer → Layer → (include on TsMap).
+  // VectorTileMapLayer → GridLayer → Layer → (include on Map).
   _makeSourceLayer(sourceId: string, source: SourceSpecification): unknown {
     if (source.type === 'raster') {
       const urls = source.tiles ?? []
@@ -4523,7 +4523,7 @@ export class TsMap extends Evented {
   }
 }
 
-TsMap.setDefaultOptions( {
+Map.setDefaultOptions( {
   crs: EPSG3857,
   center: undefined,
   zoom: undefined,
@@ -4550,10 +4550,16 @@ TsMap.setDefaultOptions( {
   minPitch: 0,
 })
 
-export const Map: typeof TsMap = TsMap
+/**
+ * The map's name before 0.5. Kept so code written for it still runs.
+ * @deprecated Use `Map`.
+ */
+export const TsMap: typeof Map = Map
+/** @deprecated Use `Map`. */
+export type TsMap = Map
 
-export function createMap(id: string | HTMLElement, options?: MapOptions): TsMap {
-  return new TsMap(id, options)
+export function createMap(id: string | HTMLElement, options?: MapOptions): Map {
+  return new Map(id, options)
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 # Solid
 
-`@ts-maps/solid` wraps ts-maps in Solid components. `<Map>` builds a `TsMap`
+`@ts-maps/solid` wraps ts-maps in Solid components. `<Map>` builds a `Map`
 in `onMount` and gives it to its children through context; every other
 component adds one thing to that map and removes it on cleanup. For what the
 bindings share, see [Framework bindings](./framework-bindings.md).
@@ -363,7 +363,7 @@ core's mouse, layer and tooltip events.
 
 Three names differ from the pattern:
 
-- `onLoad` is not the map's `load` event. It is called once with the `TsMap`,
+- `onLoad` is not the map's `load` event. It is called once with the `Map`,
   right after the map is built.
 - `onLoadEvent` is the map's `load` event. A map that loaded while it was
   being built calls it once, just after the prop is bound.
@@ -389,13 +389,13 @@ function CameraLog() {
 
 ## Reaching the map
 
-`onLoad` hands the `TsMap` to the component that renders `<Map>`:
+`onLoad` hands the `Map` to the component that renders `<Map>`:
 
 ```tsx
-import type { TsMap } from 'ts-maps'
+import type { Map } from 'ts-maps'
 
 export function App() {
-  const [map, setMap] = createSignal<TsMap>()
+  const [map, setMap] = createSignal<Map>()
   return (
     <>
       <Map center={[40.758, -73.9855]} zoom={13} style={basemap} containerStyle={{ height: '480px' }} onLoad={setMap} />
@@ -405,7 +405,7 @@ export function App() {
 }
 ```
 
-Inside the map, `useMap()` returns the `TsMap`, or `null` outside a `<Map>`.
+Inside the map, `useMap()` returns the `Map`, or `null` outside a `<Map>`.
 Read in an effect, it is tracked. `useMapOptional()` is the same, named as in
 React and Vue, where `useMap()` throws outside a map. Read it in the
 component's body, not in `onCleanup`, where the context is gone.

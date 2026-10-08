@@ -17,7 +17,7 @@
    * made: a new one makes it again. Events are callback props with the same names the
    * other bindings use — `onLoad`, `onLevelChange`, `onVisibilityChange`.
    */
-  import type { IMDFSource, IndoorVenue, SearchControl, TsMap } from 'ts-maps'
+  import type { IMDFSource, IndoorVenue, Map as MapInstance, SearchControl } from 'ts-maps'
   import { onDestroy, onMount } from 'svelte'
   import { INDOOR_EVENTS, IndoorMap } from 'ts-maps'
   import { useMap } from './useMap'
@@ -39,7 +39,7 @@
   export let onVisibilityChange: ((e: any) => void) | undefined = undefined
   /* eslint-enable no-unused-vars */
 
-  let map: TsMap | null = null
+  let map: MapInstance | null = null
   let indoor: IndoorMap | null = null
   let unlisten: (() => void) | null = null
   let disconnect: (() => void) | null = null

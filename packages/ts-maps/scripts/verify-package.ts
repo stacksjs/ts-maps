@@ -75,7 +75,7 @@ function declarationFiles(directory: string): string[] {
 const declarations = declarationFiles(resolve(packageRoot, 'dist'))
   .map(path => readFileSync(path, 'utf8'))
   .join('\n')
-for (const symbol of ['TsMap', 'CircleMarker', 'Polygon', 'Polyline', 'tileLayer']) {
+for (const symbol of ['Map', 'CircleMarker', 'Polygon', 'Polyline', 'tileLayer']) {
   if (!new RegExp(`\\b${symbol}\\b`).test(declarations))
     missing.push(`declarations do not expose ${symbol}`)
 }

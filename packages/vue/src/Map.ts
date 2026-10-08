@@ -1,6 +1,5 @@
-import type { TsMap as TsMapInstance } from 'ts-maps'
 import type { PropType, Ref } from 'vue'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { defineComponent, h, onBeforeUnmount, onMounted, provide, shallowRef, watch } from 'vue'
 import { mapKey } from './provideKey'
 
@@ -81,11 +80,11 @@ const FORWARDED_EVENTS: readonly MapEventName[] = [
 ]
 
 /**
- * Root component — creates a `TsMap` on mount, provides it via `mapKey`, and
+ * Root component — creates a `Map` on mount, provides it via `mapKey`, and
  * re-emits core events as Vue events.
  */
 export const Map = defineComponent({
-  name: 'TsMap',
+  name: 'MapInstance',
   props: {
     center: { type: Array as unknown as PropType<[number, number]>, default: undefined },
     zoom: { type: Number, default: undefined },
@@ -104,7 +103,7 @@ export const Map = defineComponent({
   },
   emits: [...FORWARDED_EVENTS, 'style-load', 'load-map'] as unknown as string[],
   setup(props, { slots, emit, expose }) {
-    const mapRef: Ref<TsMapInstance | null> = shallowRef(null)
+    const mapRef: Ref<MapInstance | null> = shallowRef(null)
     const containerRef = shallowRef<HTMLDivElement | null>(null)
     provide(mapKey, mapRef)
 
@@ -127,7 +126,7 @@ export const Map = defineComponent({
       if (props.locale !== undefined)
         options.locale = props.locale
 
-      const instance = new TsMap(containerRef.value, options)
+      const instance = new MapInstance(containerRef.value, options)
       mapRef.value = instance
       emit('load-map', instance)
 
@@ -168,7 +167,7 @@ export const Map = defineComponent({
         const m = mapRef.value
         if (!m || key === undefined || key === previous)
           return
-        m.setStyle(props.style as Parameters<TsMapInstance['setStyle']>[0])
+        m.setStyle(props.style as Parameters<MapInstance['setStyle']>[0])
       },
     )
 

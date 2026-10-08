@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { LatLng } from '../src/core-map/geo/LatLng'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const el = document.createElement('div')
@@ -13,13 +13,13 @@ function createContainer(): HTMLElement {
 const cleanup: HTMLElement[] = []
 afterEach(() => { for (const c of cleanup.splice(0)) c.remove() })
 
-function makeMap(opts?: Record<string, unknown>): TsMap {
+function makeMap(opts?: Record<string, unknown>): Map {
   const c = createContainer()
   cleanup.push(c)
-  return new TsMap(c, { center: [0, 0], zoom: 4, ...(opts ?? {}) })
+  return new Map(c, { center: [0, 0], zoom: 4, ...(opts ?? {}) })
 }
 
-describe('TsMap.getCamera', () => {
+describe('Map.getCamera', () => {
   test('returns the current camera as a single object', () => {
     const map = makeMap()
     map.setBearing(45)
@@ -32,7 +32,7 @@ describe('TsMap.getCamera', () => {
   })
 })
 
-describe('TsMap.jumpTo', () => {
+describe('Map.jumpTo', () => {
   test('snaps bearing and pitch', () => {
     const map = makeMap()
     map.jumpTo({ bearing: 90, pitch: 30 })

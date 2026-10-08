@@ -7,11 +7,11 @@ and turn-by-turn, in its banner and its voice. English and German are built
 in, and `addMessages` adds more.
 
 ```ts
-import { control, mapTypes, styles, TsMap } from 'ts-maps'
+import { control, Map, mapTypes, styles } from 'ts-maps'
 
 const BASEMAP = 'https://tiles.openfreemap.org/planet'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [52.52, 13.405], // Berlin
   zoom: 14,
   locale: 'de',

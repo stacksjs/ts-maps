@@ -5,7 +5,7 @@ import { useMapOptional } from './useMap'
 export type MapEventHandler = (e: any) => void
 
 /**
- * Subscribe to a `TsMap` event for the lifetime of the calling component.
+ * Subscribe to a `Map` event for the lifetime of the calling component.
  * The handler is re-bound when `event` or `handler` identity changes.
  */
 export function useMapEvent(event: string, handler: MapEventHandler): void {

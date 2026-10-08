@@ -18,7 +18,7 @@
    * other bindings use — `onOpen`, `onClose`, `onImageChange`,
    * `onViewChange`, `onChoosingChange`, `onNotFound`.
    */
-  import type { LatLngLike, StreetImageryProvider, TsMap } from 'ts-maps'
+  import type { LatLngLike, Map as MapInstance, StreetImageryProvider } from 'ts-maps'
   import { onDestroy, onMount } from 'svelte'
   import { LOOK_AROUND_EVENTS, LookAround } from 'ts-maps'
   import { useMap } from './useMap'
@@ -46,7 +46,7 @@
   export let onNotFound: ((e: any) => void) | undefined = undefined
   /* eslint-enable no-unused-vars */
 
-  let map: TsMap | null = null
+  let map: MapInstance | null = null
   let look: LookAround | null = null
   let unlisten: (() => void) | null = null
 

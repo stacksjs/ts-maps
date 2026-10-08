@@ -5,9 +5,9 @@ places, addresses and kinds of place, with suggestions as you type, a pin for
 every result, and a card for the place you choose.
 
 ```ts
-import { control, styles, TsMap } from 'ts-maps'
+import { control, Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5072, -0.1276],
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

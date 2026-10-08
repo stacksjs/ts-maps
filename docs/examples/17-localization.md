@@ -7,7 +7,7 @@ The same controls in German: search and its categories, the map type picker, Off
 [Open it full screen](/playground/examples/17-localization.html) · [Edit and run it](/playground/examples/edit.html?example=17-localization) · Full source: [`17-localization.ts`](./17-localization.ts)
 
 ```ts
-const map = new TsMap('map', { center: [52.52, 13.405], zoom: 14, locale: 'de', style })
+const map = new Map('map', { center: [52.52, 13.405], zoom: 14, locale: 'de', style })
 control.search().addTo(map)  // "Karten durchsuchen"
 control.mapType({ types: mapTypes({ url }) }).addTo(map)
 ```

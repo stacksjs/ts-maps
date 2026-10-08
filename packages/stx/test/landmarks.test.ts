@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { mountChildren } from '../src/runtime'
 
 // A 10 m wedge as glTF, its buffer inline: no fetch.
@@ -28,7 +28,7 @@ function setup(): { root: HTMLElement, map: any } {
   mapEl.style.width = '400px'
   mapEl.style.height = '400px'
   root.appendChild(mapEl)
-  return { root, map: new TsMap(mapEl, { center: AT, zoom: 17 }) }
+  return { root, map: new MapInstance(mapEl, { center: AT, zoom: 17 }) }
 }
 
 describe('landmark child', () => {

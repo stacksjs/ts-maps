@@ -7,9 +7,9 @@
  * or use the arrows to walk, Done to come back to the map.
  */
 
-import { lookAround, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { lookAround, Map, styles } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [48.8606, 2.3376],
   zoom: 16,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const container = document.createElement('div')
@@ -12,11 +12,11 @@ function createContainer(): HTMLElement {
 
 /**
  * very-happy-dom does not populate `clientWidth` / `clientHeight` from inline
- * styles, so `TsMap.getSize()` would otherwise return `(0, 0)`. Stamp an
+ * styles, so `Map.getSize()` would otherwise return `(0, 0)`. Stamp an
  * explicit size into the map's internal slot, then recompute `_pixelOrigin`
  * using the now-correct size. Mirrors the helper in `bearing.test.ts`.
  */
-function stampSize(map: TsMap, width: number, height: number): void {
+function stampSize(map: Map, width: number, height: number): void {
   map._size = new Point(width, height)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
@@ -25,35 +25,35 @@ function stampSize(map: TsMap, width: number, height: number): void {
 
 describe('pitch (camera tilt)', () => {
   test('defaults to 0', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     expect(map.getPitch()).toBe(0)
   })
 
   test('accepts an initial pitch via options, clamped to [0, 85]', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3, pitch: 45 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3, pitch: 45 })
     expect(map.getPitch()).toBe(45)
   })
 
   test('setPitch(45) sets pitch to 45', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.setPitch(45)
     expect(map.getPitch()).toBe(45)
   })
 
   test('setPitch(-10) clamps to 0 (default minPitch)', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.setPitch(-10)
     expect(map.getPitch()).toBe(0)
   })
 
   test('setPitch(90) clamps to 85 (default maxPitch)', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.setPitch(90)
     expect(map.getPitch()).toBe(85)
   })
 
   test('respects custom maxPitch from options at runtime', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.options.maxPitch = 85
     map.setPitch(80)
     expect(map.getPitch()).toBe(80)
@@ -62,20 +62,20 @@ describe('pitch (camera tilt)', () => {
   })
 
   test('respects custom minPitch from options at runtime', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.options.minPitch = 10
     map.setPitch(5)
     expect(map.getPitch()).toBe(10)
   })
 
   test('pitchTo is an alias for setPitch', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.pitchTo(30)
     expect(map.getPitch()).toBe(30)
   })
 
   test('fires pitch event when pitch changes', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     let fired = 0
     let lastPitch: number | undefined
     map.on('pitch', (e: any) => {
@@ -88,7 +88,7 @@ describe('pitch (camera tilt)', () => {
   })
 
   test('fires pitchstart, pitch, pitchend in order', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     const seq: string[] = []
     map.on('pitchstart', () => { seq.push('start') })
     map.on('pitch', () => { seq.push('pitch') })
@@ -98,7 +98,7 @@ describe('pitch (camera tilt)', () => {
   })
 
   test('does not fire events when pitch does not change (incl. clamp)', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.setPitch(45)
     let fired = 0
     map.on('pitch', () => { fired++ })
@@ -110,7 +110,7 @@ describe('pitch (camera tilt)', () => {
   test('pitch=0 is a no-op: containerPointToLatLng matches bearing-only behavior', () => {
     // Regression: at pitch=0 the new perspective code path must be skipped,
     // giving the exact same result as before pitch support existed.
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     const cp = [300, 200]
@@ -137,13 +137,13 @@ describe('pitch (camera tilt)', () => {
     // With pitch tilting the map so the top of the screen shows more
     // distant terrain, a click at (400, 50) — near the top — should yield
     // a lat/lng further north than the same click with pitch=0.
-    const mapFlat = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const mapFlat = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(mapFlat, 800, 600)
     const centerLL = mapFlat.containerPointToLatLng([400, 300])
     const topLLFlat = mapFlat.containerPointToLatLng([400, 50])
     const deltaFlat = Math.abs(topLLFlat.lat - centerLL.lat)
 
-    const mapPitched = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const mapPitched = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(mapPitched, 800, 600)
     mapPitched.setPitch(45)
     const topLLPitched = mapPitched.containerPointToLatLng([400, 50])
@@ -161,12 +161,12 @@ describe('pitch (camera tilt)', () => {
     // distance (points near the top appear farther away), so the same pixel
     // click maps FARTHER east → larger lng after unprojection. Lat stays
     // near 0 since the layer y component is ~0.
-    const mapBearing = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const mapBearing = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(mapBearing, 800, 600)
     mapBearing.setBearing(90)
     const topOnly = mapBearing.containerPointToLatLng([400, 50])
 
-    const mapBoth = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const mapBoth = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(mapBoth, 800, 600)
     mapBoth.setBearing(90)
     mapBoth.setPitch(45)
@@ -184,7 +184,7 @@ describe('pitch (camera tilt)', () => {
   })
 
   test('layerPointToContainerPoint inverts containerPointToLayerPoint at non-zero pitch', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
     map.setPitch(45)
 
@@ -196,7 +196,7 @@ describe('pitch (camera tilt)', () => {
   })
 
   test('layerPointToContainerPoint inverts containerPointToLayerPoint at non-zero bearing + pitch', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
     map.setBearing(30)
     map.setPitch(40)
@@ -209,7 +209,7 @@ describe('pitch (camera tilt)', () => {
   })
 
   test('project/unproject are unaffected by pitch', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     const p0 = map.project([37.7, -122.4], 3)
     map.setPitch(45)
     const p1 = map.project([37.7, -122.4], 3)

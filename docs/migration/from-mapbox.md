@@ -42,10 +42,10 @@ new mapboxgl.Marker()
 ts-maps:
 
 ```ts
-import { control, Marker, styles, TsMap } from 'ts-maps'
+import { control, Map, Marker, styles } from 'ts-maps'
 import 'ts-maps/styles.css'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855], // [lat, lng]
   zoom: 13,
   zoomControl: false, // the navigation control has its own zoom buttons
@@ -145,7 +145,7 @@ options happens inside the constructor, before a listener can be added. Use
 
 | Mapbox GL JS | ts-maps |
 | ------------ | ------- |
-| `new mapboxgl.Map({ container, … })` | `new TsMap(container, { … })` |
+| `new mapboxgl.Map({ container, … })` | `new Map(container, { … })` |
 | `center: [lng, lat]` | `center: [lat, lng]`, or `{ lng, lat }` |
 | `style: 'mapbox://styles/…'` | A style object, or an `https://` URL to one. See [Styles](#styles). |
 | `map.on('load', fn)` | `map.on('style.load', fn)`, or `map.whenReady(fn)` for the view |

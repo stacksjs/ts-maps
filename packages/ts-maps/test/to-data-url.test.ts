@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const c = document.createElement('div')
@@ -10,14 +10,14 @@ function createContainer(): HTMLElement {
   return c
 }
 
-function stampSize(map: TsMap, w: number, h: number): void {
+function stampSize(map: Map, w: number, h: number): void {
   map._size = new Point(w, h)
   map._sizeChanged = false
 }
 
-describe('TsMap static image export', () => {
+describe('Map static image export', () => {
   test('toCanvas returns a canvas sized to the container', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 256, 256)
     const canvas = map.toCanvas()
     expect(canvas.tagName).toBe('CANVAS')
@@ -27,7 +27,7 @@ describe('TsMap static image export', () => {
   })
 
   test('toDataURL returns a data URL', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 256, 256)
     const dataUrl = map.toDataURL()
     expect(typeof dataUrl).toBe('string')
@@ -35,7 +35,7 @@ describe('TsMap static image export', () => {
   })
 
   test('toBlob resolves to a Blob or null', async () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 256, 256)
     const blob = await map.toBlob()
     // very-happy-dom may return null for toBlob; accept either.
@@ -43,7 +43,7 @@ describe('TsMap static image export', () => {
   })
 
   test('_requestExportFrame is a no-op when no style is loaded', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     stampSize(map, 256, 256)
     expect(() => map._requestExportFrame()).not.toThrow()
   })

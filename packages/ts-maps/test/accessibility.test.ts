@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { DirectionsProvider, Route } from '../src/core-map/services/types'
 import type { SearchPlace } from '../src/core-map/search'
-import { control, TileLayer, TsMap, TurnByTurn } from '../src/core-map'
+import { control, TileLayer, Map, TurnByTurn } from '../src/core-map'
 import { areaSize } from '../src/core-map/control/OfflineMapsControl'
 import { Point } from '../src/core-map/geometry/Point'
 import { MemoryOfflineStore, OfflineMaps } from '../src/core-map/offline'
@@ -36,12 +36,12 @@ function a11yIssues(root: Element): string[] {
   return issues
 }
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView([37.78, -122.42], 15)
   return map
 }
@@ -158,7 +158,7 @@ describe('turn-by-turn', () => {
   test('the banner is a polite live region, and End and mute say what they do', async () => {
     const el = document.createElement('div')
     document.body.appendChild(el)
-    const map = new TsMap(el, { center: [0.002, 0], zoom: 15 })
+    const map = new Map(el, { center: [0.002, 0], zoom: 15 })
     map._size = new Point(430, 860)
     map._sizeChanged = false
     map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)

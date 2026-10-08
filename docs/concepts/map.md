@@ -1,8 +1,8 @@
 # The map
 
-`TsMap` is the root object. It owns the container element, the camera, the
+`Map` is the root object. It owns the container element, the camera, the
 render loop, the style, and every layer and control on the map. Everything
-else in ts-maps is added to a `TsMap` or reads from one.
+else in ts-maps is added to a `Map` or reads from one.
 
 ## Creating a map
 
@@ -19,9 +19,9 @@ style over [OpenFreeMap](https://openfreemap.org)'s planet, which is free and
 needs no key:
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5074, -0.1278], // [lat, lng]
   zoom: 12,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -142,7 +142,7 @@ Each way of moving the map by hand is a handler, on by default. Turn one off
 with its option when the map is made, or later through the handler itself:
 
 ```ts
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 13,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

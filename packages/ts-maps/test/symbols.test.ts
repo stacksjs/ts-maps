@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { Pbf } from '../src/core-map/proto/Pbf'
 import { VectorTileMapLayer } from '../src/core-map'
 import { CollisionIndex } from '../src/core-map/symbols/CollisionIndex'
@@ -76,7 +76,7 @@ function createContainer(): HTMLElement {
   return container
 }
 
-function stampSize(map: TsMap, width: number, height: number): void {
+function stampSize(map: Map, width: number, height: number): void {
   map._size = new Point(width, height)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
@@ -84,12 +84,12 @@ function stampSize(map: TsMap, width: number, height: number): void {
 }
 
 /** Centre the view on tile 0/0/4, where the fixture's one point sits. */
-function centreOnTile(map: TsMap): void {
+function centreOnTile(map: Map): void {
   map.setView(map.unproject([256, 256], 4), 4, { reset: true })
   stampSize(map, 512, 512)
 }
 
-function attachLayerForCreateTile(layer: VectorTileMapLayer, map: TsMap): void {
+function attachLayerForCreateTile(layer: VectorTileMapLayer, map: Map): void {
   layer._map = map
   layer._tiles = {}
 }
@@ -160,7 +160,7 @@ describe('VectorTileMapLayer: symbol layers', () => {
     const bytes = encodePlacesTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
     // Labels off screen are culled, so look at the tile the fixture fills.
     centreOnTile(map)
@@ -201,7 +201,7 @@ describe('VectorTileMapLayer: symbol layers', () => {
     const bytes = encodePlacesTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
     // Labels off screen are culled, so look at the tile the fixture fills.
     centreOnTile(map)

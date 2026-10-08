@@ -15,12 +15,12 @@ import {
   GeoJSONClusterSource,
   LayerGroup,
   Marker,
-  TsMap,
+  Map,
 } from '../../packages/ts-maps/src/core-map'
 
 const CENTER: [number, number] = [40.758, -73.9855]
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: CENTER,
   zoom: 12,
   minZoom: 2,

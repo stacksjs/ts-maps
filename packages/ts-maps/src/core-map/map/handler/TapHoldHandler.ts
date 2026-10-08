@@ -3,11 +3,11 @@ import * as DomEvent from '../../dom/DomEvent'
 import * as PointerEvents from '../../dom/DomEvent.PointerEvents'
 import { Handler } from '../../core/Handler'
 import { Point } from '../../geometry/Point'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
 const tapHoldDelay = 600
 
-TsMap.mergeOptions( {
+Map.mergeOptions( {
   tapHold: Browser.safari && Browser.mobile,
   tapTolerance: 15,
 })
@@ -82,4 +82,4 @@ export class TapHoldHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'tapHold', TapHoldHandler)
+Map.addInitHook('addHandler', 'tapHold', TapHoldHandler)

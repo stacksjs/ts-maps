@@ -6,11 +6,11 @@
  * bubble with its count, and each lone point as a dot.
  */
 
-import type { ClusterPoint } from '../../packages/ts-maps/src/core-map/layer/GeoJSONClusterSource'
-import { CircleMarker, DivIcon, GeoJSONClusterSource, LayerGroup, Marker, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import type { ClusterPoint } from '../../packages/ts-maps/src/core-map'
+import { CircleMarker, DivIcon, GeoJSONClusterSource, LayerGroup, Map, Marker, styles } from '../../packages/ts-maps/src/core-map'
 
 const CENTER: [number, number] = [40.758, -73.9855]
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: CENTER,
   zoom: 11,
   maxZoom: 18,

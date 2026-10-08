@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { Route } from '../src/core-map/services/types'
-import { control, mapTypes, styles, TomTomIncidents, TrafficLayer, trafficNote, trafficSources, TsMap } from '../src/core-map'
+import { control, mapTypes, styles, TomTomIncidents, TrafficLayer, trafficNote, trafficSources, Map } from '../src/core-map'
 import { GoogleDirections } from '../src/core-map/services/providers/Google'
 import { MapboxDirections } from '../src/core-map/services/providers/Mapbox'
 
 const TILES = 'https://tiles.test/{z}/{x}/{y}.pbf'
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView([37.78, -122.42], 13)
   map.setStyle(styles.light({ tiles: TILES }))
   return map

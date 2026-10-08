@@ -2,7 +2,7 @@ import * as Util from '../core/Util'
 import * as DomUtil from '../dom/DomUtil'
 import { LatLng } from '../geo/LatLng'
 import { Point } from '../geometry/Point'
-import { TsMap } from '../map/Map'
+import { Map } from '../map/Map'
 import { FeatureGroup } from './FeatureGroup'
 import { Layer } from './Layer'
 
@@ -259,7 +259,7 @@ DivOverlay.setDefaultOptions( {
   content: '',
 })
 
-TsMap.include( {
+Map.include( {
   _initOverlay(this: any, OverlayClass: any, content: any, latlng: any, options: any) {
     let overlay = content
     if (!(overlay instanceof OverlayClass))

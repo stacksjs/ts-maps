@@ -42,7 +42,7 @@ const basemap = styles.light({ url: 'https://tiles.openfreemap.org/planet' })
 
 ## Components
 
-- `<Map>` (also exported as `TsMap`): creates the `TsMap` on mount, provides it to its children, and removes it before unmount. Emits the map's events under their core names (`click`, `moveend`, `zoomend`, …), plus `load-map` with the map once it is built.
+- `<Map>` (also exported as `Map`): creates the `Map` on mount, provides it to its children, and removes it before unmount. Emits the map's events under their core names (`click`, `moveend`, `zoomend`, …), plus `load-map` with the map once it is built.
 - `<Marker>`, `<Popup>`, `<TileLayer>`.
 - `<Source>`, `<Layer>`: style-spec sources and layers.
 - Controls: `<ZoomControl>`, `<NavigationControl>`, `<GeocoderControl>`, `<FullscreenControl>`, `<LocateControl>`, `<ScaleControl>`, `<AttributionControl>`. Their own options go in `options`.
@@ -51,7 +51,7 @@ const basemap = styles.light({ url: 'https://tiles.openfreemap.org/planet' })
 
 ## Composables
 
-- `useMap()`: a `Ref<TsMap | null>`; throws outside a `<Map>`.
+- `useMap()`: a `Ref<Map | null>`; throws outside a `<Map>`.
 - `useMapOptional()`: the same, or `null` outside a map.
 - `useMapEvent(event, handler)`: subscribe to a map event, by its core name (`'moveend'`, `'style.load'`), for the life of the component.
 

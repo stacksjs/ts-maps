@@ -1,4 +1,4 @@
-export { createMap, TsMap, Map } from './Map'
+export { createMap, Map, TsMap } from './Map'
 export type { MapOptions } from './Map'
 export { BoxZoomHandler } from './handler/BoxZoomHandler'
 export { CooperativeGesturesHandler } from './handler/CooperativeGesturesHandler'

@@ -16,7 +16,7 @@ before the previous one's exit criteria are green.
 
   2.0 codebase (82 files, ~14k LOC). Fully rebranded; credits in `CREDITS.md`.
 
-- **Public API surface**: `TsMap`, `Marker`, `TileLayer`, `Popup`, `Tooltip`,
+- **Public API surface**: `Map`, `Marker`, `TileLayer`, `Popup`, `Tooltip`,
 
   `Polyline/Polygon/Circle/Rectangle`, `GeoJSON`, vector renderers
   (`SVG`, `Canvas`), `GridLayer`, `WMSTileLayer`, `ImageOverlay`/`VideoOverlay`/
@@ -428,7 +428,7 @@ All six bindings ship from this repo:
 
 - **11.6 `@ts-maps/react-native`** — WebView-hosted `<MapView>`
 
-  bridged to the full `TsMap` API for native mobile apps.
+  bridged to the full `Map` API for native mobile apps.
 
 **Exit:** `npm create ts-maps@latest` scaffolds a demo app in any of the
 six frameworks.

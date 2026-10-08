@@ -1,7 +1,7 @@
 import * as Util from '../core/Util'
 import * as DomUtil from '../dom/DomUtil'
 import { Class } from '../core/Class'
-import { TsMap } from '../map/Map'
+import { Map } from '../map/Map'
 
 export class Control extends Class {
   _map: any
@@ -67,7 +67,7 @@ export class Control extends Class {
 
 Control.setDefaultOptions( { position: 'topright' })
 
-TsMap.include( {
+Map.include( {
   addControl(this: any, control: Control): any {
     control.addTo(this)
     return this

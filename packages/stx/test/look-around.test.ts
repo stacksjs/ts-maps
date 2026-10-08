@@ -1,6 +1,6 @@
 import type { StreetImage, StreetImageryProvider } from 'ts-maps'
 import { afterEach, describe, expect, test } from 'bun:test'
-import { metresBetween, styles, TsMap } from 'ts-maps'
+import { Map as MapInstance, metresBetween, styles } from 'ts-maps'
 import { mountChildren } from '../src/runtime'
 
 // A street running north from the Louvre, a picture every ~10 m.
@@ -44,7 +44,7 @@ describe('look-around child', () => {
     mapEl.style.width = '430px'
     mapEl.style.height = '800px'
     root.appendChild(mapEl)
-    const map = new TsMap(mapEl, { center: [48.8601, 2.3370], zoom: 17 })
+    const map = new MapInstance(mapEl, { center: [48.8601, 2.3370], zoom: 17 })
     map.setStyle(styles.light({ tiles: 'https://tiles.test/{z}/{x}/{y}.pbf' }))
 
     // LookAround written before Search: they are linked all the same.

@@ -40,7 +40,7 @@ export default function App() {
 
 ## Components
 
-- `<Map>`: owns the `TsMap`. Camera props (`center`, `zoom`, `bearing`, `pitch`), `style`, `locale`, `onLoad` (called with the map), and an `on` prop per map event (`onClick`, `onMoveEnd`, `onZoomEnd`, …).
+- `<Map>`: owns the `Map`. Camera props (`center`, `zoom`, `bearing`, `pitch`), `style`, `locale`, `onLoad` (called with the map), and an `on` prop per map event (`onClick`, `onMoveEnd`, `onZoomEnd`, …).
 - `<Marker>`, `<Popup>`, `<TileLayer>`.
 - `<Source>`, `<Layer>`: style-spec sources and layers.
 - Controls: `<ZoomControl>`, `<NavigationControl>`, `<GeocoderControl>`, `<FullscreenControl>`, `<LocateControl>`, `<ScaleControl>`, `<AttributionControl>`.
@@ -49,7 +49,7 @@ export default function App() {
 
 ## Hooks
 
-- `useMap()`: the current `TsMap`; throws outside a `<Map>`.
+- `useMap()`: the current `Map`; throws outside a `<Map>`.
 - `useMapOptional()`: the same, or `null` outside a map.
 - `useMapEvent(event, handler)`: subscribe to a map event, by its core name (`'moveend'`, `'style.load'`), for the life of the component.
 

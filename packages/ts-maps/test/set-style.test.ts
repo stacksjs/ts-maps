@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import type { Style as StyleSpec } from '../src/core-map/style-spec/types'
 
 function createContainer(): HTMLElement {
@@ -13,10 +13,10 @@ function createContainer(): HTMLElement {
 const cleanup: HTMLElement[] = []
 afterEach(() => { for (const c of cleanup.splice(0)) c.remove() })
 
-function makeMap(opts?: Record<string, unknown>): TsMap {
+function makeMap(opts?: Record<string, unknown>): Map {
   const c = createContainer()
   cleanup.push(c)
-  return new TsMap(c, { center: [0, 0], zoom: 4, ...(opts ?? {}) })
+  return new Map(c, { center: [0, 0], zoom: 4, ...(opts ?? {}) })
 }
 
 const minimalStyle: StyleSpec = {
@@ -60,7 +60,7 @@ describe('map.setStyle', () => {
   test('style.load is heard when the style comes with the constructor', async () => {
     const container = createContainer()
     cleanup.push(container)
-    const map = new TsMap(container, { center: [0, 0], zoom: 4, style: minimalStyle })
+    const map = new Map(container, { center: [0, 0], zoom: 4, style: minimalStyle })
     let heard = 0
     map.on('style.load', () => heard++)
     await Promise.resolve()

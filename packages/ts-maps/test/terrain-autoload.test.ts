@@ -6,18 +6,18 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map/map/index'
+import { Map } from '../src/core-map/map/index'
 
 describe('Map terrain auto-load', () => {
   let container: HTMLElement
-  let map: TsMap
+  let map: Map
 
   beforeEach(() => {
     container = document.createElement('div')
     container.style.width = '300px'
     container.style.height = '200px'
     document.body.appendChild(container)
-    map = new TsMap(container, { center: [0, 0], zoom: 3 })
+    map = new Map(container, { center: [0, 0], zoom: 3 })
   })
 
   afterEach(() => {

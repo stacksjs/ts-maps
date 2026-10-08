@@ -26,7 +26,7 @@ function fakeFeature(props: Record<string, unknown>, type: 1 | 2 | 3 = 3, id?: n
   } as unknown as VectorTileFeature
 }
 
-// Thin driver to avoid having to stand up a TsMap + tile pipeline just
+// Thin driver to avoid having to stand up a Map + tile pipeline just
 // to check filter semantics. Builds a minimal MVT layer with the features
 // under test, then asks `queryRenderedFeatures` to iterate them.
 function runFilter(filter: unknown, features: VectorTileFeature[]): VectorTileFeature[] {
@@ -39,7 +39,7 @@ function runFilter(filter: unknown, features: VectorTileFeature[]): VectorTileFe
     filter,
   }
   ;(layer as any)._styleLayers = [styleLayer]
-  ;(layer as any)._decodedTiles = new Map([[
+  ;(layer as any)._decodedTiles = new globalThis.Map([[
     {} as HTMLCanvasElement,
     {
       canvas: {} as HTMLCanvasElement,

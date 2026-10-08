@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { control, IndoorMap, loadIMDF, searchIndoor, styles, TsMap, unzip } from '../src/core-map'
+import { control, IndoorMap, loadIMDF, searchIndoor, styles, Map, unzip } from '../src/core-map'
 import { evaluate } from '../src/core-map/style-spec/expressions'
 
 // A two-level terminal at SFO, in IMDF: a venue, two levels, a few units,
@@ -109,12 +109,12 @@ describe('loadIMDF', () => {
   })
 })
 
-function makeMap(zoom: number): TsMap {
+function makeMap(zoom: number): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView([Y + 0.001, X + 0.001], zoom)
   map.setStyle(styles.light({ tiles: 'https://tiles.test/{z}/{x}/{y}.pbf' }))
   return map

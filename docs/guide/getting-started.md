@@ -54,13 +54,13 @@ the one people forget: an empty `<div>` is 0px tall.
 
 ## 2. The map
 
-In `main.ts`, import the stylesheet and create a `TsMap` in the container:
+In `main.ts`, import the stylesheet and create a `Map` in the container:
 
 ```ts
 import 'ts-maps/styles.css'
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -84,9 +84,9 @@ buttons are on by default; `zoomControl: false` removes them.
 A few more options you can pass:
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 14,
   minZoom: 3,
@@ -258,14 +258,14 @@ The [Style spec example](../examples/04-style-spec.md) adds a polygon on
 ```ts
 import type { LatLng } from 'ts-maps'
 import 'ts-maps/styles.css'
-import { Marker, popup, styles, TsMap } from 'ts-maps'
+import { Map, Marker, popup, styles } from 'ts-maps'
 
 interface CafeClick {
   latlng: LatLng
   features: Array<{ feature: { properties: { name: string } } }>
 }
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

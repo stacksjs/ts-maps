@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { StreetImage, StreetImageryProvider } from '../src/core-map'
-import { bearingBetween, control, LookAround, MapillaryImagery, metresBetween, panoramaU, PanoramaxImagery, stepsFrom, stepToward, styles, TsMap } from '../src/core-map'
+import { bearingBetween, control, LookAround, MapillaryImagery, metresBetween, panoramaU, PanoramaxImagery, stepsFrom, stepToward, styles, Map } from '../src/core-map'
 
 const TILES = 'https://tiles.test/{z}/{x}/{y}.pbf'
 
@@ -42,12 +42,12 @@ function fakeProvider(images: StreetImage[] = STREET): StreetImageryProvider & {
   }
 }
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 600 })
   Object.defineProperty(container, 'clientHeight', { value: 400 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false, locale: 'en' })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false, locale: 'en' })
   map.setView([48.8601, 2.3370], 17)
   map.setStyle(styles.light({ tiles: TILES }))
   return map

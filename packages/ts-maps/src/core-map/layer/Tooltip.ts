@@ -2,7 +2,7 @@ import * as Util from '../core/Util'
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { Point } from '../geometry/Point'
-import { TsMap } from '../map/Map'
+import { Map } from '../map/Map'
 import { DivOverlay } from './DivOverlay'
 import { FeatureGroup } from './FeatureGroup'
 import { Layer } from './Layer'
@@ -140,7 +140,7 @@ declare module './Layer' {
   }
 }
 
-TsMap.include( {
+Map.include( {
   openTooltip(this: any, tooltip: any, latlng?: any, options?: any) {
     this._initOverlay(Tooltip, tooltip, latlng, options).openOn(this)
     return this

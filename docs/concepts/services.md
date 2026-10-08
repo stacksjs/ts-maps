@@ -199,10 +199,10 @@ Elevation tiles on the map itself are in [Terrain](./terrain.md).
 `RouteBuilder` is the logic behind "tap the map to draw a route", with no UI attached: waypoints, the line between each pair (along real paths through a router, or straight), undo, closing the loop and out-and-back.
 
 ```ts
-import { polyline, TsMap } from 'ts-maps'
+import { Map, polyline } from 'ts-maps'
 import { climb, directionsRouter, resamplePath, RouteBuilder, ValhallaDirections, ValhallaElevation } from 'ts-maps/services'
 
-const map = new TsMap('map', { center: [37.7749, -122.4194], zoom: 14 })
+const map = new Map('map', { center: [37.7749, -122.4194], zoom: 14 })
 const line = polyline([], { color: '#2563eb', weight: 4 }).addTo(map)
 
 const builder = new RouteBuilder({ router: directionsRouter(new ValhallaDirections(), 'walking') })
@@ -227,9 +227,9 @@ Taps made while a segment is still routing are queued, so fast tapping draws in 
 `turnByTurn(map)` is navigation after Apple Maps: route options, then guidance with a banner, a voice, and a camera that follows from behind.
 
 ```ts
-import { styles, TsMap, turnByTurn } from 'ts-maps'
+import { Map, styles, turnByTurn } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [37.7993, -122.4219],
   zoom: 13,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

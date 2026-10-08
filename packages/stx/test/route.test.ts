@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { CircleMarker, divIcon, marker, Polyline, styles, TsMap } from 'ts-maps'
+import { CircleMarker, divIcon, Map as MapInstance, marker, Polyline, styles } from 'ts-maps'
 import { basemapStyle, drawRoute, pageTheme, RASTER_FALLBACK, resolveTileJson, routeMarkerHtml, watchPageTheme } from '../src/route'
 import { attachBasemap, mapOptionsFrom, mountChildren } from '../src/runtime'
 
@@ -140,7 +140,7 @@ describe('pageTheme', () => {
 describe('drawRoute', () => {
   test('draws casing, line, markers, finish and start, and removes them all', () => {
     const { root, el } = mapElement()
-    const map = new TsMap(el, { center: [32.78, -117.24], zoom: 12 })
+    const map = new MapInstance(el, { center: [32.78, -117.24], zoom: 12 })
     const route = drawRoute(maps, map, LOOP, { markers: [{ lat: 32.79, lng: -117.25, label: '5' }], fit: false })
     expect(el.querySelectorAll('.ts-map-route-marker').length).toBe(1)
     expect(el.querySelector('.ts-map-route-marker')?.textContent).toBe('5')
@@ -157,7 +157,7 @@ describe('drawRoute', () => {
 
   test('frames the route', () => {
     const { root, el } = mapElement()
-    const map = new TsMap(el, { center: [0, 0], zoom: 2 })
+    const map = new MapInstance(el, { center: [0, 0], zoom: 2 })
     const route = drawRoute(maps, map, LOOP)
     const centre = map.getCenter()
     expect(centre.lat).toBeGreaterThan(32.7)
@@ -173,7 +173,7 @@ describe('drawRoute', () => {
 
   test('replaces the route in place, and ignores points that are not coordinates', () => {
     const { root, el } = mapElement()
-    const map = new TsMap(el, { center: [0, 0], zoom: 2 })
+    const map = new MapInstance(el, { center: [0, 0], zoom: 2 })
     const route = drawRoute(maps, map, [], { fit: false })
     route.setRoute([[32.77, -117.25], [Number.NaN, 1] as any, [32.79, -117.25]], [{ lat: 32.78, lng: -117.25, label: '1' }])
     expect(el.querySelectorAll('.ts-map-route-marker').length).toBe(1)
@@ -192,7 +192,7 @@ describe('drawRoute', () => {
 describe('route child', () => {
   test('is built from markup and handed to the page', () => {
     const { root, el } = mapElement()
-    const map = new TsMap(el, { center: [0, 0], zoom: 2 })
+    const map = new MapInstance(el, { center: [0, 0], zoom: 2 })
     root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="route" data-coords='${JSON.stringify(LOOP)}' data-options='${JSON.stringify({ theme: 'light', markers: [{ lat: 32.79, lng: -117.25, label: '2' }] })}'></span>`)
     let handed: any = null
     root.addEventListener('route:ready', (e: any) => {

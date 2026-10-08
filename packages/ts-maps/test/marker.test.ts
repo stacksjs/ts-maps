@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { Marker, TsMap } from '../src/core-map'
+import { Marker, Map } from '../src/core-map'
 
 describe('Marker', () => {
   test('has _icon defined after being added to the map', () => {
@@ -8,7 +8,7 @@ describe('Marker', () => {
     container.style.height = '600px'
     document.body.appendChild(container)
 
-    const map = new TsMap(container)
+    const map = new Map(container)
     map.setView([0, 0], 5)
 
     const marker = new Marker([0, 0])
@@ -21,7 +21,7 @@ describe('Marker', () => {
   test('a draggable marker can be added to the map', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
-    const map = new TsMap(container)
+    const map = new Map(container)
     map.setView([0, 0], 5)
 
     // The drag handler's marker used to be a class field, reset to undefined

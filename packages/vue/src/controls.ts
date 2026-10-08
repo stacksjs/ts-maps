@@ -7,10 +7,10 @@ import { useMap } from './useMap'
  * Declarative wrappers for the map's controls.
  *
  * ```vue
- * <TsMap :center="[34.02, -118.47]" :zoom="14">
+ * <MapInstance :center="[34.02, -118.47]" :zoom="14">
  *   <TsNavigationControl position="topright" show-compass />
  *   <TsGeocoderControl placeholder="Search for a place" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * `LayersControl` is deliberately absent: it takes dictionaries of live layer

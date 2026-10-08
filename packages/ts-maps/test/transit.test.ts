@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { Route } from '../src/core-map/services/types'
-import { styles, transitSummary, TsMap, TurnByTurn } from '../src/core-map'
+import { styles, transitSummary, Map, TurnByTurn } from '../src/core-map'
 import { Point } from '../src/core-map/geometry/Point'
 import { decodePolyline, encodePolyline, OpenTripPlannerDirections, OSRMDirections, transitInstruction, transitRides, transitVehicle } from '../src/core-map/services'
 import { GoogleDirections } from '../src/core-map/services/providers/Google'
@@ -106,7 +106,7 @@ describe('transit in turn-by-turn', () => {
   test('the preview shows each ride as its line, and when it leaves and arrives', async () => {
     const el = document.createElement('div')
     document.body.appendChild(el)
-    const map = new TsMap(el, { center: [37.78, -122.45], zoom: 12 })
+    const map = new Map(el, { center: [37.78, -122.45], zoom: 12 })
     map._size = new Point(430, 860)
     map._sizeChanged = false
     map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)

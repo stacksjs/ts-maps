@@ -25,7 +25,7 @@ import {
   RunTrailLayer,
   TerritoryLayer,
   TerritoryStore,
-  TsMap,
+  Map,
 } from '../../packages/ts-maps/src/core-map'
 
 // --- Synthetic basemap ------------------------------------------------------
@@ -80,7 +80,7 @@ function gridTileLayer(): GridLayer {
 
 // --- The map ----------------------------------------------------------------
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: CENTER,
   zoom: 16,
   theme: 'dark',

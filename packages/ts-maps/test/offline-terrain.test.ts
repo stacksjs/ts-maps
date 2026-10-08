@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { MemoryOfflineStore, OfflineMaps, planArea, setOfflineMaps } from '../src/core-map/offline'
 import { latToUnit, lngToUnit } from '../src/core-map/offline/plan'
-import { TsMap } from '../src/core-map/map/index'
+import { Map } from '../src/core-map/map/index'
 
 // Yosemite Valley: terrain is the point of the place.
 const BOUNDS: [number, number, number, number] = [-119.60, 37.72, -119.55, 37.75]
 const DEM = 'https://dem.test/{z}/{x}/{y}.png'
 
-function terrainMap(source: Record<string, unknown> = {}): TsMap {
+function terrainMap(source: Record<string, unknown> = {}): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [37.74, -119.58], zoom: 12 })
+  const map = new Map(el, { center: [37.74, -119.58], zoom: 12 })
   map.setStyle({ version: 8, sources: { dem: { type: 'raster-dem', tiles: [DEM], maxzoom: 14, ...source } as any }, layers: [] })
   map.setTerrain({ source: 'dem' })
   return map

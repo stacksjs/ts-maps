@@ -12,9 +12,9 @@ Buildings, landmarks, sky and the globe are on [3D and the globe](./3d.md).
 [AWS Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) are free, need no key, and send CORS headers, which a DEM needs: its pixels are read back to be decoded.
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [45.992, 7.69], // Looking at the Matterhorn
   zoom: 13,
   pitch: 65,
@@ -85,9 +85,9 @@ The light stands 45° above the horizon. `hillshade-illumination-anchor` is acce
 Without a style, `rasterDEMLayer` is the same layer on its own:
 
 ```ts
-import { rasterDEMLayer, TsMap } from 'ts-maps'
+import { Map, rasterDEMLayer } from 'ts-maps'
 
-const map = new TsMap('map', { center: [45.9763, 7.6586], zoom: 12 })
+const map = new Map('map', { center: [45.9763, 7.6586], zoom: 12 })
 
 rasterDEMLayer('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png', {
   encoding: 'terrarium',

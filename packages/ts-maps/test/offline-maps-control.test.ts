@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { control, TileLayer, TsMap } from '../src/core-map'
+import { control, TileLayer, Map } from '../src/core-map'
 import { formatBytes, OFFLINE_MAPS_EVENTS, OfflineMapsControl } from '../src/core-map/control/OfflineMapsControl'
 import { MemoryOfflineStore, OfflineMaps, setOfflineMaps } from '../src/core-map/offline'
 
@@ -16,14 +16,14 @@ function tileServer() {
   }
 }
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '800px'
   container.style.height = '600px'
   Object.defineProperty(container, 'clientWidth', { value: 800 })
   Object.defineProperty(container, 'clientHeight', { value: 600 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false })
+  const map = new Map(container, { zoomAnimation: false })
   map.setView([37.78, -122.42], 15)
   new TileLayer('https://img.test/{z}/{x}/{y}.png').addTo(map)
   return map

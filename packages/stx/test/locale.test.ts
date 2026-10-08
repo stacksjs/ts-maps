@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { mapOptionsFrom, mountChildren } from '../src/runtime'
 
-function mapIn(root: HTMLElement, locale?: string): TsMap {
+function mapIn(root: HTMLElement, locale?: string): MapInstance {
   const mapEl = document.createElement('div')
   mapEl.style.width = '430px'
   mapEl.style.height = '800px'
   root.appendChild(mapEl)
-  return new TsMap(mapEl, mapOptionsFrom({ center: [37.79, -122.4], zoom: 15, locale }))
+  return new MapInstance(mapEl, mapOptionsFrom({ center: [37.79, -122.4], zoom: 15, locale }))
 }
 
 describe('locale', () => {

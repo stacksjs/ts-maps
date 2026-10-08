@@ -1,6 +1,6 @@
 import * as Util from '../core/Util'
 import { Evented } from '../core/Events'
-import { TsMap } from '../map/Map'
+import { Map } from '../map/Map'
 
 export class Layer extends Evented {
   declare _map?: any
@@ -65,7 +65,7 @@ export class Layer extends Evented {
 }
 
 declare module '../map/Map' {
-  interface TsMap {
+  interface Map {
     addLayer: (layer: Layer) => this
     removeLayer: (layer: Layer) => this
     hasLayer: (layer: Layer) => boolean
@@ -79,8 +79,8 @@ Layer.setDefaultOptions( {
   bubblingPointerEvents: true,
 })
 
-// Extend TsMap with layer-management methods.
-TsMap.include( {
+// Extend Map with layer-management methods.
+Map.include( {
   addLayer(this: any, layer: Layer): any {
     if (!(layer as any)._layerAdd)
     throw new Error('The provided object is not a Layer.')

@@ -65,7 +65,7 @@ The basic components grew separately, and these differences are real today:
 
 | | React | Vue | Svelte | Solid | stx | React Native |
 |---|---|---|---|---|---|---|
-| Map style | `style` prop, read once | `style` prop, read once | `style` prop, followed | `style` prop, followed | `basemap` + `tilejson`, or `styleSpec` | `styleSpec` prop |
+| Map style | `style` prop, followed | `style` prop, followed | `style` prop, followed | `style` prop, followed | `basemap` + `tilejson`, or `styleSpec` | `styleSpec` prop |
 | Container | `containerStyle`, `className` | `containerStyle`, `containerClass`, `class` | fills its parent; `containerStyle`, `class` | `containerStyle`, `class` | `containerStyle`, `className` | `style` |
 | Map events | `onMoveEnd` props | `@moveend` | `onMoveEnd` props | `onMoveEnd` props | `onMapEvent(el, …)` | `onMove`, `onClick` |
 | Map instance | `useMap()`, `onLoad` | `useMap()`, `@load-map`, template ref | `useMap()`, `onLoad` | `useMap()`, `onLoad` | `findMap(el)` | `onReady(api)` |

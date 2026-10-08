@@ -11,7 +11,7 @@
  * `?theme=dark`, `?select` to open the area picker straight away.
  */
 
-import { control, OfflineMaps, offlineMaps, setOfflineMaps, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, Map, OfflineMaps, offlineMaps, setOfflineMaps } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap, TILEJSON_SOURCES } from './basemap'
 
 // The page and its downloads, ready for a reload with the network off: the
@@ -25,7 +25,7 @@ const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
 const theme = (params.get('theme') as 'light' | 'dark' | null) ?? (prefersDark ? 'dark' : 'light')
 
-const map = new TsMap('map', { center: [37.7793, -122.4193], zoom: 13, theme, zoomControl: false })
+const map = new Map('map', { center: [37.7793, -122.4193], zoom: 13, theme, zoomControl: false })
 control.navigation().addTo(map)
 // The TileJSON is kept with each download, so the map can be rebuilt from it
 // with no connection.

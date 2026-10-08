@@ -1,8 +1,8 @@
-import { TsMap } from '../../map/Map'
+import { Map } from '../../map/Map'
 import { Canvas } from './Canvas'
 import { SVG } from './SVG'
 
-TsMap.include( {
+Map.include( {
   getRenderer(this: any, layer: any): any {
     let renderer = layer.options.renderer ?? this._getPaneRenderer(layer.options.pane) ?? this.options.renderer ?? this._renderer
     if (!renderer)

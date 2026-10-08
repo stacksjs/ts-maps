@@ -55,9 +55,9 @@ and create the map in it:
 
 ```ts
 import 'ts-maps/styles.css'
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5074, -0.1278], // [lat, lng]
   zoom: 12,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -111,7 +111,7 @@ The server-side entries are covered in
 
 ## Framework bindings
 
-Each binding wraps the same `TsMap`. The web bindings share component names
+Each binding wraps the same `Map`. The web bindings share component names
 and props: `Map`, `Marker`, `Popup`, `Source`, `Layer` and the controls. React
 Native has one `MapView` that runs the map in a WebView. All are versioned
 with `ts-maps` and depend on it.
@@ -189,9 +189,9 @@ can load it straight from a CDN:
 <body>
   <div id="map"></div>
   <script type="module">
-    import { Marker, styles, TsMap } from 'https://cdn.jsdelivr.net/npm/ts-maps@0.4/dist/index.js'
+    import { Marker, styles, Map } from 'https://cdn.jsdelivr.net/npm/ts-maps@0.4/dist/index.js'
 
-    const map = new TsMap('map', {
+    const map = new Map('map', {
       center: [48.8584, 2.2945],
       zoom: 15,
       style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -219,7 +219,7 @@ first:
   }
 </script>
 <script type="module">
-  import { styles, TsMap } from 'ts-maps'
+  import { Map, styles } from 'ts-maps'
 </script>
 ```
 
@@ -253,7 +253,7 @@ declare module '*.css'
 ```
 
 Positions are `[lat, lng]` tuples or `LatLng` objects everywhere in the
-`TsMap` API. GeoJSON, as always, is `[lng, lat]`.
+`Map` API. GeoJSON, as always, is `[lng, lat]`.
 
 ## Requirements
 

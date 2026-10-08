@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { rasterCssFilter, rasterLayerAt, rasterPaintValue, StyleRasterLayer } from '../src/core-map/layer/tile/StyleRasterLayer'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 const RELIEF = { type: 'raster' as const, tiles: ['https://example.com/relief/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 6 }
 
-function makeMap(layers: any[], zoom = 3): TsMap {
+function makeMap(layers: any[], zoom = 3): Map {
   const container = document.createElement('div')
   document.body.appendChild(container)
-  return new TsMap(container, {
+  return new Map(container, {
     center: [40, 0],
     zoom,
     zoomAnimation: false,
@@ -16,7 +16,7 @@ function makeMap(layers: any[], zoom = 3): TsMap {
   })
 }
 
-function host(map: TsMap): StyleRasterLayer | undefined {
+function host(map: Map): StyleRasterLayer | undefined {
   return map._style!.sourceLayers.get('relief') as StyleRasterLayer | undefined
 }
 

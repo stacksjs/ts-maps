@@ -1,8 +1,8 @@
 import * as DomUtil from '../../dom/DomUtil'
 import { Handler } from '../../core/Handler'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions({
+Map.mergeOptions({
   cooperativeGestures: false,
 })
 
@@ -148,4 +148,4 @@ function isApple(): boolean {
   return /mac|iphone|ipad|ipod/i.test(platform)
 }
 
-TsMap.addInitHook('addHandler', 'cooperativeGestures', CooperativeGesturesHandler)
+Map.addInitHook('addHandler', 'cooperativeGestures', CooperativeGesturesHandler)

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { Pbf } from '../src/core-map/proto/Pbf'
 import { WebGLTileRenderer } from '../src/core-map/renderer/webgl/WebGLTileRenderer'
 import { validateStyle } from '../src/core-map/style-spec'
@@ -49,7 +49,7 @@ function createStubGL(): StubGL {
   let shaderSeq = 0
   let programSeq = 0
   let bufferSeq = 0
-  const bufferData: Map<any, Float32Array> = new Map()
+  const bufferData: globalThis.Map<any, Float32Array> = new globalThis.Map()
 
   const gl: StubGL = {
     VERTEX_SHADER: 35633,
@@ -338,7 +338,7 @@ function createContainer(): HTMLElement {
   return container
 }
 
-function stampSize(map: TsMap, width: number, height: number): void {
+function stampSize(map: Map, width: number, height: number): void {
   map._size = new Point(width, height)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
@@ -363,7 +363,7 @@ describe('fill-extrusion style layer pipeline', () => {
     const bytes = encodeBuildingTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({

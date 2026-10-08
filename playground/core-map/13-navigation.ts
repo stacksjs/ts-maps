@@ -9,7 +9,7 @@
  * away, and `?from=lat,lng&to=lat,lng` change the trip.
  */
 
-import { control, TsMap, turnByTurn } from '../../packages/ts-maps/src/core-map'
+import { control, Map, turnByTurn } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
@@ -20,7 +20,7 @@ const point = (value: string | null, fallback: [number, number]): { lat: number,
   return { lat: lat!, lng: lng! }
 }
 
-const map = new TsMap('map', { center: [37.7793, -122.4193], zoom: 13, theme, zoomControl: false })
+const map = new Map('map', { center: [37.7793, -122.4193], zoom: 13, theme, zoomControl: false })
 control.navigation().addTo(map)
 
 void loadBasemap(map, theme)

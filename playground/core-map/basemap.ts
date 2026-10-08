@@ -6,7 +6,7 @@
  * CARTO's raster tiles behind both, so a demo always has a map.
  */
 
-import type { TsMap } from '../../packages/ts-maps/src/core-map'
+import type { Map } from '../../packages/ts-maps/src/core-map'
 import { offlineFetch, resolveTileJSON, styles } from '../../packages/ts-maps/src/core-map'
 
 export const TILEJSON_SOURCES: string[] = [
@@ -30,7 +30,7 @@ function networkFirst(url: string | URL | Request, init?: RequestInit): Promise<
  * to the vector tiles found, for building other styles from, or undefined
  * when only the raster fallback answered.
  */
-export async function loadBasemap(map: TsMap, theme: 'light' | 'dark'): Promise<{ tiles: string, maxzoom: number, attribution: string } | undefined> {
+export async function loadBasemap(map: Map, theme: 'light' | 'dark'): Promise<{ tiles: string, maxzoom: number, attribution: string } | undefined> {
   const build = theme === 'dark' ? styles.dark : styles.light
   const found = await resolveTileJSON(TILEJSON_SOURCES, { fetch: networkFirst as typeof fetch })
   if (!found) {

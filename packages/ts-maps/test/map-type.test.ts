@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { control, MAP_TYPE_EVENTS, mapTypes, styles, TsMap } from '../src/core-map'
+import { control, MAP_TYPE_EVENTS, mapTypes, styles, Map } from '../src/core-map'
 import { planArea } from '../src/core-map/offline'
 import { validateStyle } from '../src/core-map/style-spec/validate'
 
 const TILES = 'https://tiles.test/{z}/{x}/{y}.pbf'
 const IMAGERY = 'https://imagery.test/{z}/{y}/{x}.jpg'
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView([37.78, -122.42], 14)
   return map
 }

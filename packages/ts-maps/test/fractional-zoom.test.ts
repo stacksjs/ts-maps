@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { TileLayer } from '../src/core-map/layer/tile/TileLayer'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const container = document.createElement('div')
@@ -13,13 +13,13 @@ function createContainer(): HTMLElement {
 describe('fractional zoom', () => {
   test('zoomSnap defaults to 0 (fractional zoom on)', () => {
     const container = createContainer()
-    const map = new TsMap(container)
+    const map = new Map(container)
     expect(map.options.zoomSnap).toBe(0)
   })
 
   test('setView with a fractional zoom preserves the exact value', () => {
     const container = createContainer()
-    const map = new TsMap(container, { zoomSnap: 0 })
+    const map = new Map(container, { zoomSnap: 0 })
     map.setView([0, 0], 3.5)
 
     expect(map.getZoom()).toBe(3.5)
@@ -43,7 +43,7 @@ describe('fractional zoom', () => {
 
   test('getZoomScale between fractional display zoom and integer tile zoom', () => {
     const container = createContainer()
-    const map = new TsMap(container, { zoomSnap: 0 })
+    const map = new Map(container, { zoomSnap: 0 })
     map.setView([0, 0], 3.5)
 
     // Display zoom 3.5 with tile zoom 3 should scale the tile container by
@@ -53,7 +53,7 @@ describe('fractional zoom', () => {
 
   test('zoomSnap: 1 (classic Leaflet) still snaps to integers via _limitZoom', () => {
     const container = createContainer()
-    const map = new TsMap(container, { zoomSnap: 1 })
+    const map = new Map(container, { zoomSnap: 1 })
     map.setView([0, 0], 3.5)
 
     expect(map.getZoom()).toBe(4)

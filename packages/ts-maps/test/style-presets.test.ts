@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { styles, TsMap } from '../src/core-map'
+import { styles, Map } from '../src/core-map'
 import { validateStyle } from '../src/core-map/style-spec/validate'
 
 const TILES = 'https://example.test/tiles/{z}/{x}/{y}.pbf'
@@ -14,12 +14,12 @@ async function flush(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 0))
 }
 
-function makeMap(options: Record<string, unknown> = {}): TsMap {
+function makeMap(options: Record<string, unknown> = {}): Map {
   const container = document.createElement('div')
   container.style.width = '400px'
   container.style.height = '400px'
   document.body.appendChild(container)
-  return new TsMap(container, { zoomAnimation: false, ...options })
+  return new Map(container, { zoomAnimation: false, ...options })
 }
 
 describe('built-in basemap styles', () => {
@@ -193,12 +193,12 @@ describe('setStyle with a URL', () => {
 })
 
 describe('backdrop colour', () => {
-  function makeMap(options: Record<string, unknown> = {}): TsMap {
+  function makeMap(options: Record<string, unknown> = {}): Map {
     const container = document.createElement('div')
     container.style.width = '400px'
     container.style.height = '400px'
     document.body.appendChild(container)
-    return new TsMap(container, { zoomAnimation: false, ...options })
+    return new Map(container, { zoomAnimation: false, ...options })
   }
 
   test('the container takes the style\'s background colour', () => {
@@ -267,7 +267,7 @@ describe('overzooming past a source\'s top zoom', () => {
     container.style.width = '400px'
     container.style.height = '400px'
     document.body.appendChild(container)
-    const map = new TsMap(container, { zoomAnimation: false, maxZoom: 20, ...options, style })
+    const map = new Map(container, { zoomAnimation: false, maxZoom: 20, ...options, style })
     return { map, host: (map as any)._style.sourceLayers.get('basemap') }
   }
 

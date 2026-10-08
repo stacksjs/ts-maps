@@ -7,9 +7,9 @@
  * desk; without it, the device's position does.
  */
 
-import { styles, TsMap, turnByTurn } from '../../packages/ts-maps/src/core-map'
+import { Map, styles, turnByTurn } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [37.7993, -122.4219],
   zoom: 13,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

@@ -8,7 +8,7 @@ import {
   sampleElevationBilinear,
   TerrainSource,
 } from '../src/core-map/geo/index'
-import { TsMap } from '../src/core-map/map/index'
+import { Map } from '../src/core-map/map/index'
 import { WebGLTileRenderer } from '../src/core-map/renderer/webgl/index'
 
 // ---------------------------------------------------------------------------
@@ -218,19 +218,19 @@ describe('TerrainSource', () => {
 })
 
 // ---------------------------------------------------------------------------
-// TsMap.setTerrain / getTerrain / queryTerrainElevation
+// Map.setTerrain / getTerrain / queryTerrainElevation
 // ---------------------------------------------------------------------------
 
-describe('TsMap terrain API', () => {
+describe('Map terrain API', () => {
   let container: HTMLElement
-  let map: TsMap
+  let map: Map
 
   beforeEach(() => {
     container = document.createElement('div')
     container.style.width = '300px'
     container.style.height = '200px'
     document.body.appendChild(container)
-    map = new TsMap(container, { center: [0, 0], zoom: 3 })
+    map = new Map(container, { center: [0, 0], zoom: 3 })
   })
 
   afterEach(() => {

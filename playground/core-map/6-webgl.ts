@@ -7,7 +7,7 @@
  */
 
 import type { VectorTileStyleLayer } from '../../packages/ts-maps/src/core-map'
-import { TsMap, vectorTileLayer } from '../../packages/ts-maps/src/core-map'
+import { Map, vectorTileLayer } from '../../packages/ts-maps/src/core-map'
 import { Pbf } from '../../packages/ts-maps/src/core-map/proto/Pbf'
 
 function zz(n: number): number { return (n << 1) ^ (n >> 31) }
@@ -107,7 +107,7 @@ window.fetch = function (input: RequestInfo | URL, init?: RequestInit): Promise<
   return original(input, init)
 } as typeof fetch
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [0, 0],
   zoom: 4,
   minZoom: 1,

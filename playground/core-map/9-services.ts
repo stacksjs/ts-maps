@@ -10,11 +10,11 @@ import {
   Marker,
   Polyline,
   services,
-  TsMap,
+  Map,
 } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5074, -0.1278],
   zoom: 12,
   minZoom: 2,

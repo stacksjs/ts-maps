@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
 import { VectorTileMapLayer } from '../src/core-map/layer/tile/VectorTileMapLayer'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import '../src/core-map/map/handler/ScrollWheelZoomHandler'
 
 // A slow trackpad zoom is dozens of frames a fraction of a pixel apart. Any
@@ -35,10 +35,10 @@ function pump(ms = 16): void {
   for (const cb of due) cb(clock)
 }
 
-function makeMap(options: Record<string, unknown> = {}): TsMap {
+function makeMap(options: Record<string, unknown> = {}): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [39.74, -104.99], zoom: 10, ...options })
+  const map = new Map(el, { center: [39.74, -104.99], zoom: 10, ...options })
   map._size = new Point(800, 600)
   map._sizeChanged = false
   map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)
@@ -48,7 +48,7 @@ function makeMap(options: Record<string, unknown> = {}): TsMap {
 // The DOM under test has no `onwheel`, so the map listens for `mousewheel`.
 const WHEEL = 'onwheel' in window ? 'wheel' : 'mousewheel'
 
-function wheel(map: TsMap, at: Point, deltaY: number): WheelEvent {
+function wheel(map: Map, at: Point, deltaY: number): WheelEvent {
   const e = new WheelEvent(WHEEL, { deltaY, deltaMode: 0, clientX: at.x, clientY: at.y, bubbles: true, cancelable: true })
   map.getContainer().dispatchEvent(e)
   return e
@@ -98,7 +98,7 @@ describe('slow scroll-wheel zoom', () => {
 })
 
 describe('label projection', () => {
-  function layerOn(map: TsMap): VectorTileMapLayer {
+  function layerOn(map: Map): VectorTileMapLayer {
     const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 512 })
     ;(layer as any)._map = map
     return layer

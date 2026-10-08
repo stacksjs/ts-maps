@@ -1,6 +1,6 @@
 # React
 
-`@ts-maps/react` wraps ts-maps in React components. `<Map>` builds a `TsMap`
+`@ts-maps/react` wraps ts-maps in React components. `<Map>` builds a `Map`
 when it mounts and gives it to its children through context; every other
 component adds one thing to that map and removes it when it unmounts. For
 what the bindings share, see [Framework bindings](./framework-bindings.md).
@@ -55,8 +55,9 @@ That draws [OpenFreeMap](https://openfreemap.org)'s planet, free and keyless.
 The examples below reuse `basemap`.
 
 - `center` is `[lat, lng]`.
-- `style` is the map's style: a style object, or the URL of one. It is read
-  when the map is built. To change it later, call `map.setStyle()`.
+- `style` is the map's style: a style object, or the URL of one. Give it a
+  different one and the map changes style; the same style again, even as a
+  new object, is left alone.
 - `containerStyle` and `className` go on the container `<div>`. Give it a
   height; a map in a container with no height draws nothing.
 
@@ -353,7 +354,7 @@ and tooltip events.
 
 Three names differ from the pattern:
 
-- `onLoad` is not the map's `load` event. It is called once with the `TsMap`,
+- `onLoad` is not the map's `load` event. It is called once with the `Map`,
   right after the map is built.
 - `onLoadEvent` is the map's `load` event. A map that loaded while it was
   being built calls it once, just after the prop is bound.
@@ -384,13 +385,13 @@ A new handler on each render is bound again, which is cheap; wrap it in
 
 ## Reaching the map
 
-`onLoad` hands the `TsMap` to the component that renders `<Map>`:
+`onLoad` hands the `Map` to the component that renders `<Map>`:
 
 ```tsx
-import type { TsMap } from 'ts-maps'
+import type { Map } from 'ts-maps'
 
 export function App() {
-  const [map, setMap] = useState<TsMap>()
+  const [map, setMap] = useState<Map>()
   return (
     <>
       <Map center={[40.758, -73.9855]} zoom={13} style={basemap} containerStyle={{ height: 480 }} onLoad={setMap} />

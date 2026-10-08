@@ -7,7 +7,7 @@ The same OpenMapTiles planet the basemap draws, with a style of our own: a backg
 [Open it full screen](/playground/examples/03-vector-tile.html) · [Edit and run it](/playground/examples/edit.html?example=03-vector-tile) · Full source: [`03-vector-tile.ts`](./03-vector-tile.ts)
 
 ```ts
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5072, -0.1276],
   zoom: 15,
   style: {

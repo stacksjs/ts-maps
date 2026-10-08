@@ -2,7 +2,7 @@ import type { Style as StyleSpecification } from '../src/core-map/style-spec/typ
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
 import { VectorTileMapLayer } from '../src/core-map/layer/tile/VectorTileMapLayer'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { activeOfflineMaps, MemoryOfflineStore, OfflineMaps, offlineFetch, setOfflineMaps } from '../src/core-map/offline'
 import {
   clearPMTilesArchives,
@@ -166,7 +166,7 @@ function createTile(layer: any, c: Point & { z: number }): { canvas: HTMLCanvasE
 function layerOn(options: Record<string, unknown> = {}): any {
   const container = document.createElement('div')
   document.body.appendChild(container)
-  const map = new TsMap(container, { center: [0, 0], zoom: 4 })
+  const map = new Map(container, { center: [0, 0], zoom: 4 })
   const layer: any = new VectorTileMapLayer({
     url: SOURCE,
     workers: false,
@@ -238,7 +238,7 @@ describe('the interactive map', () => {
       install(host(await build()))
       const container = document.createElement('div')
       document.body.appendChild(container)
-      const map = new TsMap(container, {
+      const map = new Map(container, {
         zoomAnimation: false,
         fadeAnimation: false,
         style: {

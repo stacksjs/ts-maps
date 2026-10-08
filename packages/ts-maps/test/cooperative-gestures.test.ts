@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { CooperativeGesturesHandler } from '../src/core-map/map/handler/CooperativeGesturesHandler'
 import '../src/core-map/map/handler/DragHandler'
 import '../src/core-map/map/handler/ScrollWheelZoomHandler'
@@ -33,11 +33,11 @@ function settle(): void {
   }
 }
 
-function makeMap(options: Record<string, unknown> = {}): TsMap {
+function makeMap(options: Record<string, unknown> = {}): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
   containers.push(el)
-  const map = new TsMap(el, { center: [39.74, -104.99], zoom: 10, ...options })
+  const map = new Map(el, { center: [39.74, -104.99], zoom: 10, ...options })
   map._size = new Point(800, 600)
   map._sizeChanged = false
   return map
@@ -46,14 +46,14 @@ function makeMap(options: Record<string, unknown> = {}): TsMap {
 // The DOM under test has no `onwheel`, so the map listens for `mousewheel`.
 const WHEEL = 'onwheel' in window ? 'wheel' : 'mousewheel'
 
-function wheel(map: TsMap, init: WheelEventInit = {}): WheelEvent {
+function wheel(map: Map, init: WheelEventInit = {}): WheelEvent {
   const e = new WheelEvent(WHEEL, { deltaY: -120, deltaMode: 0, clientX: 400, clientY: 300, bubbles: true, cancelable: true, ...init })
   map.getContainer().dispatchEvent(e)
   settle()
   return e
 }
 
-function hint(map: TsMap): HTMLElement | null {
+function hint(map: Map): HTMLElement | null {
   return map.getContainer().querySelector('.tsmap-cooperative-hint')
 }
 

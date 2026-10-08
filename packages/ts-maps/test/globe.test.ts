@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { Globe } from '../src/core-map/geo/projection/Projection.Globe'
 import { LatLng } from '../src/core-map/geo/LatLng'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { Point } from '../src/core-map/geometry/Point'
 
 describe('Globe projection — unit-sphere conversion', () => {
@@ -76,7 +76,7 @@ describe('Globe atmosphere halo overlay', () => {
   }
 
   test('paints a radial atmosphere gradient while inside the globe zoom window', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     map._size = new Point(400, 400)
     map._sizeChanged = false
     ;(map.options as any).projection = 'globe'
@@ -88,7 +88,7 @@ describe('Globe atmosphere halo overlay', () => {
   })
 
   test('cross-fades away once zoom is past the Mercator threshold', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 8 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 8 })
     map._size = new Point(400, 400)
     map._sizeChanged = false
     ;(map.options as any).projection = 'globe'
@@ -99,19 +99,19 @@ describe('Globe atmosphere halo overlay', () => {
   })
 
   test('_isGlobeProjection detects options.projection === "globe"', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     ;(map.options as any).projection = 'globe'
     expect(map._isGlobeProjection()).toBe(true)
   })
 })
 
 describe('runtime projection switching', () => {
-  function makeMap(options: Record<string, unknown> = {}): TsMap {
+  function makeMap(options: Record<string, unknown> = {}): Map {
     const container = document.createElement('div')
     container.style.width = '400px'
     container.style.height = '400px'
     document.body.appendChild(container)
-    const map = new TsMap(container, { zoomAnimation: false, ...options })
+    const map = new Map(container, { zoomAnimation: false, ...options })
     map.setView([0, 0], 3)
     return map
   }

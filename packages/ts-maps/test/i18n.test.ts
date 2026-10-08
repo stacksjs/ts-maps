@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { DirectionsOptions, LatLngLike, Route, TransitDetails } from '../src/core-map/services/types'
-import { control, IndoorMap, mapTypes, TileLayer, TsMap } from '../src/core-map'
+import { control, IndoorMap, mapTypes, TileLayer, Map } from '../src/core-map'
 import { areaSize, formatBytes } from '../src/core-map/control/OfflineMapsControl'
 import { Point } from '../src/core-map/geometry/Point'
 import { formatDate, formatNumber, message } from '../src/core-map/i18n'
@@ -11,12 +11,12 @@ import { transitInstruction, walkInstruction } from '../src/core-map/services/tr
 const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
 const fetchTile = async (): Promise<Response> => new Response(PNG as unknown as BodyInit, { status: 200, headers: { 'content-type': 'image/png' } })
 
-function makeMap(options: Record<string, unknown> = {}): TsMap {
+function makeMap(options: Record<string, unknown> = {}): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 800 })
   Object.defineProperty(container, 'clientHeight', { value: 600 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false, ...options })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false, ...options })
   map.setView([37.78, -122.42], 15)
   return map
 }
@@ -193,7 +193,7 @@ describe('the smaller controls', () => {
       bounds: [-122.421, 37.779, -122.419, 37.781] as [number, number, number, number],
       center: { lat: 37.78, lng: -122.42 },
       levels: [{ id: 'l0', ordinal: 0, name: 'Arrivals', shortName: '1' }, { id: 'l1', ordinal: 1, name: 'Departures', shortName: '2' }],
-      features: new Map(),
+      features: new globalThis.Map(),
       places: [],
     }
     const de = new IndoorMap({ venue: venue as any, locale: 'de' }).addTo(map)
@@ -216,10 +216,10 @@ describe('turn-by-turn', () => {
     ],
   }
 
-  function navMap(options: Record<string, unknown> = {}): TsMap {
+  function navMap(options: Record<string, unknown> = {}): Map {
     const el = document.createElement('div')
     document.body.appendChild(el)
-    const map = new TsMap(el, { center: [0.005, 0], zoom: 15, ...options })
+    const map = new Map(el, { center: [0.005, 0], zoom: 15, ...options })
     map._size = new Point(430, 860)
     map._sizeChanged = false
     map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { GltfJson } from '../src/core-map'
-import { landmark, loadModel, modelFromGltf, parseGLB, plantTrees, roofOf, styles, treeKind, trees, TsMap } from '../src/core-map'
+import { landmark, loadModel, modelFromGltf, parseGLB, plantTrees, roofOf, styles, treeKind, trees, Map } from '../src/core-map'
 import { landmarkDraws, replacedPoints } from '../src/core-map/landmarks/Landmark'
 import { sceneOf } from '../src/core-map/landmarks/scene'
 import { buildTreeMesh } from '../src/core-map/landmarks/trees'
@@ -9,12 +9,12 @@ import { buildBuildingMesh, readBuildingVertex } from '../src/core-map/renderer/
 
 const SF: [number, number] = [37.7952, -122.4028]
 
-function makeMap(zoom = 17): TsMap {
+function makeMap(zoom = 17): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 800 })
   Object.defineProperty(container, 'clientHeight', { value: 600 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView(SF, zoom)
   return map
 }

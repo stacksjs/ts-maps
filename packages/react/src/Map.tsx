@@ -1,8 +1,7 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react'
-import type { TsMap as TsMapInstance } from 'ts-maps'
 import type { MapEventProps } from './eventProps'
 import { useEffect, useRef, useState } from 'react'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { EVENT_PROPS } from './eventProps'
 import { MapContext } from './MapContext'
 
@@ -25,8 +24,8 @@ export interface MapProps extends MapEventProps {
   containerStyle?: CSSProperties
   /** CSS class applied to the container div. */
   className?: string
-  /** Called once the underlying `TsMap` instance has mounted. */
-  onLoad?: (map: TsMapInstance) => void
+  /** Called once the underlying map has mounted. */
+  onLoad?: (map: MapInstance) => void
   children?: ReactNode
 }
 
@@ -36,7 +35,7 @@ function styleKey(style: unknown): string {
 }
 
 /**
- * Root component that owns a `TsMap` instance and exposes it to descendants
+ * Root component that owns a map and exposes it to descendants
  * via context. The instance is created on client-side mount only — during SSR
  * we render an empty container div.
  */
@@ -56,8 +55,8 @@ export function Map(props: MapProps): ReactElement {
   } = props
 
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<TsMapInstance | null>(null)
-  const [map, setMap] = useState<TsMapInstance | null>(null)
+  const mapRef = useRef<MapInstance | null>(null)
+  const [map, setMap] = useState<MapInstance | null>(null)
   // The latest event props, read when an event fires: listeners are bound
   // once per handler prop, not again for every render's new functions.
   const handlersRef = useRef<Record<string, unknown>>(rest)
@@ -87,7 +86,7 @@ export function Map(props: MapProps): ReactElement {
     if (locale !== undefined)
       options.locale = locale
 
-    const instance = new TsMap(containerRef.current, options)
+    const instance = new MapInstance(containerRef.current, options)
     mapRef.current = instance
     setMap(instance)
     onLoad?.(instance)
@@ -149,7 +148,7 @@ export function Map(props: MapProps): ReactElement {
     if (key === appliedStyle.current)
       return
     appliedStyle.current = key
-    map.setStyle(style as Parameters<TsMapInstance['setStyle']>[0])
+    map.setStyle(style as Parameters<MapInstance['setStyle']>[0])
   }, [map, style])
 
   useEffect(() => {

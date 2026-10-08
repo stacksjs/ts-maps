@@ -4,11 +4,11 @@ The map type picker is Apple Maps' card of Explore, Driving, Transit and
 Satellite. A button opens it; choosing a type sets the map's style.
 
 ```ts
-import { control, mapTypes, styles, TsMap } from 'ts-maps'
+import { control, Map, mapTypes, styles } from 'ts-maps'
 
 const BASEMAP = 'https://tiles.openfreemap.org/planet'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [37.7793, -122.4193],
   zoom: 14,
   style: styles.light({ url: BASEMAP }),

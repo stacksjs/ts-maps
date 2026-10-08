@@ -1,7 +1,7 @@
 import type { GlobeCamera } from '../src/core-map/map/GlobeView'
 import { describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { globeFade, globeProject, globeRadius, globeUnproject } from '../src/core-map/map/GlobeView'
 
 const CAM: GlobeCamera = { lat: 40, lng: -100, radius: 200, cx: 400, cy: 300, bearing: 0 }
@@ -86,12 +86,12 @@ describe('globe geometry', () => {
 })
 
 describe('the map round the globe', () => {
-  function globeMap(drawn: boolean): TsMap {
+  function globeMap(drawn: boolean): Map {
     const container = document.createElement('div')
     container.style.width = '800px'
     container.style.height = '600px'
     document.body.appendChild(container)
-    const map = new TsMap(container, { center: [40, -100], zoom: 2, projection: 'globe', zoomAnimation: false })
+    const map = new Map(container, { center: [40, -100], zoom: 2, projection: 'globe', zoomAnimation: false })
     map._size = new Point(800, 600)
     map._sizeChanged = false
     // No WebGL here: stand in for a globe that is being drawn.

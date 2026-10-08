@@ -1,9 +1,9 @@
 import { Handler } from '../../core/Handler'
 import { off, on, stop } from '../../dom/DomEvent'
 import { Point } from '../../geometry/Point'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions( { keyboard: true, keyboardPanDelta: 80 })
+Map.mergeOptions( { keyboard: true, keyboardPanDelta: 80 })
 
 export class KeyboardHandler extends Handler {
   static keyCodes: Record<string, string[]> = {
@@ -139,4 +139,4 @@ export class KeyboardHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'keyboard', KeyboardHandler)
+Map.addInitHook('addHandler', 'keyboard', KeyboardHandler)

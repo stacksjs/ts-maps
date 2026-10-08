@@ -9,14 +9,14 @@
  * `?theme=dark`, `?lat=…&lng=…&zoom=…` override the starting view.
  */
 
-import { control, mapTypes, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, Map, mapTypes, styles } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
 const params = new URLSearchParams(location.search)
 const prefersDark = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
 const theme = (params.get('theme') as 'light' | 'dark' | null) ?? (prefersDark ? 'dark' : 'light')
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [Number(params.get('lat') ?? 37.7793), Number(params.get('lng') ?? -122.4193)],
   zoom: Number(params.get('zoom') ?? 13),
   minZoom: 2,

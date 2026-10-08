@@ -7,12 +7,12 @@
  * the map tilts: fly to the Presidio to see them.
  */
 
-import { landmark, styles, trees, TsMap } from '../../packages/ts-maps/src/core-map'
+import { landmark, Map, styles, trees } from '../../packages/ts-maps/src/core-map'
 import { transamerica } from './data/transamerica'
 
 const PYRAMID: [number, number] = [37.7952, -122.4028]
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [37.7959, -122.4034],
   zoom: 17.1,
   pitch: 52,

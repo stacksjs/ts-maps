@@ -9,9 +9,9 @@ import { useMap } from './useMap'
  * Apple Maps: low-poly trees that come in as the map tilts. One per map.
  *
  * ```vue
- * <TsMap :center="[37.7694, -122.4862]" :zoom="16" :pitch="60">
+ * <MapInstance :center="[37.7694, -122.4862]" :zoom="16" :pitch="60">
  *   <TsTrees :spacing="12" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * Every prop is followed as it changes. `ready` hands over the trees, for

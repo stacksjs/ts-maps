@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { TileLayer, VectorTileMapLayer } from '../src/core-map'
 import { validateStyle } from '../src/core-map/style-spec'
 import type { Style } from '../src/core-map/style-spec'
@@ -11,15 +11,15 @@ import type { Style } from '../src/core-map/style-spec'
  * downloading tiles its own basemap would never ask for: the download reported
  * success, and the map was blank in the field.
  */
-function makeMap(style: Style): TsMap {
+function makeMap(style: Style): Map {
   const container = document.createElement('div')
   container.style.width = '400px'
   container.style.height = '400px'
   document.body.appendChild(container)
-  return new TsMap(container, { zoomAnimation: false, fadeAnimation: false, style })
+  return new Map(container, { zoomAnimation: false, fadeAnimation: false, style })
 }
 
-function sourceLayer(map: TsMap, Ctor: any): any {
+function sourceLayer(map: Map, Ctor: any): any {
   let found: any
   map.eachLayer((layer: any) => {
     if (layer instanceof Ctor)

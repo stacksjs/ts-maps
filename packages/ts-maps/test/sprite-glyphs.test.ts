@@ -4,7 +4,7 @@ import { IconAtlas } from '../src/core-map/symbols/IconAtlas'
 import { decodeGlyphPbf, GlyphSource, glyphUrl, rangeStartFor } from '../src/core-map/symbols/loadGlyphs'
 import { addSpriteToAtlas, loadSprite, spriteUrl } from '../src/core-map/symbols/loadSprite'
 import { GlyphAtlas } from '../src/core-map/symbols/GlyphAtlas'
-import { TsMap } from '../src/core-map'
+import { Map } from '../src/core-map'
 
 /**
  * A style's `sprite` and `glyphs` URLs were validated and then ignored, so
@@ -362,12 +362,12 @@ describe('resolveFont', () => {
 })
 
 describe('style wiring', () => {
-  function makeMap(style: any): TsMap {
+  function makeMap(style: any): Map {
     const container = document.createElement('div')
     container.style.width = '400px'
     container.style.height = '400px'
     document.body.appendChild(container)
-    return new TsMap(container, { zoomAnimation: false, style })
+    return new Map(container, { zoomAnimation: false, style })
   }
 
   const base: any = {

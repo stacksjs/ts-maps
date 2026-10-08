@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { resolveTileJSON, styles, TsMap } from '../src/core-map'
+import { resolveTileJSON, styles, Map } from '../src/core-map'
 import { validateStyle } from '../src/core-map/style-spec/validate'
 import { resolveStyleSources, tileJSONSources } from '../src/core-map/styles/tilejson'
 
@@ -26,7 +26,7 @@ function stubFetch(answers: Record<string, Answer>): { fetch: typeof fetch, aske
 }
 
 function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
-  const data = new Map<string, string>()
+  const data = new globalThis.Map<string, string>()
   return { getItem: k => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v) }
 }
 
@@ -149,7 +149,7 @@ describe('TileJSON sources in a style', () => {
     try {
       const container = document.createElement('div')
       document.body.appendChild(container)
-      const map = new TsMap(container, { center: [0, 0], zoom: 2, style: styles.light({ url: 'https://tiles.test/planet' }) })
+      const map = new Map(container, { center: [0, 0], zoom: 2, style: styles.light({ url: 'https://tiles.test/planet' }) })
       // As a framework binding's <Source> and <Layer> do, mounting with the map.
       map.addSource('mine', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
       map.addStyleLayer({ id: 'mine-dots', type: 'circle', source: 'mine' } as any)
@@ -176,7 +176,7 @@ describe('TileJSON sources in a style', () => {
     try {
       const container = document.createElement('div')
       document.body.appendChild(container)
-      const map = new TsMap(container, { center: [0, 0], zoom: 2, style: styles.light({ url: 'https://tiles.test/planet' }) })
+      const map = new Map(container, { center: [0, 0], zoom: 2, style: styles.light({ url: 'https://tiles.test/planet' }) })
       map.addSource('mine', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
       map.setStyle({ version: 8, sources: {}, layers: [] } as any)
       await new Promise(resolve => setTimeout(resolve, 20))
@@ -195,7 +195,7 @@ describe('TileJSON sources in a style', () => {
     try {
       const container = document.createElement('div')
       document.body.appendChild(container)
-      const map = new TsMap(container, { center: [0, 0], zoom: 2 })
+      const map = new Map(container, { center: [0, 0], zoom: 2 })
       const set = new Promise(resolve => map.once('styledata', resolve))
       map.setStyle(styles.light({ url: 'https://tiles.test/planet' }))
       await set
@@ -208,13 +208,13 @@ describe('TileJSON sources in a style', () => {
   })
 
   describe('addSource with a TileJSON url', () => {
-    async function withFetch(answers: Record<string, Answer>, run: (map: TsMap) => Promise<void>): Promise<void> {
+    async function withFetch(answers: Record<string, Answer>, run: (map: Map) => Promise<void>): Promise<void> {
       const real = globalThis.fetch
       globalThis.fetch = stubFetch(answers).fetch
       const container = document.createElement('div')
       document.body.appendChild(container)
       try {
-        await run(new TsMap(container, { center: [0, 0], zoom: 2 }))
+        await run(new Map(container, { center: [0, 0], zoom: 2 }))
       }
       finally {
         globalThis.fetch = real

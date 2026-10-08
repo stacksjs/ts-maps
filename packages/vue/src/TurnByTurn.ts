@@ -8,9 +8,9 @@ import { useMap } from './useMap'
  * Turn-by-turn navigation, after Apple Maps.
  *
  * ```vue
- * <TsMap :center="[37.79, -122.39]" :zoom="13">
+ * <MapInstance :center="[37.79, -122.39]" :zoom="13">
  *   <TsTurnByTurn :from="[37.7955, -122.3937]" :to="[37.8029, -122.4484]" :active="driving" @arrive="done" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * Setting `from` and `to` previews the routes; `active` starts guidance.

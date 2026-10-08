@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const container = document.createElement('div')
@@ -12,14 +12,14 @@ function createContainer(): HTMLElement {
 
 /**
  * very-happy-dom does not populate `clientWidth` / `clientHeight` from inline
- * styles, so `TsMap.getSize()` would otherwise return `(0, 0)`. For the
+ * styles, so `Map.getSize()` would otherwise return `(0, 0)`. For the
  * pixel-math tests below we stamp an explicit size into the map's internal
  * slot. This mirrors what a real browser layout pass would give us. Since
  * `_pixelOrigin` is computed during `setView()` using the (then-zero) size,
  * we recompute it here too so downstream math matches what a real 800x600
  * viewport would produce.
  */
-function stampSize(map: TsMap, width: number, height: number): void {
+function stampSize(map: Map, width: number, height: number): void {
   map._size = new Point(width, height)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
@@ -28,32 +28,32 @@ function stampSize(map: TsMap, width: number, height: number): void {
 
 describe('bearing (map rotation)', () => {
   test('defaults to 0', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     expect(map.getBearing()).toBe(0)
   })
 
   test('accepts an initial bearing via options, wrapped to [0, 360)', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3, bearing: 45 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3, bearing: 45 })
     expect(map.getBearing()).toBe(45)
 
-    const mapNeg = new TsMap(createContainer(), { center: [0, 0], zoom: 3, bearing: -10 })
+    const mapNeg = new Map(createContainer(), { center: [0, 0], zoom: 3, bearing: -10 })
     expect(mapNeg.getBearing()).toBe(350)
   })
 
   test('setBearing(45) sets bearing to 45', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.setBearing(45)
     expect(map.getBearing()).toBe(45)
   })
 
   test('setBearing(-10) wraps to 350', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.setBearing(-10)
     expect(map.getBearing()).toBe(350)
   })
 
   test('setBearing(720) wraps to 0', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     // First set to a non-zero value so the 720 -> 0 transition actually fires
     // the event path (setBearing is a no-op when the wrapped value is the
     // same as the current bearing).
@@ -63,13 +63,13 @@ describe('bearing (map rotation)', () => {
   })
 
   test('rotateTo is an alias for setBearing', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.rotateTo(90)
     expect(map.getBearing()).toBe(90)
   })
 
   test('fires rotate event when bearing changes', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     let fired = 0
     let lastBearing: number | undefined
     map.on('rotate', (e: any) => {
@@ -82,7 +82,7 @@ describe('bearing (map rotation)', () => {
   })
 
   test('fires rotatestart, rotate, rotateend in order', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     const seq: string[] = []
     map.on('rotatestart', () => { seq.push('start') })
     map.on('rotate', () => { seq.push('rotate') })
@@ -92,7 +92,7 @@ describe('bearing (map rotation)', () => {
   })
 
   test('does not fire events when bearing does not change', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     map.setBearing(45)
     let fired = 0
     map.on('rotate', () => { fired++ })
@@ -113,7 +113,7 @@ describe('bearing (map rotation)', () => {
     // is turned 90° clockwise to reach the layer grid: (+400, 0) from the
     // centre becomes (0, +400), so the layer point is (400, 700) — directly
     // SOUTH of centre, which is where the right edge looks at bearing 90.
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     const lp0 = map.containerPointToLayerPoint([800, 300])
@@ -135,7 +135,7 @@ describe('bearing (map rotation)', () => {
     // right edge of the viewport maps to a lat/lng *east* of center. At
     // bearing=90 (east is up), the same pixel click maps *south* of center,
     // and a click at the top edge maps east.
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     const llEast = map.containerPointToLatLng([800, 300])
@@ -153,7 +153,7 @@ describe('bearing (map rotation)', () => {
   })
 
   test('layerPointToContainerPoint inverts containerPointToLayerPoint at non-zero bearing', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
     map.setBearing(30)
 
@@ -165,7 +165,7 @@ describe('bearing (map rotation)', () => {
   })
 
   test('project/unproject are unaffected by bearing', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     const p0 = map.project([37.7, -122.4], 3)
     map.setBearing(123)
     const p1 = map.project([37.7, -122.4], 3)
@@ -174,7 +174,7 @@ describe('bearing (map rotation)', () => {
   })
 
   test('the bearing is the compass direction at the top of the screen, as in Mapbox', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
     for (const [bearing, lat, lng] of [[0, 1, 0], [90, 0, 1], [180, -1, 0], [270, 0, -1]]) {
       map.setBearing(bearing)
@@ -186,7 +186,7 @@ describe('bearing (map rotation)', () => {
   })
 
   test('the map turns counter-clockwise by its bearing', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
     map.setBearing(30)
     expect(map.getPane('tilePane').style.transform).toContain('rotate(-30deg)')

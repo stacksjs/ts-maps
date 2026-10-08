@@ -3,9 +3,9 @@ import type { Point } from '../../geometry/Point'
 import * as DomEvent from '../../dom/DomEvent'
 import * as PointerEvents from '../../dom/DomEvent.PointerEvents'
 import { Handler } from '../../core/Handler'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions( { pinchZoom: true, bounceAtZoomLimits: true })
+Map.mergeOptions( { pinchZoom: true, bounceAtZoomLimits: true })
 
 export class PinchZoomHandler extends Handler {
   _zooming = false
@@ -144,9 +144,9 @@ export class PinchZoomHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'pinchZoom', PinchZoomHandler)
+Map.addInitHook('addHandler', 'pinchZoom', PinchZoomHandler)
 
-TsMap.addInitHook(function (this: any) {
+Map.addInitHook(function (this: any) {
   this.touchZoom = this.pinchZoom
   if (this.options.touchZoom !== undefined) {
     // eslint-disable-next-line no-console

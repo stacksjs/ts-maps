@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, setContext } from 'svelte'
-  import { TsMap } from 'ts-maps'
+  import { Map as MapInstance } from 'ts-maps'
   import { MAP_CONTEXT_KEY, type MapContextValue } from './context'
   import { syncEvents, unbindEvents } from './eventProps'
   import { type Applied, followBearing, followCamera, followPitch, followStyle } from './follow'
@@ -27,8 +27,8 @@
   /** A class for the container div, next to `ts-map`. */
   let className: string | undefined = undefined
   export { className as class }
-  /** Called with the `TsMap` once it is built. The map's `load` event is `onLoadEvent`. */
-  export let onLoad: ((map: TsMap) => void) | undefined = undefined
+  /** Called with the `Map` once it is built. The map's `load` event is `onLoadEvent`. */
+  export let onLoad: ((map: MapInstance) => void) | undefined = undefined
 
   // Map events, with the same names as the React and Solid bindings. See
   // eventProps.ts for the event each one stands for.
@@ -75,7 +75,7 @@
   /* eslint-enable no-unused-vars */
 
   let container: HTMLDivElement | null = null
-  let map: TsMap | null = null
+  let map: MapInstance | null = null
 
   setContext<MapContextValue>(MAP_CONTEXT_KEY, { getMap: () => map })
 
@@ -94,7 +94,7 @@
     if (style !== undefined) options.style = style
     if (locale !== undefined) options.locale = locale
     Object.assign(applied, { center, zoom, bearing, pitch, style })
-    const instance = new TsMap(container, options)
+    const instance = new MapInstance(container, options)
     // Bound before anything else can run: a style given to the constructor
     // fires `style.load` a microtask later.
     syncEvents(instance, handlers, () => handlers, bound, loadState)

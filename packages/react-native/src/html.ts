@@ -108,7 +108,7 @@ const RUNTIME_SCRIPT = [
   '    }',
   '    else fail("this ts-maps runtime has no KeyValueOfflineStore; offline maps stay in the WebView");',
   '  }',
-  '  const Ctor = (window.tsMaps && window.tsMaps.TsMap) || window.TsMap;',
+  '  const Ctor = (window.tsMaps && (window.tsMaps.Map || window.tsMaps.TsMap)) || window.TsMap;',
   '  if (!Ctor) { fail("ts-maps runtime not found on window"); return; }',
   '  const opts = {};',
   '  if (initial.center) opts.center = initial.center;',

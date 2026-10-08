@@ -10,9 +10,9 @@ import { useMap } from './useMap'
  * leaving out the extruded building it stands on.
  *
  * ```vue
- * <TsMap :center="[37.7952, -122.4028]" :zoom="17" :pitch="60">
+ * <MapInstance :center="[37.7952, -122.4028]" :zoom="17" :pitch="60">
  *   <TsLandmark model="/models/transamerica.glb" :position="[37.7952, -122.4028]" :rotation="45" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * `position`, `rotation`, `scale`, `altitude` and `opacity` are followed as

@@ -1,4 +1,4 @@
-import type { TsMap } from 'ts-maps'
+import type { Map as MapInstance } from 'ts-maps'
 
 /**
  * A recorded route on a map, and a basemap that keeps drawing when its tile
@@ -302,7 +302,7 @@ export function routeMarkerHtml(label: string): string {
  * where it began. Nothing is interactive: a route is a picture of where
  * someone went, and a click on it should reach the map.
  */
-export function drawRoute(maps: Pick<TsMapsModule, 'Polyline' | 'CircleMarker' | 'marker' | 'divIcon'>, map: TsMap, coords: readonly RouteLatLng[], options: RouteOptions = {}): RouteHandle {
+export function drawRoute(maps: Pick<TsMapsModule, 'Polyline' | 'CircleMarker' | 'marker' | 'divIcon'>, map: MapInstance, coords: readonly RouteLatLng[], options: RouteOptions = {}): RouteHandle {
   const anyMap = map as any
   let theme: PageTheme = options.theme ?? 'light'
   let points = usable(coords)
@@ -428,7 +428,7 @@ export function drawRoute(maps: Pick<TsMapsModule, 'Polyline' | 'CircleMarker' |
  * phone rotating keeps the route in view, but someone who has zoomed into a
  * climb is not thrown back out.
  */
-export function refitOnResize(map: TsMap, route: Pick<RouteHandle, 'fit' | 'showingFit'>): () => void {
+export function refitOnResize(map: MapInstance, route: Pick<RouteHandle, 'fit' | 'showingFit'>): () => void {
   const el = (map as any).getContainer?.() as HTMLElement | undefined
   if (!el || typeof ResizeObserver === 'undefined')
     return () => {}

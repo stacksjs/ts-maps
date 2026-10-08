@@ -179,5 +179,5 @@ The map projects with a `CRS`. The default is `EPSG3857`, Web Mercator.
 | `Projection` | The projections they are built from: `SphericalMercator`, `Mercator`, `LonLat`, and `Globe`. |
 
 ```ts
-const map = new TsMap('map', { crs: SimpleCRS, center: [0, 0], zoom: 0 })
+const map = new Map('map', { crs: SimpleCRS, center: [0, 0], zoom: 0 })
 ```

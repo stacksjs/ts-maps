@@ -3,12 +3,12 @@ import { DivIcon } from '../src/core-map/layer/marker/DivIcon'
 import { Marker } from '../src/core-map/layer/marker/Marker'
 import { Point } from '../src/core-map/geometry/Point'
 import * as DomUtil from '../src/core-map/dom/DomUtil'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
-function makeMap(options: Record<string, unknown> = {}): TsMap {
+function makeMap(options: Record<string, unknown> = {}): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [37.7879, -122.4075], zoom: 15, ...options })
+  const map = new Map(el, { center: [37.7879, -122.4075], zoom: 15, ...options })
   // very-happy-dom has no layout; give the map a size of its own.
   map._size = new Point(800, 600)
   map._sizeChanged = false
@@ -56,7 +56,7 @@ function apply(m: Mat, x: number, y: number): { x: number, y: number, z: number 
 }
 
 /** The ground panes' CSS camera, as `_applyCameraTransform` composes it. */
-function groundMatrix(map: TsMap): Mat {
+function groundMatrix(map: Map): Mat {
   const { h } = map._cameraGeometry()
   // The map turns counter-clockwise by its bearing.
   return [perspective(h), rotateX(map._pitch), rotateZ(-map._bearing)].reduce(mul)

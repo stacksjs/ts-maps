@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { Pbf } from '../src/core-map/proto/Pbf'
 import { VectorTileMapLayer } from '../src/core-map'
 
@@ -65,7 +65,7 @@ function createContainer(): HTMLElement {
   return c
 }
 
-function stampSize(map: TsMap, w: number, h: number): void {
+function stampSize(map: Map, w: number, h: number): void {
   map._size = new Point(w, h)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
@@ -88,7 +88,7 @@ function tileCoords(x: number, y: number, z: number): Point & { z: number } {
   return p
 }
 
-function attachLayerForCreateTile(layer: VectorTileMapLayer, map: TsMap): void {
+function attachLayerForCreateTile(layer: VectorTileMapLayer, map: Map): void {
   layer._map = map
   layer._tiles = {}
 }
@@ -101,7 +101,7 @@ describe('VectorTileMapLayer.querySourceFeatures', () => {
     const bytes = encodeMultiLayerTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
     const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 512 })
     attachLayerForCreateTile(layer, map)
@@ -122,7 +122,7 @@ describe('VectorTileMapLayer.querySourceFeatures', () => {
     const bytes = encodeMultiLayerTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
     const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 512 })
     attachLayerForCreateTile(layer, map)
@@ -140,7 +140,7 @@ describe('VectorTileMapLayer.querySourceFeatures', () => {
     const bytes = encodeMultiLayerTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
     const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 512 })
     attachLayerForCreateTile(layer, map)
@@ -158,14 +158,14 @@ describe('VectorTileMapLayer.querySourceFeatures', () => {
   })
 })
 
-describe('TsMap.querySourceFeatures', () => {
+describe('Map.querySourceFeatures', () => {
   test('returns [] when no style is loaded', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     expect(map.querySourceFeatures('nope')).toEqual([])
   })
 
   test('returns [] when the source id is unknown', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 2 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 2 })
     map.setStyle({ version: 8, sources: {}, layers: [] })
     expect(map.querySourceFeatures('nope')).toEqual([])
   })

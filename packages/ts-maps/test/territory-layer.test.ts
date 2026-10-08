@@ -3,19 +3,19 @@ import { describe, expect, test } from 'bun:test'
 import { TerritoryStore } from '../src/core-map/game/TerritoryStore'
 import { RunTrailLayer } from '../src/core-map/layer/RunTrailLayer'
 import { TerritoryLayer } from '../src/core-map/layer/TerritoryLayer'
-import { TsMap } from '../src/core-map'
+import { Map } from '../src/core-map'
 
 // The harness has no rasteriser, so what is checked here is the layer's
 // behaviour rather than its pixels: that it follows a store, that colours stay
 // put once assigned, that hit-testing answers, and that it detaches cleanly.
 // The drawing itself is verified in a browser.
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '600px'
   container.style.height = '400px'
   document.body.appendChild(container)
-  return new TsMap(container, {
+  return new Map(container, {
     center: [34.02, -118.47],
     zoom: 15,
     zoomAnimation: false,

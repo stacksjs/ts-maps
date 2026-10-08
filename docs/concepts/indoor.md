@@ -5,9 +5,9 @@ the basemap, one level at a time, a level picker beside the map, and the
 shops and gates in search.
 
 ```ts
-import { control, indoorMap, styles, TsMap } from 'ts-maps'
+import { control, indoorMap, Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [37.6155, -122.3897],
   zoom: 18,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

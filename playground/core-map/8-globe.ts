@@ -6,10 +6,10 @@
  * (zoom 5.5 to 6) and watch the globe fade into the flat map.
  */
 
-import { TsMap } from '../../packages/ts-maps/src/core-map'
+import { Map } from '../../packages/ts-maps/src/core-map'
 import { loadBasemap } from './basemap'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [30, 0],
   zoom: 2,
   minZoom: 1,

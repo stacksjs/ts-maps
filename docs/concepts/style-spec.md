@@ -51,9 +51,9 @@ style running, with a click that shows what the tiles say about a feature.
 Pass it when the map is made, or call `setStyle` at any time:
 
 ```ts
-import { TsMap } from 'ts-maps'
+import { Map } from 'ts-maps'
 
-const map = new TsMap('map', { center: [51.5072, -0.1276], zoom: 15, style })
+const map = new Map('map', { center: [51.5072, -0.1276], zoom: 15, style })
 
 map.setStyle(otherStyle)
 map.setStyle('https://example.com/style.json') // a URL works too
@@ -65,7 +65,7 @@ slow answer cannot overwrite a style set after it. A fetch that fails fires
 `error` and leaves the map as it was.
 
 Once the new style is in place the map fires `styledata`, and a microtask
-later `style.load`, so a handler added right after `new TsMap()` hears it. `map.getStyle()` returns a copy of the current document, and
+later `style.load`, so a handler added right after `new Map()` hears it. `map.getStyle()` returns a copy of the current document, and
 `map.isStyleLoaded()` says whether there is one.
 
 `setStyle(style, { validate, diff })` takes two options, both on by default:
@@ -120,9 +120,9 @@ sources and layers once the style is in, in a `style.load` handler. It runs
 again after every later `setStyle`, which is when they need adding again:
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.7616, -73.9776],
   zoom: 13.5,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

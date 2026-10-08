@@ -106,7 +106,7 @@ export const mapPropsJson = JSON.stringify({
 </div>
 
 <script client>
-  import { TsMap } from 'ts-maps'
+  import { Map as MapInstance } from 'ts-maps'
   import { attachBasemap, mapOptionsFrom, mountChildren, publishMap, readJson, unpublishMap } from './runtime'
 
   const root = useRef('root')
@@ -116,7 +116,7 @@ export const mapPropsJson = JSON.stringify({
     if (!container) return
 
     const props = readJson(container, 'data-ts-map-props', {})
-    const map = new TsMap(container, mapOptionsFrom(props))
+    const map = new MapInstance(container, mapOptionsFrom(props))
     publishMap(container, map)
 
     // One pass over the subtree builds every declared child. stx emits a

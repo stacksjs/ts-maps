@@ -1,18 +1,18 @@
 import { describe, expect, test } from 'bun:test'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { mountChildren } from '../src/runtime'
 
 const tick = (): Promise<void> => new Promise(r => setTimeout(r, 0))
 const plain = { tiles: 'https://tiles.test/{z}/{x}/{y}.pbf', imagery: 'https://imagery.test/{z}/{y}/{x}.jpg' }
 
-function setup(): { root: HTMLElement, map: TsMap } {
+function setup(): { root: HTMLElement, map: MapInstance } {
   const root = document.createElement('div')
   document.body.appendChild(root)
   const mapEl = document.createElement('div')
   mapEl.style.width = '430px'
   mapEl.style.height = '800px'
   root.appendChild(mapEl)
-  return { root, map: new TsMap(mapEl, { center: [37.78, -122.42], zoom: 13 }) }
+  return { root, map: new MapInstance(mapEl, { center: [37.78, -122.42], zoom: 13 }) }
 }
 
 describe('map-type child', () => {

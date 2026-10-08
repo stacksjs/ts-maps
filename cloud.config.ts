@@ -42,6 +42,8 @@ const RENAMED: Record<string, string> = {
   // Folded into the guide's walkthrough.
   'getting-started': 'guide/getting-started',
   'usage': 'guide/getting-started',
+  // The class was TsMap before 0.5.
+  'api/TsMap': 'api/Map',
 }
 
 /** The old pages, and their `.md` files, sent on to the new ones, so a saved link still lands. */

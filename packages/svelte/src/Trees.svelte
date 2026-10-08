@@ -11,7 +11,7 @@
    *
    * Every prop is followed as it changes.
    */
-  import type { TreesOptions, TsMap } from 'ts-maps'
+  import type { Map as MapInstance, TreesOptions } from 'ts-maps'
   import { onDestroy, onMount } from 'svelte'
   import { Trees } from 'ts-maps'
   import { useMap } from './useMap'
@@ -34,7 +34,7 @@
   export let onReady: ((trees: Trees) => void) | undefined = undefined
   /* eslint-enable no-unused-vars */
 
-  let map: TsMap | null = null
+  let map: MapInstance | null = null
   let trees: Trees | null = null
   let applied: { key: string, match: TreesOptions['match'] } | null = null
 

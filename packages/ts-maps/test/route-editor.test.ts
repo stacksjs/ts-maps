@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { RouteEditor, TsMap } from '../src/core-map'
+import { RouteEditor, Map } from '../src/core-map'
 import { Point } from '../src/core-map/geometry/Point'
 import { RouteBuilder } from '../src/core-map/services'
 
@@ -7,18 +7,18 @@ const a = { lat: 32.9209, lng: -117.2528 }
 const b = { lat: 32.9265, lng: -117.2555 }
 const c = { lat: 32.9300, lng: -117.2500 }
 
-function createMap(): TsMap {
+function createMap(): Map {
   const container = document.createElement('div')
   container.style.width = '800px'
   container.style.height = '600px'
   document.body.appendChild(container)
-  const map = new TsMap(container, { center: [a.lat, a.lng], zoom: 15 })
+  const map = new Map(container, { center: [a.lat, a.lng], zoom: 15 })
   map._size = new Point(800, 600)
   map._sizeChanged = false
   return map
 }
 
-async function editorWith(points: typeof a[]): Promise<{ map: TsMap, builder: RouteBuilder, editor: RouteEditor }> {
+async function editorWith(points: typeof a[]): Promise<{ map: Map, builder: RouteBuilder, editor: RouteEditor }> {
   const map = createMap()
   const builder = new RouteBuilder()
   for (const p of points)

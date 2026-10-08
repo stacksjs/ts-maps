@@ -10,10 +10,10 @@ import { useMap } from './useMap'
  * suggestions as you type, pins for results, and a card with Directions.
  *
  * ```vue
- * <TsMap :center="[37.79, -122.41]" :zoom="15">
+ * <MapInstance :center="[37.79, -122.41]" :zoom="15">
  *   <TsTurnByTurn @ready="nav = $event" />
  *   <TsSearch :turn-by-turn="nav" @select="({ place }) => chosen = place" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * Every prop is followed as it changes: a new `provider` is asked from the

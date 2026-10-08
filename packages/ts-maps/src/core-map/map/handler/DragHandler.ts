@@ -4,9 +4,9 @@ import { Draggable } from '../../dom/Draggable'
 import { LatLngBounds } from '../../geo/LatLngBounds'
 import { Bounds } from '../../geometry/Bounds'
 import { Point } from '../../geometry/Point'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions( {
+Map.mergeOptions( {
   dragging: true,
   inertia: true,
   inertiaDeceleration: 3400,
@@ -246,4 +246,4 @@ export class DragHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'dragging', DragHandler)
+Map.addInitHook('addHandler', 'dragging', DragHandler)

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { DirectionsProvider, GeocoderProvider, Route } from '../src/core-map/services/types'
-import { TsMap } from '../src/core-map'
+import { Map } from '../src/core-map'
 import { OfflineMapsControl } from '../src/core-map/control/OfflineMapsControl'
 import { SearchControl } from '../src/core-map/control/SearchControl'
 import { Point } from '../src/core-map/geometry/Point'
@@ -11,10 +11,10 @@ import { PhotonGeocoder } from '../src/core-map/services/providers/Photon'
 // The bindings pass every prop to `sync` on every change. These pin what
 // that does to options a control used to read only once, when it was added.
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [37.78, -122.42], zoom: 15, zoomAnimation: false })
+  const map = new Map(el, { center: [37.78, -122.42], zoom: 15, zoomAnimation: false })
   map._size = new Point(800, 600)
   map._sizeChanged = false
   map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)

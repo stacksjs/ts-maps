@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { mountChildren } from '../src/runtime'
 
 // A two-level terminal in IMDF: a venue, its levels, and a gate on the upper one.
@@ -43,7 +43,7 @@ describe('indoor-map child', () => {
     mapEl.style.width = '430px'
     mapEl.style.height = '800px'
     root.appendChild(mapEl)
-    const map = new TsMap(mapEl, { center: [Y + 0.001, X + 0.001], zoom: 17 })
+    const map = new MapInstance(mapEl, { center: [Y + 0.001, X + 0.001], zoom: 17 })
 
     // The indoor map written before Search: they are linked all the same.
     const options = { venue: 'https://venues.test/sfo/', level: 0 }

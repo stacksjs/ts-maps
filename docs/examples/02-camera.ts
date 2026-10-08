@@ -6,9 +6,9 @@
  * them at once.
  */
 
-import { styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { Map, styles } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855],
   zoom: 12,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

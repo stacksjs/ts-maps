@@ -1,9 +1,8 @@
 import type { JSX, ParentProps } from 'solid-js'
-import type { TsMap as TsMapInstance } from 'ts-maps'
 import type { MapEventProps } from './eventProps'
 import type { Applied } from './follow'
 import { createEffect, createSignal, on, onCleanup, onMount } from 'solid-js'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { MapContext } from './context'
 import { syncEvents, unbindEvents } from './eventProps'
 import { followBearing, followCamera, followPitch, followStyle } from './follow'
@@ -30,15 +29,15 @@ export interface MapProps extends MapEventProps {
   containerStyle?: JSX.CSSProperties | string
   /** A class for the container div. */
   class?: string
-  /** Called with the `TsMap` once it is built. The map's `load` event is `onLoadEvent`. */
+  /** Called with the `Map` once it is built. The map's `load` event is `onLoadEvent`. */
   // eslint-disable-next-line no-unused-vars
-  onLoad?: (map: TsMapInstance) => void
+  onLoad?: (map: MapInstance) => void
 }
 
 type Handlers = Record<string, ((e: any) => void) | undefined>
 
 export function Map(props: ParentProps<MapProps>): JSX.Element {
-  const [map, setMap] = createSignal<TsMapInstance | null>(null)
+  const [map, setMap] = createSignal<MapInstance | null>(null)
   let container: HTMLDivElement | undefined
 
   // What the map was last given; see follow.ts.
@@ -80,7 +79,7 @@ export function Map(props: ParentProps<MapProps>): JSX.Element {
       bearing: options.bearing,
       pitch: options.pitch,
     })
-    const instance = new TsMap(container, options)
+    const instance = new MapInstance(container, options)
     // Bound before anything else can run: a style given to the constructor
     // fires `style.load` a microtask later.
     syncEvents(instance, handlers(), handlers, bound, loadState)

@@ -14,7 +14,7 @@
  */
 
 import type { VectorTileStyleLayer } from '../../packages/ts-maps/src/core-map'
-import { control, styles, TsMap, vectorTileLayer } from '../../packages/ts-maps/src/core-map'
+import { control, Map, styles, vectorTileLayer } from '../../packages/ts-maps/src/core-map'
 import { Pbf } from '../../packages/ts-maps/src/core-map/proto/Pbf'
 
 // --- MVT writing helpers (same shape as the other vector-tile demos) --------
@@ -130,7 +130,7 @@ const PALETTES = {
   light: { road: '#ffffff', casing: '#d9d6d0', label: '#5f6368', halo: '#ffffff', place: '#202124', ground: '#f3f2ee' },
 }
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [0, 0],
   zoom: 4,
   minZoom: 2,

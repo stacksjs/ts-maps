@@ -18,7 +18,7 @@ It needs no API key. Every example here draws
 [Documentation](https://ts-maps.stacksjs.com/intro) ·
 [Examples](https://ts-maps.stacksjs.com/examples/) ·
 [Playground](https://ts-maps.stacksjs.com/demos/) ·
-[API reference](https://ts-maps.stacksjs.com/api/TsMap)
+[API reference](https://ts-maps.stacksjs.com/api/Map)
 
 ## What it does
 
@@ -87,9 +87,9 @@ Then create the map in it:
 
 ```ts
 import 'ts-maps/styles.css'
-import { Marker, styles, TsMap } from 'ts-maps'
+import { Map, Marker, styles } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855], // [lat, lng]
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -200,9 +200,9 @@ A style is a plain object: sources, and layers that draw them. This one draws
 OpenFreeMap's tiles from scratch, with expressions for colour and width:
 
 ```ts
-import { TsMap } from 'ts-maps'
+import { Map } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5072, -0.1276],
   zoom: 15,
   style: {
@@ -269,9 +269,9 @@ The built-in light and dark styles already raise buildings to their mapped
 height from zoom 14. Tilt the map to see them:
 
 ```ts
-import { landmark, styles, trees, TsMap } from 'ts-maps'
+import { landmark, Map, styles, trees } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [37.7959, -122.4034], // San Francisco
   zoom: 17,
   pitch: 52,
@@ -297,7 +297,7 @@ with `renderer: 'webgl'`. See
 ### The globe
 
 ```ts
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [30, 10],
   zoom: 2.5,
   projection: 'globe',
@@ -319,7 +319,7 @@ Elevation comes in as a `raster-dem` source. [AWS Terrain
 Tiles](https://registry.opendata.aws/terrain-tiles/) are free and need no key:
 
 ```ts
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [45.992, 7.69], // Looking at the Matterhorn
   zoom: 13,
   pitch: 65,
@@ -523,7 +523,7 @@ declarations ship with the package.
 
 ## Framework bindings
 
-Each binding wraps the same `TsMap`; the behaviour lives in the core library.
+Each binding wraps the same `Map`; the behaviour lives in the core library.
 The web bindings share component names: `Map`, `Marker`, `Popup`, `Source`,
 `Layer`, the controls, `Search`, `TurnByTurn`, `OfflineMaps`, `MapType`,
 `IndoorMap`, `LookAround`, `Landmark` and `Trees`. The Apple Maps-style
@@ -587,7 +587,7 @@ covers where the bindings differ, and links each framework's guide.
   on its page with an editor
 - [Playground](https://ts-maps.stacksjs.com/demos/): larger demos of whole
   features
-- [API reference](https://ts-maps.stacksjs.com/api/TsMap)
+- [API reference](https://ts-maps.stacksjs.com/api/Map)
 - Coming from another library:
   [Leaflet](https://ts-maps.stacksjs.com/migration/from-leaflet),
   [Mapbox GL JS](https://ts-maps.stacksjs.com/migration/from-mapbox),

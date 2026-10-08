@@ -32,7 +32,7 @@ export { CRS, EarthCRS, EPSG3395, EPSG3857, EPSG4326, SimpleCRS } from '../../sr
 export { LatLng } from '../../src/core-map/geo/LatLng'
 export { LatLngBounds } from '../../src/core-map/geo/LatLngBounds'
 export * as Projection from '../../src/core-map/geo/projection/index'
-export { TsMap } from '../../src/core-map/map/index'
+export { Map } from '../../src/core-map/map/index'
 
 import { expect } from 'bun:test'
 import { LatLng } from '../../src/core-map/geo/LatLng'

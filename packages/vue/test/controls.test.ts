@@ -32,7 +32,7 @@ async function mount(children: unknown[]): Promise<{ host: HTMLElement, app: Ret
   })
   app.mount(host)
 
-  // TsMap needs a sized container before it will initialise.
+  // MapInstance needs a sized container before it will initialise.
   const mapEl = host.querySelector('.ts-map-host') as HTMLElement | null
   if (mapEl) {
     mapEl.style.width = '800px'

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { SearchPlace } from '../src/core-map/search'
-import { control, TsMap } from '../src/core-map'
+import { control, Map } from '../src/core-map'
 import { describeOpening, detailsFromTags, openingStatus, OverpassPlaceDetails, parseOpeningHours } from '../src/core-map/search'
 
 // A Wednesday afternoon, local time.
@@ -70,12 +70,12 @@ describe('OverpassPlaceDetails', () => {
   })
 })
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   Object.defineProperty(container, 'clientWidth', { value: 430 })
   Object.defineProperty(container, 'clientHeight', { value: 800 })
   document.body.appendChild(container)
-  const map = new TsMap(container, { zoomAnimation: false, fadeAnimation: false })
+  const map = new Map(container, { zoomAnimation: false, fadeAnimation: false })
   map.setView([place.center.lat, place.center.lng], 15)
   return map
 }

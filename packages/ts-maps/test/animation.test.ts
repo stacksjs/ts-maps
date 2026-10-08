@@ -4,7 +4,7 @@ import { Animation } from '../src/core-map/dom/Animation'
 import { cubicBezier, easeInOutCubic, easeOutCubic, linear } from '../src/core-map/dom/easing'
 import { LatLng } from '../src/core-map/geo/LatLng'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 /**
  * Install a manual-tick stub for `requestAnimationFrame` /
@@ -19,7 +19,7 @@ interface ManualRAF {
 }
 
 function installManualRAF(): ManualRAF {
-  const cbs = new Map<number, FrameRequestCallback>()
+  const cbs = new globalThis.Map<number, FrameRequestCallback>()
   let nextId = 1
   const origRAF = globalThis.requestAnimationFrame
   const origCAF = globalThis.cancelAnimationFrame
@@ -54,11 +54,11 @@ function createContainer(): HTMLElement {
 
 /**
  * very-happy-dom does not populate `clientWidth` / `clientHeight` from inline
- * styles, so `TsMap.getSize()` would otherwise return `(0, 0)`. Stamp an
+ * styles, so `Map.getSize()` would otherwise return `(0, 0)`. Stamp an
  * explicit size into the map's internal slot, then recompute `_pixelOrigin`
  * using the now-correct size. Mirrors the helper in `bearing.test.ts`.
  */
-function stampSize(map: TsMap, width: number, height: number): void {
+function stampSize(map: Map, width: number, height: number): void {
   map._size = new Point(width, height)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
@@ -307,7 +307,7 @@ describe('Map camera animations', () => {
   })
 
   test('easeTo interpolates zoom / bearing / pitch and lands exactly on target', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     map.easeTo({ zoom: 10, bearing: 45, pitch: 30, duration: 200 })
@@ -325,7 +325,7 @@ describe('Map camera animations', () => {
   })
 
   test('isEasing() is true mid-animation and false after it ends', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     expect(map.isEasing()).toBe(false)
@@ -346,7 +346,7 @@ describe('Map camera animations', () => {
   // cancellation, once for the completion). This matches Mapbox GL JS's
   // behavior.
   test('re-entrant rotateTo: second call cancels the first; rotateend fires twice', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     let rotateEndCount = 0
@@ -370,7 +370,7 @@ describe('Map camera animations', () => {
   })
 
   test('flyTo lands within 1 meter of the requested center', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     const target = new LatLng(40, -74)
@@ -392,7 +392,7 @@ describe('Map camera animations', () => {
   })
 
   test('pitchTo animates to the exact target pitch', () => {
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 3 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 3 })
     stampSize(map, 800, 600)
 
     map.pitchTo(60, { animate: true, duration: 100 })
@@ -412,7 +412,7 @@ describe('Map camera animations', () => {
     // `_stop()` path that `setView` calls, and we want a dedicated regression
     // test in the animation file.
     const container = createContainer()
-    const map = new TsMap(container)
+    const map = new Map(container)
     expect(map._loaded).toBeFalsy()
 
     map.setView([0, 0], 5)

@@ -24,7 +24,7 @@ describe('@ts-maps/react exports', () => {
     expect(html).toContain('width:400px')
   })
 
-  test('event prop mapping covers the common TsMap events', () => {
+  test('event prop mapping covers the common map events', () => {
     expect(EVENT_PROPS.onClick).toBe('click')
     expect(EVENT_PROPS.onMove).toBe('move')
     expect(EVENT_PROPS.onStyleLoad).toBe('style.load')
@@ -52,7 +52,7 @@ describe('@ts-maps/react exports', () => {
 })
 
 describe('<Map> client mount', () => {
-  test('constructs a TsMap when mounted with a sized container', async () => {
+  test('constructs a map when mounted with a sized container', async () => {
     const host = document.createElement('div')
     host.style.width = '800px'
     host.style.height = '600px'

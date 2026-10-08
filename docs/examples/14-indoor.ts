@@ -7,10 +7,10 @@
  * choosing one goes to its level.
  */
 
-import { control, indoorMap, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, indoorMap, Map, styles } from '../../packages/ts-maps/src/core-map'
 import { TERMINAL_CENTER, terminal } from './data/terminal'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: TERMINAL_CENTER,
   zoom: 18.8,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

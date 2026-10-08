@@ -14,7 +14,7 @@ marker([51.5, -0.12]).addTo(map) // the same
 Layers here are added with `layer.addTo(map)` or `map.addLayer(layer)`.
 Style layers — `fill`, `line`, `symbol` and the rest, drawn from a style's
 sources — are a different thing and go through
-[`map.addStyleLayer`](./TsMap.md#style).
+[`map.addStyleLayer`](./Map.md#style).
 
 ## Every layer
 
@@ -126,7 +126,7 @@ their pixels.
 ### `VectorTileMapLayer`
 
 Most maps get vector tiles through a style
-([`setStyle`](./TsMap.md#style)), which builds these layers itself. Use one
+([`setStyle`](./Map.md#style)), which builds these layers itself. Use one
 directly to put a vector source on a map without a style.
 
 ```ts
@@ -165,7 +165,7 @@ style spec's `source-layer`.
 
 Methods: `queryRenderedFeatures(point?, options?)` and
 `querySourceFeatures({ sourceLayer?, filter? })`, as on the
-[map](./TsMap.md#querying-features); `setStyleLayers(layers)` to replace the
+[map](./Map.md#querying-features); `setStyleLayers(layers)` to replace the
 layers; `getStyleLayer(id)`; `sourceReady()`, a promise for a `pmtiles://`
 archive's header.
 

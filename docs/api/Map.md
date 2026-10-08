@@ -1,14 +1,17 @@
-# `TsMap`
+# `Map`
 
 The map. One instance owns a DOM container, a camera, an optional style
 document and the layers and controls added to it. Everything on this page is a
-method or event of `TsMap`; the layers it holds are in [Layers](./layer.md).
+method or event of `Map`; the layers it holds are in [Layers](./layer.md).
+
+Before 0.5 the class was called `TsMap`. That name still works, as a
+deprecated alias of `Map`.
 
 ```ts
-import { styles, TsMap } from 'ts-maps'
+import { Map, styles } from 'ts-maps'
 import 'ts-maps/styles.css'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.758, -73.9855], // [lat, lng]
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
@@ -24,9 +27,9 @@ Anywhere a point is taken, a `LatLng`, a `[lat, lng]` pair or a
 
 | Signature | |
 | --------- | - |
-| `new TsMap(container, options?)` | `container` is an element id or an `HTMLElement`. |
+| `new Map(container, options?)` | `container` is an element id or an `HTMLElement`. |
 | `createMap(container, options?)` | The same, as a function. Also exported as `map`. |
-| `Map` | An alias of `TsMap`. |
+| `Map` | An alias of `Map`. |
 
 The view is set at construction only when both `center` and `zoom` are given.
 Without them the map is empty until the first `setView` or `fitBounds`.

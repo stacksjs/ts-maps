@@ -7,9 +7,9 @@
  * loaded (`style.load`), since setting a style replaces whatever was there.
  */
 
-import { styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { Map, styles } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [40.7616, -73.9776],
   zoom: 13.5,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

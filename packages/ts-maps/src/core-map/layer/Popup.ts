@@ -1,7 +1,7 @@
 import * as DomEvent from '../dom/DomEvent'
 import * as DomUtil from '../dom/DomUtil'
 import { Point } from '../geometry/Point'
-import { TsMap } from '../map/Map'
+import { Map } from '../map/Map'
 import { DivOverlay } from './DivOverlay'
 import { FeatureGroup } from './FeatureGroup'
 import { Layer } from './Layer'
@@ -168,7 +168,7 @@ export class Popup extends DivOverlay {
 }
 
 declare module '../map/Map' {
-  interface TsMap {
+  interface Map {
     openPopup: (popup: Popup | string | HTMLElement, latlng?: unknown, options?: Record<string, unknown>) => this
     closePopup: (popup?: Popup) => this
   }
@@ -206,9 +206,9 @@ Popup.setDefaultOptions( {
   trackResize: true,
 })
 
-TsMap.mergeOptions( { closePopupOnClick: true })
+Map.mergeOptions( { closePopupOnClick: true })
 
-TsMap.include( {
+Map.include( {
   openPopup(this: any, popup: any, latlng?: any, options?: any) {
     this._initOverlay(Popup, popup, latlng, options).openOn(this)
     return this

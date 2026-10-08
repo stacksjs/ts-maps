@@ -11,9 +11,9 @@ import { useMap } from './useMap'
  * page added to it.
  *
  * ```vue
- * <TsMap :center="[37.78, -122.42]" :zoom="13">
+ * <MapInstance :center="[37.78, -122.42]" :zoom="13">
  *   <TsMapType :types="mapTypes({ tiles, imagery })" v-model:value="type" v-model:open="picking" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * Every prop is followed as it changes: a new `value` shows that type, a new

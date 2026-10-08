@@ -2,9 +2,9 @@ import type { LatLng } from '../../geo/LatLng'
 import type { Point } from '../../geometry/Point'
 import * as DomEvent from '../../dom/DomEvent'
 import { Handler } from '../../core/Handler'
-import { TsMap } from '../Map'
+import { Map } from '../Map'
 
-TsMap.mergeOptions({
+Map.mergeOptions({
   scrollWheelZoom: true,
 
   /**
@@ -243,4 +243,4 @@ export class ScrollWheelZoomHandler extends Handler {
   }
 }
 
-TsMap.addInitHook('addHandler', 'scrollWheelZoom', ScrollWheelZoomHandler)
+Map.addInitHook('addHandler', 'scrollWheelZoom', ScrollWheelZoomHandler)

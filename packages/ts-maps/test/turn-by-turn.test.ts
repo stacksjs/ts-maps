@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { DirectionsProvider, Route } from '../src/core-map/services/types'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { formatDuration, TurnByTurn } from '../src/core-map/navigation/TurnByTurn'
 
 const P = (north: number, east: number) => ({ lat: north * 0.0009, lng: east * 0.0009 })
@@ -22,10 +22,10 @@ const provider = (routes: Route[]): DirectionsProvider & { calls: number } => {
   return p
 }
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [0.002, 0.001], zoom: 15 })
+  const map = new Map(el, { center: [0.002, 0.001], zoom: 15 })
   map._size = new Point(430, 860)
   map._sizeChanged = false
   map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)

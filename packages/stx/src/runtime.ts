@@ -1,4 +1,4 @@
-import type { IndoorMapOptions, LandmarkOptions, LookAroundOptions, MapTypeControlOptions, MapTypeOption, MapTypesOptions, StreetImageryProvider, TsMap } from 'ts-maps'
+import type { IndoorMapOptions, LandmarkOptions, LookAroundOptions, Map as MapInstance, MapTypeControlOptions, MapTypeOption, MapTypesOptions, StreetImageryProvider } from 'ts-maps'
 import type { PageTheme, ResolveTileJsonOptions, RouteLatLng, RouteMarker, RouteOptions } from './route'
 import { CircleMarker, control, divIcon, IndoorMap, Landmark, LookAround, MapillaryImagery, marker as makeMarker, MapTypeControl, mapTypes, OfflineMapsControl, PanoramaxImagery, Polyline, popup as makePopup, RunTrailLayer, SearchControl, styles, TerritoryLayer, tileLayer, TomTomIncidents, TrafficLayer, trafficSources, Trees, TURN_BY_TURN_EVENTS, TurnByTurn } from 'ts-maps'
 import { basemapStyle, drawRoute, pageTheme, refitOnResize, resolveTileJson, watchPageTheme } from './route'
@@ -27,11 +27,11 @@ import { basemapStyle, drawRoute, pageTheme, refitOnResize, resolveTileJson, wat
 export const CHILD_ATTRIBUTE = 'data-ts-map-child'
 
 interface MapHost extends HTMLElement {
-  __tsMap?: TsMap | null
+  __tsMap?: MapInstance | null
 }
 
 /** Publish a map on its container so host code can reach it. */
-export function publishMap(container: HTMLElement, map: TsMap): void {
+export function publishMap(container: HTMLElement, map: MapInstance): void {
   (container as MapHost).__tsMap = map
   container.setAttribute('data-ts-map', '')
 }
@@ -42,7 +42,7 @@ export function unpublishMap(container: HTMLElement): void {
 }
 
 /** The nearest enclosing map, from any element inside it. */
-export function findMap(from: Element | null | undefined): TsMap | null {
+export function findMap(from: Element | null | undefined): MapInstance | null {
   return ((from?.closest?.('[data-ts-map]') ?? null) as MapHost | null)?.__tsMap ?? null
 }
 
@@ -82,7 +82,7 @@ export function definedOnly(options: Record<string, unknown>): Record<string, un
 }
 
 /**
- * Turn the props `<Map>` forwarded into the options TsMap wants.
+ * Turn the props `<Map>` forwarded into the options MapInstance wants.
  *
  * Defaults live here rather than in the component because stx materialises a
  * `const` only for props the caller actually passed: a default written in the
@@ -172,7 +172,7 @@ function buildBasemap(props: MapProps): unknown {
  * page between light and dark. Returns the teardown; a no-op when the props
  * ask for neither.
  */
-export function attachBasemap(map: TsMap, props: MapProps, env: Pick<ResolveTileJsonOptions, 'fetch' | 'storage'> & { doc?: Document } = {}): () => void {
+export function attachBasemap(map: MapInstance, props: MapProps, env: Pick<ResolveTileJsonOptions, 'fetch' | 'storage'> & { doc?: Document } = {}): () => void {
   const fromTileJson = hasTileJson(props)
   const auto = props.basemap === 'auto'
   if (props.styleSpec || (!fromTileJson && !auto) || (props.basemap !== 'light' && props.basemap !== 'dark' && !auto))
@@ -320,7 +320,7 @@ function buildPopup(el: HTMLTemplateElement): { instance: any, open: boolean, la
  * `<OfflineMaps>`, `<MapType>`, `<IndoorMap>`, `<LookAround>`, `<Landmark>`
  * and `<Trees>` go on following their `data-options` after that.
  */
-export function mountChildren(map: TsMap, root: HTMLElement): () => void {
+export function mountChildren(map: MapInstance, root: HTMLElement): () => void {
   const created: Removable[] = []
   const anyMap = map as any
   // Search's Directions previews routes on the map's TurnByTurn, whichever

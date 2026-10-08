@@ -11,9 +11,9 @@ import { useMap } from './useMap'
  * connection drops.
  *
  * ```vue
- * <TsMap :center="[37.78, -122.42]" :zoom="13">
+ * <MapInstance :center="[37.78, -122.42]" :zoom="13">
  *   <TsOfflineMaps v-model:open="showOffline" @complete="({ region }) => toast(region.name)" />
- * </TsMap>
+ * </MapInstance>
  * ```
  *
  * Every prop is followed as it changes: a new `maps` moves the panel and its

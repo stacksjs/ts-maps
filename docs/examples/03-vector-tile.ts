@@ -7,9 +7,9 @@
  * it, through `queryRenderedFeatures`.
  */
 
-import { TsMap } from '../../packages/ts-maps/src/core-map'
+import { Map } from '../../packages/ts-maps/src/core-map'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5072, -0.1276],
   zoom: 15,
   style: {

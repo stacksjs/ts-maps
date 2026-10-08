@@ -10,13 +10,13 @@ import { describe, expect, test } from 'bun:test'
 import { buildTerrainGrid } from '../src/core-map/geo/terrainMesh'
 import { TerrainSource } from '../src/core-map/geo/TerrainSource'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { pixelsPerMetre, projectTerrainPoint, TerrainView, unprojectTerrainPoint } from '../src/core-map/map/TerrainView'
 
-function createMap(pitch: number, bearing: number): TsMap {
+function createMap(pitch: number, bearing: number): Map {
   const container = document.createElement('div')
   document.body.appendChild(container)
-  const map = new TsMap(container, { center: [46, 7.6], zoom: 12, pitch, bearing })
+  const map = new Map(container, { center: [46, 7.6], zoom: 12, pitch, bearing })
   // The test DOM has no layout: give the map its size by hand.
   map._size = new Point(800, 600)
   map._sizeChanged = false
@@ -24,7 +24,7 @@ function createMap(pitch: number, bearing: number): TsMap {
   return map
 }
 
-function cameraOf(map: TsMap): TerrainCamera {
+function cameraOf(map: Map): TerrainCamera {
   const size = map.getSize()
   const pos = map._getMapPanePos()
   return {
@@ -134,7 +134,7 @@ describe('terrain camera', () => {
 })
 
 describe('terrain view without WebGL', () => {
-  function withTerrain(pitch: number, bearing: number, height: (fx: number, fy: number) => number): { map: TsMap, view: TerrainView } {
+  function withTerrain(pitch: number, bearing: number, height: (fx: number, fy: number) => number): { map: Map, view: TerrainView } {
     const map = createMap(pitch, bearing)
     map.setTerrain({ source: 'dem' })
     const src = map.getTerrainSource()!

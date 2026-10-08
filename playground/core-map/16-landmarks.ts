@@ -9,7 +9,7 @@
  * `?lat=…&lng=…&zoom=…` override the starting view.
  */
 
-import { control, landmark, trees, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, landmark, Map, trees } from '../../packages/ts-maps/src/core-map'
 import { transamerica } from '../../docs/examples/data/transamerica'
 import { loadBasemap } from './basemap'
 
@@ -17,7 +17,7 @@ const PYRAMID: [number, number] = [37.79520, -122.40280]
 const PRESIDIO: [number, number] = [37.79380, -122.45980]
 
 const params = new URLSearchParams(location.search)
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [Number(params.get('lat') ?? 37.79380), Number(params.get('lng') ?? -122.40180)],
   zoom: Number(params.get('zoom') ?? 16.4),
   pitch: 60,

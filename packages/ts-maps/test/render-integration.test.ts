@@ -15,7 +15,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map/map/index'
+import { Map } from '../src/core-map/map/index'
 
 function makeStubGL(): { gl: any, calls: Record<string, any[]> } {
   const calls: Record<string, any[]> = {
@@ -91,14 +91,14 @@ function makeStubGL(): { gl: any, calls: Record<string, any[]> } {
 
 describe('Map atmosphere overlay — sky + fog', () => {
   let container: HTMLElement
-  let map: TsMap
+  let map: Map
 
   beforeEach(() => {
     container = document.createElement('div')
     container.style.width = '300px'
     container.style.height = '200px'
     document.body.appendChild(container)
-    map = new TsMap(container, { center: [0, 0], zoom: 3, pitch: 40 })
+    map = new Map(container, { center: [0, 0], zoom: 3, pitch: 40 })
   })
 
   afterEach(() => {
@@ -147,7 +147,7 @@ describe('Map atmosphere overlay — sky + fog', () => {
   })
 
   test('overlay is hidden at pitch 0 and visible at high pitch', () => {
-    const flatMap = new TsMap(
+    const flatMap = new Map(
       (() => {
         const d = document.createElement('div')
         d.style.width = '200px'
@@ -162,7 +162,7 @@ describe('Map atmosphere overlay — sky + fog', () => {
     expect(overlay.style.display).toBe('none')
     flatMap.remove()
 
-    const tiltedMap = new TsMap(
+    const tiltedMap = new Map(
       (() => {
         const d = document.createElement('div')
         d.style.width = '200px'
@@ -192,14 +192,14 @@ describe('Map atmosphere overlay — sky + fog', () => {
 
 describe('Map custom-layer render hook', () => {
   let container: HTMLElement
-  let map: TsMap
+  let map: Map
 
   beforeEach(() => {
     container = document.createElement('div')
     container.style.width = '256px'
     container.style.height = '256px'
     document.body.appendChild(container)
-    map = new TsMap(container, { center: [0, 0], zoom: 3 })
+    map = new Map(container, { center: [0, 0], zoom: 3 })
   })
 
   afterEach(() => {
@@ -273,14 +273,14 @@ describe('Map custom-layer render hook', () => {
 
 describe('Map terrain draw hook', () => {
   let container: HTMLElement
-  let map: TsMap
+  let map: Map
 
   beforeEach(() => {
     container = document.createElement('div')
     container.style.width = '256px'
     container.style.height = '256px'
     document.body.appendChild(container)
-    map = new TsMap(container, { center: [0, 0], zoom: 3 })
+    map = new Map(container, { center: [0, 0], zoom: 3 })
   })
 
   afterEach(() => {

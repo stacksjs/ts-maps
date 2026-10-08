@@ -1,6 +1,6 @@
 /**
  * Maps React-style camelCase event props (e.g. `onStyleLoad`) to the
- * underlying `TsMap` event names (e.g. `style.load`). We do this up front so
+ * underlying `Map` event names (e.g. `style.load`). We do this up front so
  * binding logic stays a flat loop.
  */
 export const EVENT_PROPS: Readonly<Record<string, string>> = {

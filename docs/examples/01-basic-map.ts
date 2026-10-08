@@ -6,11 +6,11 @@
  * style; `url` names its TileJSON, which the map reads for the tiles.
  */
 
-import { DivIcon, Marker, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, Map, Marker, styles } from '../../packages/ts-maps/src/core-map'
 
 const TIMES_SQUARE: [number, number] = [40.758, -73.9855]
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: TIMES_SQUARE,
   zoom: 14,
   style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),

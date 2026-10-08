@@ -1,6 +1,6 @@
 # Vue
 
-`@ts-maps/vue` wraps ts-maps in Vue 3 components. `<Map>` builds a `TsMap` in
+`@ts-maps/vue` wraps ts-maps in Vue 3 components. `<Map>` builds a `Map` in
 `onMounted` and provides it to its children; every other component adds one
 thing to that map and removes it when it unmounts. For what the bindings
 share, see [Framework bindings](./framework-bindings.md). In Nuxt, use
@@ -55,13 +55,13 @@ const basemap = styles.light({ url: 'https://tiles.openfreemap.org/planet' })
 That draws [OpenFreeMap](https://openfreemap.org)'s planet, free and keyless.
 
 - `center` is `[lat, lng]`.
-- `style` is the map's style, not CSS: a style object, or the URL of one. It
-  is read when the map is built. `style="height: 480px"` would be taken as a
-  style URL. To change the style later, call `map.setStyle()`.
+- `style` is the map's style, not CSS: a style object, or the URL of one.
+  `style="height: 480px"` would be taken as a style URL. Give it a different
+  style and the map changes; the same style again is left alone.
 - `container-style` and `container-class` go on the container `<div>`, and so
   does a plain `class`. Give it a height.
 
-The component is also exported as `TsMap`, if you would rather not shadow the
+The component is also exported as `Map`, if you would rather not shadow the
 global `Map` in your script. The examples below reuse `basemap`.
 
 `center`, `zoom`, `bearing` and `pitch` are followed as they change. When
@@ -363,7 +363,7 @@ const look = shallowRef<Viewer>()
 `contextmenu`, `move`, `movestart`, `moveend`, `zoom`, `zoomstart`, `zoomend`,
 `drag`, `dragstart`, `dragend`, `resize`, `viewreset`, `popupopen`,
 `popupclose`, `tooltipopen`, `tooltipclose`, `layeradd`, `layerremove` and a
-few more. It also emits `load-map` with the `TsMap`, once it is built.
+few more. It also emits `load-map` with the `Map`, once it is built.
 
 ```vue
 <Map
@@ -380,7 +380,7 @@ Some names need care:
 
 - `@load` is the map's `load` event. A map that loaded while it was being
   built emits it once, just after the listener is bound. `@load-map` is
-  different: it hands over the `TsMap` once it is built.
+  different: it hands over the `Map` once it is built.
 - `@style-load` is `style.load`, emitted each time a style is in place.
 - The mouse events other than `click`, `dblclick` and `contextmenu` are not
   emitted. Use `useMapEvent('mousemove', …)`.
@@ -404,11 +404,11 @@ A template ref on `<Map>` exposes `map`:
 
 ```vue
 <script setup lang="ts">
-import type { TsMap } from 'ts-maps'
+import type { Map } from 'ts-maps'
 import { Map } from '@ts-maps/vue'
 import { useTemplateRef } from 'vue'
 
-const view = useTemplateRef<{ map: TsMap | null }>('view')
+const view = useTemplateRef<{ map: Map | null }>('view')
 
 function london(): void {
   view.value?.map?.flyTo([51.5072, -0.1276], 12)

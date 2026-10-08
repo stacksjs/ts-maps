@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
 import { GridLayer } from '../src/core-map/layer/tile/GridLayer'
 import { TileLayer } from '../src/core-map/layer/tile/TileLayer'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 type Coords = Point & { z: number }
 
-function makeMap(options: Record<string, unknown> = {}): TsMap {
+function makeMap(options: Record<string, unknown> = {}): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [37.7879, -122.4075], zoom: 15, ...options })
+  const map = new Map(el, { center: [37.7879, -122.4075], zoom: 15, ...options })
   // very-happy-dom has no layout; give the map a size of its own.
   map._size = new Point(1000, 640)
   map._sizeChanged = false
@@ -18,7 +18,7 @@ function makeMap(options: Record<string, unknown> = {}): TsMap {
   return map
 }
 
-function covering(map: TsMap, options: Record<string, unknown> = {}): Coords[] {
+function covering(map: Map, options: Record<string, unknown> = {}): Coords[] {
   const layer = new GridLayer({ tileSize: 256, ...options }) as any
   layer._map = map
   layer._tileZoom = Math.round(map.getZoom())
@@ -27,7 +27,7 @@ function covering(map: TsMap, options: Record<string, unknown> = {}): Coords[] {
 }
 
 /** The tile of `tiles` containing the ground under a container point, if any. */
-function tilesUnder(map: TsMap, tiles: Coords[], point: Point): Coords[] {
+function tilesUnder(map: Map, tiles: Coords[], point: Point): Coords[] {
   return tiles.filter((t) => {
     const px = map.project(map.containerPointToLatLng(point), t.z)
     return Math.floor(px.x / 256) === t.x && Math.floor(px.y / 256) === t.y

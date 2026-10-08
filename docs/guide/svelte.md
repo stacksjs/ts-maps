@@ -1,6 +1,6 @@
 # Svelte
 
-`@ts-maps/svelte` wraps ts-maps in Svelte components. `<Map>` builds a `TsMap`
+`@ts-maps/svelte` wraps ts-maps in Svelte components. `<Map>` builds a `Map`
 in `onMount` and gives it to its children through context; every other
 component adds one thing to that map and removes it when it is destroyed.
 For what the bindings share, see [Framework bindings](./framework-bindings.md).
@@ -359,7 +359,7 @@ core's mouse, layer and tooltip events.
 
 Three names differ from the pattern:
 
-- `onLoad` is not the map's `load` event. It is called once with the `TsMap`,
+- `onLoad` is not the map's `load` event. It is called once with the `Map`,
   right after the map is built.
 - `onLoadEvent` is the map's `load` event. A map that loaded while it was
   being built calls it once, just after the prop is bound.
@@ -386,14 +386,14 @@ script, not in `onMount`:
 
 ## Reaching the map
 
-`onLoad` hands the `TsMap` to the component that renders `<Map>`:
+`onLoad` hands the `Map` to the component that renders `<Map>`:
 
 ```svelte
 <script lang="ts">
-  import type { TsMap } from 'ts-maps'
+  import type { Map } from 'ts-maps'
   import { Map } from '@ts-maps/svelte'
 
-  let map: TsMap | undefined
+  let map: Map | undefined
 </script>
 
 <div style="height: 480px">
@@ -402,7 +402,7 @@ script, not in `onMount`:
 <button on:click={() => map?.flyTo([51.5072, -0.1276], 12)}>London</button>
 ```
 
-Inside the map, `useMap()` returns the `TsMap`, or `null` outside a `<Map>`.
+Inside the map, `useMap()` returns the `Map`, or `null` outside a `<Map>`.
 `useMapOptional()` is the same, named as in React and Vue, where `useMap()`
 throws outside a map. Call either in a component's script: they read Svelte's
 context, which is not there in `onMount` or `onDestroy`.

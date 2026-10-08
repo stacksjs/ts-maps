@@ -7,7 +7,7 @@ The Matterhorn in 3D, from real elevation: AWS's open [Terrain Tiles](https://re
 [Open it full screen](/playground/examples/06-terrain.html) · [Edit and run it](/playground/examples/edit.html?example=06-terrain) · Full source: [`06-terrain.ts`](./06-terrain.ts)
 
 ```ts
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [45.992, 7.69],
   zoom: 13.2,
   pitch: 68,

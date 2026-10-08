@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { TwoFingerPitchHandler } from '../src/core-map/map/handler/TwoFingerPitchHandler'
 import { TwoFingerRotateHandler } from '../src/core-map/map/handler/TwoFingerRotateHandler'
 
@@ -17,10 +17,10 @@ afterEach(() => {
   for (const c of containers.splice(0)) c.remove()
 })
 
-function makeMap(opts?: Record<string, unknown>): TsMap {
+function makeMap(opts?: Record<string, unknown>): Map {
   const c = createContainer()
   containers.push(c)
-  const map = new TsMap(c, { center: [0, 0], zoom: 4, ...(opts ?? {}) })
+  const map = new Map(c, { center: [0, 0], zoom: 4, ...(opts ?? {}) })
   return map
 }
 

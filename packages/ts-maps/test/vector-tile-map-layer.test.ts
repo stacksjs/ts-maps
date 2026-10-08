@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 import { Pbf } from '../src/core-map/proto/Pbf'
 import { VectorTileMapLayer, vectorTileLayer } from '../src/core-map'
 import type { VectorTileStyleLayer } from '../src/core-map'
@@ -123,7 +123,7 @@ function createContainer(): HTMLElement {
   return container
 }
 
-function stampSize(map: TsMap, width: number, height: number): void {
+function stampSize(map: Map, width: number, height: number): void {
   map._size = new Point(width, height)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
@@ -135,7 +135,7 @@ function stampSize(map: TsMap, width: number, height: number): void {
 // GridLayer._initTile touches, so the normal tile-add pipeline can't run in
 // this environment. Wiring `_map` + `_tiles` manually mirrors the state
 // GridLayer would otherwise set up.
-function attachLayerForCreateTile(layer: VectorTileMapLayer, map: TsMap): void {
+function attachLayerForCreateTile(layer: VectorTileMapLayer, map: Map): void {
   layer._map = map
   layer._tiles = {}
 }
@@ -327,7 +327,7 @@ describe('VectorTileMapLayer: shared ancestor decoding', () => {
   let restoreFetch: (() => void) | undefined
   afterEach(() => { restoreFetch?.(); restoreFetch = undefined })
 
-  function overzoomLayer(map: TsMap): VectorTileMapLayer {
+  function overzoomLayer(map: Map): VectorTileMapLayer {
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
       tileSize: 512,
@@ -348,7 +348,7 @@ describe('VectorTileMapLayer: shared ancestor decoding', () => {
       return responseFrom(bytes, { status: 200 })
     })
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 5 })
     stampSize(map, 512, 512)
     const layer: any = overzoomLayer(map)
 
@@ -375,7 +375,7 @@ describe('VectorTileMapLayer: shared ancestor decoding', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 5 })
     stampSize(map, 512, 512)
     const layer: any = overzoomLayer(map)
 
@@ -395,7 +395,7 @@ describe('VectorTileMapLayer: shared ancestor decoding', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 5 })
     stampSize(map, 512, 512)
     const layer: any = overzoomLayer(map)
 
@@ -423,7 +423,7 @@ describe('VectorTileMapLayer: shared ancestor decoding', () => {
       return responseFrom(bytes, { status: 200 })
     })
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
     const layer: any = overzoomLayer(map)
 
@@ -447,7 +447,7 @@ describe('VectorTileMapLayer: shared ancestor decoding', () => {
         : responseFrom(bytes, { status: 200 })
     })
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 5 })
     stampSize(map, 512, 512)
     const layer: any = overzoomLayer(map)
 
@@ -469,7 +469,7 @@ describe('VectorTileMapLayer: decode + render path', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -501,7 +501,7 @@ describe('VectorTileMapLayer: decode + render path', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const styleLayers: VectorTileStyleLayer[] = [
@@ -526,7 +526,7 @@ describe('VectorTileMapLayer: decode + render path', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 5 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 5 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -565,7 +565,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -592,7 +592,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -627,7 +627,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -652,7 +652,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -679,7 +679,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -709,7 +709,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -730,7 +730,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -741,7 +741,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     attachLayerForCreateTile(layer, map)
     const { ready } = createTileOnLayer(layer, tileCoords(0, 0, 4))
     await ready
-    ;(map as any)._style = { sourceLayers: new Map([['tiles', layer]]) }
+    ;(map as any)._style = { sourceLayers: new globalThis.Map([['tiles', layer]]) }
 
     expect(map.queryRenderedFeatures([[0, 0], [10, 10]])).toEqual([])
     expect(map.queryRenderedFeatures([[120, 120], [260, 260]]).length).toBe(1)
@@ -755,7 +755,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const bytes = encodeGridTile(N, cellSize)
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -797,7 +797,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const bytes = encodeWaterTile()
     restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({
@@ -823,7 +823,7 @@ describe('VectorTileMapLayer: error handling', () => {
   test('surfaces fetch rejection through the createTile callback', async () => {
     restoreFetch = installFetchStub(async () => { throw new Error('network down') })
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 512 })
@@ -838,7 +838,7 @@ describe('VectorTileMapLayer: error handling', () => {
   test('surfaces HTTP errors through the createTile callback', async () => {
     restoreFetch = installFetchStub(async () => new Response('nope', { status: 404 }))
 
-    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
 
     const layer = new VectorTileMapLayer({ url: 'https://tiles/{z}/{x}/{y}.pbf', tileSize: 512 })

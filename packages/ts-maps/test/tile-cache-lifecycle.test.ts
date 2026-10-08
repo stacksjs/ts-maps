@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { getDefaultCache, resetDefaultCache, TileCache } from '../src/core-map/storage/index'
-import { TsMap } from '../src/core-map/map/index'
+import { Map } from '../src/core-map/map/index'
 
 describe('TileCache.close', () => {
   test('is safe to call on a fresh cache', async () => {
@@ -20,7 +20,7 @@ describe('TileCache.close', () => {
 
   test('invokes backend.close() when provided', async () => {
     let closed = 0
-    const store = new Map<string, any>()
+    const store = new globalThis.Map<string, any>()
     const c = new TileCache({
       backend: {
         get: async k => store.get(k),
@@ -61,7 +61,7 @@ describe('Map.remove cleanup', () => {
     container.style.height = '200px'
     document.body.appendChild(container)
 
-    const map = new TsMap(container, { center: [0, 0], zoom: 3, pitch: 40 })
+    const map = new Map(container, { center: [0, 0], zoom: 3, pitch: 40 })
     map.setSky({ 'sky-color': '#2563eb' })
     map.setTerrain({ source: 'dem' })
 

@@ -1,4 +1,4 @@
-import type { TsMap } from 'ts-maps'
+import type { Map as MapInstance } from 'ts-maps'
 
 /**
  * What `<Map>` last gave the map. A prop is passed on when its value
@@ -13,7 +13,7 @@ export interface Applied {
   style?: unknown
 }
 
-export function followCamera(map: TsMap, center: [number, number] | undefined, zoom: number | undefined, applied: Applied): void {
+export function followCamera(map: MapInstance, center: [number, number] | undefined, zoom: number | undefined, applied: Applied): void {
   const sameCenter = center?.[0] === applied.center?.[0] && center?.[1] === applied.center?.[1]
   if (sameCenter && zoom === applied.zoom)
     return
@@ -30,23 +30,23 @@ export function followCamera(map: TsMap, center: [number, number] | undefined, z
     map.setZoom(zoom)
 }
 
-export function followBearing(map: TsMap, bearing: number | undefined, applied: Applied): void {
+export function followBearing(map: MapInstance, bearing: number | undefined, applied: Applied): void {
   if (bearing === undefined || bearing === applied.bearing)
     return
   applied.bearing = bearing
   map.setBearing(bearing)
 }
 
-export function followPitch(map: TsMap, pitch: number | undefined, applied: Applied): void {
+export function followPitch(map: MapInstance, pitch: number | undefined, applied: Applied): void {
   if (pitch === undefined || pitch === applied.pitch)
     return
   applied.pitch = pitch
   map.setPitch(pitch)
 }
 
-export function followStyle(map: TsMap, style: object | string | undefined, applied: Applied): void {
+export function followStyle(map: MapInstance, style: object | string | undefined, applied: Applied): void {
   if (style === undefined || style === applied.style)
     return
   applied.style = style
-  map.setStyle(style as Parameters<TsMap['setStyle']>[0])
+  map.setStyle(style as Parameters<MapInstance['setStyle']>[0])
 }

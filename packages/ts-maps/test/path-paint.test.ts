@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { Polygon, TsMap } from '../src/core-map'
+import { Polygon, Map } from '../src/core-map'
 
-function makeMap(): TsMap {
+function makeMap(): Map {
   const container = document.createElement('div')
   container.style.width = '400px'
   container.style.height = '300px'
   document.body.appendChild(container)
-  return new TsMap(container, { center: [0, 0], zoom: 1 })
+  return new Map(container, { center: [0, 0], zoom: 1 })
 }
 
 const ring: [number, number][] = [[0, 0], [0, 10], [10, 10], [10, 0]]

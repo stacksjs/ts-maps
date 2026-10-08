@@ -14,7 +14,7 @@
    * they change. `model`, `replace` and `minZoom` are read when the landmark
    * is made: a new one makes it again.
    */
-  import type { LandmarkOptions, LatLngLike, ModelSource, TsMap } from 'ts-maps'
+  import type { LandmarkOptions, LatLngLike, Map as MapInstance, ModelSource } from 'ts-maps'
   import { onDestroy, onMount } from 'svelte'
   import { Landmark } from 'ts-maps'
   import { useMap } from './useMap'
@@ -37,7 +37,7 @@
   export let onReady: ((landmark: Landmark) => void) | undefined = undefined
   /* eslint-enable no-unused-vars */
 
-  let map: TsMap | null = null
+  let map: MapInstance | null = null
   let landmark: Landmark | null = null
 
   function teardown(): void {

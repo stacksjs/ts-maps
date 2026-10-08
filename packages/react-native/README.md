@@ -95,7 +95,7 @@ export default function Screen() {
 | `onMarkerPress` | `(e: { id, index, coordinate }) => void`                      | Marker tap                                  |
 | `onError`     | `(e: { message }) => void`                                      | Errors from inside the WebView              |
 | `onTurnByTurn`, `onOfflineMaps`, `onSearch`, `onMapType`, `onIndoor`, `onLookAround` | `(e: { type, data }) => void` | Every event of that component |
-| `onReady`     | `(api: { call(method, ...args): Promise<unknown> }) => void`    | Escape hatch for imperative `TsMap` methods |
+| `onReady`     | `(api: { call(method, ...args): Promise<unknown> }) => void`    | Escape hatch for imperative `Map` methods |
 
 `turnByTurn`, `offlineMaps` and `search` are live: change any field, options included, and the map follows over the bridge without reloading the WebView; a field removed returns to its default. Only data crosses the bridge, so the options the other bindings take as objects or functions — `directions` for navigation, `maps` and `geocoder` for offline maps, `provider`, `offline`, `location`, `origin`, `onDirections`, `details`, `shareUrl` and `saved` for search — are not available here, and the WebView's defaults are used (for transit, `turnByTurn: { profile: 'transit', otpUrl }` plans with OpenTripPlanner at that URL): Save keeps Favorites in the WebView's own `localStorage`, and `showSaved: false` keeps their stars off the map. Search's events, a chosen place's `details` and Save's `save` and `unsave` among them, reach `onSearch` as plain data. `controls` is read when the map is built.
 

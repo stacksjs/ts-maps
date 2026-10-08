@@ -12,9 +12,9 @@ Both end up in the same place: a `VectorTileMapLayer`, which fetches, decodes an
 ## In a style
 
 ```ts
-import { TsMap } from 'ts-maps'
+import { Map } from 'ts-maps'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [51.5072, -0.1276],
   zoom: 15,
   style: {
@@ -47,7 +47,7 @@ A `vector` source takes:
 
 | Field | | |
 | --- | --- | --- |
-| `url` | | A TileJSON, read when the style is set, or a PMTiles archive as `pmtiles://https://…/file.pmtiles` |
+| `url` | | A TileJSON, read when the style is set, or a PMTiles archive as `pmtiles://<https://…/file.pmtiles>` |
 | `tiles` | | URL templates, used instead of `url`. The first is used |
 | `minzoom`, `maxzoom` | from the TileJSON | The zooms the tiles are published at. Past `maxzoom` the map keeps zooming and draws from the deepest tile it has |
 | `tileSize` | `512` | |
@@ -61,9 +61,9 @@ Style layers, paint and layout properties and expressions are covered in [Style 
 ## A layer on its own
 
 ```ts
-import { resolveTileJSON, TsMap, vectorTileLayer } from 'ts-maps'
+import { Map, resolveTileJSON, vectorTileLayer } from 'ts-maps'
 
-const map = new TsMap('map', { center: [51.5072, -0.1276], zoom: 13 })
+const map = new Map('map', { center: [51.5072, -0.1276], zoom: 13 })
 
 // OpenFreeMap puts its build date in the tile URL, so read it from the TileJSON.
 const found = await resolveTileJSON('https://tiles.openfreemap.org/planet')

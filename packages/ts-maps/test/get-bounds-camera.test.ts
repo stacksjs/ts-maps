@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { Point } from '../src/core-map/geometry/Point'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 function createContainer(): HTMLElement {
   const container = document.createElement('div')
@@ -9,15 +9,15 @@ function createContainer(): HTMLElement {
 }
 
 // very-happy-dom has no layout, so the size is stamped in (as in bearing.test.ts).
-function stampSize(map: TsMap, width: number, height: number): void {
+function stampSize(map: Map, width: number, height: number): void {
   map._size = new Point(width, height)
   map._sizeChanged = false
   if (map._loaded && map._lastCenter)
     map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)
 }
 
-function makeMap(zoom = 6): TsMap {
-  const map = new TsMap(createContainer(), { center: [40, -100], zoom })
+function makeMap(zoom = 6): Map {
+  const map = new Map(createContainer(), { center: [40, -100], zoom })
   stampSize(map, 800, 600)
   return map
 }

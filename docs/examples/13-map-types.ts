@@ -7,11 +7,11 @@
  * anything the page added to the map.
  */
 
-import { control, mapTypes, styles, TsMap } from '../../packages/ts-maps/src/core-map'
+import { control, Map, mapTypes, styles } from '../../packages/ts-maps/src/core-map'
 
 const BASEMAP = 'https://tiles.openfreemap.org/planet'
 
-const map = new TsMap('map', {
+const map = new Map('map', {
   center: [37.7793, -122.4193],
   zoom: 14,
   style: styles.light({ url: BASEMAP }),

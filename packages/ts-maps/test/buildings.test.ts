@@ -3,7 +3,7 @@ import type { BuildingFootprint, BuildingMesh } from '../src/core-map/renderer/w
 import { buildBuildingMesh, buildingMatrix, readBuildingVertex } from '../src/core-map/renderer/webgl/BuildingOverlay'
 import { Point } from '../src/core-map/geometry/Point'
 import { styles } from '../src/core-map'
-import { TsMap } from '../src/core-map/map/Map'
+import { Map } from '../src/core-map/map/Map'
 
 const GREY: [number, number, number, number] = [0.8, 0.8, 0.8, 1]
 
@@ -24,7 +24,7 @@ function vertices(mesh: BuildingMesh): Array<ReturnType<typeof readBuildingVerte
 
 /** Wall vertices, grouped by the direction their normal faces. */
 function wallNormals(mesh: BuildingMesh): Array<[number, number]> {
-  const seen = new Map<string, [number, number]>()
+  const seen = new globalThis.Map<string, [number, number]>()
   for (const v of vertices(mesh)) {
     if (Math.hypot(v.nx, v.ny) < 0.5)
       continue
@@ -107,10 +107,10 @@ describe('building meshes', () => {
   })
 })
 
-function makeMap(options: Record<string, unknown> = {}): TsMap {
+function makeMap(options: Record<string, unknown> = {}): Map {
   const el = document.createElement('div')
   document.body.appendChild(el)
-  const map = new TsMap(el, { center: [37.7915, -122.3985], zoom: 16, ...options })
+  const map = new Map(el, { center: [37.7915, -122.3985], zoom: 16, ...options })
   map._size = new Point(1000, 640)
   map._sizeChanged = false
   map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)
@@ -126,7 +126,7 @@ function project(m: Float32Array, x: number, y: number, z: number, W: number, H:
   return { x: (cx / cw + 1) * W / 2, y: (1 - cy / cw) * H / 2 }
 }
 
-function cameraOf(map: TsMap) {
+function cameraOf(map: Map) {
   const pos = map._getMapPanePos()
   return { width: 1000, height: 640, bearing: map._bearing, pitch: map._pitch, h: map._cameraGeometry().h, pos: [pos.x, pos.y] as [number, number] }
 }

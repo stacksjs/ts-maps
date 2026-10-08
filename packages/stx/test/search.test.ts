@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { TsMap } from 'ts-maps'
+import { Map as MapInstance } from 'ts-maps'
 import { mountChildren } from '../src/runtime'
 
 const place = { text: 'Ferry Building, The Embarcadero, San Francisco', center: { lat: 37.7955, lng: -122.3937 }, properties: { name: 'Ferry Building', osm_value: 'attraction' } }
@@ -12,7 +12,7 @@ describe('search child', () => {
     mapEl.style.width = '430px'
     mapEl.style.height = '800px'
     root.appendChild(mapEl)
-    const map = new TsMap(mapEl, { center: [37.79, -122.4], zoom: 15 })
+    const map = new MapInstance(mapEl, { center: [37.79, -122.4], zoom: 15 })
 
     // Search written before TurnByTurn: they are linked all the same.
     root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="search" data-options='${JSON.stringify({ query: 'ferry', recents: false })}'></span>`)
@@ -57,7 +57,7 @@ describe('search child', () => {
     mapEl.style.width = '430px'
     mapEl.style.height = '800px'
     root.appendChild(mapEl)
-    const map = new TsMap(mapEl, { center: [37.79, -122.4], zoom: 15 })
+    const map = new MapInstance(mapEl, { center: [37.79, -122.4], zoom: 15 })
     root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="search" data-options='${JSON.stringify({ recents: false })}'></span>`)
     const el = root.querySelector('[data-ts-map-child="search"]')!
 
@@ -93,7 +93,7 @@ describe('search child', () => {
     mapEl.style.width = '430px'
     mapEl.style.height = '800px'
     root.appendChild(mapEl)
-    const map = new TsMap(mapEl, { center: [37.79, -122.4], zoom: 15 })
+    const map = new MapInstance(mapEl, { center: [37.79, -122.4], zoom: 15 })
     root.insertAdjacentHTML('beforeend', `<span hidden data-ts-map-child="search" data-options='${JSON.stringify({ recents: false, showSaved: false })}'></span>`)
 
     let control: any = null
