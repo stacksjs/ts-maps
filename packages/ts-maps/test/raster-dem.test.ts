@@ -61,3 +61,19 @@ describe('RasterDEMLayer', () => {
     expect(layer.options!.tileSize).toBe(512)
   })
 })
+
+describe('hillshade shading', () => {
+  test('flat ground is clear; slopes shade from the light and lighten towards it', async () => {
+    const { hillshadeAt } = await import('../src/core-map/layer/tile/RasterDEMLayer')
+    const flat = Math.sin(Math.PI / 4)
+    expect(hillshadeAt(flat, flat)).toEqual([true, 0])
+    const [litAway, shadow] = hillshadeAt(flat - 0.3, flat)
+    expect(litAway).toBe(false)
+    expect(shadow).toBeCloseTo(0.42)
+    const [litTowards, highlight] = hillshadeAt(flat + 0.2, flat)
+    expect(litTowards).toBe(true)
+    expect(highlight).toBeCloseTo(0.28)
+    // A cliff in full shade is strong, but never paints the map out.
+    expect(hillshadeAt(0, flat)[1]).toBe(0.6)
+  })
+})

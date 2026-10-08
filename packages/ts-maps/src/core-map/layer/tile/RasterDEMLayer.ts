@@ -162,19 +162,31 @@ export class RasterDEMLayer extends TileLayer {
         const ny = -dzdy / n
         const nz = 1 / n
         const dot = Math.max(0, nx * lx + ny * ly + nz * lz)
-        // Blend accent (on the lit side) with shadow (on the unlit side).
-        const r = dot * ar + (1 - dot) * sr
-        const g = dot * ag + (1 - dot) * sg
-        const b = dot * ab + (1 - dot) * sb
+        const [lit, alpha] = hillshadeAt(dot, lz)
         const i = (y * size + x) * 4
-        dpx[i] = r
-        dpx[i + 1] = g
-        dpx[i + 2] = b
-        dpx[i + 3] = Math.round(255 * opacity)
+        dpx[i] = lit ? ar : sr
+        dpx[i + 1] = lit ? ag : sg
+        dpx[i + 2] = lit ? ab : sb
+        dpx[i + 3] = Math.round(255 * alpha * opacity)
       }
     }
     ctx.putImageData(out2, 0, 0)
   }
+}
+
+/**
+ * How a pixel is shaded, from how squarely it faces the light (`dot`) against
+ * how flat ground does (`flat`, the sine of the sun's altitude). Flat ground is
+ * left clear, so the map shows through; a slope turned from the light takes the
+ * shadow colour, and one turned towards it the highlight, each more strongly the
+ * steeper it is, as Mapbox's hillshade does. Before, every pixel was an opaque
+ * blend of the two, and a valley floor painted the map out in grey.
+ */
+export function hillshadeAt(dot: number, flat: number): [lit: boolean, alpha: number] {
+  const delta = dot - flat
+  if (delta < 0)
+    return [false, Math.min(0.6, -delta * 1.4)]
+  return [true, Math.min(0.4, delta * 1.4)]
 }
 
 /**
