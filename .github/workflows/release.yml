@@ -32,11 +32,13 @@ jobs:
           bun run build
           bun --cwd packages/ts-maps run check:package
 
-      # ts-maps, then every framework binding. A version already on npm is
-      # skipped, so running this by hand on main publishes what a release
-      # left out.
+      # From the root, pantry publishes every package in packages/: ts-maps
+      # first, each binding after what it installs, `workspace:*` pinned to
+      # the release's version. A version already on npm is skipped, so a run
+      # by hand on main publishes whatever a release left out. Built above,
+      # so no package builds itself again.
       - name: Publish
-        run: bun scripts/publish-packages.ts
+        run: pantry publish --npm --access public --ignore-scripts
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
