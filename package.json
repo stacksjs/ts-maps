@@ -59,7 +59,8 @@
     "deploy": "bunx --bun @stacksjs/ts-cloud deploy --env production --yes",
     "deploy:diff": "bunx --bun @stacksjs/ts-cloud deploy --env production --dry-run",
     "preview:docs": "bun --bun bunpress preview docs",
-    "release:patch": "bunx --bun @stacksjs/bumpx patch --recursive --commit --tag --push --yes"
+    "release:patch": "bunx --bun @stacksjs/bumpx patch --recursive --commit --tag --push --yes",
+    "release:minor": "bunx --bun @stacksjs/bumpx minor --recursive --commit --tag --push --yes"
   },
   "devDependencies": {
     "@stacksjs/bunpress": "^0.2.18",
