@@ -1,178 +1,509 @@
 # `TsMap`
 
-The root class. An instance owns one DOM container, one camera, one style document, and a registry of sources and layers.
+The map. One instance owns a DOM container, a camera, an optional style
+document and the layers and controls added to it. Everything on this page is a
+method or event of `TsMap`; the layers it holds are in [Layers](./layer.md).
 
-## Construction
+```ts
+import { styles, TsMap } from 'ts-maps'
+import 'ts-maps/styles.css'
 
-| Signature | Summary |
-| --------- | ------- |
-| `new TsMap(id, options?)` | Create a map on `#id` or a DOM element. |
-| `createMap(id, options?)` | Functional alias for the same constructor. |
+const map = new TsMap('map', {
+  center: [40.758, -73.9855], // [lat, lng]
+  zoom: 14,
+  style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
+})
+```
+
+Coordinates are `[lat, lng]` throughout the map's own API, as in Leaflet.
+Anywhere a point is taken, a `LatLng`, a `[lat, lng]` pair or a
+`{ lat, lng }` object will do. GeoJSON and the style spec keep their
+`[lng, lat]` order.
+
+## Creating a map
+
+| Signature | |
+| --------- | - |
+| `new TsMap(container, options?)` | `container` is an element id or an `HTMLElement`. |
+| `createMap(container, options?)` | The same, as a function. Also exported as `map`. |
+| `Map` | An alias of `TsMap`. |
+
+The view is set at construction only when both `center` and `zoom` are given.
+Without them the map is empty until the first `setView` or `fitBounds`.
+Before then, `getCenter()` — and so `flyTo`, `easeTo` and `jumpTo` — throws
+`Set map center and zoom first.`
+
+### Options
+
+#### View
+
+| Option | Type | Default | |
+| ------ | ---- | ------- | - |
+| `center` | `LatLngLike` | — | Initial centre. Needs `zoom` too. |
+| `zoom` | `number` | — | Initial zoom. Fractional zooms are fine. |
+| `bearing` | `number` | `0` | Degrees clockwise from north, wrapped to `[0, 360)`. |
+| `pitch` | `number` | `0` | Camera tilt in degrees. `0` looks straight down. |
+| `minZoom` | `number` | — | Lowest zoom. Falls back to the layers' `minZoom`, then `0`. |
+| `maxZoom` | `number` | — | Highest zoom. Falls back to the layers' `maxZoom`, then no limit. |
+| `minPitch` | `number` | `0` | Lowest pitch. |
+| `maxPitch` | `number` | `85` | Highest pitch. Past about 72° the horizon is on screen and a sky is drawn above it. |
+| `maxBounds` | `LatLngBoundsLike` | — | Keep the view inside these bounds. |
+| `projection` | `'mercator' \| 'globe'` | `'mercator'` | `'globe'` draws the world as a sphere when zoomed out. See [Projection](#projection). |
+| `crs` | `CRS` | `EPSG3857` | Coordinate reference system. `EPSG4326`, `EPSG3395` and `SimpleCRS` are exported too. |
+
+#### Style and look
+
+| Option | Type | Default | |
+| ------ | ---- | ------- | - |
+| `style` | `StyleSpec \| string` | — | A style to set at construction: an object, or a URL to fetch one from. Same as calling `setStyle()`. |
+| `theme` | `'light' \| 'dark' \| 'auto'` | `'light'` | Colour scheme of the controls, popups and attribution. `'auto'` follows the page, then the OS. |
+| `locale` | `string` | `navigator.language` | Language of the built-in controls. English and German are built in. |
+| `layers` | `Layer[]` | `[]` | Layers to add at construction. |
+| `renderer` | `Renderer` | — | Renderer for vector paths (`Polyline`, `Circle`, …). |
+| `preferCanvas` | `boolean` | — | Draw vector paths on a `<canvas>` instead of SVG. |
+
+#### Interaction
+
+Each of these is also a handler on the map, with `enable()` and `disable()`:
+`map.dragging.disable()`.
+
+| Option | Type | Default | |
+| ------ | ---- | ------- | - |
+| `dragging` | `boolean` | `true` | Drag to pan. |
+| `inertia` | `boolean` | `true` | Keep panning after a fling. |
+| `inertiaDeceleration` | `number` | `3400` | px/s². |
+| `inertiaMaxSpeed` | `number` | `Infinity` | px/s. |
+| `easeLinearity` | `number` | `0.2` | |
+| `worldCopyJump` | `boolean` | `false` | Jump back to the main world copy after panning past the antimeridian. |
+| `maxBoundsViscosity` | `number` | `0` | How hard `maxBounds` resists dragging: `0` to `1`. |
+| `scrollWheelZoom` | `boolean` | `true` | Wheel and trackpad zoom. |
+| `wheelPxPerZoomLevel` | `number` | `60` | Wheel travel per zoom level. Lower zooms faster. |
+| `wheelSmoothing` | `number` | `0.13` | Seconds for the camera to catch up with the wheel. |
+| `doubleClickZoom` | `boolean` | `true` | |
+| `boxZoom` | `boolean` | `true` | Shift-drag to zoom to a box. |
+| `keyboard` | `boolean` | `true` | Arrow keys pan, `+` and `-` zoom. |
+| `keyboardPanDelta` | `number` | `80` | Pixels per arrow key press. |
+| `pinchZoom` | `boolean` | `true` | Two-finger pinch. (`touchZoom` is the old name and still accepted.) |
+| `bounceAtZoomLimits` | `boolean` | `true` | Let a pinch overshoot the zoom limits, then settle back. |
+| `touchRotate` | `boolean` | `true` | Two-finger twist to rotate. |
+| `touchPitch` | `boolean` | `true` | Two-finger vertical drag to tilt. |
+| `tapHold` | `boolean` | mobile Safari only | Long press fires `contextmenu`. |
+| `tapTolerance` | `number` | `15` | Pixels a finger may move and still count as a tap. |
+| `cooperativeGestures` | `boolean \| { wheelHint?, touchHint? }` | `false` | Plain scroll and one-finger swipes scroll the page; ⌘/Ctrl + scroll and two fingers move the map. |
+| `closePopupOnClick` | `boolean` | `true` | A click on the map closes the open popup. |
+| `trackResize` | `boolean` | `true` | Re-measure when the container resizes. |
+
+#### Animation
+
+| Option | Type | Default | |
+| ------ | ---- | ------- | - |
+| `zoomSnap` | `number` | `0` | Round zoom to a multiple of this. `0` allows any fractional zoom; `1` gives Leaflet's whole levels. |
+| `zoomDelta` | `number` | `1` | Levels per `zoomIn()` / `zoomOut()`, zoom button or `+` / `-` key. |
+| `zoomAnimation` | `boolean` | `true` | Animate zoom changes. |
+| `zoomAnimationThreshold` | `number` | `4` | Zoom jumps larger than this are not animated. |
+| `zoomAnimationDuration` | `number` | `320` | Milliseconds for an animated zoom step. |
+| `fadeAnimation` | `boolean` | `true` | Fade tiles in. |
+| `markerZoomAnimation` | `boolean` | `true` | Animate markers during a zoom. |
+| `transform3DLimit` | `number` | `8388608` | Reset the pane position after panning this many pixels. |
+
+#### Controls
+
+| Option | Type | Default | |
+| ------ | ---- | ------- | - |
+| `zoomControl` | `boolean` | `true` | Add a `ZoomControl`. |
+| `attributionControl` | `boolean` | `true` | Add an `AttributionControl`. |
 
 ## Camera
 
-| Method | Summary |
+### Moving
+
+| Method | |
+| ------ | - |
+| `setView(center, zoom?, options?)` | Centre and zoom. Animates when the map is already showing; `{ animate: false }` snaps. |
+| `setZoom(zoom, options?)` | |
+| `zoomIn(delta?, options?)` / `zoomOut(delta?, options?)` | By `zoomDelta` unless given. Counted from where a running zoom is heading, so three quick presses go three levels. |
+| `setZoomAround(latlngOrPoint, zoom, options?)` | Zoom keeping one point fixed on screen. Takes a `LatLng` or a container `Point`. |
+| `panTo(latlng, options?)` | |
+| `panBy([x, y], options?)` | Pan by pixels. |
+| `fitBounds(bounds, options?)` | Frame a bounds. Throws on invalid bounds. |
+| `fitWorld(options?)` | |
+| `flyTo(center, zoom?, options?)` | Zoom out, across and back in, along a curve. |
+| `flyToBounds(bounds, options?)` | `flyTo` the bounds' centre and fitting zoom. |
+| `easeTo(options)` | Glide any of `center`, `zoom`, `bearing`, `pitch` together. |
+| `jumpTo(options)` | Set any of `center`, `zoom`, `bearing`, `pitch` at once, without animation. |
+| `setBearing(deg)` / `rotateTo(deg, options?)` | Rotate. `rotateTo` animates with `{ animate: true, duration?, easing? }`. |
+| `setPitch(deg)` / `pitchTo(deg, options?)` | Tilt, clamped to `[minPitch, maxPitch]`. `pitchTo` animates like `rotateTo`. |
+| `panInside(latlng, options?)` | Pan just enough to bring a point into view, inside `padding`. |
+| `panInsideBounds(bounds, options?)` | Pan the centre back inside bounds. |
+| `stop()` | Stop any camera animation. |
+| `isEasing()` | Whether a `flyTo`, `easeTo` or animated rotate or pitch is running. |
+
+```ts
+map.flyTo([51.5074, -0.1278], 13, { bearing: 30, pitch: 50 })
+map.easeTo({ zoom: 16, bearing: 90, pitch: 60, duration: 1200 })
+map.jumpTo({ center: [48.8566, 2.3522], zoom: 14 })
+map.fitBounds([[40.70, -74.02], [40.80, -73.93]], { padding: [40, 40] })
+```
+
+Options:
+
+- `flyTo(center, zoom, { bearing?, pitch?, duration?, animate?, essential? })`.
+  `duration` is in milliseconds; left out, it follows the distance flown.
+- `easeTo({ center?, zoom?, bearing?, pitch?, duration?, easing?, essential?, noMoveStart? })`.
+  `duration` defaults to 300 ms. Bearing turns the short way round.
+- `setView`, `panTo` and `panBy` take Leaflet's options: `animate`, and
+  `duration` in **seconds** (default 0.25), unlike `flyTo` and `easeTo`.
+- `fitBounds` and `flyToBounds` take `padding` as a `[x, y]` pair (not a
+  single number), or `paddingTopLeft` and `paddingBottomRight`, and
+  `maxZoom`. `fitBounds` also takes `setView`'s `animate`.
+- When the reader has asked the system for reduced motion, `flyTo` and
+  `easeTo` arrive without animating, unless the call says
+  `essential: true`.
+
+Starting a camera move cancels the one running.
+
+### Limits
+
+| Method | |
+| ------ | - |
+| `setMaxBounds(bounds)` | Keep the view inside bounds. Pass an invalid or empty bounds to lift it. |
+| `setMinZoom(zoom)` / `setMaxZoom(zoom)` | Fires `zoomlevelschange`, and moves the zoom inside the new range. |
+
+### Reading
+
+| Method | Returns |
 | ------ | ------- |
-| `setView(center, zoom?, options?)` | Set center and optionally zoom. |
-| `setZoom(z, options?)` | Set fractional zoom. |
-| `zoomIn(delta?, options?)` / `zoomOut(delta?, options?)` | Relative zoom. |
-| `setZoomAround(latlng, z, options?)` | Zoom while keeping a point fixed on screen. |
-| `fitBounds(bounds, options?)` | Frame a `LatLngBounds` with optional padding. |
-| `fitWorld(options?)` | Zoom out to show the whole world. |
-| `panTo(latlng, options?)` | Pan to a geographic point. |
-| `panBy(offsetPx, options?)` | Pan by a pixel offset. |
-| `flyTo(center, zoom?, options?)` | Animated zoom-out / zoom-in arc. |
-| `flyToBounds(bounds, options?)` | Fly to frame a bounding box. |
-| `easeTo({ center, zoom, bearing, pitch, duration })` | Linear tween of any knobs. |
-| `jumpTo({ center, zoom, bearing, pitch })` | Instant update with one event batch. |
-| `setBearing(deg)` / `rotateTo(deg, options?)` | Rotate the map. |
-| `setPitch(deg)` / `pitchTo(deg, options?)` | Tilt the camera. |
-| `stop()` | Abort any in-progress animation. |
-| `isEasing()` | Whether an animation is currently running. |
-| `setMaxBounds(bounds)`, `setMinZoom(z)`, `setMaxZoom(z)` | Constrain the camera. |
-| `panInside(latlng, options?)` / `panInsideBounds(bounds, options?)` | Nudge a point or bbox into view. |
+| `getCenter()` | `LatLng` |
+| `getZoom()` | `number` |
+| `getBearing()` | `number`, `[0, 360)` |
+| `getPitch()` | `number` |
+| `getCamera()` | `{ center, zoom, bearing, pitch }` |
+| `getBounds()` | `LatLngBounds` of the view |
+| `getBoundsZoom(bounds, inside?, padding?)` | The zoom that fits `bounds` (or fills the view with it, `inside: true`) |
+| `getMinZoom()` / `getMaxZoom()` | `number` |
+| `getSize()` | Container size as a `Point` |
+| `getPixelBounds()` / `getPixelOrigin()` / `getPixelWorldBounds(zoom?)` | Projected pixel geometry |
 
-## Camera readers
+## Style
 
-| Method | Summary |
-| ------ | ------- |
-| `getCenter()` | Current center as `LatLng`. |
-| `getZoom()` / `getBearing()` / `getPitch()` | Camera knobs. |
-| `getBounds()` | Visible `LatLngBounds`. |
-| `getBoundsZoom(bounds, inside?)` | Zoom level that fits the bounds. |
-| `getSize()` | Container pixel `Point`. |
-| `getPixelBounds()` / `getPixelOrigin()` / `getPixelWorldBounds(z?)` | Pixel-space helpers. |
-| `getMinZoom()` / `getMaxZoom()` | Zoom limits. |
-| `getCamera()` | A snapshot of all four camera knobs. |
+The map can hold one style document: sources, and style layers that draw
+them, as in the [Mapbox GL Style Spec](https://docs.mapbox.com/style-spec/).
+Leaflet-style layers (`Marker`, `TileLayer`, …) sit alongside it and are
+added with `addLayer` — see [Layers and controls](#layers-and-controls).
 
-## Layers & sources (style-spec)
+| Method | |
+| ------ | - |
+| `setStyle(style, options?)` | Replace the style. `style` is an object or a URL. `options`: `{ diff?: boolean = true, validate?: boolean = true }`. |
+| `getStyle()` | A copy of the current style document, or `undefined`. |
+| `isStyleLoaded()` | Whether the map has a style yet. |
+| `addSource(id, source)` | Add a source. Creates an empty style if there is none. |
+| `getSource(id)` | The source's spec object. |
+| `removeSource(id)` | |
+| `setSourceData(id, data)` | Replace a `geojson` source's data: a GeoJSON object or a URL. Fires `sourcedata`. |
+| `addStyleLayer(layer, beforeId?)` | Add a style layer, before `beforeId` if given. Throws when there is no style and none is loading. |
+| `getStyleLayer(id)` | The layer's spec object. |
+| `removeStyleLayer(id)` | |
+| `setPaintProperty(id, name, value)` | Throws for an unknown layer id. |
+| `setLayoutProperty(id, name, value)` | `'visibility'`, `'text-field'`, … |
+| `setFilter(id, filter)` | An [expression](./expressions.md) or a legacy filter. |
+| `getGlyphSource()` | The style's `glyphs` server, when it names one. |
+| `isFontAvailable(textFont)` | Whether the browser has a `text-font` stack. |
 
-| Method | Summary |
-| ------ | ------- |
-| `setStyle(doc)` | Swap the full style document with an automatic diff. |
-| `getStyle()` | Return the current style document. |
-| `isStyleLoaded()` | Whether the style has finished parsing. |
-| `addSource(id, source)` / `getSource(id)` / `removeSource(id)` | Source registry. |
-| `addStyleLayer(layer, beforeId?)` / `getStyleLayer(id)` / `removeStyleLayer(id)` | Style-layer registry. |
-| `setPaintProperty(id, name, value)` / `setLayoutProperty(id, name, value)` | Update a single property. |
-| `setFilter(id, filter)` | Update a layer's filter expression. |
+```ts
+map.on('style.load', () => {
+  map.addSource('parks', { type: 'geojson', data: '/parks.geojson' })
+  map.addStyleLayer({
+    id: 'parks',
+    type: 'fill',
+    source: 'parks',
+    paint: { 'fill-color': '#16a34a', 'fill-opacity': 0.3 },
+  })
+})
 
-## Feature queries
+map.setPaintProperty('parks', 'fill-opacity', 0.6)
+map.setFilter('parks', ['>', ['get', 'area'], 10000])
+```
 
-| Method | Summary |
-| ------ | ------- |
-| `queryRenderedFeatures(pointOrOpts?, opts?)` | Iterate every vector source on the map and return the features painted at a container-pixel point, bbox, or globally. Results carry `{ feature, layer, tile }`. Options: `{ layers, point, bbox }`. |
-| `querySourceFeatures(sourceId, { sourceLayer?, filter? })` | Iterate features in a given vector source across every decoded tile, regardless of whether they're rendered. Respects style-spec filter expressions. |
+**Sources.** `vector` (a `tiles` template, a TileJSON `url`, or a
+`pmtiles://` archive), `raster`, `raster-dem` and `geojson`. A `geojson`
+source takes `data` as an object or a URL, and `cluster`, `clusterRadius`
+(default 50), `clusterMaxZoom` (16) and `clusterMinPoints` (2); clusters carry
+`point_count` for expressions. `image` and `video` sources are not supported:
+use `ImageOverlay` and `VideoOverlay`.
 
-## Renderer selection
+**Layers.** `background`, `fill`, `fill-extrusion`, `line`, `circle`,
+`symbol`, `raster`, `hillshade` and `heatmap`.
 
-| Method | Summary |
-| ------ | ------- |
-| `setRenderer('canvas2d' \| 'webgl' \| 'svg')` | Switch the preferred rendering backend for every source-backed host layer on this map. Fires `rendererchange`. |
-| `getPreferredRenderer()` | Currently active renderer name. Note: `getRenderer(layer)` is an internal mixin used by vector overlays — don't confuse the two. |
+**Loading.** A style given as a URL is fetched; one whose sources name a
+TileJSON `url` has those read first. Either way `setStyle` returns at once and
+the style goes in when they arrive. Sources and layers added in the meantime
+are put on it then. `addSource` does not read TileJSON: give it
+`tiles`, or a `pmtiles://` URL; `resolveTileJSON(url)` reads one for you.
 
-## Static image export
+When both the old and the new style are in place, `setStyle` applies the
+difference rather than rebuilding, so swapping a light basemap for a dark one
+keeps the tiles it has.
 
-| Method | Summary |
-| ------ | ------- |
-| `toCanvas()` | Composite the visible map — every nested `<canvas>` and `<img>` — onto a single `HTMLCanvasElement`. Respects `devicePixelRatio`. |
-| `toDataURL(type?, quality?)` | Convenience wrapper: `toCanvas().toDataURL(...)`. Forces WebGL tile renderers to repaint first so the readback is correct. |
-| `toBlob(type?, quality?)` | Same as above but yields a `Blob`. |
+`style.load` fires each time a style goes in, a microtask after `setStyle`
+puts it in place — so a listener added on the line after the constructor
+hears it, even for a style with nothing to fetch. If two styles are set in
+quick succession, it fires for the one that won. `isStyleLoaded()` is already
+`true` by then.
 
-## Layers (OO, legacy-style)
+Setting a new style replaces the old one's sources and layers. Add your own
+again on `style.load`.
 
-| Method | Summary |
-| ------ | ------- |
-| `map.addLayer(layer)` | Inherited from the layer framework. Accepts any `Layer`. |
-| `map.removeLayer(layer)` | Detach a layer. |
-| `map.hasLayer(layer)` | Membership check. |
-| `map.eachLayer(fn)` | Iterate all attached layers. |
+## Querying features
+
+| Method | |
+| ------ | - |
+| `queryRenderedFeatures(point?, options?)` | Features drawn at a container point, in a box, or everywhere. |
+| `querySourceFeatures(sourceId, { sourceLayer?, filter? })` | Every feature of a source in the tiles loaded, drawn or not. |
+
+`point` is a container `Point` (or `{ x, y }`). The options are `layers`,
+`point` and `bbox`, with `bbox` as `[[minX, minY], [maxX, maxY]]` in container
+pixels. To query a box, pass it in the options:
+`queryRenderedFeatures({ bbox, layers })`. With no point and no box, every
+feature in the loaded tiles that passes the layer filters is returned.
+
+Each result is `{ feature, layer, tile }`: `feature.properties`, `feature.id`
+and `feature.type` (1 point, 2 line, 3 polygon), `layer` the style layer that
+drew it, and `tile` its `{ x, y, z }`. `feature.toGeoJSON(x, y, z)` gives a
+GeoJSON feature. Only `vector` and `geojson` sources answer.
+
+```ts
+map.on('click', (e) => {
+  const [hit] = map.queryRenderedFeatures(e.containerPoint, { layers: ['roads'] })
+  if (hit)
+    console.log(hit.layer.id, hit.feature.properties)
+})
+```
 
 ## Feature state
 
-| Method | Summary |
-| ------ | ------- |
-| `setFeatureState({ source, sourceLayer?, id }, state)` | Attach hover / selected flags, read by expressions via `['feature-state', 'hover']`. |
-| `getFeatureState({ source, sourceLayer?, id })` | Read current feature state. |
-| `removeFeatureState({ source, sourceLayer?, id }, key?)` | Clear one key or the whole entry. |
+State kept per feature, read by style expressions with
+`['feature-state', key]`. Changing it repaints the tiles already loaded; it
+does not refetch them.
 
-## 3D & atmosphere
+| Method | |
+| ------ | - |
+| `setFeatureState({ source, sourceLayer?, id }, state)` | Merge `state` into the feature's state. |
+| `getFeatureState({ source, sourceLayer?, id })` | The feature's state, or `{}`. |
+| `removeFeatureState({ source, sourceLayer?, id }, key?)` | Remove one key, or all of it. |
 
-| Method | Summary |
-| ------ | ------- |
-| `setFog(fog)` / `getFog()` | Atmospheric fog config (color, horizon-blend, range, star-intensity). Renders as a DOM overlay; fires `fogchange`. |
-| `setSky(sky)` / `getSky()` | Sky-layer config (sky / horizon color, sun position). Fires `skychange`. |
-| `setTerrain(terrain)` / `getTerrain()` | 3D terrain from a raster-dem source. Creates a dedicated WebGL overlay canvas over all tile layers. Fires `terrainchange`. |
-| `getTerrainSource()` | The in-memory `TerrainSource` backing the current terrain config, or `undefined`. |
-| `queryTerrainElevation(lngLat)` | Bilinear elevation lookup in metres. Walks up the loaded tile pyramid when the preferred zoom isn't cached. |
-| `addTerrainTile(coord, pixels)` | Decode an RGBA DEM tile and feed it to the terrain source (for pre-downloaded / worker-decoded tiles). |
-| `addCustomLayer(layer)` / `removeCustomLayer(id)` / `getCustomLayer(id)` / `getCustomLayers()` | Pluggable WebGL layer registry. `render(gl, projectionMatrix)` runs per frame after tile draws. Fires `customlayer:add` / `customlayer:remove`. |
+`sourceLayer` is the `source-layer` the feature is in. For a `geojson` source
+it is the source's own id, and must be given:
 
-## Projection helpers
+```ts
+map.on('pointermove', 'parks', (e) => {
+  const id = e.features[0].feature.id
+  map.setFeatureState({ source: 'parks', sourceLayer: 'parks', id }, { hover: true })
+})
 
-| Method | Summary |
-| ------ | ------- |
-| `project(latlng, z?)` / `unproject(point, z?)` | LatLng ↔ pixel at zoom `z`. |
-| `latLngToContainerPoint(latlng)` / `containerPointToLatLng(point)` | Respects bearing & pitch. |
-| `latLngToLayerPoint(latlng)` / `layerPointToLatLng(point)` | Untransformed pane coordinates. |
-| `layerPointToContainerPoint(point)` / `containerPointToLayerPoint(point)` | Coordinate bridges. |
-| `pointerEventToContainerPoint(e)` / `pointerEventToLatLng(e)` / `pointerEventToLayerPoint(e)` | DOM-event helpers. |
-| `getScaleZoom(scale, fromZ?)` / `getZoomScale(toZ, fromZ?)` | Scale ↔ zoom conversions. |
-| `distance(a, b)` | Great-circle distance between two points (metres). |
-| `wrapLatLng(ll)` / `wrapLatLngBounds(b)` | Normalize longitudes to [-180, 180]. |
+map.setPaintProperty('parks', 'fill-opacity',
+  ['case', ['==', ['feature-state', 'hover'], true], 0.6, 0.3])
+```
 
 ## Events
 
-| Method | Summary |
-| ------ | ------- |
-| `on(type, handler)` / `off(type, handler)` / `once(type, handler)` | Standard event API (inherited from `Evented`). Throws `TypeError` when the `type` argument isn't a non-empty string or a `{type: handler}` object. |
-| `on(type, layerId, handler)` | Layer-scoped pointer events. |
-| `fire(type, data)` | Emit a synthetic event. |
-| `listens(type)` | Whether anything is subscribed. |
-| `whenReady(fn)` | Run a callback once the map has loaded. |
+| Method | |
+| ------ | - |
+| `on(type, fn, context?)` / `off(type, fn?, context?)` / `once(type, fn, context?)` | `type` may hold several names separated by spaces, or be a `{ type: fn }` object. |
+| `on(type, layerId, fn)` / `off(type, layerId, fn)` / `once(type, layerId, fn)` | Pointer events that hit a feature drawn by a style layer. The event gets `features`, as `queryRenderedFeatures` returns them. |
+| `fire(type, data?)` | Fire an event. |
+| `listens(type)` | Whether anything listens. |
+| `whenReady(fn)` | Run `fn` now if the view is set, otherwise on `load`. |
 
-### Built-in event names
+```ts
+map.on('moveend', () => console.log(map.getCenter()))
+map.on('click', 'roads', e => console.log(e.features[0].feature.properties))
+```
 
-| Event | Payload | When it fires |
-| ----- | ------- | ------------- |
-| `load` | — | First render completes. |
-| `move` / `movestart` / `moveend` | — | Center changes. |
-| `zoom` / `zoomstart` / `zoomend` | — | Zoom changes. |
-| `rotate` | `{ bearing }` | Bearing changes. |
-| `pitch` / `pitchstart` / `pitchend` | `{ pitch }` | Pitch changes. |
-| `click` / `contextmenu` / `mousemove` / `mouseover` / `mouseout` | `{ latlng, containerPoint, layerPoint, features? }` | Pointer events (add a layer id as middle arg to scope). |
-| `resize` | — | Container size changed. |
-| `styledata` | — | `setStyle` / `addSource` / `addStyleLayer` / etc. |
-| `style.load` | — | Once per `setStyle`, when the style is in — after its TileJSON sources are read. |
-| `fogchange` | `{ fog }` | `setFog()` called. |
-| `skychange` | `{ sky }` | `setSky()` called. |
-| `terrainchange` | `{ terrain }` | `setTerrain()` called (including `null`). |
-| `terrainload` | `{ coord: { z, x, y } }` | A DEM tile finished decoding. |
-| `customlayer:add` / `customlayer:remove` | `{ id, layer }` | Custom layer registry mutated. |
-| `offline:progress` | `{ saved, skipped, failed, total }` | Progress during `saveOfflineRegion`. |
-| `locationfound` / `locationerror` | geolocation payload | `map.locate()` result. |
-| `unload` | — | Final event fired from `map.remove()`. |
+Pointer events follow the Pointer Events names. `mousedown`, `mouseup`,
+`mousemove`, `mouseover` and `mouseout` are not fired: listen for
+`pointerdown`, `pointerup`, `pointermove`, `pointerover` and `pointerout`.
+
+### Pointer and keyboard events
+
+| Event | Payload |
+| ----- | ------- |
+| `click`, `dblclick`, `contextmenu`, `pointerdown`, `pointerup`, `pointermove`, `pointerover`, `pointerout` | `{ originalEvent, latlng, layerPoint, containerPoint }` |
+| `preclick` | The same, before `click`. |
+| `keypress`, `keydown`, `keyup` | `{ originalEvent }` |
+
+### Camera events
+
+| Event | Payload | When |
+| ----- | ------- | ---- |
+| `load` | — | The view is first set. With `center` and `zoom` options, that is inside the constructor; use `whenReady`. |
+| `movestart`, `move`, `moveend` | — | The centre changes. |
+| `zoomstart`, `zoom`, `zoomend` | — | The zoom changes. |
+| `rotatestart`, `rotate`, `rotateend` | `{ bearing }` | The bearing changes. |
+| `pitchstart`, `pitch`, `pitchend` | `{ pitch }` | The pitch changes. |
+| `dragstart`, `drag`, `dragend` | `{ distance }` on `dragend` | The user drags the map. |
+| `boxzoomstart`, `boxzoomend` | `{ boxZoomBounds }` on end | Shift-drag zoom. |
+| `zoomlevelschange` | — | The zoom range changes. |
+| `viewreset` | — | The view is reset without animation. |
+| `resize` | `{ oldSize, newSize }` | The container changes size. |
+| `projectionchange` | `{ projection }` | `setProjection()` switched projection. |
+
+`jumpTo` fires `move` and `zoom`, and `rotate` and `pitch` without a payload;
+it does not fire `movestart` or `moveend`.
+
+### Style and data events
+
+| Event | Payload | When |
+| ----- | ------- | ---- |
+| `style.load` | — | A style is in place, after any URL and TileJSON sources are read. A microtask late, so a listener added after the constructor hears it. |
+| `styledata` | — | The style changed: `setStyle`, `addSource`, `addStyleLayer`, `setPaintProperty`, … |
+| `sourcedata` | `{ sourceId, isSourceLoaded }` | `setSourceData` replaced a source's data. |
+| `spriteload` | `{ sprite, id, icons, added }` | A sprite sheet loaded. |
+| `error` | `{ error }`, with `style`, `sprite` or `sourceId` | A style, sprite or data URL failed. |
+
+### Other events
+
+| Event | Payload | When |
+| ----- | ------- | ---- |
+| `terrainchange` | `{ terrain }` | `setTerrain()` was called, including with `null`. |
+| `terrainload` | `{ coord: { z, x, y } }` | A DEM tile was fetched for terrain. |
+| `fogchange` | `{ fog }` | `setFog()` |
+| `skychange` | `{ sky }` | `setSky()` |
+| `customlayer:add`, `customlayer:remove` | `{ id, layer }` | A custom WebGL layer was added or removed. |
+| `themechange` | `{ theme, dark }` | The chrome's theme changed. Fires once at construction. |
+| `rendererchange` | `{ renderer }` | `setRenderer()` |
+| `layeradd`, `layerremove` | `{ layer }` | A layer was added or removed. |
+| `popupopen`, `popupclose` | `{ popup }` | |
+| `tooltipopen`, `tooltipclose` | `{ tooltip }` | |
+| `locationfound` | `{ latlng, bounds, accuracy, timestamp, … }` | `locate()` found the device. |
+| `locationerror` | `{ code, message }` | `locate()` failed. |
+| `unload` | — | `remove()` |
+
+## 3D
+
+### Terrain
+
+| Method | |
+| ------ | - |
+| `setTerrain({ source, exaggeration? })` | Load a `raster-dem` source's heights, for `queryTerrainElevation` and offline downloads. The map is still drawn flat; relief comes from a `hillshade` layer. `exaggeration` defaults to `1`. `null` turns terrain off. |
+| `getTerrain()` | The terrain options, or `null`. |
+| `queryTerrainElevation({ lat, lng })` | Metres at a point, from the DEM tiles loaded, or `null`. |
+| `getTerrainSource()` | The `TerrainSource` holding the decoded DEM tiles. |
+| `addTerrainTile({ z, x, y }, rgba)` | Feed a DEM tile in yourself, as RGBA bytes. |
+
+```ts
+map.addSource('dem', {
+  type: 'raster-dem',
+  tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+  tileSize: 256,
+  encoding: 'terrarium',
+})
+map.setTerrain({ source: 'dem', exaggeration: 1.3 })
+```
+
+### Fog and sky
+
+| Method | |
+| ------ | - |
+| `setFog(fog)` / `getFog()` | `{ color?, 'high-color'?, 'horizon-blend'?, range?, 'star-intensity'?, 'space-color'? }`, or `null`. Throws when `range[0] >= range[1]`. |
+| `setSky(sky)` / `getSky()` | `{ 'sky-color'?, 'horizon-color'?, 'fog-ground-blend'?, 'sun-position'?, 'sun-intensity'? }`, or `null`. |
+
+Tilted far enough to see the horizon, the map draws a sky above it whether or
+not `setSky` was called; `setSky` chooses its colours. On the globe, fog's
+`color` colours the halo and `space-color` the space around it.
+
+### Custom WebGL layers
+
+| Method | |
+| ------ | - |
+| `addCustomLayer(layer)` | `{ id, type: 'custom', render(gl, matrix), onAdd?, onRemove? }`. Throws on a duplicate id. |
+| `removeCustomLayer(id)` / `getCustomLayer(id)` / `getCustomLayers()` | |
+
+`render` runs each frame after a WebGL tile layer has drawn. See
+[3D rendering](../concepts/3d.md).
+
+### Projection
+
+| Method | |
+| ------ | - |
+| `setProjection('mercator' \| 'globe')` | Switch at runtime. The camera stays where it is. Fires `projectionchange`. |
+| `getProjection()` | `'mercator'` or `'globe'`. |
+
+With `'globe'`, the map zoomed out is a WebGL sphere textured with the tiles
+the flat map has loaded. Between zoom 5.5 and 6 it fades into the flat map.
+Without WebGL the flat map shows, with a halo round it.
+
+## Rendering and theme
+
+| Method | |
+| ------ | - |
+| `setRenderer('canvas2d' \| 'webgl' \| 'svg')` | Ask the style's tile layers to draw with this backend. Canvas 2D is the default; a layer that cannot honour the request keeps its own. Fires `rendererchange`. |
+| `getPreferredRenderer()` | The backend asked for. |
+| `setTheme('light' \| 'dark' \| 'auto')` | The chrome's colour scheme. Fires `themechange`. |
+| `getTheme()` | As set: `'auto'` stays `'auto'`. |
+
+The theme colours the controls, popups and attribution, not the basemap. Pair
+`styles.dark(...)` with `setTheme('dark')`.
+
+## Image export
+
+| Method | |
+| ------ | - |
+| `toCanvas()` | Every `<canvas>` and `<img>` in the map drawn onto one canvas, at the device pixel ratio. |
+| `toDataURL(type = 'image/png', quality?)` | A data URL, returned directly. |
+| `toBlob(type = 'image/png', quality?)` | A `Promise<Blob \| null>`. |
+
+Tiles from a server that sends no CORS headers taint the canvas, and
+`toDataURL` then throws.
+
+## Layers and controls
+
+| Method | |
+| ------ | - |
+| `addLayer(layer)` / `removeLayer(layer)` | A `Layer` instance: a marker, tile layer, overlay, … Not a style layer: those go through `addStyleLayer`. |
+| `hasLayer(layer)` / `eachLayer(fn)` | |
+| `addControl(control)` / `removeControl(control)` | Same as `control.addTo(map)` / `control.remove()`. |
+| `openPopup(content, latlng, options?)` / `closePopup(popup?)` | |
+| `openTooltip(content, latlng, options?)` / `closeTooltip(tooltip)` | |
+
+## Coordinates
+
+| Method | |
+| ------ | - |
+| `latLngToContainerPoint(latlng)` / `containerPointToLatLng(point)` | Pixels from the container's top-left, allowing for bearing, pitch and the globe. |
+| `latLngToLayerPoint(latlng)` / `layerPointToLatLng(point)` | Pixels in the map pane. |
+| `containerPointToLayerPoint(point)` / `layerPointToContainerPoint(point)` | |
+| `pointerEventToContainerPoint(e)` / `pointerEventToLayerPoint(e)` / `pointerEventToLatLng(e)` | From a DOM event. |
+| `project(latlng, zoom?)` / `unproject(point, zoom?)` | To and from world pixels at a zoom. |
+| `getZoomScale(toZoom, fromZoom?)` / `getScaleZoom(scale, fromZoom?)` | |
+| `distance(a, b)` | Metres between two points. |
+| `wrapLatLng(latlng)` / `wrapLatLngBounds(bounds)` | Longitudes into `[-180, 180]`. |
 
 ## Geolocation
 
-| Method | Summary |
-| ------ | ------- |
-| `locate(options?)` | Wrap `navigator.geolocation`, fires `locationfound` / `locationerror`. |
-| `stopLocate()` | Cancel an active geolocation watch. |
+| Method | |
+| ------ | - |
+| `locate(options?)` | Ask for the device's position. Fires `locationfound` or `locationerror`. Options: `setView`, `maxZoom`, `watch`, and the Geolocation API's `timeout` (default 10000), `maximumAge`, `enableHighAccuracy`. |
+| `stopLocate()` | Stop watching. |
 
-## Lifecycle & DOM
-
-| Method | Summary |
-| ------ | ------- |
-| `getContainer()` | Host DOM element. |
-| `getPane(name?)` / `getPanes()` / `createPane(name, parent?)` | Z-ordered rendering panes. |
-| `invalidateSize(options?)` | Re-measure the container (call after CSS changes). |
-| `addHandler(name, Class)` | Register a custom input handler. |
-| `remove()` | Fully tear down the map. |
+`LocateControl` (`control.locate()`) is the button for it.
 
 ## Offline
 
-| Method | Summary |
-| ------ | ------- |
-| `TileLayer` with `{ cache }` | Pass a `TileCache` into any tile-based layer. |
-| `saveOfflineRegion(opts)` | Pre-fetch every tile inside a bbox at a zoom range. |
+`map.offline` is the page's offline maps manager: `download`, `list`,
+`delete`, `estimate`, `usage`, and search and routing over what was
+downloaded. Reading it through a map makes that map the one a bare
+`download({ bounds })` downloads. See [Offline](../concepts/offline.md).
+
+```ts
+const region = await map.offline.download({ bounds: map.getBounds(), name: 'Paris' })
+```
+
+## Lifecycle and DOM
+
+| Method | |
+| ------ | - |
+| `invalidateSize(options?)` | Re-measure the container. Only needed with `trackResize: false`. |
+| `getContainer()` | The container element. |
+| `getPane(name)` / `getPanes()` / `createPane(name, container?)` | The stacked panes layers draw into. |
+| `addHandler(name, HandlerClass)` | Add an interaction handler, reachable as `map[name]`. |
+| `remove()` | Tear the map down and fire `unload`. |

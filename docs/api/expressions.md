@@ -1,86 +1,143 @@
-# Expression operators
+# Expressions
 
-Expressions are JSON arrays where the first element names an operator and the rest are arguments. Compile once, evaluate per-feature on the render path. Compatible with a subset of the Mapbox GL Style Spec expression language.
+An expression is a JSON array: an operator name, then its arguments. They are
+the style spec's way to compute a value per feature or per zoom, and ts-maps
+reads them wherever a style takes a value: paint and layout properties, and
+filters.
 
 ```ts
-import { compile, evaluate } from 'ts-maps/style-spec'
+map.setPaintProperty('roads', 'line-width',
+  ['interpolate', ['linear'], ['zoom'], 10, 0.5, 16, 4])
 
-const expr = ['interpolate', ['linear'], ['zoom'], 8, 0.5, 14, 2]
-const compiled = compile(expr, 'number', [])
-const width = compiled.evaluate({ zoom: 11, properties: {} })  // → 1.25
-
-// One-shot convenience (recompiles every call):
-evaluate(['*', 2, 3], {})  // → 6
+map.setFilter('roads', ['match', ['get', 'class'], ['motorway', 'trunk'], true, false])
 ```
 
-## Math
+The language is the Mapbox GL / MapLibre one. The operators below are the ones
+ts-maps implements; [Not supported](#not-supported) lists the common ones it
+does not.
 
-| Operator | Summary |
-| -------- | ------- |
-| `+`, `-`, `*`, `/`, `%`, `^` | Arithmetic; variadic where it makes sense. |
-| `min`, `max` | Variadic min / max. |
-| `abs`, `floor`, `ceil`, `round` | Single-number utilities. |
-| `sqrt`, `ln`, `log10`, `log2` | Single-number utilities (domain-checked). |
-| `sin`, `cos`, `tan` | Trigonometry, in radians. |
-| `asin`, `acos`, `atan` | Inverses; `asin`/`acos` are domain-checked. |
-| `e`, `pi` | Constants: `["e"]`, `["pi"]`. |
-| `rand` | `["rand"]` or `["rand", min, max]`. |
+## Evaluating one yourself
 
-## Logical & comparison
+`ts-maps/style-spec` exports the compiler. Compile once, evaluate as often as
+you like:
 
-| Operator | Summary |
-| -------- | ------- |
-| `!`, `==`, `!=`, `<`, `<=`, `>`, `>=` | Boolean + comparison. |
-| `all`, `any`, `none` | Short-circuit combinators. |
-| `case` | `["case", condA, valA, condB, valB, ..., fallback]`. |
-| `match` | `["match", input, label, value, ..., fallback]`. Labels may be scalars or arrays. |
-| `coalesce` | First non-null argument. |
-| `in`, `!in` | Membership test. |
-| `has`, `!has` | Property presence test. |
+```ts
+import { compileExpression, evaluateExpression } from 'ts-maps/style-spec'
 
-## Interpolation & step
+const width = compileExpression(['interpolate', ['linear'], ['zoom'], 8, 0.5, 14, 2], 'number')
+width.evaluate({ zoom: 11 }) // 1.25
 
-| Operator | Summary |
-| -------- | ------- |
-| `interpolate` | `["interpolate", type, input, stop, value, ...]`. Type is `["linear"]`, `["exponential", base]`, or `["cubic-bezier", x1, y1, x2, y2]`. |
-| `step` | `["step", input, first, stop1, value1, ...]` — piecewise-constant interpolation. |
+const label = compileExpression(['concat', ['get', 'name'], ' (', ['get', 'ref'], ')'], 'string')
+label.evaluate({ zoom: 14, feature: { type: 2, properties: { name: 'High St', ref: 'A40' } } })
+// 'High St (A40)'
 
-## Lookups & feature context
+// One-shot, recompiling each call: for tests and tools, not a render loop.
+evaluateExpression(['*', 2, 3], { zoom: 0 }) // 6
+```
 
-| Operator | Summary |
-| -------- | ------- |
-| `literal` | Wrap a literal array / object so it isn't parsed as an expression. |
-| `get` | `["get", name]` — property from the current feature, or `["get", name, obj]` from a given object. |
-| `has` | Whether a property is defined. |
-| `at` | `["at", index, array]`. |
-| `length` | String / array length. |
-| `properties` | The feature's property bag. |
-| `geometry-type` | Current feature's geometry type. |
-| `id` | Current feature's id. |
-| `zoom` | Current zoom (valid only where the host supports zoom expressions). |
-| `line-progress` | 0..1 progress along a line feature (for `line-gradient`). |
-| `feature-state` | `["feature-state", key]` — data attached via `map.setFeatureState`. |
+`compileExpression(expr, expectedType?)` returns `{ evaluate(context),
+returnType, dependsOnZoom, dependsOnFeature, dependsOnFeatureState }`. The
+context is `{ zoom, feature?: { type, id?, properties }, featureState? }`, with
+`type` 1 for points, 2 for lines and 3 for polygons. A malformed expression
+throws `ExpressionError`. `validateExpression(expr)` and `isExpression(value)`
+check without compiling.
+
+## Data
+
+| Operator | |
+| -------- | - |
+| `["get", key]` / `["get", key, object]` | A feature property, or a key of an object. |
+| `["has", key]` / `["has", key, object]` | Whether the property is there. |
+| `["!has", key]` | Whether it is not. |
+| `["properties"]` | All of the feature's properties. |
+| `["id"]` | The feature's id. |
+| `["geometry-type"]` | `"Point"`, `"LineString"` or `"Polygon"`. |
+| `["feature-state", key]` | State set with [`map.setFeatureState`](./TsMap.md#feature-state). |
+| `["literal", value]` | An array or object taken as data, not as an expression. |
+| `["at", index, array]` | An array item. |
+| `["length", stringOrArray]` | |
+
+## Camera and rendering
+
+| Operator | |
+| -------- | - |
+| `["zoom"]` | The map's zoom. Use it as the input of a top-level `interpolate` or `step`. |
+| `["line-progress"]` | 0 to 1 along a line, for `line-gradient`. |
+| `["heatmap-density"]` | 0 to 1, for `heatmap-color`. |
+
+## Decisions
+
+| Operator | |
+| -------- | - |
+| `["case", cond, value, …, fallback]` | The value of the first true condition. |
+| `["match", input, label, value, …, fallback]` | The value whose label equals `input`. A label may be a list: `["a", "b"]`. |
+| `["coalesce", a, b, …]` | The first value that is not null. |
+| `["==", a, b]`, `["!=", a, b]` | Strict equality: `1` does not equal `"1"`. |
+| `["<", a, b]`, `["<=", …]`, `[">", …]`, `[">=", …]` | Numbers or strings. |
+| `["!", bool]` | |
+| `["all", …]`, `["any", …]`, `["none", …]` | And, or, neither. |
+| `["in", needle, haystack]` | Whether an array holds `needle`, or a string contains it. |
+| `["in", key, v1, v2, …]`, `["!in", key, v1, …]` | The legacy filter form: whether a property is one of the values. |
+
+## Ramps
+
+| Operator | |
+| -------- | - |
+| `["interpolate", type, input, stop, value, …]` | Blend between stops. `type` is `["linear"]`, `["exponential", base]` or `["cubic-bezier", x1, y1, x2, y2]`. Numbers and colours interpolate. |
+| `["step", input, value0, stop1, value1, …]` | `value0` below the first stop, then each value from its stop on. |
+
+```js
+['interpolate', ['exponential', 1.5], ['zoom'], 10, 1, 18, 24]
+['step', ['get', 'point_count'], '#51bbd6', 100, '#f1f075', 750, '#f28cb1']
+```
+
+## Maths
+
+| Operator | |
+| -------- | - |
+| `+`, `*` | Any number of arguments. |
+| `-` | Two arguments, or one to negate. |
+| `/`, `%`, `^` | Two arguments. |
+| `min`, `max` | Any number of arguments. |
+| `abs`, `floor`, `ceil`, `round` | |
+| `sqrt`, `ln`, `log10`, `log2` | Throw on a negative (or, for logs, zero) input. |
+| `sin`, `cos`, `tan`, `asin`, `acos`, `atan` | Radians. |
+| `["e"]`, `["pi"]` | Constants. |
+| `["rand", min, max, seed?]` | A random number in `[min, max)`; with a `seed`, the same one each time. Not in the Mapbox spec. |
 
 ## Strings
 
-| Operator | Summary |
-| -------- | ------- |
-| `concat` | Variadic string concatenation. |
-| `downcase`, `upcase` | Locale-agnostic case mapping. |
-| `index-of` | `["index-of", needle, haystack, start?]` — position in a string or array, or `-1`. |
-| `slice` | `["slice", input, start, end?]` — a sub-range of a string or array. |
-| `number-format` | `["number-format", n, { locale, currency, min-fraction-digits, max-fraction-digits }]`. |
-| `format` | Sectioned text: `["format", "M", { "font-scale": 1.4 }, "5", { "font-scale": 0.8 }]`. Each section may carry `font-scale`, `text-font` and `text-color`, and those may themselves be expressions. The label places as one box on one baseline; sections falling back to the layer's own text properties for anything they don't set. Reads as the concatenation anywhere a plain string is expected. |
-| `resolved-locale` | Returns a BCP-47 tag for a collator. |
+| Operator | |
+| -------- | - |
+| `["concat", a, b, …]` | Joins values as strings. |
+| `["upcase", s]`, `["downcase", s]` | |
+| `["index-of", needle, haystack, start?]` | Position in a string or array, or `-1`. |
+| `["slice", input, start, end?]` | Part of a string or array. |
+| `["number-format", n, options]` | Options: `locale`, `currency`, `min-fraction-digits`, `max-fraction-digits`. |
+| `["format", text, sectionOptions, …]` | Text in sections, each with its own `font-scale`, `text-font` and `text-color`. Where a plain string is wanted, it reads as the joined text. |
+| `["resolved-locale"]` | Returns `"en"` for now. |
 
-## Bindings
+```js
+['number-format', ['get', 'price'], { locale: 'de-DE', currency: 'EUR' }] // "12,00 €"
+['format', ['get', 'name'], { 'font-scale': 1.2 }, '\n', {}, ['get', 'ele'], { 'font-scale': 0.8 }]
+```
 
-| Operator | Summary |
-| -------- | ------- |
-| `let` | `["let", name, value, …, body]` — bind names for the body. |
-| `var` | `["var", name]` — read one back. An unbound name is an error, not `null`. |
+## Types
 
-Bind a sub-expression you would otherwise repeat:
+| Operator | |
+| -------- | - |
+| `["to-string", v]` | |
+| `["to-number", v, fallback…]` | The first argument that converts. |
+| `["to-boolean", v]` | |
+| `["to-color", v, fallback…]` | The first argument that parses as a colour. |
+| `["to-rgba", color]` | `[r, g, b, a]`, channels 0–255 and alpha 0–1. |
+
+## Variables
+
+| Operator | |
+| -------- | - |
+| `["let", name, value, …, body]` | Name values for use in `body`. |
+| `["var", name]` | Read one back. An unbound name is an error. |
 
 ```js
 ['let', 'p', ['get', 'population'],
@@ -89,12 +146,12 @@ Bind a sub-expression you would otherwise repeat:
 
 ## Geometry
 
-| Operator | Summary |
-| -------- | ------- |
-| `within` | `["within", polygon]` — is every vertex of the feature inside this GeoJSON Polygon or MultiPolygon? |
-| `distance` | `["distance", geometry]` — metres from the feature to the nearest vertex of the given geometry. |
+| Operator | |
+| -------- | - |
+| `["within", polygon]` | Whether every vertex of the feature is inside a GeoJSON `Polygon` or `MultiPolygon`. |
+| `["distance", geometry]` | Metres from the feature to a GeoJSON geometry, vertex to vertex. Exact for points; for lines and polygons, a little over. |
 
-Both need the feature's coordinates, which are supplied when a **filter** is
+Both need the feature's coordinates, which are supplied when a filter is
 evaluated:
 
 ```js
@@ -102,49 +159,40 @@ evaluated:
 { filter: ['<', ['distance', { type: 'Point', coordinates: [-118.47, 34.02] }], 500] }
 ```
 
-Paint and layout properties are evaluated without geometry, where `within`
-returns `false` and `distance` returns `Infinity` — the answers that leave a
-feature unstyled rather than styling it wrongly. Projecting a feature back to
-lng/lat is not free, so it happens lazily and only when one of these operators
-actually asks.
+In paint and layout properties there are no coordinates to read, and `within`
+returns `false` and `distance` `Infinity`.
 
-## Type conversions
+## Filters
 
-| Operator | Summary |
-| -------- | ------- |
-| `to-string`, `to-number`, `to-boolean` | Coerce a value to the named type. |
-| `to-color`, `to-rgba` | Parse a color literal or convert an `[r, g, b, a]` tuple. |
+A layer's `filter` is an expression that returns a boolean. The older filter
+syntax, which names properties by bare strings, works too:
 
-## Legacy filter compatibility
-
-`convertLegacyFilter(filter)` rewrites old-style filters (`["==", "type", "Polygon"]`) into modern expression form (`["==", ["get", "type"], "Polygon"]`). Handy for migrating existing style documents.
-
-## Filters on `VectorTileMapLayer`
-
-Style-layer filters on `VectorTileMapLayer` use a hybrid evaluator for speed:
-
-- **Legacy MVT forms** (`==` / `!=` / `<` / `<=` / `>` / `>=` / `in` / `!in` / `has` / `!has` / `all` / `any` / `none`) with simple operands (literal or `['get', key]` / `['geometry-type']`) run through a zero-allocation inline evaluator.
-- **Modern expressions** (`case`, `match`, `coalesce`, nested `['get']` on both sides, `feature-state`, etc.) compile via the expression engine the first time they're evaluated on a style layer. The compiled result is memoised so a filter seeing 50,000 features only compiles once.
-
-```ts
-vectorTileLayer({
-  url: '…',
-  layers: [{
-    id: 'road-fast',
-    type: 'line',
-    sourceLayer: 'transportation',
-    // Legacy form — fast path.
-    filter: ['==', ['get', 'class'], 'motorway'],
-    paint: { 'line-color': '#dc2626', 'line-width': 2 },
-  }, {
-    id: 'road-themed',
-    type: 'line',
-    sourceLayer: 'transportation',
-    // Modern form — compiled once, reused per feature.
-    filter: ['match', ['get', 'class'], ['primary', 'trunk'], true, false],
-    paint: { 'line-color': '#6b7280' },
-  }],
-})
+```js
+['==', 'class', 'motorway']           // legacy
+['==', ['get', 'class'], 'motorway']  // expression
+['==', '$type', 'Polygon']            // legacy; ['==', ['geometry-type'], 'Polygon']
 ```
 
-A filter that fails to compile (unknown operator, bad shape) falls through as pass-through rather than suppressing every feature — matching Mapbox GL JS behaviour.
+`convertLegacyFilter(filter)` from `ts-maps/style-spec` rewrites a legacy
+filter as an expression.
+
+Vector tile layers evaluate simple filters — comparisons, `in`, `has`, `all`,
+`any`, `none` over literals, `["get", key]` and `["geometry-type"]` — without
+compiling them. Anything else is compiled the first time a layer sees it, and
+the compiled form is reused for every feature after. A filter that fails to
+compile lets every feature through rather than hiding them all.
+
+## Not supported
+
+These parts of the Mapbox spec are not implemented: the type assertions
+`array`, `boolean`, `number`, `string` and `object`; `typeof`;
+`interpolate-hcl` and `interpolate-lab`; `image`; `collator` and
+`is-supported-script`; `accumulated`; `config` and `global-state`; `pitch`,
+`distance-from-center` and `sky-radial-progress`.
+
+An array whose first item is not a known operator is read as plain data, not
+as an error. `['typeof', x]` evaluates to the array `['typeof', x]` itself, so
+an unsupported operator shows up as a wrong value rather than a message. Where
+a type assertion only guards a value, drop it:
+`['boolean', ['feature-state', 'hover'], false]` becomes
+`['coalesce', ['feature-state', 'hover'], false]`.
