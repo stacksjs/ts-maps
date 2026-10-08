@@ -1,4 +1,38 @@
 import type { CloudConfig } from '@stacksjs/ts-cloud'
+import { readdirSync, statSync } from 'node:fs'
+import { join, relative } from 'node:path'
+
+const DOMAIN = 'ts-maps.stacksjs.com'
+
+/**
+ * A redirect for every docs page from its file name to its page:
+ * `/examples/01-basic-map.md` → `/examples/01-basic-map`. The docs link to
+ * each other as files, so a link copied from GitHub asks for the `.md`; the
+ * built site rewrites its own links (scripts/fix-doc-links.ts), but a saved
+ * or shared one would 404.
+ */
+function markdownRedirects(dir = 'docs'): Record<string, { deploy: 'server', domain: string, path: string, redirect: { to: string, preservePath: false } }> {
+  const out: ReturnType<typeof markdownRedirects> = {}
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name)
+    if (statSync(path).isDirectory()) {
+      if (!name.startsWith('.') && !name.startsWith('_') && name !== 'public')
+        Object.assign(out, markdownRedirects(path))
+      continue
+    }
+    if (!name.endsWith('.md'))
+      continue
+    const file = relative('docs', path).split('\\').join('/')
+    const page = file.replace(/(?:^|\/)index\.md$/, '').replace(/\.md$/, '')
+    out[`md_${file.replace(/[^a-z0-9]+/gi, '_')}`] = {
+      deploy: 'server',
+      domain: DOMAIN,
+      path: `/${file}`,
+      redirect: { to: `https://${DOMAIN}/${page}${page && file.endsWith('index.md') ? '/' : ''}`, preservePath: false },
+    }
+  }
+  return out
+}
 
 /**
  * ts-cloud deployment config for ts-maps.stacksjs.com.
@@ -77,7 +111,7 @@ const config: CloudConfig = {
       // that is the document root.
       root: 'dist/.bunpress',
       path: '/',
-      domain: 'ts-maps.stacksjs.com',
+      domain: DOMAIN,
       build: 'bun run build:docs',
       // BunPress writes clean directory URLs: /concepts/3d → concepts/3d/index.html.
       pathRewriteStyle: 'directory',
@@ -91,10 +125,12 @@ const config: CloudConfig = {
       deploy: 'server',
       root: 'dist/playground',
       path: '/playground',
-      domain: 'ts-maps.stacksjs.com',
+      domain: DOMAIN,
       build: 'bun scripts/build-playground.ts dist/playground',
       pathRewriteStyle: 'flat',
     },
+
+    ...markdownRedirects(),
   },
 }
 
