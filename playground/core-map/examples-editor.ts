@@ -33,7 +33,9 @@ let name = ''
 
 /** The example as the docs show it: importing the package, not the repo's source. */
 function original(of: string): string {
-  return sources[of]!.source.replace(/(['"])\.\.\/\.\.\/packages\/ts-maps\/src\/core-map\1/g, '\'ts-maps\'')
+  return sources[of]!.source
+    .replace(/(['"])\.\.\/\.\.\/packages\/ts-maps\/src\/core-map\1/g, '\'ts-maps\'')
+    .replace(/(['"])\.\.\/\.\.\/packages\/ts-maps\/src\/core-map\/symbols\1/g, '\'ts-maps/symbols\'')
 }
 
 function saved(of: string): string | null {
@@ -99,7 +101,7 @@ async function run(): Promise<void> {
     }
     const js = compile(code.value)
     const base = new URL('./', location.href).href
-    const imports: Record<string, string> = { 'ts-maps': `${base}lib/ts-maps.js` }
+    const imports: Record<string, string> = { 'ts-maps': `${base}lib/ts-maps.js`, 'ts-maps/symbols': `${base}lib/symbols.js` }
     for (const module of ['terminal', 'transamerica'])
       imports[`./data/${module}`] = `${base}data/${module}.js`
     // The script ends the page; a `</script>` in a string would end it early.

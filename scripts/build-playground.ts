@@ -153,6 +153,15 @@ if (examples.length) {
     minify: true,
     naming: 'ts-maps.[ext]',
   })
+  // The subpath an example may import as well (08 takes CollisionIndex).
+  const symbols = await Bun.build({
+    entrypoints: [join(ROOT, 'packages', 'ts-maps', 'src', 'core-map', 'symbols', 'index.ts')],
+    outdir: join(EXAMPLES_OUT, 'lib'),
+    target: 'browser',
+    format: 'esm',
+    minify: true,
+    naming: 'symbols.[ext]',
+  })
   const data = await Bun.build({
     entrypoints: readdirSync(join(EXAMPLES, 'data')).filter(f => f.endsWith('.ts')).map(f => join(EXAMPLES, 'data', f)),
     outdir: join(EXAMPLES_OUT, 'data'),
@@ -168,7 +177,7 @@ if (examples.length) {
     minify: true,
     naming: 'edit.[ext]',
   })
-  for (const result of [lib, data, editor]) {
+  for (const result of [lib, symbols, data, editor]) {
     if (!result.success) {
       for (const log of result.logs)
         console.error(log)
