@@ -62,6 +62,21 @@ function parseCssColor(css: string): [number, number, number] {
   return [255, 255, 255]
 }
 
+/** How a hillshade is shaded: the layer options a style's paint properties set. */
+export type HillshadeShading = Pick<RasterDEMLayerOptions, 'exaggeration' | 'azimuth' | 'accentColor' | 'shadowColor'>
+
+/** A style `hillshade` layer's paint, as shading options. */
+export function hillshadeShading(paint: Record<string, unknown>): HillshadeShading {
+  return {
+    exaggeration: paint['hillshade-exaggeration'] as number | undefined,
+    // The spec's illumination direction is the compass bearing the light
+    // comes from, which is the same convention as the layer's azimuth.
+    azimuth: paint['hillshade-illumination-direction'] as number | undefined,
+    accentColor: (paint['hillshade-highlight-color'] ?? paint['hillshade-accent-color']) as string | undefined,
+    shadowColor: paint['hillshade-shadow-color'] as string | undefined,
+  }
+}
+
 // Fetches RGB-encoded terrain tiles and shades them with a simple
 // Lambertian light model. Decoding and shading both run on the main
 // thread for now; the worker path is a future optimisation.
@@ -82,6 +97,17 @@ export class RasterDEMLayer extends TileLayer {
     // them cross-origin.
     super.initialize(url, { tileSize: 512, crossOrigin: true, ...options } as any)
     this._encoding = options?.encoding ?? 'mapbox'
+  }
+
+  /**
+   * Shade the slopes differently — strength, light, colours — and
+   * draw the tiles again: what changing a style `hillshade` layer's paint
+   * does. An option left undefined goes back to its default.
+   */
+  setShading(shading: HillshadeShading): this {
+    Object.assign(this.options!, shading)
+    this.redraw()
+    return this
   }
 
   createTile(coords: Point & { z: number }, done: (err: any, tile: HTMLElement) => void): HTMLElement {

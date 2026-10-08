@@ -2919,8 +2919,7 @@ export class TsMap extends Evented {
       if (!hillshade)
         return undefined
 
-      const { RasterDEMLayer } = require('../layer/tile/RasterDEMLayer')
-      const paint = hillshade.paint ?? {}
+      const { RasterDEMLayer, hillshadeShading } = require('../layer/tile/RasterDEMLayer')
       const dem = new RasterDEMLayer(url, {
         encoding: (source as any).encoding === 'terrarium' ? 'terrarium' : 'mapbox',
         tileSize: source.tileSize ?? 512,
@@ -2931,12 +2930,7 @@ export class TsMap extends Evented {
         minNativeZoom: source.minzoom,
         maxNativeZoom: source.maxzoom,
         maxZoom: STYLE_LAYER_MAX_ZOOM,
-        exaggeration: paint['hillshade-exaggeration'],
-        // The spec's illumination direction is the compass bearing the light
-        // comes from, which is the same convention as the layer's azimuth.
-        azimuth: paint['hillshade-illumination-direction'],
-        accentColor: paint['hillshade-highlight-color'] ?? paint['hillshade-accent-color'],
-        shadowColor: paint['hillshade-shadow-color'],
+        ...hillshadeShading(hillshade.paint ?? {}),
         attribution: source.attribution,
       })
       this._style!.sourceLayers.set(sourceId, dem)
@@ -3209,6 +3203,13 @@ export class TsMap extends Evented {
 
     const sourceId = spec.source
     const host: any = sourceId ? style.sourceLayers.get(sourceId) : undefined
+    // A hillshade is drawn by its DEM source's own layer, which takes its
+    // paint as shading options rather than style layers.
+    if (spec.type === 'hillshade' && typeof host?.setShading === 'function') {
+      const { hillshadeShading } = require('../layer/tile/RasterDEMLayer')
+      host.setShading(hillshadeShading(spec.paint ?? {}))
+      return
+    }
     if (!host || typeof host.updateStyleLayers !== 'function')
       return
 

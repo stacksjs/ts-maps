@@ -239,4 +239,19 @@ describe('a source given its first drawing layer later', () => {
     expect(host).toBeDefined()
     expect(map.hasLayer(host)).toBe(true)
   })
+
+  test('a hillshade\'s paint reaches the layer drawing it', () => {
+    const map = makeMap({ center: [45.97, 7.65], zoom: 11 })
+    map.setStyle({
+      version: 8,
+      sources: { dem: { type: 'raster-dem', tiles: ['https://dem.test/{z}/{x}/{y}.png'], tileSize: 256, encoding: 'terrarium' } },
+      layers: [{ id: 'hillshade', type: 'hillshade', source: 'dem', paint: { 'hillshade-exaggeration': 0.3 } }],
+    } as unknown as StyleSpec)
+    const host = (map as any)._style.sourceLayers.get('dem')
+    expect(host.options.exaggeration).toBe(0.3)
+    map.setPaintProperty('hillshade', 'hillshade-exaggeration', 1)
+    map.setPaintProperty('hillshade', 'hillshade-shadow-color', '#223344')
+    expect(host.options.exaggeration).toBe(1)
+    expect(host.options.shadowColor).toBe('#223344')
+  })
 })
