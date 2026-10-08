@@ -70,7 +70,12 @@ function matchesSchema(value: unknown, schema: PropertySchema): true | false | s
     if (schema.type === 'padding') {
       return value.length === 2 || value.length === 4
     }
-    // Mystery array — unknown operator head. Treat as invalid.
+    // An array led by a string that names no operator: the compiler's error
+    // names it, which says more than "invalid value".
+    if (typeof value[0] === 'string') {
+      const errs = validateExpression(value, expressionTypeFor(schema.type))
+      return errs.length ? errs : false
+    }
     return false
   }
 

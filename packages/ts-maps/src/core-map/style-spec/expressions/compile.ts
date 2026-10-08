@@ -89,8 +89,6 @@ export function compile(
 ): CompiledExpression {
   boot()
 
-  // Arrays that don't lead with a known operator are treated as literal
-  // data — common for [number, number] tuples used in translate properties.
   if (Array.isArray(expr)) {
     const head = expr[0]
     if (typeof head === 'string') {
@@ -99,9 +97,16 @@ export function compile(
         const args = expr.slice(1)
         return op(args, compile, path, expectedType)
       }
-      // Fall through: unknown string head with an otherwise array-shaped
-      // payload means literal data — `['a', 'b']` as a text-font value, say.
+      // A string first names an operator, as in Mapbox. Read as data, a typo
+      // (`["get-property", "x"]`) or an operator we lack evaluated to the
+      // array itself and drew wrong without a word. Plain array values —
+      // `text-font` stacks, `line-dasharray` — are told apart before they get
+      // here (see `isExpression`); in an expression, a literal array is
+      // written `["literal", [...]]`.
+      throw new ExpressionError(`unknown expression operator ${JSON.stringify(head)}; for a literal array use ["literal", [...]]`, expr, path)
     }
+    // Arrays that don't lead with a string are literal data — the
+    // [number, number] tuples of translate and offset properties.
     return compileLiteral(expr, 'array', path)
   }
 

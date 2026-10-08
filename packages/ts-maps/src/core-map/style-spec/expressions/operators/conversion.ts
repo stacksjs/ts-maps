@@ -23,7 +23,79 @@ function mergeDeps(children: CompiledExpression[]): {
   return { dependsOnZoom: z, dependsOnFeature: f, dependsOnFeatureState: s }
 }
 
+// The runtime type an assertion checks for. Colours are strings here, so a
+// colour passes a `string` assertion, as a CSS string would.
+function typeOfValue(v: unknown): 'string' | 'number' | 'boolean' | 'object' | 'array' | 'null' {
+  if (v === null || v === undefined) return 'null'
+  if (Array.isArray(v)) return 'array'
+  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return typeof v as 'string' | 'number' | 'boolean'
+  return 'object'
+}
+
+/**
+ * Type assertions: `["number", v, fallback…]` and its kin return the first
+ * argument that is of the type, and fail when none is. The usual use is a
+ * default for a value that may be missing —
+ * `["boolean", ["feature-state", "hover"], false]` before any hover.
+ */
+function registerAssertion(name: 'string' | 'number' | 'boolean' | 'object'): void {
+  registerOperator(name, (args, compile, path) => {
+    if (args.length < 1)
+      throw new ExpressionError(`"${name}" expects at least 1 argument`, [name, ...args], path)
+    const children = args.map((a, i) => compile(a, 'value', path.concat(i + 1)))
+    const expr = [name, ...args]
+    return {
+      evaluate: (ctx) => {
+        let last: unknown
+        for (let i = 0; i < children.length; i++) {
+          last = children[i]!.evaluate(ctx)
+          if (typeOfValue(last) === name) return last
+        }
+        throw new ExpressionError(`"${name}": expected ${name}, got ${typeOfValue(last)}`, expr)
+      },
+      returnType: name === 'object' ? 'value' : name,
+      ...mergeDeps(children),
+    }
+  })
+}
+
 export function registerConversionOps(): void {
+  registerAssertion('string')
+  registerAssertion('number')
+  registerAssertion('boolean')
+  registerAssertion('object')
+
+  // array — `["array", v]`, `["array", type, v]` or `["array", type, n, v]`:
+  // the value, if it is an array (of that item type, of that length).
+  registerOperator('array', (args, compile, path) => {
+    const expr = ['array', ...args]
+    if (args.length < 1 || args.length > 3)
+      throw new ExpressionError(`"array" expects 1 to 3 arguments, got ${args.length}`, expr, path)
+    const itemType = args.length > 1 ? args[0] : undefined
+    const length = args.length > 2 ? args[1] : undefined
+    if (itemType !== undefined && itemType !== 'string' && itemType !== 'number' && itemType !== 'boolean')
+      throw new ExpressionError(`"array": item type must be "string", "number" or "boolean", got ${JSON.stringify(itemType)}`, expr, path.concat(1))
+    if (length !== undefined && (typeof length !== 'number' || !Number.isInteger(length) || length < 0))
+      throw new ExpressionError(`"array": length must be a whole number, got ${JSON.stringify(length)}`, expr, path.concat(2))
+    const inner = compile(args[args.length - 1], 'value', path.concat(args.length))
+    return {
+      evaluate: (ctx) => {
+        const v = inner.evaluate(ctx)
+        const ok = Array.isArray(v)
+          && (length === undefined || v.length === length)
+          && (itemType === undefined || v.every(item => typeOfValue(item) === itemType))
+        if (!ok) {
+          const size = length === undefined ? '' : `, ${length}`
+          const want = itemType === undefined ? 'array' : `array<${itemType}${size}>`
+          throw new ExpressionError(`"array": expected ${want}, got ${typeOfValue(v)}`, expr)
+        }
+        return v
+      },
+      returnType: 'array',
+      ...mergeDeps([inner]),
+    }
+  })
+
   // to-string — mirrors JavaScript's coercion except that objects render as
   // JSON to stay predictable in tile-label templates.
   registerOperator('to-string', (args, compile, path) => {
@@ -45,7 +117,9 @@ export function registerConversionOps(): void {
   })
 
   // to-number — Mapbox tries each argument in turn, returning the first that
-  // coerces cleanly; if none work it throws. We follow that rule.
+  // coerces cleanly; if none work it throws. We follow that rule, including
+  // its edges: null is 0 (a missing property counts as zero, not as a reason
+  // to try the next argument), and so is an empty string, as `Number('')`.
   registerOperator('to-number', (args, compile, path) => {
     if (args.length < 1)
       throw new ExpressionError('"to-number" expects at least 1 argument', ['to-number', ...args], path)
@@ -55,16 +129,14 @@ export function registerConversionOps(): void {
       evaluate: (ctx) => {
         for (let i = 0; i < children.length; i++) {
           const v = children[i]!.evaluate(ctx)
-          if (v === null || v === undefined) continue
+          if (v === null || v === undefined) return 0
           if (typeof v === 'number') {
             if (!Number.isNaN(v)) return v
             continue
           }
           if (typeof v === 'boolean') return v ? 1 : 0
           if (typeof v === 'string') {
-            const s = v.trim()
-            if (s.length === 0) continue
-            const n = Number(s)
+            const n = Number(v)
             if (!Number.isNaN(n)) return n
           }
         }
