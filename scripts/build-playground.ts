@@ -142,6 +142,77 @@ if (examples.length) {
 `)
   }
   copyFileSync(join(SRC, 'examples.css'), join(EXAMPLES_OUT, 'examples.css'))
+  // Edit and run (examples-editor.ts): the library as one module to import
+  // from 'ts-maps', the examples' data as modules of their own, and every
+  // example's source and panel for the editor to start from.
+  const lib = await Bun.build({
+    entrypoints: [join(ROOT, 'packages', 'ts-maps', 'src', 'core-map', 'index.ts')],
+    outdir: join(EXAMPLES_OUT, 'lib'),
+    target: 'browser',
+    format: 'esm',
+    minify: true,
+    naming: 'ts-maps.[ext]',
+  })
+  const data = await Bun.build({
+    entrypoints: readdirSync(join(EXAMPLES, 'data')).filter(f => f.endsWith('.ts')).map(f => join(EXAMPLES, 'data', f)),
+    outdir: join(EXAMPLES_OUT, 'data'),
+    target: 'browser',
+    format: 'esm',
+    minify: true,
+  })
+  const editor = await Bun.build({
+    entrypoints: [join(SRC, 'examples-editor.ts')],
+    outdir: EXAMPLES_OUT,
+    target: 'browser',
+    format: 'esm',
+    minify: true,
+    naming: 'edit.[ext]',
+  })
+  for (const result of [lib, data, editor]) {
+    if (!result.success) {
+      for (const log of result.logs)
+        console.error(log)
+      process.exit(1)
+    }
+  }
+  const sources = Object.fromEntries(examples.map((file) => {
+    const name = file.replace(/\.ts$/, '')
+    const title = readFileSync(join(EXAMPLES, `${name}.md`), 'utf8').match(/^#\s+(.+)$/m)?.[1] ?? name
+    return [name, { title, source: readFileSync(join(EXAMPLES, file), 'utf8'), panel: PANELS[name] ?? '' }]
+  }))
+  writeFileSync(join(EXAMPLES_OUT, 'sources.json'), JSON.stringify(sources))
+  copyFileSync(join(SRC, 'examples-editor.css'), join(EXAMPLES_OUT, 'editor.css'))
+  writeFileSync(join(EXAMPLES_OUT, 'edit.html'), `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit and run — ts-maps</title>
+    <link rel="stylesheet" href="./editor.css" />
+  </head>
+  <body>
+    <header>
+      <strong>Edit and run</strong>
+      <select id="example" aria-label="Example"></select>
+      <button type="button" id="run" title="Run (⌘↵)">Run</button>
+      <button type="button" id="reset" class="secondary">Reset</button>
+      <span class="spacer"></span>
+      <a id="docs" href="/examples/">Docs</a>
+      <a id="full-screen" href="./">Full screen</a>
+    </header>
+    <main>
+      <div class="code">
+        <pre id="highlight" aria-hidden="true"></pre>
+        <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Source"></textarea>
+      </div>
+      <iframe id="preview" title="The example, running" allow="geolocation; fullscreen"></iframe>
+    </main>
+    <footer id="status">Loading…</footer>
+    <script type="module" src="./edit.js"></script>
+  </body>
+</html>
+`)
+
   // The examples gallery's pictures of them (scripts/playground-thumbs.ts --examples).
   const pictures = join(EXAMPLES, 'thumbs')
   if (existsSync(pictures)) {
