@@ -2,46 +2,12 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 11. Territory capture</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Territory capture — ts-maps playground</title>
+    <meta name='description' content="A simulated runner sends GPS positions; LoopDetector notices when the path closes, TerritoryStore merges the claim and takes the overlap from rivals, and TerritoryLayer draws it. Click a territory to see who holds it. The dashed leg is the part not yet run: the shape it closes is what the lap would be worth from here." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
     <style>
-      body {
-        background: #0b0e13;
-        color: #e6edf3;
-      }
-
-      .toolbar {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .toolbar button {
-        font: inherit;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid rgb(255 255 255 / 15%);
-        background: #161b22;
-        color: #e6edf3;
-        cursor: pointer;
-      }
-
-      .toolbar button:hover {
-        background: #1f262e;
-      }
-
-      .stage {
-        position: relative;
-      }
-
-      #map {
-        height: 560px;
-        border-radius: 12px;
-        overflow: hidden;
-      }
 
       .panel {
         position: absolute;
@@ -118,41 +84,27 @@
         opacity: 1;
         transform: translate(-50%, 0);
       }
-
-      .legend {
-        margin-top: 12px;
-        font-size: 13px;
-        opacity: 0.75;
-        line-height: 1.6;
-      }
     </style>
   </head>
-  <body>
-    <h1>11. Territory capture</h1>
-    <p class='intro'>
-      A simulated runner emits GPS positions; <code>LoopDetector</code> notices when
-      the path closes, <code>TerritoryStore</code> merges the claim and takes the
-      overlap off the rivals, and <code>TerritoryLayer</code> draws it. Click any
-      territory to ask who holds it.
-    </p>
-
-    <div class='toolbar'>
-      <button id='run' type='button'>Start run</button>
-      <button id='reset' type='button'>Reset</button>
+  <body class='demo' data-theme='dark'>
+  <div id='map'></div>
+  <div class='demo-panel' style='width: auto'>
+    <button id='run' type='button'>Start run</button>
+    <button id='reset' type='button' class='secondary'>Reset</button>
+  </div>
+  <div id='board' class='panel'></div>
+  <div id='status' class='panel'></div>
+  <div id='toast' class='panel'></div>
+  <details class='demo-info' open>
+    <summary>Territory capture</summary>
+    <div class='demo-body'>
+      <p>A simulated runner sends GPS positions; <code>LoopDetector</code> notices when the path closes, <code>TerritoryStore</code> merges the claim and takes the overlap from rivals, and <code>TerritoryLayer</code> draws it. Click a territory to see who holds it. The dashed leg is the part not yet run: the shape it closes is what the lap would be worth from here.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/11-territory.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
     </div>
-
-    <div class='stage'>
-      <div id='map'></div>
-      <div id='board' class='panel'></div>
-      <div id='status' class='panel'></div>
-      <div id='toast' class='panel'></div>
-    </div>
-
-    <div class='legend'>
-      The dashed leg on the trail is the part the runner has <em>not</em> run — the
-      shape it closes is what the lap would be worth from here.
-    </div>
-
-    <script type='module' src='./11-territory.ts'></script>
+  </details>
+  <script type='module' src='./11-territory.ts'></script>
   </body>
 </html>

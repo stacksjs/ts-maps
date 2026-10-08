@@ -2,30 +2,24 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 5. Clustering &amp; feature-state</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Clustering &amp; feature-state — ts-maps playground</title>
+    <meta name='description' content="400 points round Manhattan, clustered in the browser by GeoJSONClusterSource (a zero-dependency supercluster port). Clusters regroup as you zoom; click the map to inspect the clusters near the click through the event API." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
-    <style>
-      .map-host { position: relative; }
-    </style>
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>5. Clustering &amp; feature-state</span>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>Clustering &amp; feature-state</summary>
+    <div class='demo-body'>
+      <p>400 points round Manhattan, clustered in the browser by <code>GeoJSONClusterSource</code> (a zero-dependency supercluster port). Clusters regroup as you zoom; click the map to inspect the clusters near the click through the event API.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/5-clustering.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>5. Clustering &amp; feature-state</h1>
-      <p class='subtitle'>
-        400 random points around Manhattan, clustered in-browser via
-        <code>GeoJSONClusterSource</code> (zero-dep supercluster + kdbush
-        port). Clusters repaint on every pan/zoom. Click anywhere on the
-        map to inspect nearby clusters through the event API.
-      </p>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./5-clustering.ts'></script>
+  </details>
+  <script type='module' src='./5-clustering.ts'></script>
   </body>
 </html>

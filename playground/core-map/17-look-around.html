@@ -3,15 +3,27 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
-    <title>ts-maps — 17. Look Around</title>
+    <title>Look Around — ts-maps playground</title>
+    <meta name='description' content="Street-level pictures from Panoramax. The binoculars show the streets with pictures in blue; tap one to look around, drag to turn, tap ahead to walk. Search a place and its card offers the pictures near it." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; }
       #map { position: absolute; inset: 0; }
     </style>
   </head>
-  <body>
+  <body class='demo'>
     <div id='map'></div>
+  <details class='demo-info'>
+    <summary>Look Around</summary>
+    <div class='demo-body'>
+      <p>Street-level pictures from Panoramax. The binoculars show the streets with pictures in blue; tap one to look around, drag to turn, tap ahead to walk. Search a place and its card offers the pictures near it.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/17-look-around.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
+    </div>
+  </details>
     <script type='module' src='./17-look-around.ts'></script>
   </body>
 </html>

@@ -1,13 +1,14 @@
 /**
  * Phase 7 demo — 3D camera with fog + sky.
  *
- * OpenStreetMap raster basemap + bearing/pitch sliders + setSky/setFog
+ * The vector basemap + bearing/pitch sliders + setSky/setFog
  * controls. Atmospheric overlay renders as pitch increases, driven by
  * the same Map._updateAtmosphereOverlay pipeline that powers the
  * globe-halo demo.
  */
 
-import { tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { TsMap } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 
 const map = new TsMap('map', {
   center: [40.758, -73.9855],
@@ -18,10 +19,8 @@ const map = new TsMap('map', {
   bearing: 20,
 })
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19,
-}).addTo(map)
+// The vector basemap the real-world demos share (see basemap.ts).
+void loadBasemap(map, 'light')
 
 map.setSky({
   'sky-color': '#87ceeb',
@@ -33,19 +32,8 @@ map.setFog({
 })
 
 const panel = document.createElement('div')
-panel.style.cssText = `
-  position:absolute;
-  left:16px;
-  top:16px;
-  z-index:500;
-  background:rgba(15,23,42,0.92);
-  color:#e2e8f0;
-  border-radius:10px;
-  padding:14px 16px;
-  font:500 13px -apple-system,sans-serif;
-  min-width:240px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.35);
-`
+// The playground's own controls card (shared.css), top right.
+panel.className = 'demo-panel'
 panel.innerHTML = `
   <div style="font-weight:600;margin-bottom:10px;">3D camera</div>
   <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">

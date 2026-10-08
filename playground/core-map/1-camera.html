@@ -2,8 +2,9 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 1. Camera</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Camera — ts-maps playground</title>
+    <meta name='description' content="Turn and tilt the map with the sliders, or move the camera between cities: flyTo arcs out and back in, easeTo glides." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
     <style>
@@ -11,7 +12,7 @@
         width: 26px;
         height: 26px;
         border-radius: 50% 50% 50% 0;
-        background: #4f46e5;
+        background: #2f6fed;
         border: 2px solid #ffffff;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
         transform: rotate(-45deg);
@@ -25,99 +26,56 @@
         border-radius: 50%;
         background: #ffffff;
       }
-
-      .camera-layout {
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 16px;
-        align-items: start;
-      }
-      @media (max-width: 720px) {
-        .camera-layout {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      .camera-controls {
+      .control-row {
         display: flex;
         flex-direction: column;
-        gap: 14px;
-        padding: 14px 18px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 12px;
+        gap: 4px;
+        margin-bottom: 12px;
       }
-      .camera-controls .control-row {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .camera-controls label {
-        color: var(--muted);
-        font-size: 13px;
+      .control-row label {
         display: flex;
         justify-content: space-between;
-        align-items: baseline;
+        color: var(--muted);
       }
-      .camera-controls input[type='range'] {
-        width: 100%;
-      }
-      .camera-controls .value-badge {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      .value-badge {
+        font-family: var(--mono);
         color: var(--accent);
-        font-size: 12px;
       }
-      .camera-controls button {
-        padding: 8px 12px;
-        background: var(--surface-2);
-        color: var(--text);
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 13px;
-      }
-      .camera-controls button:hover {
-        background: var(--bg);
+      .camera-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
       }
     </style>
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>1. Camera</span>
-      </nav>
-      <h1>1. Camera — bearing + pitch</h1>
-      <p class='subtitle'>
-        Rotate, pitch, and fly — smooth animated camera.
-      </p>
-
-      <div class='camera-layout'>
-        <div class='camera-controls'>
-          <div class='control-row'>
-            <label for='bearing'>
-              <span>Bearing</span>
-              <span id='bearing-value' class='value-badge'>0°</span>
-            </label>
-            <input id='bearing' type='range' min='0' max='359' step='1' value='0' />
-          </div>
-          <div class='control-row'>
-            <label for='pitch'>
-              <span>Pitch</span>
-              <span id='pitch-value' class='value-badge'>0°</span>
-            </label>
-            <input id='pitch' type='range' min='0' max='60' step='1' value='0' />
-          </div>
-          <button id='fly-nyc' type='button'>Fly to NYC</button>
-          <button id='ease-tokyo' type='button'>Ease to Tokyo</button>
-          <button id='reset-camera' type='button'>Reset camera</button>
-        </div>
-
-        <div id='map' class='map-host'></div>
-      </div>
+  <body class='demo'>
+  <div id='map'></div>
+  <div class='demo-panel'>
+    <h2>Camera</h2>
+    <div class='control-row'>
+      <label for='bearing'><span>Bearing</span><span id='bearing-value' class='value-badge'>0°</span></label>
+      <input id='bearing' type='range' min='0' max='359' step='1' value='0' />
     </div>
-
-    <script type='module' src='./1-camera.ts'></script>
+    <div class='control-row'>
+      <label for='pitch'><span>Pitch</span><span id='pitch-value' class='value-badge'>0°</span></label>
+      <input id='pitch' type='range' min='0' max='60' step='1' value='0' />
+    </div>
+    <div class='camera-buttons'>
+      <button id='fly-nyc' type='button'>Fly to NYC</button>
+      <button id='ease-tokyo' type='button'>Ease to Tokyo</button>
+      <button id='reset-camera' type='button' class='secondary'>Reset</button>
+    </div>
+  </div>
+  <details class='demo-info' open>
+    <summary>Camera</summary>
+    <div class='demo-body'>
+      <p>Turn and tilt the map with the sliders, or move the camera between cities: <code>flyTo</code> arcs out and back in, <code>easeTo</code> glides.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/1-camera.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
+    </div>
+  </details>
+  <script type='module' src='./1-camera.ts'></script>
   </body>
 </html>

@@ -2,7 +2,7 @@
  * Camera demo — bearing (map rotation), pitch (camera tilt), and smooth
  * animated moves via `flyTo` / `easeTo`.
  *
- * A TsMap with an OSM tile layer and a marker. Range sliders drive
+ * A TsMap with the vector basemap and a marker. Range sliders drive
  * `map.setBearing(...)` and `map.setPitch(...)`. Buttons showcase the
  * unified camera animation engine: `flyTo` for zoom-out/zoom-in long hops,
  * `easeTo` for a tween of any `{center, zoom, bearing, pitch}` combination.
@@ -10,7 +10,8 @@
  * counter-rotate and counter-pitch (see `TsMap._applyCameraTransform`).
  */
 
-import { DivIcon, LatLng, Marker, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, LatLng, Marker, TsMap } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 
 const TIMES_SQUARE: [number, number] = [40.758, -73.9855]
 const INITIAL_ZOOM = 13
@@ -27,10 +28,8 @@ const map = new TsMap('map', {
   worldCopyJump: true,
 })
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19,
-}).addTo(map)
+// The vector basemap the real-world demos share (see basemap.ts).
+void loadBasemap(map, 'light')
 
 const pinIcon = new DivIcon({
   className: '',

@@ -2,31 +2,24 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 7. 3D (fog + sky + pitch)</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>3D camera, sky &amp; fog — ts-maps playground</title>
+    <meta name='description' content="Tilt with setPitch, turn with setBearing, colour the sky with setSky and soften the horizon with setFog, over the vector basemap&#x27;s 3D buildings." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
-    <style>
-      .map-host { position: relative; }
-    </style>
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>7. 3D</span>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>3D camera, sky &amp; fog</summary>
+    <div class='demo-body'>
+      <p>Tilt with <code>setPitch</code>, turn with <code>setBearing</code>, colour the sky with <code>setSky</code> and soften the horizon with <code>setFog</code>, over the vector basemap's 3D buildings.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/7-3d.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>7. 3D — pitch, sky, fog</h1>
-      <p class='subtitle'>
-        Tilt the camera with <code>setPitch</code>, rotate with
-        <code>setBearing</code>, colour the sky with <code>setSky</code>,
-        and blend the horizon with <code>setFog</code>. The atmosphere
-        overlay is painted via the same pipeline used by the globe
-        halo — pure DOM, no WebGL dependency.
-      </p>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./7-3d.ts'></script>
+  </details>
+  <script type='module' src='./7-3d.ts'></script>
   </body>
 </html>

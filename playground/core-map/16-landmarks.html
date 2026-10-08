@@ -3,8 +3,10 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
-    <title>ts-maps — 16. Landmarks and trees</title>
+    <title>Landmarks &amp; trees — ts-maps playground</title>
+    <meta name='description' content="The Transamerica Pyramid as a glTF model standing in for its building, and trees planted in the Presidio&#x27;s woods once the map tilts." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; }
       #map { position: absolute; inset: 0; }
@@ -12,12 +14,22 @@
       .places button { font: 600 13px -apple-system, system-ui, sans-serif; padding: 7px 12px; border: 0; border-radius: 9px; background: rgba(255, 255, 255, 0.92); color: #1c1c1e; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); cursor: pointer; }
     </style>
   </head>
-  <body>
+  <body class='demo'>
     <div id='map'></div>
     <div class='places'>
       <button type='button' data-place='downtown'>Transamerica Pyramid</button>
       <button type='button' data-place='presidio'>Presidio woods</button>
     </div>
+  <details class='demo-info'>
+    <summary>Landmarks &amp; trees</summary>
+    <div class='demo-body'>
+      <p>The Transamerica Pyramid as a glTF model standing in for its building, and trees planted in the Presidio's woods once the map tilts.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/16-landmarks.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
+    </div>
+  </details>
     <script type='module' src='./16-landmarks.ts'></script>
   </body>
 </html>

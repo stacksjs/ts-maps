@@ -3,15 +3,27 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
-    <title>ts-maps — 12. Basemap</title>
+    <title>Real basemap — ts-maps playground</title>
+    <meta name='description' content="Wildloop&#x27;s OpenMapTiles planet with the built-in light or dark style, full-screen and nothing else: the page to hold next to Apple Maps or Google Maps. The map type picker switches between Explore, Driving, Transit and Satellite." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; }
       #map { position: absolute; inset: 0; }
     </style>
   </head>
-  <body>
+  <body class='demo' data-theme='auto'>
     <div id='map'></div>
+  <details class='demo-info'>
+    <summary>Real basemap</summary>
+    <div class='demo-body'>
+      <p>Wildloop's OpenMapTiles planet with the built-in light or dark style, full-screen and nothing else: the page to hold next to Apple Maps or Google Maps. The map type picker switches between Explore, Driving, Transit and Satellite.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/12-basemap.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
+    </div>
+  </details>
     <script type='module' src='./12-basemap.ts'></script>
   </body>
 </html>

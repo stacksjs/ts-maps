@@ -3,191 +3,178 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps core-map playground</title>
+    <title>Playground — ts-maps</title>
+    <meta name='description' content='Every ts-maps feature running in the browser: the basemap, search, turn-by-turn, offline maps, Look Around, 3D landmarks and more.' />
     <link rel='stylesheet' href='./shared.css' />
   </head>
   <body>
     <header class='page-header'>
       <div>
-        <h1>ts-maps <span class='muted'>core-map playground</span></h1>
+        <h1>Playground</h1>
         <p>
-          Interactive browser demos for the new <code>TsMap</code> API.
-          Each phase of the
-          <a href='https://github.com/stacksjs/ts-maps/blob/main/ROADMAP.md' target='_blank' rel='noopener'>roadmap</a>
-          lands a demo here.
+          Every ts-maps feature, running in your browser on a real basemap. Each
+          demo is a page of its own, with what it shows in a card on the map and
+          a link to its source.
         </p>
       </div>
-      <a class='btn' href='https://github.com/stacksjs/ts-maps' target='_blank' rel='noopener'>GitHub</a>
+      <a class='btn' href='/'>Docs</a>
     </header>
 
-    <main class='demo-grid'>
-      <a class='demo-card ready' href='./0-basics.html'>
-        <div class='demo-index'>0</div>
-        <div class='demo-body'>
-          <h2>Basics</h2>
-          <p>OSM tile layer + draggable marker + popup. Pan / zoom / pinch.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./1-camera.html'>
-        <div class='demo-index'>1</div>
-        <div class='demo-body'>
-          <h2>Camera</h2>
-          <p>Fractional zoom and bearing (rotation). Pitch lands later in Phase 1.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./2-vector-tiles.html'>
-        <div class='demo-index'>2</div>
-        <div class='demo-body'>
-          <h2>Vector tiles</h2>
-          <p>MVT tiles decoded in-browser, Canvas2D rendering, style layers &amp; feature queries.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./3-symbols.html'>
-        <div class='demo-index'>3</div>
-        <div class='demo-body'>
-          <h2>Labels &amp; symbols</h2>
-          <p>Glyph atlas, icon atlas, collision &amp; placement.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./4-raster.html'>
-        <div class='demo-index'>4</div>
-        <div class='demo-body'>
-          <h2>Raster &amp; hillshade</h2>
-          <p>DEM hillshade, heatmap, raster-color ramps.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./5-clustering.html'>
-        <div class='demo-index'>5</div>
-        <div class='demo-body'>
-          <h2>Clustering &amp; feature-state</h2>
-          <p>Supercluster, hover/selected state, gradient paths.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./6-webgl.html'>
-        <div class='demo-index'>6</div>
-        <div class='demo-body'>
-          <h2>WebGL renderer</h2>
-          <p>GPU-accelerated fill / line / circle / text shaders.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./7-3d.html'>
-        <div class='demo-index'>7</div>
-        <div class='demo-body'>
-          <h2>3D</h2>
-          <p>Terrain, fill-extrusion, custom layers.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./8-globe.html'>
-        <div class='demo-index'>8</div>
-        <div class='demo-body'>
-          <h2>Globe</h2>
-          <p>Mercator -&gt; globe transition &amp; atmosphere.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./9-services.html'>
-        <div class='demo-index'>9</div>
-        <div class='demo-body'>
-          <h2>Services</h2>
-          <p>Geocoding, directions, isochrones (OSRM / Nominatim).</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./10-labels.html'>
-        <div class='demo-index'>10</div>
-        <div class='demo-body'>
-          <h2>Street labels &amp; theming</h2>
-          <p>Line-placed rotated road names, anchored place labels, light/dark.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./11-territory.html'>
-        <div class='demo-index'>11</div>
-        <div class='demo-body'>
-          <h2>Territory capture</h2>
-          <p>Run a loop to claim it: closure detection, merging, stealing, leaderboard.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./12-basemap.html'>
-        <div class='demo-index'>12</div>
-        <div class='demo-body'>
-          <h2>Real basemap</h2>
-          <p>Full-screen OpenFreeMap tiles with the built-in style — the page to hold next to Apple Maps.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./13-navigation.html'>
-        <div class='demo-index'>13</div>
-        <div class='demo-body'>
-          <h2>Turn-by-turn</h2>
-          <p>Route preview, Apple-style banner and voice, follow camera, simulated drive.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./14-offline.html'>
-        <div class='demo-index'>14</div>
-        <div class='demo-body'>
-          <h2>Offline maps</h2>
-          <p>Pick an area, see its size, download it; the map, search and directions then work with no connection.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./15-search.html'>
-        <div class='demo-index'>15</div>
-        <div class='demo-body'>
-          <h2>Search</h2>
-          <p>Find Nearby, Recents, instant suggestions, result pins, Search This Area, and place cards with Directions.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./16-landmarks.html'>
-        <div class='demo-index'>16</div>
-        <div class='demo-body'>
-          <h2>Landmarks and trees</h2>
-          <p>A glTF model standing in for its building, pitched roofs, and trees planted in the woods once the map tilts.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-
-      <a class='demo-card ready' href='./17-look-around.html'>
-        <div class='demo-index'>17</div>
-        <div class='demo-body'>
-          <h2>Look Around</h2>
-          <p>Street-level pictures from Panoramax: the streets with pictures in blue, a 360° viewer you can walk through, and a mini-map.</p>
-        </div>
-        <div class='demo-status ready'>Ready</div>
-      </a>
-    </main>
+    <section class='demo-section'>
+      <h2>Start here</h2>
+      <div class='demo-grid'>
+        <a class='demo-card' href='./0-basics.html'>
+          <div class='demo-thumb' data-index='0' style='--thumb-a: #d9e8f6; --thumb-b: #e4efdc; background-image: url(./thumbs/0-basics.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Basics</h3>
+            <p>The vector basemap with a draggable marker at Times Square and its popup.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./1-camera.html'>
+          <div class='demo-thumb' data-index='1' style='--thumb-a: #d9e8f6; --thumb-b: #e4efdc; background-image: url(./thumbs/1-camera.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Camera</h3>
+            <p>Turn and tilt the map with the sliders, or move the camera between cities: flyTo arcs out and back in, easeTo glides.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./12-basemap.html'>
+          <div class='demo-thumb' data-index='12' style='--thumb-a: #d9e8f6; --thumb-b: #e4efdc; background-image: url(./thumbs/12-basemap.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Real basemap</h3>
+            <p>Wildloop's OpenMapTiles planet with the built-in light or dark style, full-screen and nothing else: the page to hold next to Apple Maps or Google Maps.</p>
+          </div>
+        </a>
+      </div>
+    </section>
+    <section class='demo-section'>
+      <h2>Apps, after Apple Maps</h2>
+      <div class='demo-grid'>
+        <a class='demo-card' href='./15-search.html'>
+          <div class='demo-thumb' data-index='15' style='--thumb-a: #dbe4fb; --thumb-b: #efe3f6; background-image: url(./thumbs/15-search.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Search</h3>
+            <p>Find Nearby, Recents, suggestions as you type, a pin for every result, Search This Area, and place cards with hours, Directions and Save.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./13-navigation.html'>
+          <div class='demo-thumb' data-index='13' style='--thumb-a: #dbe4fb; --thumb-b: #efe3f6; background-image: url(./thumbs/13-navigation.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Turn-by-turn</h3>
+            <p>A route preview, then Apple-style guidance: the banner with lanes, the voice, the camera following, and a simulated drive to watch it all happen.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./14-offline.html'>
+          <div class='demo-thumb' data-index='14' style='--thumb-a: #dbe4fb; --thumb-b: #efe3f6; background-image: url(./thumbs/14-offline.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Offline maps</h3>
+            <p>Pick an area, see how big it is, and download it.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./17-look-around.html'>
+          <div class='demo-thumb' data-index='17' style='--thumb-a: #dbe4fb; --thumb-b: #efe3f6; background-image: url(./thumbs/17-look-around.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Look Around</h3>
+            <p>Street-level pictures from Panoramax.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./9-services.html'>
+          <div class='demo-thumb' data-index='9' style='--thumb-a: #dbe4fb; --thumb-b: #efe3f6; background-image: url(./thumbs/9-services.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Geocoding &amp; directions</h3>
+            <p>Keyless geocoding through Nominatim and routing through OSRM's demo server.</p>
+          </div>
+        </a>
+      </div>
+    </section>
+    <section class='demo-section'>
+      <h2>Data &amp; layers</h2>
+      <div class='demo-grid'>
+        <a class='demo-card' href='./2-vector-tiles.html'>
+          <div class='demo-thumb' data-index='2' style='--thumb-a: #d6efec; --thumb-b: #e8f1d9; background-image: url(./thumbs/2-vector-tiles.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Vector tiles</h3>
+            <p>The zero-dependency vector tile pipeline: .pbf tiles decoded by the in-house protobuf reader and drawn through style layers that pick a source layer, a draw type and paint.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./3-symbols.html'>
+          <div class='demo-thumb' data-index='3' style='--thumb-a: #d6efec; --thumb-b: #e8f1d9; background-image: url(./thumbs/3-symbols.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Labels &amp; symbols</h3>
+            <p>A made-up vector tile with 20 named places, drawn by one symbol layer.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./10-labels.html'>
+          <div class='demo-thumb' data-index='10' style='--thumb-a: #d6efec; --thumb-b: #e8f1d9; background-image: url(./thumbs/10-labels.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Street labels &amp; theming</h3>
+            <p>Road names follow their roads with symbol-placement: 'line', each glyph turned to the curve and dropped where it bends past text-max-angle.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./4-raster.html'>
+          <div class='demo-thumb' data-index='4' style='--thumb-a: #d6efec; --thumb-b: #e8f1d9; background-image: url(./thumbs/4-raster.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Raster &amp; heatmap</h3>
+            <p>An OpenStreetMap raster basemap under a HeatmapLayer of 800 points round five spots in Manhattan.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./5-clustering.html'>
+          <div class='demo-thumb' data-index='5' style='--thumb-a: #d6efec; --thumb-b: #e8f1d9; background-image: url(./thumbs/5-clustering.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Clustering &amp; feature-state</h3>
+            <p>400 points round Manhattan, clustered in the browser by GeoJSONClusterSource (a zero-dependency supercluster port).</p>
+          </div>
+        </a>
+      </div>
+    </section>
+    <section class='demo-section'>
+      <h2>3D &amp; rendering</h2>
+      <div class='demo-grid'>
+        <a class='demo-card' href='./16-landmarks.html'>
+          <div class='demo-thumb' data-index='16' style='--thumb-a: #f6e6d6; --thumb-b: #e3e8f3; background-image: url(./thumbs/16-landmarks.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Landmarks &amp; trees</h3>
+            <p>The Transamerica Pyramid as a glTF model standing in for its building, and trees planted in the Presidio's woods once the map tilts.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./7-3d.html'>
+          <div class='demo-thumb' data-index='7' style='--thumb-a: #f6e6d6; --thumb-b: #e3e8f3; background-image: url(./thumbs/7-3d.jpg)'></div>
+          <div class='demo-text'>
+            <h3>3D camera, sky &amp; fog</h3>
+            <p>Tilt with setPitch, turn with setBearing, colour the sky with setSky and soften the horizon with setFog, over the vector basemap's 3D buildings.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./8-globe.html'>
+          <div class='demo-thumb' data-index='8' style='--thumb-a: #f6e6d6; --thumb-b: #e3e8f3; background-image: url(./thumbs/8-globe.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Globe</h3>
+            <p>The globe projection: a sphere when zoomed out, Mercator past zoom 6, crossing over smoothly at 5.5.</p>
+          </div>
+        </a>
+        <a class='demo-card' href='./6-webgl.html'>
+          <div class='demo-thumb' data-index='6' style='--thumb-a: #f6e6d6; --thumb-b: #e3e8f3; background-image: url(./thumbs/6-webgl.jpg)'></div>
+          <div class='demo-text'>
+            <h3>WebGL renderer</h3>
+            <p>The same vector tile through the Canvas2D or the WebGL backend.</p>
+          </div>
+        </a>
+      </div>
+    </section>
+    <section class='demo-section'>
+      <h2>Games</h2>
+      <div class='demo-grid'>
+        <a class='demo-card' href='./11-territory.html'>
+          <div class='demo-thumb' data-index='11' style='--thumb-a: #f6dede; --thumb-b: #f3ecd7; background-image: url(./thumbs/11-territory.jpg)'></div>
+          <div class='demo-text'>
+            <h3>Territory capture</h3>
+            <p>A simulated runner sends GPS positions; LoopDetector notices when the path closes, TerritoryStore merges the claim and takes the overlap from rivals, and TerritoryLayer draws it.</p>
+          </div>
+        </a>
+      </div>
+    </section>
 
     <footer class='page-footer'>
-      <small>
-        Tiles &copy; <a href='https://www.openstreetmap.org/copyright' target='_blank' rel='noopener'>OpenStreetMap</a> contributors.
-      </small>
+      Basemap © <a href='https://openmaptiles.org/' target='_blank' rel='noopener'>OpenMapTiles</a>
+      © <a href='https://www.openstreetmap.org/copyright' target='_blank' rel='noopener'>OpenStreetMap</a> contributors.
     </footer>
   </body>
 </html>

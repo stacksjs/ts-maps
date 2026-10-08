@@ -67,6 +67,13 @@ for (const page of pages) {
   writeFileSync(join(OUT, page), html)
 }
 copyFileSync(join(SRC, 'shared.css'), join(OUT, 'shared.css'))
+// The gallery's pictures of each demo (scripts/playground-thumbs.ts).
+const THUMBS = join(SRC, 'thumbs')
+if (existsSync(THUMBS)) {
+  mkdirSync(join(OUT, 'thumbs'), { recursive: true })
+  for (const file of readdirSync(THUMBS))
+    copyFileSync(join(THUMBS, file), join(OUT, 'thumbs', file))
+}
 copyFileSync(CSS, join(OUT, 'ts-maps.css'))
 
 console.log(`[build-playground] ${pages.length} pages, ${result.outputs.length} files → ${OUT}`)

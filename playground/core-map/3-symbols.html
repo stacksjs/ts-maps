@@ -2,27 +2,24 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 3. Labels &amp; symbols</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Labels &amp; symbols — ts-maps playground</title>
+    <meta name='description' content="A made-up vector tile with 20 named places, drawn by one symbol layer. Glyphs are rendered in the browser into an SDF atlas, and the collision index drops labels that would overlap: zoom in and out to watch them come and go." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>3. Labels &amp; symbols</span>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>Labels &amp; symbols</summary>
+    <div class='demo-body'>
+      <p>A made-up vector tile with 20 named places, drawn by one <code>symbol</code> layer. Glyphs are rendered in the browser into an SDF atlas, and the collision index drops labels that would overlap: zoom in and out to watch them come and go.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/3-symbols.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>3. Labels &amp; symbols</h1>
-      <p class='subtitle'>
-        A synthetic MVT tile with 20 named places, rendered via a single
-        <code>symbol</code> style layer. The in-house glyph atlas pulls
-        SDF glyphs from the browser's canvas; the collision index culls
-        overlapping labels. Zoom in and out to watch labels fade.
-      </p>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./3-symbols.ts'></script>
+  </details>
+  <script type='module' src='./3-symbols.ts'></script>
   </body>
 </html>

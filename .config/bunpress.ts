@@ -1,4 +1,32 @@
 import type { BunPressConfig } from '@stacksjs/bunpress'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+
+const ROOT = resolve(import.meta.dir, '..')
+
+/** Files named `<number>-<name>.<ext>` in a directory, in number order. */
+function numbered(dir: string, ext: string): string[] {
+  return readdirSync(join(ROOT, dir))
+    .filter(f => new RegExp(`^\\d+-.+\\.${ext}$`).test(f))
+    .sort((a, b) => Number.parseInt(a) - Number.parseInt(b))
+}
+
+/** The examples, from docs/examples: each page's `# 01 · Title`, without its number. */
+function exampleLinks(): Array<{ text: string, link: string }> {
+  return numbered('docs/examples', 'md').map((file) => {
+    const heading = readFileSync(join(ROOT, 'docs/examples', file), 'utf8').match(/^#\s+(.+)$/m)?.[1] ?? file
+    return { text: heading.replace(/^\d+\s*·\s*/, ''), link: `/examples/${file.replace(/\.md$/, '')}` }
+  })
+}
+
+/** The playground's demos, from their pages' `<title>Title — ts-maps playground</title>`. */
+function playgroundLinks(): Array<{ text: string, link: string }> {
+  const decode = (text: string): string => text.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  return numbered('playground/core-map', 'html').map((file) => {
+    const title = readFileSync(join(ROOT, 'playground/core-map', file), 'utf8').match(/<title>(.*?)(?: — ts-maps playground)?<\/title>/)?.[1] ?? file
+    return { text: decode(title), link: `/playground/${file}` }
+  })
+}
 
 const config: BunPressConfig = {
   title: 'ts-maps',
@@ -62,11 +90,17 @@ const config: BunPressConfig = {
     },
     {
       text: 'Examples',
-      link: '/examples/',
+      items: [
+        { text: 'All examples', link: '/examples/' },
+        ...exampleLinks(),
+      ],
     },
     {
       text: 'Playground',
-      link: '/playground/',
+      items: [
+        { text: 'All demos', link: '/playground/' },
+        ...playgroundLinks(),
+      ],
     },
     {
       text: 'Migrating',

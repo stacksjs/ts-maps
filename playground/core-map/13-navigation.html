@@ -3,15 +3,27 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
-    <title>ts-maps — 13. Turn-by-turn</title>
+    <title>Turn-by-turn — ts-maps playground</title>
+    <meta name='description' content="A route preview, then Apple-style guidance: the banner with lanes, the voice, the camera following, and a simulated drive to watch it all happen." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; }
       #map { position: absolute; inset: 0; }
     </style>
   </head>
-  <body>
+  <body class='demo' data-theme='auto'>
     <div id='map'></div>
+  <details class='demo-info'>
+    <summary>Turn-by-turn</summary>
+    <div class='demo-body'>
+      <p>A route preview, then Apple-style guidance: the banner with lanes, the voice, the camera following, and a simulated drive to watch it all happen.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/13-navigation.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
+    </div>
+  </details>
     <script type='module' src='./13-navigation.ts'></script>
   </body>
 </html>

@@ -2,27 +2,24 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 4. Raster &amp; heatmap</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Raster &amp; heatmap — ts-maps playground</title>
+    <meta name='description' content="An OpenStreetMap raster basemap under a HeatmapLayer of 800 points round five spots in Manhattan. The density is scaled to what is in view, so the busiest spot is always the top of the ramp; it repaints as you pan and zoom." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>4. Raster &amp; heatmap</span>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>Raster &amp; heatmap</summary>
+    <div class='demo-body'>
+      <p>An OpenStreetMap raster basemap under a <code>HeatmapLayer</code> of 800 points round five spots in Manhattan. The density is scaled to what is in view, so the busiest spot is always the top of the ramp; it repaints as you pan and zoom.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/4-raster.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>4. Raster &amp; heatmap</h1>
-      <p class='subtitle'>
-        An OpenStreetMap raster basemap with a <code>HeatmapLayer</code>
-        of 800 points around Manhattan, concentrated around five
-        attractor sites. Gaussian density + a 5-stop color ramp produce
-        the heat map; it repaints on every pan/zoom.
-      </p>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./4-raster.ts'></script>
+  </details>
+  <script type='module' src='./4-raster.ts'></script>
   </body>
 </html>

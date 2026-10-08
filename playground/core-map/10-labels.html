@@ -2,57 +2,27 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 10. Street labels &amp; theming</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Street labels &amp; theming — ts-maps playground</title>
+    <meta name='description' content="Road names follow their roads with symbol-placement: &#x27;line&#x27;, each glyph turned to the curve and dropped where it bends past text-max-angle. Place names outrank them by symbol-sort-key, and one collision index spans every tile. The button flips the style, the map chrome and this card between light and dark." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
-    <style>
-      .toolbar {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .toolbar button {
-        font: inherit;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid rgb(0 0 0 / 15%);
-        background: #fff;
-        cursor: pointer;
-      }
-
-      body[data-theme='dark'] .toolbar button {
-        background: #292a2d;
-        color: #e8eaed;
-        border-color: rgb(255 255 255 / 15%);
-      }
-    </style>
   </head>
-  <body data-theme='dark'>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>10. Street labels &amp; theming</span>
+  <body class='demo' data-theme='dark'>
+  <div id='map'></div>
+  <div class='demo-panel' style='width: auto; left: 50%; right: auto; transform: translateX(-50%); padding: 8px'>
+    <button id='theme-toggle' type='button'>☀︎ Light mode</button>
+  </div>
+  <details class='demo-info' open>
+    <summary>Street labels &amp; theming</summary>
+    <div class='demo-body'>
+      <p>Road names follow their roads with <code>symbol-placement: 'line'</code>, each glyph turned to the curve and dropped where it bends past <code>text-max-angle</code>. Place names outrank them by <code>symbol-sort-key</code>, and one collision index spans every tile. The button flips the style, the map chrome and this card between light and dark.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/10-labels.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>10. Street labels &amp; theming</h1>
-      <p class='subtitle'>
-        Road names drawn with <code>symbol-placement: 'line'</code> — each glyph
-        rotated to the tangent of the road it names, dropped when the line bends
-        past <code>text-max-angle</code>, and repeated every
-        <code>symbol-spacing</code> pixels. Place names use point placement with
-        <code>text-anchor</code> and <code>text-offset</code>, and outrank street
-        names via <code>symbol-sort-key</code>. One collision index spans every
-        tile, so nothing doubles up across a seam. The toggle flips the map
-        style, the map chrome, and the page together.
-      </p>
-      <div class='toolbar'>
-        <button id='theme-toggle' type='button'>☀︎ Light mode</button>
-      </div>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./10-labels.ts'></script>
+  </details>
+  <script type='module' src='./10-labels.ts'></script>
   </body>
 </html>

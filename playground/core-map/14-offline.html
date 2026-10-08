@@ -3,15 +3,27 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
-    <title>ts-maps — 14. Offline maps</title>
+    <title>Offline maps — ts-maps playground</title>
+    <meta name='description' content="Pick an area, see how big it is, and download it. Then the map, search and directions all work with no connection." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
     <style>
       html, body { margin: 0; height: 100%; overflow: hidden; }
       #map { position: absolute; inset: 0; }
     </style>
   </head>
-  <body>
+  <body class='demo' data-theme='auto'>
     <div id='map'></div>
+  <details class='demo-info'>
+    <summary>Offline maps</summary>
+    <div class='demo-body'>
+      <p>Pick an area, see how big it is, and download it. Then the map, search and directions all work with no connection.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/14-offline.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
+    </div>
+  </details>
     <script type='module' src='./14-offline.ts'></script>
   </body>
 </html>

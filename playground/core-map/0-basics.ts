@@ -1,11 +1,12 @@
 /**
  * Phase 0.3 demo — Basics.
  *
- * Creates a TsMap, adds an OpenStreetMap TileLayer, places a Marker at
+ * Creates a TsMap, sets the shared vector basemap, places a Marker at
  * Times Square, and binds a Popup. Uses the new core-map API.
  */
 
-import { DivIcon, Marker, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, Marker, TsMap } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 
 const TIMES_SQUARE: [number, number] = [40.758, -73.9855]
 
@@ -17,12 +18,8 @@ const map = new TsMap('map', {
   worldCopyJump: true,
 })
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19,
-  // OSM wants a descriptive UA, but the browser sets it automatically; just
-  // stay within their tile-usage policy by sending no extra load.
-}).addTo(map)
+// The vector basemap the real-world demos share (see basemap.ts).
+void loadBasemap(map, 'light')
 
 // We use a DivIcon so the demo works without any external marker-icon assets.
 const pinIcon = new DivIcon({

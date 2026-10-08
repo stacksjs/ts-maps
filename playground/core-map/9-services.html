@@ -2,30 +2,24 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 9. Services (geocoding + directions)</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Geocoding &amp; directions — ts-maps playground</title>
+    <meta name='description' content="Keyless geocoding through Nominatim and routing through OSRM&#x27;s demo server. Type two places and draw the driving route between them; the services namespace swaps in Mapbox, Google or MapTiler with a key." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
-    <style>
-      .map-host { position: relative; }
-    </style>
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>9. Services</span>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>Geocoding &amp; directions</summary>
+    <div class='demo-body'>
+      <p>Keyless geocoding through Nominatim and routing through OSRM's demo server. Type two places and draw the driving route between them; the <code>services</code> namespace swaps in Mapbox, Google or MapTiler with a key.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/9-services.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>9. Services — geocoder + directions</h1>
-      <p class='subtitle'>
-        Keyless geocoding via Nominatim and keyless routing via OSRM's
-        public demo server. Type two place names and draw the driving
-        route between them; swap providers via the <code>services</code>
-        namespace to talk to Mapbox / Google / MapTiler instead.
-      </p>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./9-services.ts'></script>
+  </details>
+  <script type='module' src='./9-services.ts'></script>
   </body>
 </html>

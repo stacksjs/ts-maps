@@ -1,12 +1,13 @@
 /**
  * Phase 8 demo — Globe view with atmosphere halo.
  *
- * Enables the globe projection, drops an OSM tile layer, and wires a
+ * Enables the globe projection, sets the vector basemap, and wires a
  * zoom slider so the viewer can cross the Mercator transition window
  * (zoom ≈ 5.5) and watch the atmosphere halo cross-fade.
  */
 
-import { tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { TsMap } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 
 const map = new TsMap('map', {
   center: [30, 0],
@@ -20,10 +21,8 @@ const map = new TsMap('map', {
   // (setSky is called below too, demonstrating both paths.)
 } as unknown as Record<string, unknown>)
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 12,
-}).addTo(map)
+// The vector basemap the real-world demos share (see basemap.ts).
+void loadBasemap(map, 'light')
 
 map.setSky({
   'sky-color': '#87ceeb',
@@ -33,20 +32,8 @@ map.setSky({
 // --- Readout + zoom slider ------------------------------------------------
 
 const panel = document.createElement('div')
-panel.className = 'globe-panel'
-panel.style.cssText = `
-  position:absolute;
-  left:16px;
-  top:16px;
-  z-index:500;
-  background:rgba(15,23,42,0.92);
-  color:#e2e8f0;
-  border-radius:10px;
-  padding:14px 16px;
-  font:500 13px -apple-system,sans-serif;
-  min-width:230px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.35);
-`
+// The playground's own controls card (shared.css), top right.
+panel.className = 'demo-panel'
 panel.innerHTML = `
   <div style="font-weight:600;margin-bottom:8px;">Globe atmosphere</div>
   <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">

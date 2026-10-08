@@ -2,30 +2,24 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 6. WebGL</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>WebGL renderer — ts-maps playground</title>
+    <meta name='description' content="The same vector tile through the Canvas2D or the WebGL backend. WebGL triangulates polygons with the in-house earcut port and draws fills, lines and circles in shaders. Toggle the backend to compare them." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
-    <style>
-      .map-host { position: relative; }
-    </style>
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>6. WebGL</span>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>WebGL renderer</summary>
+    <div class='demo-body'>
+      <p>The same vector tile through the Canvas2D or the WebGL backend. WebGL triangulates polygons with the in-house earcut port and draws fills, lines and circles in shaders. Toggle the backend to compare them.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/6-webgl.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>6. WebGL renderer</h1>
-      <p class='subtitle'>
-        The same synthetic MVT tile rendered through either the Canvas2D
-        or WebGL backend. The WebGL path triangulates polygons with the
-        in-house earcut port and paints fills/lines/circles via instanced
-        shaders. Toggle the backend to eyeball parity.
-      </p>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./6-webgl.ts'></script>
+  </details>
+  <script type='module' src='./6-webgl.ts'></script>
   </body>
 </html>

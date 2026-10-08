@@ -1,221 +1,388 @@
+/*
+ * The playground's look, after Mapbox's examples: each demo is the map,
+ * full-bleed, with a white card over it saying what it shows; the index is a
+ * light gallery of them.
+ */
+
 :root {
-  --bg: #0b0f17;
-  --surface: #111827;
-  --surface-2: #1f2937;
-  --border: #1f2937;
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-  --accent: #818cf8;
-  --accent-2: #60a5fa;
-  --ready: #10b981;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f6;
+  --border: #e3e6eb;
+  --text: #1f2937;
+  --muted: #5b6472;
+  --accent: #2f6fed;
+  --accent-soft: rgba(47, 111, 237, 0.1);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.08), 0 6px 20px rgba(15, 23, 42, 0.12);
+  --radius: 12px;
+  --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  min-height: 100%;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: var(--accent);
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
 
 code {
   background: var(--surface-2);
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
-  font-size: 0.9em;
+  font-family: var(--mono);
+  font-size: 0.86em;
 }
 
+/* --- A demo: the map, full-bleed ------------------------------------------ */
+
+body.demo {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body.demo #map {
+  position: absolute;
+  inset: 0;
+}
+
+/* What the demo shows: bottom left, where no control sits, and folded away
+ * with its summary when the map needs the room. */
+.demo-info {
+  position: absolute;
+  z-index: 900;
+  left: 12px;
+  bottom: 28px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100% - 96px);
+  overflow: auto;
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.demo-info summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 650;
+  font-size: 15px;
+}
+
+.demo-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.demo-info summary::after {
+  content: '';
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-135deg);
+  transition: transform 0.15s ease;
+}
+
+.demo-info[open] summary::after {
+  transform: rotate(45deg) translate(-2px, -2px);
+}
+
+.demo-info .demo-body {
+  padding: 0 14px 12px;
+  color: var(--muted);
+}
+
+.demo-info .demo-body p {
+  margin: 0 0 8px;
+}
+
+.demo-links {
+  display: flex;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+/* Above the scale bar, where a demo shows one. */
+body.demo:has(.tsmap-control-scale) .demo-info {
+  bottom: 52px;
+}
+
+/* Controls a demo brings of its own: a card top right. */
+.demo-panel {
+  position: absolute;
+  z-index: 900;
+  top: 12px;
+  right: 12px;
+  width: min(280px, calc(100vw - 24px));
+  max-height: calc(100% - 140px);
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+
+.demo-panel h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.demo-panel button,
+.demo-button {
+  font: 600 13px var(--font);
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.demo-panel button.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.demo-panel button:hover,
+.demo-button:hover {
+  filter: brightness(1.06);
+}
+
+.demo-panel input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.demo-panel input[type='text'],
+.demo-panel input[type='search'] {
+  font: 13px var(--font);
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.demo-panel input[type='color'] {
+  width: 32px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: none;
+  vertical-align: middle;
+}
+
+/* A demo with a dark map wears dark cards. */
+body.demo[data-theme='dark'] {
+  --surface: #1f2329;
+  --surface-2: #2a2f36;
+  --border: #343a42;
+  --text: #e8eaed;
+  --muted: #a3aab4;
+  --accent: #6ea8ff;
+}
+
+/* A demo whose map follows the system's light or dark. */
+@media (prefers-color-scheme: dark) {
+  body.demo[data-theme='auto'] {
+    --surface: #1f2329;
+    --surface-2: #2a2f36;
+    --border: #343a42;
+    --text: #e8eaed;
+    --muted: #a3aab4;
+    --accent: #6ea8ff;
+  }
+}
+
+/* --- The index: a gallery --------------------------------------------------- */
+
 .page-header {
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 40px 24px 24px;
+  padding: 48px 24px 8px;
   display: flex;
   gap: 24px;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: flex-end;
 }
 
 .page-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
-.page-header h1 .muted {
-  color: var(--muted);
-  font-weight: 400;
-}
+
 .page-header p {
   margin: 0;
   color: var(--muted);
   max-width: 640px;
   line-height: 1.55;
+  font-size: 15px;
 }
 
 .btn {
   display: inline-block;
-  padding: 10px 16px;
-  background: var(--surface-2);
+  padding: 9px 16px;
+  background: var(--surface);
   color: var(--text);
   border-radius: 8px;
   border: 1px solid var(--border);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 14px;
   white-space: nowrap;
 }
+
 .btn:hover {
-  background: var(--surface);
   text-decoration: none;
+  border-color: var(--accent);
+}
+
+.demo-section {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 24px 0;
+}
+
+.demo-section h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
 }
 
 .demo-grid {
-  max-width: 1100px;
-  margin: 24px auto;
-  padding: 0 24px 40px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 14px;
 }
 
 .demo-card {
-  display: grid;
-  grid-template-columns: 48px 1fr auto;
-  gap: 14px;
-  align-items: center;
-  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   color: var(--text);
-  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
+
 .demo-card:hover {
   text-decoration: none;
-  transform: translateY(-1px);
-  border-color: var(--accent);
-  background: #131a29;
+  transform: translateY(-2px);
+  border-color: transparent;
+  box-shadow: var(--shadow);
 }
 
-.demo-card .demo-index {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: var(--surface-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
+/* A picture of the demo (scripts/playground-thumbs.ts), numbered. */
+.demo-thumb {
+  position: relative;
+  height: 132px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Before a demo has a picture: streets and its section's colours. */
+.demo-thumb:not([style*='thumbs/']) {
+  background:
+    linear-gradient(115deg, transparent 46%, rgba(255, 255, 255, 0.9) 46.5%, rgba(255, 255, 255, 0.9) 49%, transparent 49.5%),
+    linear-gradient(25deg, transparent 56%, rgba(255, 255, 255, 0.75) 56.5%, rgba(255, 255, 255, 0.75) 58%, transparent 58.5%),
+    linear-gradient(160deg, var(--thumb-a, #dbe7f3), var(--thumb-b, #e9efe2));
+}
+
+.demo-thumb::after {
+  content: attr(data-index);
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 13px;
+  background: var(--surface);
   color: var(--accent);
-}
-.demo-card.ready .demo-index {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--ready);
+  font: 700 12px/26px var(--font);
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-.demo-card h2 {
-  margin: 0 0 2px 0;
-  font-size: 15px;
+.demo-card .demo-text {
+  padding: 12px 14px 14px;
 }
+
+.demo-card h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+}
+
 .demo-card p {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.4;
-}
-
-.demo-status {
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  color: var(--muted);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
-.demo-status.ready {
-  color: var(--ready);
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
+  line-height: 1.45;
 }
 
 .page-footer {
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 12px 24px 40px;
+  padding: 32px 24px 48px;
   color: var(--muted);
   font-size: 12px;
 }
 
-/* Demo page layout */
+@media (prefers-color-scheme: dark) {
+  body:not(.demo) {
+    --bg: #0f1216;
+    --surface: #171b21;
+    --surface-2: #20262d;
+    --border: #272d35;
+    --text: #e8eaed;
+    --muted: #9aa3ae;
+    --accent: #6ea8ff;
+  }
 
-.demo-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.demo-page nav.crumbs {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-.demo-page nav.crumbs a {
-  color: var(--muted);
-}
-.demo-page nav.crumbs a:hover {
-  color: var(--accent);
-}
-
-.demo-page h1 {
-  margin: 0 0 6px 0;
-  font-size: 22px;
-}
-.demo-page .subtitle {
-  margin: 0 0 20px 0;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-.map-host {
-  width: 100%;
-  height: 620px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  background: #0f172a;
-}
-
-.stub-card {
-  padding: 40px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  text-align: center;
-}
-.stub-card h2 {
-  margin: 0 0 8px 0;
-  color: var(--accent);
-}
-.stub-card p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.55;
-}
-.stub-card ul {
-  display: inline-block;
-  text-align: left;
-  margin: 16px 0 0;
-  color: var(--muted);
-  line-height: 1.7;
+  body:not(.demo) .demo-thumb {
+    --thumb-a: #1f3147;
+    --thumb-b: #22301f;
+  }
 }

@@ -2,29 +2,24 @@
 <html lang='en'>
   <head>
     <meta charset='UTF-8' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>ts-maps — 8. Globe</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>Globe — ts-maps playground</title>
+    <meta name='description' content="The globe projection: a sphere when zoomed out, Mercator past zoom 6, crossing over smoothly at 5.5. Drag the slider across that window and watch the atmosphere fade." />
     <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
     <link rel='stylesheet' href='./shared.css' />
-    <style>
-      .map-host { position: relative; }
-    </style>
   </head>
-  <body>
-    <div class='demo-page'>
-      <nav class='crumbs'>
-        <a href='./index.html'>core-map playground</a>
-        <span>/</span>
-        <span>8. Globe</span>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>Globe</summary>
+    <div class='demo-body'>
+      <p>The globe projection: a sphere when zoomed out, Mercator past zoom 6, crossing over smoothly at 5.5. Drag the slider across that window and watch the atmosphere fade.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/8-globe.ts' target='_blank' rel='noopener'>Source</a>
       </nav>
-      <h1>8. Globe view</h1>
-      <p class='subtitle'>
-        The globe projection — spherical at low zooms, Mercator past zoom
-        6, with a smoothstep crossover at zoom 5.5. Drag the slider to
-        cross the window and watch the atmosphere halo fade out.
-      </p>
-      <div id='map' class='map-host'></div>
     </div>
-    <script type='module' src='./8-globe.ts'></script>
+  </details>
+  <script type='module' src='./8-globe.ts'></script>
   </body>
 </html>

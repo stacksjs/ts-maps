@@ -8,13 +8,13 @@
  */
 
 import type { ClusterPoint } from '../../packages/ts-maps/src/core-map'
+import { loadBasemap } from './basemap'
 import {
   CircleMarker,
   DivIcon,
   GeoJSONClusterSource,
   LayerGroup,
   Marker,
-  tileLayer,
   TsMap,
 } from '../../packages/ts-maps/src/core-map'
 
@@ -27,10 +27,8 @@ const map = new TsMap('map', {
   maxZoom: 19,
 })
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19,
-}).addTo(map)
+// The vector basemap the real-world demos share (see basemap.ts).
+void loadBasemap(map, 'light')
 
 // --- Data: ~400 random points around Manhattan ----------------------------
 
@@ -123,20 +121,8 @@ repaintClusters()
 // synthetic vector-tile source just to demo the signature.
 
 const readout = document.createElement('div')
-readout.className = 'cluster-readout'
-readout.style.cssText = `
-  position:absolute;
-  right:16px;
-  top:16px;
-  z-index:500;
-  background:rgba(15,23,42,0.9);
-  color:#e2e8f0;
-  border-radius:8px;
-  padding:10px 14px;
-  font:500 13px -apple-system,sans-serif;
-  max-width:220px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.35);
-`
+// The playground's own controls card (shared.css), top right.
+readout.className = 'demo-panel'
 readout.textContent = 'Click near a cluster to inspect it.'
 map.getContainer().appendChild(readout)
 
