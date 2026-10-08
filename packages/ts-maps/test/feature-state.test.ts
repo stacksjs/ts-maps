@@ -60,6 +60,54 @@ describe('TsMap feature-state API', () => {
   })
 })
 
+describe('feature state on a geojson source', () => {
+  function withGeoJSON(): TsMap {
+    const map = makeMap()
+    map.addSource('places', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
+    map.addStyleLayer({ id: 'dots', type: 'circle', source: 'places' } as any)
+    return map
+  }
+
+  test('{ source, id } reaches the features the source draws, as in Mapbox', () => {
+    const map = withGeoJSON()
+    map.setFeatureState({ source: 'places', id: 7 }, { hover: true })
+    const host = map._style!.sourceLayers.get('places') as any
+    // As the renderer asks: the source's own id as its layer.
+    expect(host._featureStateLookup('places', 'places', 7)).toEqual({ hover: true })
+  })
+
+  test('with or without the sourceLayer, it is the same state', () => {
+    const map = withGeoJSON()
+    map.setFeatureState({ source: 'places', id: 1 }, { a: 1 })
+    map.setFeatureState({ source: 'places', sourceLayer: 'places', id: 1 }, { b: 2 })
+    expect(map.getFeatureState({ source: 'places', id: 1 })).toEqual({ a: 1, b: 2 })
+    expect(map.getFeatureState({ source: 'places', sourceLayer: 'places', id: 1 })).toEqual({ a: 1, b: 2 })
+    map.removeFeatureState({ source: 'places', id: 1 }, 'a')
+    expect(map.getFeatureState({ source: 'places', sourceLayer: 'places', id: 1 })).toEqual({ b: 2 })
+    map.removeFeatureState({ source: 'places', id: 1 })
+    expect(map.getFeatureState({ source: 'places', id: 1 })).toEqual({})
+  })
+
+  test('state set before the source is added is found once it is', () => {
+    const map = makeMap()
+    map.setFeatureState({ source: 'places', id: 3 }, { selected: true })
+    map.addSource('places', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } as any)
+    map.addStyleLayer({ id: 'dots', type: 'circle', source: 'places' } as any)
+    const host = map._style!.sourceLayers.get('places') as any
+    expect(host._featureStateLookup('places', 'places', 3)).toEqual({ selected: true })
+  })
+
+  test('a vector source still keys by sourceLayer', () => {
+    const map = makeMap()
+    map.addSource('tiles', { type: 'vector', tiles: ['https://example.com/{z}/{x}/{y}.pbf'] } as any)
+    map.setFeatureState({ source: 'tiles', sourceLayer: 'building', id: 5 }, { v: 1 })
+    expect(map.getFeatureState({ source: 'tiles', id: 5 })).toEqual({})
+    const host = map._style!.sourceLayers.get('tiles') as any
+    expect(host._featureStateLookup('tiles', 'building', 5)).toEqual({ v: 1 })
+    expect(host._featureStateLookup('tiles', 'road', 5)).toEqual({})
+  })
+})
+
 describe('feature-state expression integration', () => {
   test('["feature-state", key] resolves against the evaluation context', () => {
     const c = compile(['feature-state', 'hover'], 'value')

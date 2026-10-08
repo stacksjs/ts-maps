@@ -1350,10 +1350,24 @@ export class TsMap extends Evented {
   }
 
   getBounds(): LatLngBounds {
-    const bounds = this.getPixelBounds()
-    const sw = this.unproject(bounds.getBottomLeft())
-    const ne = this.unproject(bounds.getTopRight())
-    return new LatLngBounds(sw, ne)
+    if (!this._bearing && !this._pitch) {
+      const bounds = this.getPixelBounds()
+      const sw = this.unproject(bounds.getBottomLeft())
+      const ne = this.unproject(bounds.getTopRight())
+      return new LatLngBounds(sw, ne)
+    }
+    // Rotated or tilted, the view is not the pixel bounds round the centre:
+    // its corners reach further, and a tilted view sees far more ground at
+    // the top than at the bottom. The ground under the four corners bounds
+    // it — the view's edges are straight lines on the ground too. Corners
+    // in the sky stop at the farthest ground still legible, as the tile
+    // footprint does, rather than asking for the whole world.
+    const size = this.getSize()
+    const corners = [new Point(0, 0), new Point(size.x, 0), new Point(size.x, size.y), new Point(0, size.y)]
+    const bounds = new LatLngBounds()
+    for (const corner of corners)
+      bounds.extend(this.containerPointToLatLng(this._clampToGround(corner)))
+    return bounds
   }
 
   getMinZoom(): number {
@@ -3303,21 +3317,22 @@ export class TsMap extends Evented {
    * Returns features visible in the current viewport across every vector
    * source on the map. Mirrors Mapbox GL JS's `map.queryRenderedFeatures`.
    *
-   * Accepts either a container-pixel `Point`, a container-pixel bbox as
-   * `[[minX, minY], [maxX, maxY]]`, or an options bag; when called with no
-   * arguments it returns every filtered feature across every decoded tile.
+   * Takes Mapbox's forms: `(geometry?, options?)`, where the geometry is a
+   * container-pixel point (`Point` or `[x, y]`) or a box
+   * (`[[x1, y1], [x2, y2]]`), or `(options)` alone. Options are `layers` and
+   * `filter`. With no geometry it returns every feature that passes, across
+   * every decoded tile.
    */
-  queryRenderedFeatures(pointOrOpts?: any, maybeOpts?: any): any[] {
+  queryRenderedFeatures(geometryOrOpts?: any, maybeOpts?: any): any[] {
     if (!this._style)
       return []
     const out: any[] = []
     for (const host of this._style.sourceLayers.values()) {
       const anyHost = host as any
       if (typeof anyHost.queryRenderedFeatures === 'function') {
-        const hits = pointOrOpts === undefined
-          ? anyHost.queryRenderedFeatures()
-          : anyHost.queryRenderedFeatures(pointOrOpts, maybeOpts)
-        for (const h of hits) out.push(h)
+        // Both always passed on: `(undefined, { layers })` is a query of the
+        // whole view for those layers, not of everything.
+        for (const h of anyHost.queryRenderedFeatures(geometryOrOpts, maybeOpts)) out.push(h)
       }
     }
     return out
@@ -3353,7 +3368,13 @@ export class TsMap extends Evented {
     // Keep numbers and strings distinct so the id `1` and the id `"1"` don't
     // collide. `typeof` prefix is cheap and unambiguous.
     const idTag = typeof lookup.id === 'number' ? `n:${lookup.id}` : `s:${lookup.id}`
-    return `${lookup.source}|${lookup.sourceLayer ?? ''}|${idTag}`
+    // A geojson source publishes its features under its own id, and Mapbox
+    // code addresses them as just `{ source, id }`. Its layer — given, or
+    // the source's own name — is dropped, so every form reaches the same
+    // state, even one set before the source is added.
+    const geojson = this._style?.spec.sources[lookup.source]?.type === 'geojson'
+    const layer = geojson || lookup.sourceLayer === lookup.source ? '' : (lookup.sourceLayer ?? '')
+    return `${lookup.source}|${layer}|${idTag}`
   }
 
   _ensureFeatureStateMap(): globalThis.Map<string, Record<string, unknown>> {
@@ -3428,8 +3449,9 @@ export class TsMap extends Evented {
       const store = this._featureState
       if (!store)
         return {}
-      const idTag = typeof id === 'number' ? `n:${id}` : `s:${id}`
-      return store.get(`${src}|${srcLayer}|${idTag}`) ?? {}
+      // Keyed as setFeatureState keys it, so a geojson source's features
+      // find state set without a `sourceLayer`.
+      return store.get(this._featureStateKey({ source: src, sourceLayer: srcLayer, id })) ?? {}
     })
     // Let the host know which source id it represents so callbacks round-trip
     // the same key used by setFeatureState.

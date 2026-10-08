@@ -263,6 +263,42 @@ export interface QueryRenderedFeaturesOptions {
   bbox?: [[number, number], [number, number]]
   /** Restrict results to these style-layer ids. */
   layers?: string[]
+  /** A filter expression features must also pass, as a layer's `filter`. */
+  filter?: unknown
+}
+
+type QueryPoint = Point | { x: number, y: number } | [number, number]
+/** What `queryRenderedFeatures` is asked about: a point, a box, or the whole view. */
+export type QueryGeometry = QueryPoint | [QueryPoint, QueryPoint]
+
+function isQueryPoint(v: unknown): v is QueryPoint {
+  if (Array.isArray(v))
+    return v.length === 2 && typeof v[0] === 'number' && typeof v[1] === 'number'
+  return !!v && typeof (v as Point).x === 'number' && typeof (v as Point).y === 'number'
+}
+
+function queryXY(p: QueryPoint): [number, number] {
+  return Array.isArray(p) ? [p[0], p[1]] : [p.x, p.y]
+}
+
+/**
+ * Read Mapbox's forms of the query: `(geometry?, options?)` with a point
+ * (`Point` or `[x, y]`) or a box (`[[x1, y1], [x2, y2]]`, corners in any
+ * order), or `(options)` alone, which may carry its own `point` or `bbox`.
+ */
+export function queryRenderedArgs(geometryOrOpts?: unknown, maybeOpts?: QueryRenderedFeaturesOptions): QueryRenderedFeaturesOptions {
+  if (geometryOrOpts == null)
+    return { ...maybeOpts }
+  if (isQueryPoint(geometryOrOpts)) {
+    const [x, y] = queryXY(geometryOrOpts)
+    return { ...maybeOpts, bbox: undefined, point: [x, y] }
+  }
+  if (Array.isArray(geometryOrOpts) && geometryOrOpts.length === 2 && isQueryPoint(geometryOrOpts[0]) && isQueryPoint(geometryOrOpts[1])) {
+    const [x1, y1] = queryXY(geometryOrOpts[0])
+    const [x2, y2] = queryXY(geometryOrOpts[1])
+    return { ...maybeOpts, point: undefined, bbox: [[Math.min(x1, x2), Math.min(y1, y2)], [Math.max(x1, x2), Math.max(y1, y2)]] }
+  }
+  return { ...(geometryOrOpts as QueryRenderedFeaturesOptions) }
 }
 
 export interface QuerySourceFeature {
@@ -615,41 +651,32 @@ export class VectorTileMapLayer extends GridLayer {
   }
 
   queryRenderedFeatures(opts?: QueryRenderedFeaturesOptions): QueryRenderedFeature[]
-  queryRenderedFeatures(point: Point, opts?: QueryRenderedFeaturesOptions): QueryRenderedFeature[]
+  queryRenderedFeatures(geometry: QueryGeometry | undefined, opts?: QueryRenderedFeaturesOptions): QueryRenderedFeature[]
   queryRenderedFeatures(
-    pointOrOpts?: Point | QueryRenderedFeaturesOptions,
+    geometryOrOpts?: QueryGeometry | QueryRenderedFeaturesOptions,
     maybeOpts?: QueryRenderedFeaturesOptions,
   ): QueryRenderedFeature[] {
-    // Disambiguate overload. `(point, opts)` and `(opts)` are both accepted;
-    // when the first arg is an object with `point`/`bbox`/`layers` we treat
-    // it as the options bag.
+    const opts = queryRenderedArgs(geometryOrOpts, maybeOpts)
     let queryPoint: Point | undefined
     let queryBBox: [[number, number], [number, number]] | undefined
-    let opts: QueryRenderedFeaturesOptions | undefined
-
-    if (
-      pointOrOpts
-      && typeof (pointOrOpts as Point).x === 'number'
-      && typeof (pointOrOpts as Point).y === 'number'
-    ) {
-      queryPoint = pointOrOpts as Point
-      opts = maybeOpts
+    if (opts.bbox) {
+      queryBBox = opts.bbox
     }
-    else {
-      opts = pointOrOpts as QueryRenderedFeaturesOptions | undefined
-      if (opts?.bbox) {
-        queryBBox = opts.bbox
-      }
-      else if (opts?.point) {
-        const p = opts.point
-        queryPoint = Array.isArray(p) ? ({ x: p[0], y: p[1] } as Point) : p
-      }
+    else if (opts.point) {
+      const p = opts.point
+      queryPoint = Array.isArray(p) ? ({ x: p[0], y: p[1] } as Point) : p
     }
 
-    const layerFilter = opts?.layers
+    const layerFilter = opts.layers
     const out: QueryRenderedFeature[] = []
     const tileSize = this.getTileSize().x
     const queryZoom = this._map?.getZoom?.() ?? 0
+    // The caller's own filter, run as a layer's would be.
+    const extraFilter: VectorTileStyleLayer | null = opts.filter == null
+      ? null
+      : ({ id: '_query', type: 'fill', sourceLayer: '', filter: opts.filter } as VectorTileStyleLayer)
+    const passes = (styleLayer: VectorTileStyleLayer, feature: DecodedFeature, coords: { x: number, y: number, z: number }): boolean =>
+      filterPasses(styleLayer, feature, queryZoom, coords) && (!extraFilter || filterPasses(extraFilter, feature, queryZoom, coords))
 
     for (const entry of this._decodedTiles.values()) {
       if (!entry.tile)
@@ -667,7 +694,7 @@ export class VectorTileMapLayer extends GridLayer {
             continue
           for (let i = 0; i < mvtLayer.length; i++) {
             const feature = mvtLayer.feature(i)
-            if (!filterPasses(styleLayer, feature, queryZoom, entry.coords))
+            if (!passes(styleLayer, feature, entry.coords))
               continue
             out.push({ feature, layer: styleLayer, tile: entry.coords })
           }
@@ -709,7 +736,7 @@ export class VectorTileMapLayer extends GridLayer {
           seen.add(cand.featureIndex)
 
           const feature = mvtLayer.feature(cand.featureIndex)
-          if (!filterPasses(styleLayer, feature, queryZoom, entry.coords))
+          if (!passes(styleLayer, feature, entry.coords))
             continue
 
           if (featurePreciseHit(feature, localQuery, styleLayer, tileSize))

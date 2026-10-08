@@ -675,6 +675,80 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     expect(miss).toEqual([])
   })
 
+  test('Mapbox\'s positional forms: a box, an [x, y] point, and options second', async () => {
+    const bytes = encodeWaterTile()
+    restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    stampSize(map, 512, 512)
+
+    const layer = new VectorTileMapLayer({
+      url: 'https://tiles/{z}/{x}/{y}.pbf',
+      tileSize: 512,
+      layers: [{ id: 'water', type: 'fill', sourceLayer: 'water', paint: { 'fill-color': '#0af' } }],
+    })
+    attachLayerForCreateTile(layer, map)
+    const { ready } = createTileOnLayer(layer, tileCoords(0, 0, 4))
+    await ready
+
+    // A box, not an options object: only what it touches.
+    expect(layer.queryRenderedFeatures([[120, 120], [260, 260]]).length).toBe(1)
+    expect(layer.queryRenderedFeatures([[0, 0], [10, 10]])).toEqual([])
+    // Corners in either order.
+    expect(layer.queryRenderedFeatures([[260, 260], [120, 120]]).length).toBe(1)
+    // A point as a pair.
+    expect(layer.queryRenderedFeatures([250, 250]).length).toBe(1)
+    expect(layer.queryRenderedFeatures([10, 10])).toEqual([])
+    // Options second, with a box or with no geometry at all.
+    expect(layer.queryRenderedFeatures([[120, 120], [260, 260]], { layers: ['other'] })).toEqual([])
+    expect(layer.queryRenderedFeatures(undefined, { layers: ['other'] })).toEqual([])
+    expect(layer.queryRenderedFeatures(undefined, { layers: ['water'] }).length).toBe(1)
+  })
+
+  test('a filter option narrows the result', async () => {
+    const bytes = encodeWaterTile()
+    restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    stampSize(map, 512, 512)
+
+    const layer = new VectorTileMapLayer({
+      url: 'https://tiles/{z}/{x}/{y}.pbf',
+      tileSize: 512,
+      layers: [{ id: 'water', type: 'fill', sourceLayer: 'water', paint: { 'fill-color': '#0af' } }],
+    })
+    attachLayerForCreateTile(layer, map)
+    const { ready } = createTileOnLayer(layer, tileCoords(0, 0, 4))
+    await ready
+
+    expect(layer.queryRenderedFeatures([250, 250], { filter: ['==', ['get', 'name'], 'Ocean'] }).length).toBe(1)
+    expect(layer.queryRenderedFeatures([250, 250], { filter: ['==', ['get', 'name'], 'Lake'] })).toEqual([])
+    expect(layer.queryRenderedFeatures({ filter: ['==', ['get', 'name'], 'Lake'] })).toEqual([])
+  })
+
+  test('the map passes every form on to its sources', async () => {
+    const bytes = encodeWaterTile()
+    restoreFetch = installFetchStub(async () => responseFrom(bytes, { status: 200 }))
+
+    const map = new TsMap(createContainer(), { center: [0, 0], zoom: 4 })
+    stampSize(map, 512, 512)
+
+    const layer = new VectorTileMapLayer({
+      url: 'https://tiles/{z}/{x}/{y}.pbf',
+      tileSize: 512,
+      layers: [{ id: 'water', type: 'fill', sourceLayer: 'water', paint: { 'fill-color': '#0af' } }],
+    })
+    attachLayerForCreateTile(layer, map)
+    const { ready } = createTileOnLayer(layer, tileCoords(0, 0, 4))
+    await ready
+    ;(map as any)._style = { sourceLayers: new Map([['tiles', layer]]) }
+
+    expect(map.queryRenderedFeatures([[0, 0], [10, 10]])).toEqual([])
+    expect(map.queryRenderedFeatures([[120, 120], [260, 260]]).length).toBe(1)
+    expect(map.queryRenderedFeatures(undefined, { layers: ['other'] })).toEqual([])
+    expect(map.queryRenderedFeatures({ layers: ['water'] }).length).toBe(1)
+  })
+
   test('point query on a 100-feature grid returns the single matching cell', async () => {
     const N = 100
     const cellSize = 60
