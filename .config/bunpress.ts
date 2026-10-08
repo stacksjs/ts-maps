@@ -50,17 +50,23 @@ const config: BunPressConfig = {
   sidebar: [
     {
       text: 'Introduction',
-      link: '/',
+      items: [
+        { text: 'What is ts-maps?', link: '/intro' },
+        { text: 'Installation', link: '/install' },
+        { text: 'Getting Started', link: '/guide/getting-started' },
+      ],
     },
     {
-      text: 'Guide',
+      text: 'Frameworks',
       items: [
-        { text: 'Getting Started', link: '/guide/getting-started' },
-        { text: 'Framework Bindings', link: '/guide/framework-bindings' },
-        { text: 'stx Components', link: '/guide/stx' },
-        { text: 'Vue Integration', link: '/guide/vue' },
-        { text: 'React Integration', link: '/guide/react' },
-        { text: 'Nuxt Module', link: '/guide/nuxt' },
+        { text: 'Overview', link: '/guide/framework-bindings' },
+        { text: 'React', link: '/guide/react' },
+        { text: 'Vue', link: '/guide/vue' },
+        { text: 'Svelte', link: '/guide/svelte' },
+        { text: 'Solid', link: '/guide/solid' },
+        { text: 'React Native', link: '/guide/react-native' },
+        { text: 'Nuxt', link: '/guide/nuxt' },
+        { text: 'stx', link: '/guide/stx' },
       ],
     },
     {
@@ -68,17 +74,21 @@ const config: BunPressConfig = {
       items: [
         { text: 'The Map', link: '/concepts/map' },
         { text: 'Layers', link: '/concepts/layers' },
-        { text: 'Controls', link: '/concepts/controls' },
         { text: 'Styles & Theming', link: '/concepts/styles-and-theming' },
         { text: 'Style Spec', link: '/concepts/style-spec' },
         { text: 'Vector Tiles', link: '/concepts/vector-tiles' },
         { text: 'Self-hosted Tiles', link: '/concepts/tile-server' },
-        { text: '3D & Terrain', link: '/concepts/3d' },
+        { text: 'Controls', link: '/concepts/controls' },
+        { text: 'Search', link: '/concepts/search' },
+        { text: 'Services & Directions', link: '/concepts/services' },
+        { text: 'Map Types & Traffic', link: '/concepts/map-types' },
+        { text: 'Indoor Maps', link: '/concepts/indoor' },
+        { text: 'Look Around', link: '/concepts/look-around' },
+        { text: 'Offline Maps', link: '/concepts/offline' },
+        { text: '3D & the Globe', link: '/concepts/3d' },
         { text: 'Terrain', link: '/concepts/terrain' },
-        { text: 'Territory Capture', link: '/concepts/territory-capture' },
-        { text: 'Services', link: '/concepts/services' },
-        { text: 'Offline', link: '/concepts/offline' },
         { text: 'Localization', link: '/concepts/localization' },
+        { text: 'Territory Capture', link: '/concepts/territory-capture' },
       ],
     },
     {
@@ -117,7 +127,7 @@ const config: BunPressConfig = {
 
   nav: [
     { text: 'Home', link: '/' },
-    { text: 'Guide', link: '/guide/getting-started' },
+    { text: 'Guide', link: '/intro' },
     { text: 'Examples', link: '/examples/' },
     { text: 'Playground', link: '/demos/' },
     { text: 'API', link: '/api/' },

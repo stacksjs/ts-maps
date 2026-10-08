@@ -34,11 +34,14 @@ function markdownRedirects(dir = 'docs'): Record<string, { deploy: 'server', dom
   return out
 }
 
-/** Example pages renamed when they grew past their first idea, from the old name to the new. */
+/** Pages renamed or folded into others, from the old path to the new. */
 const RENAMED: Record<string, string> = {
   'examples/06-hillshade': 'examples/06-terrain',
   'examples/09-geocoder': 'examples/09-search',
   'examples/10-directions': 'examples/10-turn-by-turn',
+  // Folded into the guide's walkthrough.
+  'getting-started': 'guide/getting-started',
+  'usage': 'guide/getting-started',
 }
 
 /** The old pages, and their `.md` files, sent on to the new ones, so a saved link still lands. */
