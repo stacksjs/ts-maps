@@ -1084,6 +1084,11 @@ export class VectorTileMapLayer extends GridLayer {
     const cy = view.y / 2
     const pos = map._getMapPanePos()
 
+    // On terrain: the same camera, with each point raised by the ground's
+    // height there, so labels stand on the slope (map/TerrainView.ts).
+    if (map._terrainActive?.())
+      return map._terrainView.tileProjector(ox, oy, k)
+
     // Round the globe: the tile pixel's place, onto the sphere. Labels well
     // round towards the rim are left off, where the globe turns
     // away and they would crowd together.

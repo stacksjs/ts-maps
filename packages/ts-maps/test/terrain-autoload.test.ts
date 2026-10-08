@@ -102,32 +102,56 @@ describe('Map terrain auto-load', () => {
   })
 
   // Helper: very-happy-dom's querySelector is stingy with class selectors
-  // — walk children directly.
-  function findOverlay(root: HTMLElement): HTMLElement | null {
+  // — walk the tree directly.
+  function findTerrainCanvas(root: Element): HTMLElement | null {
     for (let i = 0; i < root.children.length; i++) {
       const c = root.children[i] as HTMLElement
-      if (c.className?.includes('ts-maps-terrain-overlay'))
+      if (typeof c.className === 'string' && c.className.includes('tsmap-terrain'))
         return c
+      const found = findTerrainCanvas(c)
+      if (found)
+        return found
     }
     return null
   }
 
-  test('setTerrain creates a terrain overlay canvas inside the container', () => {
-    expect(findOverlay(container)).toBeNull()
+  test('without WebGL, setTerrain keeps the map flat and leaves no canvas behind', () => {
+    // The test DOM has no WebGL: the terrain cannot be drawn, so nothing is
+    // kept for it, and the map's maths stay the flat map's.
     map.setTerrain({ source: 'dem' })
-    const overlay = findOverlay(container) as HTMLCanvasElement | null
-    expect(overlay).not.toBeNull()
-    expect(overlay!.tagName).toBe('CANVAS')
-    // `.style` is optional on happy-dom canvases — only assert when present.
-    if (overlay!.style)
-      expect(overlay!.style.pointerEvents).toBe('none')
+    expect(map.getTerrain()).not.toBeNull()
+    expect(map._terrainView).toBeUndefined()
+    expect(map._terrainActive()).toBe(false)
+    expect(findTerrainCanvas(container)).toBeNull()
   })
 
-  test('setTerrain(null) removes the overlay', () => {
+  test('setTerrain(null) after setTerrain leaves nothing behind', () => {
     map.setTerrain({ source: 'dem' })
-    expect(findOverlay(container)).not.toBeNull()
     map.setTerrain(null)
-    expect(findOverlay(container)).toBeNull()
+    expect(map._terrainView).toBeUndefined()
+    expect(findTerrainCanvas(container)).toBeNull()
+  })
+
+  test('a DEM tile the source has none of is asked for once', async () => {
+    map.setStyle({
+      version: 8,
+      sources: {
+        dem: {
+          type: 'raster-dem',
+          tiles: ['https://example.com/dem/{z}/{x}/{y}.png'],
+        } as any,
+      },
+      layers: [],
+    })
+    map.setTerrain({ source: 'dem' })
+    // The test DOM cannot load an image, so every fetch comes back empty.
+    const loaded = new Promise<void>(resolve => map.once('terrainload', () => resolve()))
+    map._maybeFetchTerrainTile({ z: 5, x: 10, y: 12 })
+    await loaded
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(map._terrainMissing?.has('5/10/12')).toBe(true)
+    map._maybeFetchTerrainTile({ z: 5, x: 10, y: 12 })
+    expect((map as any)._terrainFetchInFlight.size).toBe(0)
   })
 
   test('addTerrainTile short-circuits the fetch path — no fetch queued', () => {
@@ -143,7 +167,13 @@ describe('Map terrain auto-load', () => {
     })
     map.setTerrain({ source: 'dem' })
     const px = new Uint8Array(256 * 256 * 4)
+    let announced: unknown
+    map.on('terrainload', (e: any) => {
+      announced = e.coord
+    })
     map.addTerrainTile({ z: 2, x: 1, y: 1 }, px)
     expect(map.getTerrainSource()!.hasTile({ z: 2, x: 1, y: 1 })).toBe(true)
+    // So the ground it covers rises on the next frame.
+    expect(announced).toEqual({ z: 2, x: 1, y: 1 })
   })
 })

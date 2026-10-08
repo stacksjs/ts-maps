@@ -140,3 +140,112 @@ export function buildTerrainMesh(opts: TerrainMeshOptions): TerrainMesh {
     resolution,
   }
 }
+
+/**
+ * The shape the map's 3D terrain draws each ground patch with: a square grid
+ * of `resolution` cells a side, plus a skirt.
+ *
+ * Heights are not baked in. The grid is the same for every patch, so it is
+ * built once and shared; each patch brings its own heights, one per vertex,
+ * read from the DEM where that vertex falls (`TerrainView`).
+ *
+ * The skirt is a strip hanging down from every edge. Neighbouring patches at
+ * different levels of detail do not share their edge vertices, so a slope can
+ * open a hairline crack between them; the skirt closes it with ground of the
+ * same picture.
+ */
+export interface TerrainGrid {
+  /**
+   * Per vertex, `u, v, skirt`: where in the patch it is, 0–1 east and south,
+   * and 1 for a skirt vertex, which is pulled down below its edge.
+   */
+  vertices: Float32Array
+  /**
+   * For each vertex, which grid vertex's height it takes — itself, or for a
+   * skirt vertex the edge vertex it hangs from. Grid vertices come first,
+   * row by row, so a patch's heights are read for those alone.
+   */
+  heightIndex: Uint32Array
+  /** Triangles; 16-bit, so it draws without a WebGL extension. */
+  indices: Uint16Array
+  /** Vertices per side of the grid: `resolution + 1`. */
+  side: number
+  vertexCount: number
+  indexCount: number
+}
+
+export function buildTerrainGrid(resolution: number): TerrainGrid {
+  const n = Math.max(1, Math.floor(resolution))
+  const side = n + 1
+  const gridCount = side * side
+  // Each of the four edges' vertices again, hanging below.
+  const skirtCount = 4 * side
+  const vertexCount = gridCount + skirtCount
+  if (vertexCount > 65536)
+    throw new RangeError(`resolution ${n} needs more vertices than 16-bit indices reach`)
+
+  const vertices = new Float32Array(vertexCount * 3)
+  const heightIndex = new Uint32Array(vertexCount)
+  for (let j = 0; j < side; j++) {
+    for (let i = 0; i < side; i++) {
+      const v = j * side + i
+      vertices[v * 3] = i / n
+      vertices[v * 3 + 1] = j / n
+      heightIndex[v] = v
+    }
+  }
+
+  // The four edges, each walked so its triangles face the same way as the
+  // grid's: north west to east, east north to south, south east to west,
+  // west south to north.
+  const edges: number[][] = [[], [], [], []]
+  for (let k = 0; k < side; k++) {
+    edges[0]!.push(k)
+    edges[1]!.push(k * side + n)
+    edges[2]!.push(n * side + (n - k))
+    edges[3]!.push((n - k) * side)
+  }
+
+  const indices = new Uint16Array(n * n * 6 + 4 * n * 6)
+  let idx = 0
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const a = j * side + i
+      const b = a + 1
+      const c = a + side
+      const d = c + 1
+      indices[idx++] = a
+      indices[idx++] = c
+      indices[idx++] = b
+      indices[idx++] = b
+      indices[idx++] = c
+      indices[idx++] = d
+    }
+  }
+
+  let next = gridCount
+  for (const edge of edges) {
+    const first = next
+    for (const top of edge) {
+      vertices[next * 3] = vertices[top * 3]!
+      vertices[next * 3 + 1] = vertices[top * 3 + 1]!
+      vertices[next * 3 + 2] = 1
+      heightIndex[next] = top
+      next++
+    }
+    for (let k = 0; k < n; k++) {
+      const a = edge[k]!
+      const b = edge[k + 1]!
+      const c = first + k
+      const d = first + k + 1
+      indices[idx++] = a
+      indices[idx++] = c
+      indices[idx++] = b
+      indices[idx++] = b
+      indices[idx++] = c
+      indices[idx++] = d
+    }
+  }
+
+  return { vertices, heightIndex, indices, side, vertexCount, indexCount: indices.length }
+}

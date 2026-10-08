@@ -55,7 +55,7 @@ describe('resetDefaultCache', () => {
 })
 
 describe('Map.remove cleanup', () => {
-  test('removes the terrain overlay + atmosphere overlay from the container', () => {
+  test('removes the terrain canvas + atmosphere overlay from the container', () => {
     const container = document.createElement('div')
     container.style.width = '300px'
     container.style.height = '200px'
@@ -68,14 +68,14 @@ describe('Map.remove cleanup', () => {
     // Both overlays are attached inside the container — the atmosphere
     // within the map pane, under the labels.
     const sawAtmos = !!container.querySelector('.ts-maps-atmosphere')
-    const sawTerrain = !!container.querySelector('.ts-maps-terrain-overlay')
+    const sawTerrain = !!container.querySelector('.tsmap-terrain')
     expect(sawAtmos || sawTerrain).toBe(true)
 
     map.remove()
 
     // After remove, both should be gone.
     expect(container.querySelector('.ts-maps-atmosphere')).toBeNull()
-    expect(container.querySelector('.ts-maps-terrain-overlay')).toBeNull()
+    expect(container.querySelector('.tsmap-terrain')).toBeNull()
     container.remove()
   })
 })

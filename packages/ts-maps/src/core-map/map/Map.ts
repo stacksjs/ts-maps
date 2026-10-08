@@ -22,9 +22,9 @@ import type { OfflineMaps } from '../offline/OfflineMaps'
 import type { Control } from '../control/Control'
 import { activeOfflineMaps, offlineFetch, offlineMaps } from '../offline/OfflineMaps'
 import { resolveStyleSources, tileJSONSources } from '../styles/tilejson'
-import { buildTerrainMesh } from '../geo/terrainMesh'
 import { TerrainSource } from '../geo/TerrainSource'
-import { WebGLTileRenderer } from '../renderer/webgl/WebGLTileRenderer'
+import type { WebGLTileRenderer } from '../renderer/webgl/WebGLTileRenderer'
+import { TerrainView } from './TerrainView'
 
 /**
  * Visibility ceiling for a layer built from a style source.
@@ -337,10 +337,10 @@ export class TsMap extends Evented {
   // type-only so it doesn't get re-initialised by the class-field semantics
   // after the base `Class` constructor runs (see class-field invariant).
   declare _customLayers?: globalThis.Map<string, CustomLayerInterface>
-  // Active terrain configuration. `null` / undefined disables 3D warping.
+  // Active terrain configuration. `null` / undefined: the ground is flat.
   declare _terrain?: TerrainOptions | null
-  // In-memory DEM tile cache used to answer `queryTerrainElevation` and to
-  // build terrain meshes in the renderer. Lazy-created on the first
+  // In-memory DEM tile cache: the heights the terrain is drawn from, and what
+  // `queryTerrainElevation` answers with. Lazy-created on the first
   // `setTerrain()` call.
   declare _terrainSource?: TerrainSource
   // DOM overlay host for atmospheric effects (sky + fog). The overlay lives
@@ -351,11 +351,13 @@ export class TsMap extends Evented {
   // Pending DEM fetches keyed by tile URL — used to debounce repeated
   // fetches for the same tile during camera movement.
   declare _terrainFetchInFlight?: Map<string, Promise<void>>
-  // Map-level terrain overlay: a <canvas> positioned above every tile
-  // layer so 3D terrain renders regardless of which basemap (raster,
-  // vector, none) is attached. Lazy-created on first setTerrain().
-  declare _terrainOverlayCanvas?: HTMLCanvasElement
-  declare _terrainOverlayRenderer?: WebGLTileRenderer
+  // DEM tiles the source has none of (the sea, past its edge), by `z/x/y`:
+  // asked for once, not again every frame.
+  declare _terrainMissing?: Set<string>
+  // The raised ground, drawn in WebGL while terrain is on (TerrainView.ts).
+  // Created with `setTerrain`; without WebGL it never draws and the map
+  // stays flat.
+  declare _terrainView?: TerrainView
   // The URL the style was loaded from, when it was — kept with a downloaded map.
   declare _styleUrl?: string
 
@@ -376,7 +378,6 @@ export class TsMap extends Evented {
     this._initContainer(id)
     this._initLayout()
     this._initEvents()
-    this._wireTerrainCameraHooks()
     // The globe draws itself, where WebGL allows (GlobeView.ts).
     this._syncGlobeView()
 
@@ -1520,6 +1521,13 @@ export class TsMap extends Evented {
       // Round the back: nowhere on screen, as behind a tilted camera.
       return g.z < 0 ? new Point(g.x < 0 ? -1e7 : 1e7, 1e7) : new Point(g.x, g.y)
     }
+    // On terrain, the same camera with the ground raised by its height there,
+    // so whatever asks — a marker, a popup — stands on the slope (TerrainView.ts).
+    // The inverse stays on the flat map; a click is cast onto the surface instead.
+    if (this._terrainView?.active()) {
+      const t = this._terrainView.project(p.x, p.y)
+      return new Point(t.x, t.y)
+    }
     if (!this._bearing && !this._pitch)
     return p.add(this._getMapPanePos())
     const center = this.getSize()._divideBy(2)
@@ -1829,7 +1837,9 @@ export class TsMap extends Evented {
       ? this.latLngToContainerPoint(target.getLatLng())
       : this.pointerEventToContainerPoint(e)
       data.layerPoint = this.containerPointToLayerPoint(data.containerPoint)
-      data.latlng = isMarker ? target.getLatLng() : this.layerPointToLatLng(data.layerPoint)
+      // On terrain the place is the slope under the pointer; the layer point
+      // stays the flat map's, which vector overlays are drawn and hit on.
+      data.latlng = isMarker ? target.getLatLng() : this._terrainActive() ? this._terrainPick(data.containerPoint) : this.layerPointToLatLng(data.layerPoint)
     }
 
     for (const t of targets) {
@@ -2052,21 +2062,26 @@ export class TsMap extends Evented {
   * map the two are the same thing.
   */
   _latLngToUprightPoint(latlng: any): Point {
-    if (!this._bearing && !this._pitch && !this._globeActive())
+    // Terrain raises the ground even flat and north-up (see `_terrainActive`).
+    if (!this._bearing && !this._pitch && !this._globeActive() && !this._terrainActive())
     return this.latLngToLayerPoint(latlng)
     return this.latLngToContainerPoint(latlng).subtract(this._getMapPanePos())
   }
 
   /** Inverse of `_latLngToUprightPoint`. */
   _uprightPointToLatLng(point: Point): LatLng {
-    if (!this._bearing && !this._pitch && !this._globeActive())
+    if (!this._bearing && !this._pitch && !this._globeActive() && !this._terrainActive())
     return this.layerPointToLatLng(point)
+    // On terrain, the place on the slope there — a dragged marker lands on
+    // the ground under it, not on the flat map behind.
+    if (this._terrainActive())
+    return this._terrainPick(point.add(this._getMapPanePos()))
     return this.containerPointToLatLng(point.add(this._getMapPanePos()))
   }
 
   /** A point in an upright pane, in container pixels. */
   _uprightPointToContainerPoint(point: Point): Point {
-    if (!this._bearing && !this._pitch && !this._globeActive())
+    if (!this._bearing && !this._pitch && !this._globeActive() && !this._terrainActive())
     return this.layerPointToContainerPoint(point)
     return point.add(this._getMapPanePos())
   }
@@ -3673,10 +3688,18 @@ export class TsMap extends Evented {
   }
 
   /**
-   * Enables 3D terrain (DEM-based mesh warping). `source` must name a
-   * raster-dem source previously registered via `addSource()`.
-   * `exaggeration` scales the vertical relief (default 1). Passing `null`
-   * disables terrain and frees the in-memory elevation cache.
+   * Raise the map into 3D. The ground stands up by the heights in a
+   * `raster-dem` source — mountains rise, valleys sink — draped with what
+   * the map's tile layers draw, with labels, markers and popups standing on
+   * it. `source` names a raster-dem source registered with `addSource()`.
+   * `exaggeration` multiplies every height (default 1; 0 lays the ground flat
+   * again). `null` turns terrain off and frees the heights.
+   *
+   * Heights are measured from the ground at the centre of the view, so the
+   * centre stays put and the relief around it moves (see TerrainView.ts).
+   * It is drawn with WebGL; without it the map stays flat, and
+   * `queryTerrainElevation` still answers. While the globe shows, the globe
+   * is drawn instead.
    *
    * Fires `'terrainchange'` on every call.
    */
@@ -3688,6 +3711,11 @@ export class TsMap extends Evented {
         throw new RangeError(`setTerrain: exaggeration must be a finite number (got ${terrain.exaggeration}).`)
       if (terrain.exaggeration !== undefined && terrain.exaggeration < 0)
         throw new RangeError(`setTerrain: exaggeration must be >= 0 (got ${terrain.exaggeration}).`)
+      // Another DEM: the heights already read are someone else's.
+      if (this._terrain && this._terrain.source !== terrain.source) {
+        this._terrainSource = undefined
+        this._terrainMissing?.clear()
+      }
       this._terrain = { source: terrain.source, exaggeration: terrain.exaggeration ?? 1 }
       // Inherit demSize + encoding from the matching raster-dem source when
       // one is already registered, so auto-loading uses the right decoder.
@@ -3708,148 +3736,47 @@ export class TsMap extends Evented {
     else {
       this._terrain = null
       this._terrainSource?.clear()
+      this._terrainMissing?.clear()
     }
-    if (this._terrain)
-      this._ensureTerrainOverlay()
-    else
+    if (this._terrain && this._container && this._mapPane && !this._terrainView) {
+      const view = new TerrainView(this as any)
+      // No WebGL here: nothing to draw with, so nothing to keep.
+      if (view.ready)
+        this._terrainView = view
+      else
+        view.remove()
+    }
+    else if (!this._terrain) {
       this._destroyTerrainOverlay()
+    }
     this.fire('terrainchange', { terrain: this._terrain })
-    this._renderTerrainOverlay()
+    this._terrainView?.schedule()
     return this
   }
 
-  /**
-   * Creates the full-viewport terrain overlay canvas + WebGL renderer on
-   * first use. The canvas is appended to the map container with
-   * `pointer-events: none` so it doesn't swallow drag/click events.
-   */
-  _ensureTerrainOverlay(): void {
-    if (this._terrainOverlayCanvas)
-      return
-    const container = this._container
-    if (!container || typeof container.appendChild !== 'function')
-      return
-    const doc = container.ownerDocument ?? document
-    const canvas = doc.createElement('canvas')
-    canvas.className = 'ts-maps-terrain-overlay'
-    const size = this.getSize?.() ?? new Point(container.clientWidth || 300, container.clientHeight || 150)
-    canvas.width = Math.max(1, size.x)
-    canvas.height = Math.max(1, size.y)
-    if (canvas.style) {
-      canvas.style.position = 'absolute'
-      canvas.style.inset = '0'
-      canvas.style.pointerEvents = 'none'
-      canvas.style.zIndex = '390'
-    }
-    container.appendChild(canvas)
-    this._terrainOverlayCanvas = canvas
-    // Defer the GL renderer to the first real draw — some happy-dom
-    // flows stub `getContext('webgl2')` to null, and the renderer's
-    // ctor throws in that case. We retry on every render call.
-  }
-
+  /** Stop drawing the terrain: the map is flat again. Also run by `remove()`. */
   _destroyTerrainOverlay(): void {
-    if (this._terrainOverlayRenderer) {
-      try {
-        this._terrainOverlayRenderer.destroy()
-      }
-      catch { /* ignore */ }
-      this._terrainOverlayRenderer = undefined
-    }
-    if (this._terrainOverlayCanvas && this._terrainOverlayCanvas.parentNode)
-      this._terrainOverlayCanvas.parentNode.removeChild(this._terrainOverlayCanvas)
-    this._terrainOverlayCanvas = undefined
+    const view = this._terrainView
+    // Gone before it goes, so the markers it puts back are placed flat.
+    this._terrainView = undefined
+    view?.remove()
+  }
+
+  /** Whether the terrain is drawn now: on, with WebGL, and the globe not showing. */
+  _terrainActive(): boolean {
+    return !!this._terrainView?.active()
   }
 
   /**
-   * Redraws the terrain overlay for the current camera position. Called
-   * after terrain config changes, after camera moves, and whenever a DEM
-   * tile finishes loading. No-op when terrain is off or WebGL2 is
-   * unavailable (common in happy-dom / SSR).
+   * The place on the terrain under a container point: the ray through it,
+   * cast onto the surface, so the nearest slope answers. The flat map's
+   * answer when the terrain is not drawn.
    */
-  _renderTerrainOverlay(): void {
-    if (!this._terrain || !this._terrainSource)
-      return
-    const canvas = this._terrainOverlayCanvas
-    if (!canvas)
-      return
-
-    // Keep the canvas sized to the container.
-    const size = this.getSize?.()
-    if (size) {
-      if (canvas.width !== size.x)
-        canvas.width = Math.max(1, size.x)
-      if (canvas.height !== size.y)
-        canvas.height = Math.max(1, size.y)
-    }
-
-    if (!this._terrainOverlayRenderer) {
-      try {
-        this._terrainOverlayRenderer = new WebGLTileRenderer(canvas)
-      }
-      catch {
-        // WebGL2 unavailable — overlay stays blank, which is fine.
-        return
-      }
-    }
-    const renderer = this._terrainOverlayRenderer
-    renderer.clear()
-
-    // Compute visible tile coords at the current integer zoom level.
-    const z = Math.max(0, Math.floor(this.getZoom?.() ?? 0))
-    const bounds = this.getBounds?.()
-    if (!bounds || !bounds.isValid || !bounds.isValid())
-      return
-    const sw = bounds.getSouthWest()
-    const ne = bounds.getNorthEast()
-    const tileSize = 256
-    const n = 2 ** z
-
-    const lngToX = (lng: number): number => Math.floor(((lng + 180) / 360) * n)
-    const latToY = (lat: number): number => {
-      const rad = (Math.max(-85.05112878, Math.min(85.05112878, lat)) * Math.PI) / 180
-      return Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * n)
-    }
-
-    const xMin = Math.max(0, lngToX(sw.lng))
-    const xMax = Math.min(n - 1, lngToX(ne.lng))
-    const yMin = Math.max(0, latToY(ne.lat))
-    const yMax = Math.min(n - 1, latToY(sw.lat))
-
-    // Clip-space ortho for the entire canvas (top-left origin).
-    const W = canvas.width
-    const H = canvas.height
-
-    // For each visible tile, compute its screen-space position and draw.
-    for (let x = xMin; x <= xMax; x++) {
-      for (let y = yMin; y <= yMax; y++) {
-        const coord = { z, x, y }
-        if (!this._terrainSource.hasTile(coord)) {
-          this._maybeFetchTerrainTile(coord)
-          continue
-        }
-        const nwLat = (180 / Math.PI) * Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)))
-        const nwLng = (x / n) * 360 - 180
-        const nwPt = this.latLngToContainerPoint?.({ lat: nwLat, lng: nwLng } as any)
-        if (!nwPt)
-          continue
-        // Per-tile ortho: map (0..tileSize, 0..tileSize) in tile space to
-        // the tile's screen rectangle inside the canvas.
-        // Build via straight scale+translate: NDC x = 2*(px/W) - 1, flipped y.
-        const mx = (nwPt.x / W) * 2 - 1
-        const my = 1 - (nwPt.y / H) * 2
-        const sx = (tileSize / W) * 2
-        const sy = -(tileSize / H) * 2
-        const m = new Float32Array(16)
-        m[0] = sx
-        m[5] = sy
-        m[10] = 1
-        m[15] = 1
-        m[12] = mx
-        m[13] = my
-        this._drawTerrainForTile(renderer, coord, tileSize, m)
-      }
-    }
+  _terrainPick(containerPoint: Point): LatLng {
+    if (!this._terrainView?.active())
+      return this.containerPointToLatLng(containerPoint)
+    const p = this._terrainView.pick(containerPoint.x, containerPoint.y)
+    return this.layerPointToLatLng(new Point(p.x, p.y))
   }
 
   /** Returns the stored terrain options, or `null` when terrain is off. */
@@ -3867,12 +3794,6 @@ export class TsMap extends Evented {
     return this._terrainSource
   }
 
-  /**
-   * Bilinear elevation query at an arbitrary lng/lat. Returns the best
-   * available sample (walking up the pyramid when the preferred zoom
-   * isn't loaded) or `null` when no DEM tile covers the point yet.
-   * Always returns `null` when terrain is disabled.
-   */
   /**
    * Preferred rendering backend for every source-backed tile layer on
    * this map. `'canvas2d'` is the default, `'webgl'` is chosen by
@@ -4066,10 +3987,16 @@ export class TsMap extends Evented {
     return ((this.options as any).preferredRenderer as 'canvas2d' | 'webgl' | 'svg') ?? 'canvas2d'
   }
 
+  /**
+   * The height of the ground at a place, in metres above sea level, from the
+   * finest DEM tile loaded there — the terrain asks for one level finer than
+   * the view's tiles, so this is what it draws. `null` when no DEM tile
+   * covers the place yet, and always when terrain is off.
+   */
   queryTerrainElevation(lngLat: LatLng | { lng: number, lat: number }): number | null {
     if (!this._terrain || !this._terrainSource)
       return null
-    const z = Math.max(0, Math.floor(this.getZoom?.() ?? 0))
+    const z = Math.max(0, Math.round(this.getZoom?.() ?? 0) + 1)
     return this._terrainSource.queryElevation(lngLat.lng, lngLat.lat, z)
   }
 
@@ -4448,56 +4375,38 @@ export class TsMap extends Evented {
   /**
    * Convenience ingest for a single DEM tile. Decodes `pixels` (RGBA byte
    * stream, left-to-right top-to-bottom) into the configured encoding's
-   * elevation grid and stores it in the backing `TerrainSource`.
-   * No-op when terrain is disabled.
+   * elevation grid and stores it in the backing `TerrainSource`, and the
+   * ground it covers rises on the next frame. No-op when terrain is disabled.
    */
   addTerrainTile(coord: { z: number, x: number, y: number }, pixels: Uint8Array | Uint8ClampedArray): void {
     if (!this._terrain || !this._terrainSource)
       return
     this._terrainSource.addTilePixels(coord, pixels)
+    this.fire('terrainload', { coord })
   }
 
   /**
-   * Draws the terrain mesh for a single tile coordinate into the supplied
-   * GL renderer as the underlay for the regular tile content. Called by
-   * `VectorTileMapLayer._drawTile` during the WebGL path; no-op when
-   * terrain is off or the DEM tile isn't loaded yet.
+   * Once drew a flat terrain mesh into each WebGL vector tile. The terrain is
+   * drawn for the whole view now, over every tile layer at once, by
+   * `TerrainView`, so this draws nothing; it stays because
+   * `VectorTileMapLayer` still calls it for each tile it draws with WebGL.
    */
-  _drawTerrainForTile(glRenderer: WebGLTileRenderer, coord: { z: number, x: number, y: number }, tileSize: number, projectionMatrix: Float32Array): void {
-    if (!this._terrain || !this._terrainSource)
-      return
-    const src = this._terrainSource
-    if (!src.hasTile(coord)) {
-      // Opportunistically fetch the tile from the style's raster-dem source
-      // so the next redraw can render it. Fire-and-forget; errors swallowed.
-      this._maybeFetchTerrainTile(coord)
-      return
-    }
-    const elev = src.getTile(coord)
-    if (!elev)
-      return
-    const mesh = buildTerrainMesh({
-      elevation: elev,
-      demSize: src.demSize,
-      tileSize,
-      resolution: src.meshResolution,
-      exaggeration: src.exaggeration,
-      // Metres → tile units. Holding this small keeps z well-inside the
-      // orthographic frustum so mountain peaks don't clip.
-      unitsPerMeter: 0.001,
-    })
-    glRenderer.drawTerrain(mesh.positions, mesh.indices, [0.78, 0.80, 0.75, 1], 1, projectionMatrix)
-  }
+  // eslint-disable-next-line no-unused-vars
+  _drawTerrainForTile(glRenderer: WebGLTileRenderer, coord: { z: number, x: number, y: number }, tileSize: number, projectionMatrix: Float32Array): void {}
 
   /**
    * Fire-and-forget fetch of a DEM tile for the current terrain source.
    * Resolves to `void` whether the fetch succeeded or failed — errors
-   * only log a single warning the first time through. Downstream callers
-   * read `terrainSource.hasTile(coord)` on the next frame to decide
-   * whether to draw.
+   * only log a single warning the first time through. Fires `terrainload`
+   * either way; the terrain reads `terrainSource.hasTile(coord)` on its next
+   * frame to see what arrived. A tile the source has nothing for is noted
+   * in `_terrainMissing` and not asked for again.
    */
   _maybeFetchTerrainTile(coord: { z: number, x: number, y: number }): void {
     if (!this._terrain || !this._terrainSource || !this._style)
+      return
+    const tileKey = `${coord.z}/${coord.x}/${coord.y}`
+    if (this._terrainMissing?.has(tileKey))
       return
     const spec = this._style.spec.sources?.[this._terrain.source] as any
     if (!spec || spec.type !== 'raster-dem')
@@ -4505,6 +4414,13 @@ export class TsMap extends Evented {
     const template = Array.isArray(spec.tiles) ? spec.tiles[0] as string | undefined : undefined
     if (!template || typeof template !== 'string')
       return
+    // `setTerrain` called before `addSource`: the source's encoding and tile
+    // size were not known then. Nothing has been decoded with the guess yet,
+    // so start again with the right ones.
+    const encoding = spec.encoding === 'terrarium' ? 'terrarium' : 'mapbox'
+    const size = Number.isFinite(spec.tileSize) ? spec.tileSize as number : 256
+    if (this._terrainSource.size() === 0 && (this._terrainSource.encoding !== encoding || this._terrainSource.demSize !== size))
+      this._terrainSource = new TerrainSource({ demSize: size, encoding, exaggeration: this._terrain.exaggeration })
 
     const urlFor = (z: number, x: number, y: number): string => template
       .replace(/\{z\}/g, String(z))
@@ -4537,6 +4453,8 @@ export class TsMap extends Evented {
       .then((pixels) => {
         if (pixels && this._terrainSource && this._terrain)
           this._terrainSource.addTilePixels(coord, pixels)
+        else if (!pixels)
+          (this._terrainMissing ??= new Set()).add(tileKey)
         this.fire('terrainload', { coord })
       })
       .catch(() => {
@@ -4547,21 +4465,6 @@ export class TsMap extends Evented {
         this._terrainFetchInFlight?.delete(url)
       })
     this._terrainFetchInFlight.set(url, promise)
-  }
-
-  /**
-   * Wires up automatic terrain overlay redraws on the camera events that
-   * actually change visible tiles. Called once from `initialize()`; the
-   * handlers themselves short-circuit when terrain is off.
-   */
-  _wireTerrainCameraHooks(): void {
-    const redraw = (): void => this._renderTerrainOverlay()
-    this.on('moveend', redraw)
-    this.on('zoomend', redraw)
-    this.on('rotate', redraw)
-    this.on('pitch', redraw)
-    this.on('resize', redraw)
-    this.on('terrainload', redraw)
   }
 
   /**

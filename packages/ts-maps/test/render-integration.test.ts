@@ -10,8 +10,8 @@
  *     when a tile is drawn with WebGL.
  *   - setFog / setSky produce a visible DOM overlay and the overlay's
  *     opacity tracks pitch (0 at top-down, non-zero when tilted).
- *   - setTerrain + a pre-loaded DEM tile causes drawTerrain to be
- *     invoked during a tile render.
+ *   - the per-tile terrain hook draws nothing into a tile: the terrain is
+ *     drawn for the whole view by TerrainView, not tile by tile.
  */
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
@@ -310,13 +310,14 @@ describe('Map terrain draw hook', () => {
     expect(calls.drawElements).toHaveLength(0)
   })
 
-  test('draws when a matching DEM tile is loaded', () => {
+  test('draws nothing into a tile even with its DEM tile loaded', () => {
+    // The terrain is drawn for the whole view by TerrainView; a tile drawn
+    // with WebGL gets no flat terrain mesh painted into it.
     const { WebGLTileRenderer } = require('../src/core-map/renderer/webgl/WebGLTileRenderer')
     map.setTerrain({ source: 'dem' })
     const src = map.getTerrainSource()!
     const demSize = 256
     const elev = new Float32Array(demSize * demSize)
-    // Non-trivial heights so normals aren't all (0,0,1).
     for (let i = 0; i < elev.length; i++)
       elev[i] = (i % demSize) * 2
     src.addTileElevation({ z: 5, x: 10, y: 12 }, elev)
@@ -324,33 +325,18 @@ describe('Map terrain draw hook', () => {
     const { gl, calls } = makeStubGL()
     const canvas = { getContext: () => gl } as unknown as HTMLCanvasElement
     const r = new WebGLTileRenderer(canvas)
-    const proj = new Float32Array(16)
-    map._drawTerrainForTile(r, { z: 5, x: 10, y: 12 }, 256, proj)
-
-    expect(calls.drawElements.length).toBeGreaterThan(0)
-    const last = calls.drawElements.at(-1)!
-    expect(last.mode).toBe(gl.TRIANGLES)
-    expect(last.type).toBe(gl.UNSIGNED_INT)
-    // Resolution 32 → 32*32*6 = 6144 indices.
-    expect(last.count).toBe(6144)
+    map._drawTerrainForTile(r, { z: 5, x: 10, y: 12 }, 256, new Float32Array(16))
+    expect(calls.drawElements).toHaveLength(0)
   })
 
-  test('addTerrainTile(pixels) decodes and enables drawing', () => {
-    const { WebGLTileRenderer } = require('../src/core-map/renderer/webgl/WebGLTileRenderer')
+  test('addTerrainTile(pixels) decodes into heights the map answers with', () => {
     map.setTerrain({ source: 'dem' })
-
-    // Mapbox RGB: (0, 0, 0) → -10000m baseline. All-zero pixels is valid.
+    // Mapbox RGB: (0, 0, 0) → -10000 m. All-zero pixels is valid.
     const px = new Uint8Array(256 * 256 * 4)
     for (let i = 3; i < px.length; i += 4)
       px[i] = 255
-    map.addTerrainTile({ z: 2, x: 1, y: 1 }, px)
-
-    const { gl, calls } = makeStubGL()
-    const canvas = { getContext: () => gl } as unknown as HTMLCanvasElement
-    const r = new WebGLTileRenderer(canvas)
-    map._drawTerrainForTile(r, { z: 2, x: 1, y: 1 }, 256, new Float32Array(16))
-
-    expect(calls.drawElements.length).toBe(1)
+    map.addTerrainTile({ z: 0, x: 0, y: 0 }, px)
+    expect(map.queryTerrainElevation({ lat: 10, lng: 10 })).toBeCloseTo(-10000, 3)
   })
 
   test('addTerrainTile is a no-op when terrain is disabled', () => {

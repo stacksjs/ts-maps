@@ -5,8 +5,8 @@ export type { LatLngBoundsLike } from './LatLngBounds'
 
 export type { DEMEncoding } from './elevation'
 export { decodeElevationGrid, decodeMapboxRGB, decodeTerrariumRGB, getElevationDecoder, sampleElevationBilinear } from './elevation'
-export type { TerrainMesh, TerrainMeshOptions } from './terrainMesh'
-export { buildTerrainMesh } from './terrainMesh'
+export type { TerrainGrid, TerrainMesh, TerrainMeshOptions } from './terrainMesh'
+export { buildTerrainGrid, buildTerrainMesh } from './terrainMesh'
 export type { TerrainSourceOptions, TileCoord } from './TerrainSource'
 export { TerrainSource } from './TerrainSource'
 
