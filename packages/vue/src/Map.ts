@@ -42,6 +42,11 @@ type MapEventName
     | 'style-load'
     | 'styledataloading'
 
+/** A style, by value: its URL, or its JSON. */
+function styleKey(style: unknown): string {
+  return typeof style === 'string' ? style : JSON.stringify(style)
+}
+
 const FORWARDED_EVENTS: readonly MapEventName[] = [
   'click',
   'dblclick',
@@ -144,13 +149,26 @@ export const Map = defineComponent({
       bindings.push({ event: 'style.load', handler: styleLoadHandler })
     })
 
+    // Camera and style are followed by value: a parent that renders the
+    // same center (a new array each time) or an inline style object again
+    // mustn't undo a pan or set the style a second time.
     watch(
-      () => [props.center, props.zoom] as const,
-      ([center, zoom]) => {
+      () => [props.center?.[0], props.center?.[1], props.zoom] as const,
+      () => {
         const m = mapRef.value
-        if (!m || !center || zoom === undefined)
+        if (!m || !props.center || props.zoom === undefined)
           return
-        m.setView(center, zoom)
+        m.setView(props.center, props.zoom)
+      },
+    )
+
+    watch(
+      () => (props.style === undefined ? undefined : styleKey(props.style)),
+      (key, previous) => {
+        const m = mapRef.value
+        if (!m || key === undefined || key === previous)
+          return
+        m.setStyle(props.style as Parameters<TsMapInstance['setStyle']>[0])
       },
     )
 
