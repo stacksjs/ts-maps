@@ -1,5 +1,65 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.23...v0.4.0)
+
+## 🚀 Features
+
+- **examples**: edit and run any example ([8f97003](https://github.com/stacksjs/ts-maps/commit/8f97003)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **docs**: the examples page is a gallery of them ([0191181](https://github.com/stacksjs/ts-maps/commit/0191181)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **examples**: every example on a real basemap, and five new ones ([5565b36](https://github.com/stacksjs/ts-maps/commit/5565b36)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **symbols**: label polygons where they have the most room ([9878ee3](https://github.com/stacksjs/ts-maps/commit/9878ee3)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **globe**: draw the globe as a sphere ([e2d04dc](https://github.com/stacksjs/ts-maps/commit/e2d04dc)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **style**: read sources named by a TileJSON url ([b7d955c](https://github.com/stacksjs/ts-maps/commit/b7d955c)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **docs**: every playground demo opens inside the docs ([8a003d3](https://github.com/stacksjs/ts-maps/commit/8a003d3)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **playground**: demos that look like Mapbox's, and a sidebar that lists them ([0495b5d](https://github.com/stacksjs/ts-maps/commit/0495b5d)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **docs**: send /page.md links on to their page ([5376156](https://github.com/stacksjs/ts-maps/commit/5376156)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **docs**: every example runs on its page, and the links between pages work ([2f11e37](https://github.com/stacksjs/ts-maps/commit/2f11e37)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **docs**: ship the docs and playground to ts-maps.stacksjs.com on the Stacks box ([1eb1b8d](https://github.com/stacksjs/ts-maps/commit/1eb1b8d)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **lookaround**: street-level pictures to turn in and walk through ([ba781ea](https://github.com/stacksjs/ts-maps/commit/ba781ea)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **i18n**: the built-in UI and turn-by-turn in the reader's language ([6d89eb9](https://github.com/stacksjs/ts-maps/commit/6d89eb9)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **react-native**: keep offline maps in the app's own files ([eb250ba](https://github.com/stacksjs/ts-maps/commit/eb250ba)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **3d**: landmarks, trees and pitched roofs, after Apple Maps ([41a56f4](https://github.com/stacksjs/ts-maps/commit/41a56f4)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **indoor**: IMDF venues, a level picker, and the gates and shops in search ([114b948](https://github.com/stacksjs/ts-maps/commit/114b948)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **a11y**: search, Offline Maps and turn-by-turn for screen readers and keyboards ([2210798](https://github.com/stacksjs/ts-maps/commit/2210798)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **directions**: transit, planned by OpenTripPlanner or Google, and a Transit map ([1e2b3ea](https://github.com/stacksjs/ts-maps/commit/1e2b3ea)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **search**: Favorites and Guides, saved from the place card ([0129822](https://github.com/stacksjs/ts-maps/commit/0129822)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **maps**: Explore, Driving and Satellite with a map type picker, and live traffic ([d55d227](https://github.com/stacksjs/ts-maps/commit/d55d227)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **search**: hours, phone, website and Share on the place card ([f4d47d6](https://github.com/stacksjs/ts-maps/commit/f4d47d6)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **search**: gather overlapping result pins into numbered bubbles ([7fe45fc](https://github.com/stacksjs/ts-maps/commit/7fe45fc)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline**: routes that cost their turns, respect access, and say less on foot ([a109ff0](https://github.com/stacksjs/ts-maps/commit/a109ff0)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline**: search and route over Protomaps, Shortbread and Mapbox Streets tiles ([8075b29](https://github.com/stacksjs/ts-maps/commit/8075b29)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline**: ts-maps/offline-sw, and downloads that carry on with the tab closed ([098cca7](https://github.com/stacksjs/ts-maps/commit/098cca7)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline**: automatic updates, interrupted downloads that resume, persistent storage and quota ([b9a1f8d](https://github.com/stacksjs/ts-maps/commit/b9a1f8d)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline**: download terrain with the map, and draw it from an ancestor past the DEM ([11cd523](https://github.com/stacksjs/ts-maps/commit/11cd523)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **bindings**: OfflineMaps, Search and TurnByTurn follow every prop after mount ([fe5bb29](https://github.com/stacksjs/ts-maps/commit/fe5bb29)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **services**: back off on 429s, chain geocoders, and say how to run search in production ([a694233](https://github.com/stacksjs/ts-maps/commit/a694233)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **styles**: resolveTileJSON, fonts and offlineCache, from what Wildloop works around ([a321951](https://github.com/stacksjs/ts-maps/commit/a321951)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🐛 Bug Fixes
+
+- **indoor**: colour the rooms, and clear the building under the plan ([16ec62d](https://github.com/stacksjs/ts-maps/commit/16ec62d)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **hillshade**: shade the slopes, not the whole ground ([a0572c1](https://github.com/stacksjs/ts-maps/commit/a0572c1)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **style**: draw GeoJSON sources added after the style ([7285054](https://github.com/stacksjs/ts-maps/commit/7285054)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **heatmap**: scale to the data, rather than one red blob ([6f99ce8](https://github.com/stacksjs/ts-maps/commit/6f99ce8)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **i18n**: read POSIX locales, and fall back to English for any Intl can't ([cace810](https://github.com/stacksjs/ts-maps/commit/cace810)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **react-native**: type the offline store reply so the package typechecks on its own ([44a41fe](https://github.com/stacksjs/ts-maps/commit/44a41fe)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **lint**: do not ask for dist files before anything is built ([5e59d06](https://github.com/stacksjs/ts-maps/commit/5e59d06)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline-sw**: files kept as they load come from the network first ([921ff80](https://github.com/stacksjs/ts-maps/commit/921ff80)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **offline**: download the glyph ranges an area's names are written in ([e566eb3](https://github.com/stacksjs/ts-maps/commit/e566eb3)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **docs**: the site builds again, with the playground at /playground/ ([1caef2c](https://github.com/stacksjs/ts-maps/commit/1caef2c)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.4.0 ([197a4be](https://github.com/stacksjs/ts-maps/commit/197a4be)) _(by Chris <chrisbreuer93@gmail.com>)_
+- add release:minor beside release:patch ([61d9851](https://github.com/stacksjs/ts-maps/commit/61d9851)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **deps**: bunpress 0.2.18, which escapes titles once ([a797ebe](https://github.com/stacksjs/ts-maps/commit/a797ebe)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **deps**: very-happy-dom 0.4, where toggle(name, false) removes ([e3fd92f](https://github.com/stacksjs/ts-maps/commit/e3fd92f)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **lint**: clean lint, and keep it clean in CI ([85a9b3e](https://github.com/stacksjs/ts-maps/commit/85a9b3e)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.3.22...v0.3.23)
 
 ## 🚀 Features
