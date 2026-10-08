@@ -2,7 +2,9 @@
 
 A `HeatmapLayer` over 500 synthetic points, with the colour ramp cycled every 2.5 seconds. `radius`, `blur` and `gradient` are all reactive — call `layer.redraw()` after mutating options.
 
-Full source: [`05-heatmap.ts`](./05-heatmap.ts)
+<iframe class="ts-maps-demo" src="/playground/examples/05-heatmap.html" title="05 · Heatmap, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
+
+[Open it full screen](/playground/examples/05-heatmap.html) · Full source: [`05-heatmap.ts`](./05-heatmap.ts)
 
 ```ts
 const heat = new HeatmapLayer({

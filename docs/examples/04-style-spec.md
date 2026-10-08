@@ -2,7 +2,9 @@
 
 A raster OSM basemap with a GeoJSON polygon on top. Buttons swap the fill and stroke colours at runtime — no layer is re-added.
 
-Full source: [`04-style-spec.ts`](./04-style-spec.ts)
+<iframe class="ts-maps-demo" src="/playground/examples/04-style-spec.html" title="04 · Style spec, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
+
+[Open it full screen](/playground/examples/04-style-spec.html) · Full source: [`04-style-spec.ts`](./04-style-spec.ts)
 
 ```ts
 midtown.setStyle({ fillColor: '#f43f5e', color: '#f43f5e' })

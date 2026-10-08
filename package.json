@@ -53,7 +53,7 @@
     "playground:incident-map": "bun ${STX_CLI:-$HOME/Code/Tools/stx/packages/stx/dist/cli.js} dev playground/incident-map --port ${PORT:-3400}",
     "render:check": "bun --bun scripts/verify-render.ts",
     "dev:docs": "bun --bun bunpress dev docs",
-    "build:docs": "bun --bun bunpress build docs",
+    "build:docs": "bun --bun bunpress build docs && bun scripts/fix-doc-links.ts",
     "build:playground": "bun --bun scripts/build-playground.ts",
     "build:site": "bun run build:docs && bun run build:playground",
     "deploy": "bunx --bun @stacksjs/ts-cloud deploy --env production --yes",

@@ -1,0 +1,17 @@
+/*
+ * The pages the docs' examples run in (scripts/build-playground.ts): the map
+ * full-bleed, and the few elements an example's script looks for besides it.
+ */
+html, body { margin: 0; height: 100%; overflow: hidden; font: 13px/1.4 -apple-system, system-ui, sans-serif; }
+#map { position: absolute; inset: 0; }
+.pin { width: 26px; height: 26px; border-radius: 50% 50% 50% 0; background: #ef4444; transform: rotate(-45deg); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); box-sizing: border-box; }
+.panel { position: absolute; z-index: 800; right: 10px; top: 10px; max-width: min(320px, calc(100% - 20px)); padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.94); color: #1c1c1e; box-shadow: 0 1px 6px rgba(0,0,0,.2); }
+.panel:empty { display: none; }
+.panel input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #d0d0d5; border-radius: 7px; font: inherit; }
+.panel ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 220px; overflow: auto; }
+.panel li { padding: 4px 2px; cursor: pointer; }
+.panel li.muted { cursor: default; color: #6b7280; }
+.panel button { margin: 2px 4px 2px 0; padding: 5px 10px; border: 0; border-radius: 7px; background: #0066cc; color: #fff; font: 600 12px -apple-system, system-ui, sans-serif; cursor: pointer; }
+.panel canvas { display: block; width: 160px; height: 160px; border-radius: 6px; }
+body.globe { display: flex; align-items: center; justify-content: center; background: #0b1220; color: #cbd5e1; }
+body.globe canvas { max-width: 100%; max-height: 100%; }

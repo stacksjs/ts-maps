@@ -2,7 +2,9 @@
 
 An OpenStreetMap basemap with a draggable marker at Times Square and a bound popup. Pan, zoom, and drag work out of the box — no manual input wiring.
 
-Full source: [`01-basic-map.ts`](./01-basic-map.ts)
+<iframe class="ts-maps-demo" src="/playground/examples/01-basic-map.html" title="01 · Basic map, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
+
+[Open it full screen](/playground/examples/01-basic-map.html) · Full source: [`01-basic-map.ts`](./01-basic-map.ts)
 
 ```ts
 import { DivIcon, Marker, tileLayer, TsMap } from 'ts-maps'

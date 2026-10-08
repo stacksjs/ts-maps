@@ -2,7 +2,9 @@
 
 Pan the map to an area, click _Download_, then _Disable network_: tiles inside the downloaded bbox keep rendering from `TileCache` while the network is blocked.
 
-Full source: [`11-offline.ts`](./11-offline.ts)
+<iframe class="ts-maps-demo" src="/playground/examples/11-offline.html" title="11 · Offline tiles, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
+
+[Open it full screen](/playground/examples/11-offline.html) · Full source: [`11-offline.ts`](./11-offline.ts)
 
 ```ts
 const cache = new TileCache({ name: 'ts-maps-docs-offline' })
