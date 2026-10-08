@@ -34,6 +34,29 @@ function markdownRedirects(dir = 'docs'): Record<string, { deploy: 'server', dom
   return out
 }
 
+/** Example pages renamed when they grew past their first idea, from the old name to the new. */
+const RENAMED: Record<string, string> = {
+  'examples/06-hillshade': 'examples/06-terrain',
+  'examples/09-geocoder': 'examples/09-search',
+  'examples/10-directions': 'examples/10-turn-by-turn',
+}
+
+/** The old pages, and their `.md` files, sent on to the new ones, so a saved link still lands. */
+function renamedRedirects(): ReturnType<typeof markdownRedirects> {
+  const out: ReturnType<typeof markdownRedirects> = {}
+  for (const [from, to] of Object.entries(RENAMED)) {
+    for (const path of [`/${from}`, `/${from}.md`]) {
+      out[`renamed_${path.replace(/[^a-z0-9]+/gi, '_')}`] = {
+        deploy: 'server',
+        domain: DOMAIN,
+        path,
+        redirect: { to: `https://${DOMAIN}/${to}`, preservePath: false },
+      }
+    }
+  }
+  return out
+}
+
 /**
  * ts-cloud deployment config for ts-maps.stacksjs.com.
  *
@@ -131,6 +154,7 @@ const config: CloudConfig = {
     },
 
     ...markdownRedirects(),
+    ...renamedRedirects(),
   },
 }
 

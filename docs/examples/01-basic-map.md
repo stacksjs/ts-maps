@@ -1,22 +1,21 @@
 # 01 · Basic map
 
-An OpenStreetMap basemap with a draggable marker at Times Square and a bound popup. Pan, zoom, and drag work out of the box — no manual input wiring.
+A vector basemap, a draggable marker and its popup: the least a map needs. The basemap is [OpenFreeMap](https://openfreemap.org)'s planet, free and keyless, drawn with the built-in light style. `url` names its TileJSON, which the map reads for the tiles.
 
-<iframe class="ts-maps-demo" src="/playground/examples/01-basic-map.html" title="01 · Basic map, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
+<iframe class="ts-maps-demo" src="/playground/examples/01-basic-map.html" title="Basic map, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
 
-[Open it full screen](/playground/examples/01-basic-map.html) · Full source: [`01-basic-map.ts`](./01-basic-map.ts)
+[Open it full screen](/playground/examples/01-basic-map.html) · [Edit and run it](/playground/examples/edit.html?example=01-basic-map) · Full source: [`01-basic-map.ts`](./01-basic-map.ts)
 
 ```ts
-import { DivIcon, Marker, tileLayer, TsMap } from 'ts-maps'
+import { DivIcon, Marker, styles, TsMap } from 'ts-maps'
 
-const map = new TsMap('map', { center: [40.758, -73.9855], zoom: 13 })
+const map = new TsMap('map', {
+  center: [40.758, -73.9855],
+  zoom: 14,
+  style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
+})
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-}).addTo(map)
-
-const icon = new DivIcon({ html: '<div class="pin"></div>', iconSize: [26, 26], iconAnchor: [13, 26] })
-new Marker([40.758, -73.9855], { icon, draggable: true })
+new Marker([40.758, -73.9855], { icon: new DivIcon({ html: '<div class="pin"></div>' }), draggable: true })
   .addTo(map)
   .bindPopup('<b>Hello from ts-maps</b>')
   .openPopup()

@@ -1,28 +1,22 @@
 /**
  * Example 01 — Basic map.
  *
- * OSM basemap, a single marker, and a bound popup. This is the minimum
- * viable ts-maps setup.
+ * A vector basemap, a draggable marker and its popup: the least a map needs.
+ * The basemap is OpenFreeMap's planet, keyless, drawn with the built-in light
+ * style; `url` names its TileJSON, which the map reads for the tiles.
  */
 
-import { DivIcon, Marker, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, Marker, styles, TsMap } from '../../packages/ts-maps/src/core-map'
 
 const TIMES_SQUARE: [number, number] = [40.758, -73.9855]
 
 const map = new TsMap('map', {
   center: TIMES_SQUARE,
-  zoom: 13,
-  minZoom: 2,
-  maxZoom: 19,
-  worldCopyJump: true,
+  zoom: 14,
+  style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
 })
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19,
-}).addTo(map)
-
-const pinIcon = new DivIcon({
+const pin = new DivIcon({
   className: '',
   html: '<div class="pin"></div>',
   iconSize: [26, 26],
@@ -30,15 +24,10 @@ const pinIcon = new DivIcon({
   popupAnchor: [0, -22],
 })
 
-const marker = new Marker(TIMES_SQUARE, {
-  icon: pinIcon,
-  draggable: true,
-  title: 'Times Square',
-  alt: 'Times Square marker',
-})
-marker.addTo(map)
-marker.bindPopup('<b>Hello from ts-maps</b><br>Times Square, NYC')
-marker.openPopup()
+new Marker(TIMES_SQUARE, { icon: pin, draggable: true, title: 'Times Square' })
+  .addTo(map)
+  .bindPopup('<b>Hello from ts-maps</b><br>Times Square, New York')
+  .openPopup()
 
 const globalScope = globalThis as unknown as { demo: unknown }
-globalScope.demo = { map, marker }
+globalScope.demo = { map }

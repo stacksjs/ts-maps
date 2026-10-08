@@ -1,21 +1,29 @@
-# 03 · Vector tiles
+# 03 · Vector tiles, styled from scratch
 
-A single synthetic MVT tile fabricated client-side via the in-house `Pbf` writer, rendered through three style layers: a water fill, two roads, and three POIs. Click to hit-test with `queryRenderedFeatures`.
+The same OpenMapTiles planet the basemap draws, with a style of our own: three layers picked by `source-layer` and painted with expressions. Click a road, a building or the river to see what its tile says about it, through `queryRenderedFeatures`.
 
-<iframe class="ts-maps-demo" src="/playground/examples/03-vector-tile.html" title="03 · Vector tiles, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
+<iframe class="ts-maps-demo" src="/playground/examples/03-vector-tile.html" title="Vector tiles, styled from scratch, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
 
-[Open it full screen](/playground/examples/03-vector-tile.html) · Full source: [`03-vector-tile.ts`](./03-vector-tile.ts)
+[Open it full screen](/playground/examples/03-vector-tile.html) · [Edit and run it](/playground/examples/edit.html?example=03-vector-tile) · Full source: [`03-vector-tile.ts`](./03-vector-tile.ts)
 
 ```ts
-vectorTileLayer({
-  url: 'demo-tiles/{z}/{x}/{y}.pbf',
-  tileSize: 512,
-  layers: [
-    { id: 'water',  type: 'fill',   sourceLayer: 'water', paint: { 'fill-color': '#0ea5e9' } },
-    { id: 'roads',  type: 'line',   sourceLayer: 'roads', paint: { 'line-color': '#6b7280', 'line-width': 2 } },
-    { id: 'places', type: 'circle', sourceLayer: 'place', paint: { 'circle-radius': 5 } },
-  ],
-}).addTo(map)
+const map = new TsMap('map', {
+  center: [51.5072, -0.1276],
+  zoom: 15,
+  style: {
+    version: 8,
+    sources: { planet: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
+    layers: [
+      { id: 'land', type: 'background', paint: { 'background-color': '#f4f1ea' } },
+      { id: 'water', type: 'fill', source: 'planet', 'source-layer': 'water', paint: { 'fill-color': '#9cc3e6' } },
+      { id: 'roads', type: 'line', source: 'planet', 'source-layer': 'transportation', paint: {
+        'line-color': ['match', ['get', 'class'], ['motorway', 'trunk', 'primary'], '#f2a33a', '#b9b2a6'],
+      } },
+    ],
+  },
+})
+
+map.on('click', e => console.log(map.queryRenderedFeatures(e.containerPoint, { layers: ['roads'] })))
 ```
 
 ---

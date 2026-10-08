@@ -1,19 +1,21 @@
 /**
  * Example 08 — Symbols with collision.
  *
- * A set of POI labels draped over an OSM basemap. We lay them out with the
+ * A set of POI labels draped over the vector basemap. We lay them out with the
  * library's CollisionIndex: higher-priority labels are placed first and
  * veto overlapping lower-priority neighbours.
  */
 
-import { DivIcon, Marker, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { DivIcon, Marker, styles, TsMap } from '../../packages/ts-maps/src/core-map'
 import { CollisionIndex } from '../../packages/ts-maps/src/core-map/symbols'
 
-const map = new TsMap('map', { center: [40.7580, -73.9855], zoom: 14 })
+const map = new TsMap('map', {
+  center: [40.7580,
+  -73.9855],
+  zoom: 14,
+  style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
+})
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-}).addTo(map)
 
 interface POI {
   name: string
@@ -57,7 +59,7 @@ function layout(): void {
 
     const icon = new DivIcon({
       className: '',
-      html: `<div style="background: var(--surface, #111827); color: var(--text, #e5e7eb); padding: 2px 8px; border: 1px solid #334155; border-radius: 6px; white-space: nowrap; font-size: 12px;">${poi.name}</div>`,
+      html: `<div class="label">${poi.name}</div>`,
       iconSize: [w, h],
       iconAnchor: [w / 2, h / 2],
     })

@@ -5,14 +5,16 @@
  * ramp every two seconds to show how HeatmapLayer options are reactive.
  */
 
-import { HeatmapLayer, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { HeatmapLayer, styles, TsMap } from '../../packages/ts-maps/src/core-map'
 
 const CENTER: [number, number] = [40.758, -73.9855]
-const map = new TsMap('map', { center: CENTER, zoom: 12, maxZoom: 17 })
+const map = new TsMap('map', {
+  center: CENTER,
+  zoom: 12,
+  maxZoom: 17,
+  style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
+})
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-}).addTo(map)
 
 function randomPoints(n: number): { lat: number, lng: number, weight: number }[] {
   const pts: { lat: number, lng: number, weight: number }[] = []

@@ -7,14 +7,16 @@
  */
 
 import type { ClusterPoint } from '../../packages/ts-maps/src/core-map/layer/GeoJSONClusterSource'
-import { CircleMarker, DivIcon, GeoJSONClusterSource, LayerGroup, Marker, tileLayer, TsMap } from '../../packages/ts-maps/src/core-map'
+import { CircleMarker, DivIcon, GeoJSONClusterSource, LayerGroup, Marker, styles, TsMap } from '../../packages/ts-maps/src/core-map'
 
 const CENTER: [number, number] = [40.758, -73.9855]
-const map = new TsMap('map', { center: CENTER, zoom: 11, maxZoom: 18 })
+const map = new TsMap('map', {
+  center: CENTER,
+  zoom: 11,
+  maxZoom: 18,
+  style: styles.light({ url: 'https://tiles.openfreemap.org/planet' }),
+})
 
-tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-}).addTo(map)
 
 function randomFeatures(n: number): ClusterPoint[] {
   const out: ClusterPoint[] = []

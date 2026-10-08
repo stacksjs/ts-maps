@@ -95,12 +95,13 @@ const EXAMPLES_OUT = join(OUT, 'examples')
 
 /** What each example needs on the page besides `#map`. */
 const PANELS: Record<string, string> = {
+  '02-camera': '<div class="panel"><button type="button" id="fly-ny">New York</button><button type="button" id="fly-london">London</button><button type="button" id="fly-tokyo">Tokyo</button><br><button type="button" id="ease-tilt" class="secondary">Tilt</button><button type="button" id="ease-flat" class="secondary">Flatten</button><button type="button" id="jump" class="secondary">Jump to Paris</button></div>',
   '03-vector-tile': '<div class="panel" id="info"></div>',
-  '06-hillshade': '<div class="panel"><div id="shade-preview"></div><div id="decode-info"></div></div>',
+  '04-style-spec': '<div class="panel"><button type="button" id="tint-indigo">Indigo</button><button type="button" id="tint-rose">Rose</button><button type="button" id="tint-emerald">Emerald</button><button type="button" id="toggle-fill" class="secondary">Fill on / off</button></div>',
+  '06-terrain': '<div class="panel"><label for="exaggeration">Exaggeration <span id="exaggeration-value">1.3×</span></label><input id="exaggeration" type="range" min="0" max="3" step="0.1" value="1.3"></div>',
   '08-symbols': '<div class="panel" id="info"></div>',
-  '09-geocoder': '<div class="panel"><input id="q" type="search" placeholder="Search a place…" autocomplete="off"><ul id="results"></ul></div>',
-  '10-directions': '<div class="panel"><div id="info"></div><button type="button" id="reset">Reset</button></div>',
-  '11-offline': '<div class="panel"><button type="button" id="download">Download this area</button> <button type="button" id="toggle">Disable network</button><div id="info"></div></div>',
+  '15-landmarks': '<div class="panel"><button type="button" id="pyramid">Transamerica Pyramid</button><button type="button" id="presidio">Presidio woods</button></div>',
+  '17-localization': '<div class="bottom panel"><a data-lang="de" href="?lang=de">Deutsch</a> · <a data-lang="en" href="?lang=en">English</a></div>',
 }
 
 const examples = existsSync(EXAMPLES) ? readdirSync(EXAMPLES).filter(f => /^\d+-.+\.ts$/.test(f)) : []
@@ -123,11 +124,7 @@ if (examples.length) {
   for (const file of examples) {
     const name = file.replace(/\.ts$/, '')
     const title = readFileSync(join(EXAMPLES, `${name}.md`), 'utf8').match(/^#\s+(.+)$/m)?.[1] ?? name
-    // The globe example draws its own canvas rather than a map.
-    const globe = name.endsWith('-globe')
-    const body = globe
-      ? '<canvas id="globe"></canvas><div class="panel" id="info"></div>'
-      : `<div id="map"></div>${PANELS[name] ?? ''}`
+    const body = `<div id="map"></div>${PANELS[name] ?? ''}`
     writeFileSync(join(EXAMPLES_OUT, `${name}.html`), `<!doctype html>
 <html lang="en">
   <head>
@@ -137,7 +134,7 @@ if (examples.length) {
     <link rel="stylesheet" href="../ts-maps.css" />
     <link rel="stylesheet" href="./examples.css" />
   </head>
-  <body${globe ? ' class="globe"' : ''}>
+  <body>
     ${body}
     <script type="module" src="./${name}.js"></script>
   </body>

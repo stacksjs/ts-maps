@@ -1,23 +1,15 @@
-# 11 · Offline tiles
+# 11 · Offline maps
 
-Pan the map to an area, click _Download_, then _Disable network_: tiles inside the downloaded bbox keep rendering from `TileCache` while the network is blocked.
+The Offline Maps button: pick an area, see how much it will take, and download it. Its tiles, fonts, places and roads are kept in the browser, so the map, search and directions all work with no connection. See [Offline](/concepts/offline).
 
-<iframe class="ts-maps-demo" src="/playground/examples/11-offline.html" title="11 · Offline tiles, running" loading="lazy" style="width: 100%; height: 440px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
+<iframe class="ts-maps-demo" src="/playground/examples/11-offline.html" title="Offline maps, running" loading="lazy" style="width: 100%; height: 480px; border: 0; border-radius: 12px; background: #e8eaed;"></iframe>
 
-[Open it full screen](/playground/examples/11-offline.html) · Full source: [`11-offline.ts`](./11-offline.ts)
+[Open it full screen](/playground/examples/11-offline.html) · [Edit and run it](/playground/examples/edit.html?example=11-offline) · Full source: [`11-offline.ts`](./11-offline.ts)
 
 ```ts
-const cache = new TileCache({ name: 'ts-maps-docs-offline' })
-
-const result = await saveOfflineRegion({
-  bounds: [west, south, east, north],
-  zoomRange: [10, 12],
-  tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  cache,
-  concurrency: 4,
-})
+control.offlineMaps({ resources: ['https://tiles.openfreemap.org/planet'] }).addTo(map)
 ```
 
 ---
 
-[← Directions](./10-directions.md) · [Globe →](./12-globe.md)
+[← Turn-by-turn](./10-turn-by-turn.md) · [Globe →](./12-globe.md)

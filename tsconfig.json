@@ -34,5 +34,5 @@
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
   },
-  "exclude": ["playground/**/*", "docs/**/*", "**/dist/**/*", "**/node_modules/**/*", "packages/react/**/*", "packages/react-native/**/*", "packages/vue/**/*", "packages/svelte/**/*", "packages/solid/**/*", "packages/nuxt/**/*", "pantry/**/*", "**/*.md"]
+  "exclude": ["playground/**/*", "docs/_data/**/*", "docs/demos/**/*", "**/dist/**/*", "**/node_modules/**/*", "packages/react/**/*", "packages/react-native/**/*", "packages/vue/**/*", "packages/svelte/**/*", "packages/solid/**/*", "packages/nuxt/**/*", "pantry/**/*", "**/*.md"]
 }
