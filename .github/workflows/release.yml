@@ -4,7 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+  # By hand: a tag here releases that tag again, filling in its notes and
+  # files; without one, publishes from main whatever a release left out.
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release again, e.g. v0.5.0
+        required: false
 
 jobs:
   npm:
@@ -17,6 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
 
       - name: Setup Pantry
@@ -42,8 +49,36 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      # The tarballs npm now serves for this version, each package's own, so
+      # the release carries exactly what was published.
+      - name: Gather the published tarballs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.tag
+        run: |
+          mkdir -p release
+          for manifest in packages/*/package.json; do
+            spec=$(jq -r 'select(.private != true) | "\(.name)/\(.version)"' "$manifest")
+            [ -z "$spec" ] && continue
+            # Named as npm pack names it: @ts-maps/react → ts-maps-react-0.5.0.tgz.
+            file=$(jq -r '"\(.name | ltrimstr("@") | gsub("/"; "-"))-\(.version).tgz"' "$manifest")
+            # A version just published can take a moment to show.
+            for attempt in 1 2 3 4 5 6; do
+              url=$(curl -fsS "https://registry.npmjs.org/$spec" | jq -r '.dist.tarball // empty') && [ -n "$url" ] && break
+              sleep 10
+            done
+            curl -fsSL --retry 3 -o "release/$file" "$url"
+          done
+          ls -l release
+
+      # Notes from this version's section of CHANGELOG.md, the tarballs, their
+      # checksums and a manifest, on the tag's release, made or brought up to date.
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: stacksjs/action-releaser@v1.2.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: startsWith(github.ref, 'refs/tags/') || inputs.tag
+        uses: pantry-pm/pantry/packages/action@main
+        with:
+          install: 'false'
+          release: 'true'
+          release-tag: ${{ inputs.tag || github.ref_name }}
+          release-changelog: CHANGELOG.md
+          release-files: release/*.tgz
+          release-checksums: 'true'
+          release-token: ${{ secrets.GITHUB_TOKEN }}
