@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Pantry
-        uses: pantry-pm/pantry/packages/action@main
+        uses: pantry-pm/pantry/packages/action@v0.11.79
         with:
           install: 'false'
 
@@ -73,7 +73,7 @@ jobs:
       # checksums and a manifest, on the tag's release, made or brought up to date.
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/') || inputs.tag
-        uses: pantry-pm/pantry/packages/action@main
+        uses: pantry-pm/pantry/packages/action@v0.11.79
         with:
           install: 'false'
           release: 'true'
