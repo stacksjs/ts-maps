@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.4...v0.5.5)
+
+## 🐛 Bug Fixes
+
+- generate navigation links in native JavaScript runtimes ([947a1e3](https://github.com/stacksjs/ts-maps/commit/947a1e3)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.5 ([42f3cb5](https://github.com/stacksjs/ts-maps/commit/42f3cb5)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.3...v0.5.4)
 
 ## 🐛 Bug Fixes
