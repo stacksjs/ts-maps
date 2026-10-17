@@ -1,5 +1,16 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.1...v0.5.2)
+
+## 🧹 Chores
+
+- release v0.5.2 ([4f8ca88](https://github.com/stacksjs/ts-maps/commit/4f8ca88)) _(by Chris Breuer <chris@stacksjs.com>)_
+- keep generated local artifacts out of source releases ([47e0247](https://github.com/stacksjs/ts-maps/commit/47e0247)) _(by Chris Breuer <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris Breuer <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.0...v0.5.1)
 
 ## 🐛 Bug Fixes
