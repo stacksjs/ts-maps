@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.3...v0.5.4)
+
+## 🐛 Bug Fixes
+
+- inherit attribution link colors from map controls ([1620ebe](https://github.com/stacksjs/ts-maps/commit/1620ebe)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.4 ([365dc38](https://github.com/stacksjs/ts-maps/commit/365dc38)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.2...v0.5.3)
 
 ## 🚀 Features
