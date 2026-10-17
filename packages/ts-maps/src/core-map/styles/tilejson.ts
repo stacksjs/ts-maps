@@ -22,6 +22,8 @@
 export interface ResolveTileJSONOptions {
   /** Per source, in milliseconds. A hanging source falls through to the next. Default 6000. */
   timeoutMs?: number
+  /** Maximum session-cache age in milliseconds. Default five minutes. */
+  maxAgeMs?: number
   /**
    * Session storage key the answer is kept under, so only the first page of a
    * session waits for it. `false` turns the cache off.
@@ -62,7 +64,13 @@ function readBody(url: string, body: Record<string, unknown>): ResolvedTileJSON 
   const tiles = Array.isArray(body.tiles) && typeof body.tiles[0] === 'string' ? body.tiles[0] : null
   if (!tiles)
     return null
-  const found: ResolvedTileJSON = { tiles, source: url }
+  let absolute: string
+  try {
+    absolute = new URL(tiles, url).href.replace(/%7B/gi, '{').replace(/%7D/gi, '}')
+    if (!/^https?:/.test(absolute)) return null
+  }
+  catch { return null }
+  const found: ResolvedTileJSON = { tiles: absolute, source: url }
   if (typeof body.attribution === 'string')
     found.attribution = body.attribution
   if (typeof body.minzoom === 'number')
@@ -116,9 +124,9 @@ export async function resolveTileJSON(sources: string | readonly string[], optio
   if (key && storage) {
     try {
       const cached = storage.getItem(key)
-      const parsed = cached ? JSON.parse(cached) as ResolvedTileJSON : null
-      if (parsed && typeof parsed.tiles === 'string')
-        return parsed
+      const parsed = cached ? JSON.parse(cached) as { value?: ResolvedTileJSON, expires?: number } : null
+      if (parsed?.value && typeof parsed.value.tiles === 'string' && typeof parsed.expires === 'number' && parsed.expires > Date.now())
+        return parsed.value
     }
     catch {}
   }
@@ -129,7 +137,7 @@ export async function resolveTileJSON(sources: string | readonly string[], optio
       continue
     if (key && storage) {
       try {
-        storage.setItem(key, JSON.stringify(found))
+        storage.setItem(key, JSON.stringify({ value: found, expires: Date.now() + (options.maxAgeMs ?? 300000) }))
       }
       catch {}
     }

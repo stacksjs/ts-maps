@@ -74,6 +74,19 @@ describe('resolveTileJSON', () => {
     expect(await resolveTileJSON([], { fetch, storage: null })).toBeNull()
   })
 
+  test('resolves relative tile templates against their TileJSON', async () => {
+    const { fetch } = stubFetch({ 'https://tiles.test/maps/tiles.json': { tiles: ['./planet/{z}/{x}/{y}.pbf'] } })
+    expect((await resolveTileJSON(['https://tiles.test/maps/tiles.json'], { fetch, storage: null }))?.tiles).toBe('https://tiles.test/maps/planet/{z}/{x}/{y}.pbf')
+  })
+
+  test('revalidates an expired archive URL in a long-lived session', async () => {
+    const storage = memoryStorage()
+    const { fetch, asked } = stubFetch({ 'https://tiles.test/tiles.json': WILDLOOP })
+    await resolveTileJSON(['https://tiles.test/tiles.json'], { fetch, storage, maxAgeMs: -1 })
+    await resolveTileJSON(['https://tiles.test/tiles.json'], { fetch, storage })
+    expect(asked.length).toBe(2)
+  })
+
   test('asks once per session, per list of sources', async () => {
     const storage = memoryStorage()
     const { fetch, asked } = stubFetch({ 'https://a.example/tiles.json': { tiles: ['https://a.example/{z}/{x}/{y}.pbf'] } })
