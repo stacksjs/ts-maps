@@ -602,6 +602,7 @@ path.tsmap-interactive:focus:not(:focus-visible) {
 }
 
 .tsmap-control-attribution a {
+  color: inherit;
   text-decoration: none;
 
   &:hover,
