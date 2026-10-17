@@ -1,0 +1,1 @@
+{"version":3,"file":"VectorTile.d.ts","sourceRoot":"","sources":["VectorTile.ts"],"names":[],"mappings":"AAIA,OAAO,EAAE,GAAG,EAAE,MAAM,cAAc,CAAA;AAClC,OAAO,EAAE,eAAe,EAAE,MAAM,mBAAmB,CAAA;AAKnD,qBAAa,UAAU;IACrB,MAAM,EAAE,MAAM,CAAC,MAAM,EAAE,eAAe,CAAC,CAAA;IAEvC,YAAY,GAAG,EAAE,GAAG,EAAE,GAAG,CAAC,EAAE,MAAM,EAuBjC;CACF"}

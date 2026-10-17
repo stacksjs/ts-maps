@@ -1,5 +1,24 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.0...v0.5.1)
+
+## 🐛 Bug Fixes
+
+- refresh expired TileJSON archives and resolve relative tiles ([08aa79b](https://github.com/stacksjs/ts-maps/commit/08aa79b)) _(by Chris Breuer <chris@stacksjs.com>)_
+
+## 🤖 Continuous Integration
+
+- **release**: the GitHub release comes from pantry's action ([083817c](https://github.com/stacksjs/ts-maps/commit/083817c)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.1 ([42b6c0d](https://github.com/stacksjs/ts-maps/commit/42b6c0d)) _(by Chris Breuer <chris@stacksjs.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+- _Chris Breuer <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.4.0...v0.5.0)
 
 ## 🚀 Features
