@@ -61,27 +61,32 @@ function round6(value: number): string {
   return String(Number(value.toFixed(6)) + 0)
 }
 
+/** Link generation also runs in native JavaScriptCore, without DOM URL APIs. */
+function linkQuery(params: Array<[string, string]>): string {
+  return params.map(([name, value]) => `${encodeURIComponent(name)}=${encodeURIComponent(value)}`).join('&')
+}
+
 /** Directions in Apple Maps. */
 export function appleMapsDirectionsUrl(destination: LatLngLike, opts: NavigationLinkOptions = {}): string {
-  const params = new URLSearchParams()
+  const params: Array<[string, string]> = []
   if (opts.origin)
-    params.set('saddr', formatCoordinate(opts.origin))
-  params.set('daddr', formatCoordinate(destination))
+    params.push(['saddr', formatCoordinate(opts.origin)])
+  params.push(['daddr', formatCoordinate(destination)])
   const flag = APPLE_DIRFLG[opts.mode ?? 'driving']
   if (flag)
-    params.set('dirflg', flag)
-  return `https://maps.apple.com/?${params.toString()}`
+    params.push(['dirflg', flag])
+  return `https://maps.apple.com/?${linkQuery(params)}`
 }
 
 /** Directions in Google Maps (the app when installed, the web otherwise). */
 export function googleMapsDirectionsUrl(destination: LatLngLike, opts: NavigationLinkOptions = {}): string {
-  const params = new URLSearchParams()
-  params.set('api', '1')
+  const params: Array<[string, string]> = []
+  params.push(['api', '1'])
   if (opts.origin)
-    params.set('origin', formatCoordinate(opts.origin))
-  params.set('destination', formatCoordinate(destination))
-  params.set('travelmode', GOOGLE_TRAVELMODE[opts.mode ?? 'driving'])
-  return `https://www.google.com/maps/dir/?${params.toString()}`
+    params.push(['origin', formatCoordinate(opts.origin)])
+  params.push(['destination', formatCoordinate(destination)])
+  params.push(['travelmode', GOOGLE_TRAVELMODE[opts.mode ?? 'driving']])
+  return `https://www.google.com/maps/dir/?${linkQuery(params)}`
 }
 
 /** Both hand-off links for one destination. */

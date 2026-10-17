@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import vm from 'node:vm'
 import { appleMapsDirectionsUrl, directionsLinks, formatCoordinate, googleMapsDirectionsUrl } from '../../src/core-map/services'
 
 const trailhead = { lat: 32.8894161, lng: -117.2518543 }
@@ -9,6 +11,13 @@ describe('directions hand-off links', () => {
       apple: 'https://maps.apple.com/?daddr=32.889416%2C-117.251854&dirflg=d',
       google: 'https://www.google.com/maps/dir/?api=1&destination=32.889416%2C-117.251854&travelmode=driving',
     })
+  })
+
+  test('generates the same links in a native runtime without browser URL globals', () => {
+    const source = readFileSync(new URL('../../src/core-map/services/links.ts', import.meta.url), 'utf8')
+    const code = new Bun.Transpiler({loader:'ts'}).transformSync(source).replace(/export /g,'')
+    const native = vm.runInNewContext(`${code}; directionsLinks({lat:32.8894161,lng:-117.2518543})`)
+    expect({...native}).toEqual(directionsLinks(trailhead))
   })
 
   test('map each travel mode to what the app understands', () => {
