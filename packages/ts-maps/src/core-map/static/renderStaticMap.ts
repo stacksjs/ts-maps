@@ -40,6 +40,23 @@ export interface StaticMapView {
   scale: number
 }
 
+/** A placed label, after collision detection, in output pixels. */
+export interface StaticMapLabel {
+  text: string
+  x: number
+  y: number
+  size: number
+  anchor: 'start' | 'middle' | 'end'
+  family: string
+  weight: number
+  italic: boolean
+  color: string
+  haloColor: string
+  haloWidth: number
+  opacity: number
+  letterSpacing: number
+}
+
 export interface StaticMapOptions {
   style: StyleSpecification
   width: number
@@ -56,6 +73,8 @@ export interface StaticMapOptions {
   idPrefix?: string
   /** The CSS family a label falls back to after the style's own font. */
   fontFamily?: string
+  /** Custom SVG for placed labels, e.g. glyph outlines for portable SVG/PNG exports. */
+  renderLabel?: (label: StaticMapLabel) => string
   /**
    * Lines drawn over the map afterwards, such as a route, in output pixels.
    * A label that would sit under one is left out rather than covered.
@@ -770,6 +789,13 @@ export async function renderStaticMap(options: StaticMapOptions): Promise<Static
   for (const label of placed) {
     const anchor = label.anchor.includes('left') ? 'start' : label.anchor.includes('right') ? 'end' : 'middle'
     const centreY = (label.box[1] + label.box[3]) / 2
+    if (options.renderLabel) {
+      parts.push(options.renderLabel({ text: label.text, x: label.x, y: centreY, size: label.size, anchor,
+        family: label.font.family, weight: label.font.weight, italic: label.font.italic,
+        color: label.color, haloColor: label.haloColor, haloWidth: label.haloWidth,
+        opacity: label.opacity, letterSpacing: label.letterSpacing }))
+      continue
+    }
     const halo = label.haloWidth > 0
       ? ` stroke="${escapeXml(label.haloColor)}" stroke-width="${Math.round(label.haloWidth * 2 * 100) / 100}" stroke-linejoin="round" paint-order="stroke"`
       : ''

@@ -39,6 +39,16 @@ const fetchTile = async (url: string) => {
 }
 
 describe('renderStaticMap', () => {
+  test('lets exporters outline placed labels without losing placement or style', async () => {
+    const labels: Array<import('../src/core-map/static').StaticMapLabel> = []
+    const map = await renderStaticMap({ style: style(), width: 512, height: 512, view: world, fetch: fetchTile,
+      renderLabel(label) { labels.push(label); return `<g aria-label="${label.text}"><path d="M1 1L2 2"/></g>` } })
+    expect(labels).toHaveLength(1)
+    expect(labels[0]).toMatchObject({ text: 'Del Mar', x: 375, y: 125, size: 14, anchor: 'middle', weight: 600, color: '#cbd5e1', haloWidth: 1.5 })
+    expect(map.markup).toContain('aria-label="Del Mar"')
+    expect(map.markup).not.toContain('<text')
+  })
+
   test('draws the style in order as vector SVG', async () => {
     const map = await renderStaticMap({ style: style(), width: 512, height: 512, view: world, fetch: fetchTile })
     expect(map.tiles).toBe(1)
