@@ -1,5 +1,20 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.2...v0.5.3)
+
+## 🚀 Features
+
+- support outlined labels in static map exports ([fe470e5](https://github.com/stacksjs/ts-maps/commit/fe470e5)) _(by Chris Breuer <chris@stacksjs.com>)_
+
+## 🧹 Chores
+
+- release v0.5.3 ([59af909](https://github.com/stacksjs/ts-maps/commit/59af909)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+- _Chris Breuer <chris@stacksjs.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.1...v0.5.2)
 
 ## 🧹 Chores
