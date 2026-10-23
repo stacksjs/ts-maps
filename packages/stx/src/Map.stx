@@ -29,6 +29,8 @@ export const minZoom = $props.minZoom
 export const maxZoom = $props.maxZoom
 export const bearing = $props.bearing
 export const pitch = $props.pitch
+/** 'mercator' | 'globe', forwarded to the core renderer. */
+export const projection = $props.projection
 /** 'light' | 'dark' | 'auto' — the map's own chrome. */
 export const theme = $props.theme
 /**
@@ -72,6 +74,7 @@ export const mapPropsJson = JSON.stringify({
   maxZoom,
   bearing,
   pitch,
+  projection,
   theme,
   locale,
   styleSpec,

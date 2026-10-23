@@ -96,6 +96,8 @@ export interface MapProps {
   maxZoom?: number
   bearing?: number
   pitch?: number
+  /** Flat map or a globe. Defaults to the core map's mercator projection. */
+  projection?: 'mercator' | 'globe'
   theme?: 'light' | 'dark' | 'auto'
   /** The language the built-in controls speak, unless one has its own. Default the browser's. */
   locale?: string
@@ -131,6 +133,7 @@ export function mapOptionsFrom(props: MapProps): Record<string, unknown> {
     maxZoom: props.maxZoom,
     bearing: props.bearing ?? 0,
     pitch: props.pitch ?? 0,
+    projection: props.projection,
     theme: props.theme ?? (props.basemap === 'auto' ? pageTheme() : 'light'),
     locale: props.locale,
     zoomControl: props.zoomControl ?? true,
