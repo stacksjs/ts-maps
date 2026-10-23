@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.5...v0.5.6)
+
+## 🐛 Bug Fixes
+
+- **stx**: forward map projection to the globe renderer ([f70c5b2](https://github.com/stacksjs/ts-maps/commit/f70c5b2)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.6 ([3fb4f0f](https://github.com/stacksjs/ts-maps/commit/3fb4f0f)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.4...v0.5.5)
 
 ## 🐛 Bug Fixes
