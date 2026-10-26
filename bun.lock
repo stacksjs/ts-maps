@@ -12,7 +12,7 @@
     },
     "packages/nuxt": {
       "name": "ts-maps-nuxt",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "@ts-maps/vue": "workspace:*",
         "ts-maps": "workspace:*",
@@ -28,7 +28,7 @@
     },
     "packages/react": {
       "name": "@ts-maps/react",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -47,7 +47,7 @@
     },
     "packages/react-native": {
       "name": "@ts-maps/react-native",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -60,12 +60,12 @@
       "peerDependencies": {
         "react": ">=18",
         "react-native": ">=0.72",
-        "react-native-webview": ">=13",
+        "react-native-webview": ">=14.0.1",
       },
     },
     "packages/solid": {
       "name": "@ts-maps/solid",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -82,7 +82,7 @@
     },
     "packages/stx": {
       "name": "@ts-maps/stx",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -95,7 +95,7 @@
     },
     "packages/svelte": {
       "name": "@ts-maps/svelte",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -109,7 +109,7 @@
     },
     "packages/ts-maps": {
       "name": "ts-maps",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "devDependencies": {
         "bun-plugin-dtsx": "^0.11.5",
         "bunfig": "^0.15.6",
@@ -119,7 +119,7 @@
     },
     "packages/vue": {
       "name": "@ts-maps/vue",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -134,7 +134,7 @@
     },
     "playground/core-map": {
       "name": "@ts-maps/playground-core-map",
-      "version": "0.5.5",
+      "version": "0.5.6",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
