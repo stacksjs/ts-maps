@@ -661,7 +661,8 @@ We would like to extend our thanks to the following sponsors for funding Stacks 
 The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md) for more information.
 
 Made with 💙
-# Live routes
+
+## Live routes
 
 `LiveRouteLayer` updates a route and its current position without replacing the
 map or changing its camera. Pass separate segments for recording gaps and
@@ -675,4 +676,3 @@ live.update([[[34.01, -118.50], [34.02, -118.51]]], [34.02, -118.51])
 // A hidden or revoked position is removed immediately.
 live.update([], null)
 ```
-
