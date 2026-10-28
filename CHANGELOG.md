@@ -1,5 +1,19 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.6...v0.5.7)
+
+## 🚀 Features
+
+- add live route layers with explicit gaps and position privacy ([13a3aef](https://github.com/stacksjs/ts-maps/commit/13a3aef)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.7 ([f622c17](https://github.com/stacksjs/ts-maps/commit/f622c17)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.5...v0.5.6)
 
 ## 🐛 Bug Fixes
