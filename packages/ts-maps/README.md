@@ -661,3 +661,18 @@ We would like to extend our thanks to the following sponsors for funding Stacks 
 The MIT License (MIT). Please see [LICENSE](https://github.com/stacksjs/ts-maps/blob/main/LICENSE.md) for more information.
 
 Made with 💙
+# Live routes
+
+`LiveRouteLayer` updates a route and its current position without replacing the
+map or changing its camera. Pass separate segments for recording gaps and
+privacy cuts. Coordinates are `[latitude, longitude]`.
+
+```ts
+import { LiveRouteLayer } from 'ts-maps'
+
+const live = new LiveRouteLayer({ color: '#007aff' }).addTo(map)
+live.update([[[34.01, -118.50], [34.02, -118.51]]], [34.02, -118.51])
+// A hidden or revoked position is removed immediately.
+live.update([], null)
+```
+
