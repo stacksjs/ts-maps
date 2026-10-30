@@ -38,6 +38,19 @@ import { decodePolyline } from '../polyline'
 export interface ValhallaOptions {
   baseUrl?: string
   apiKey?: string
+  /**
+   * Valhalla costing options per profile, sent as `costing_options` for the
+   * costing the profile maps to: `{ walking: { use_tracks: 0.8 } }` prefers
+   * tracks to a pedestrian route. See Valhalla's API reference for each
+   * costing's options; unknown ones are the server's to reject.
+   */
+  costingOptions?: Partial<Record<TransportProfile, Record<string, unknown>>>
+  /**
+   * What to ask for besides the line: `'maneuvers'` (default) the turn-by-turn
+   * steps in `language`; `'none'` only the shape and totals, which is far
+   * smaller on a long route and all a planner that draws a line needs.
+   */
+  directionsType?: 'maneuvers' | 'none'
 }
 
 const DEFAULT_BASE_URL = 'https://valhalla1.openstreetmap.de'
@@ -165,20 +178,32 @@ export class ValhallaDirections implements DirectionsProvider {
   name: string = 'valhalla'
   private baseUrl: string
   private apiKey?: string
+  private costingOptions?: ValhallaOptions['costingOptions']
+  private directionsType: 'maneuvers' | 'none'
 
   constructor(opts: ValhallaOptions = {}) {
     this.baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL
     this.apiKey = opts.apiKey
+    this.costingOptions = opts.costingOptions
+    this.directionsType = opts.directionsType ?? 'maneuvers'
   }
 
   async getDirections(waypoints: LatLngLike[], opts?: DirectionsOptions): Promise<Route[]> {
     if (waypoints.length < 2)
       throw new Error('Valhalla requires at least two waypoints')
+    const profile = streetProfile(opts?.profile, 'Valhalla')
+    const costing = costingMap[profile] ?? 'auto'
     const body: Record<string, unknown> = {
       locations: waypoints.map(w => ({ lat: w.lat, lon: w.lng })),
-      costing: costingMap[streetProfile(opts?.profile, 'Valhalla')] ?? 'auto',
-      directions_options: { language: opts?.language ?? 'en-US' },
+      costing,
     }
+    if (this.directionsType === 'none')
+      body.directions_type = 'none'
+    else
+      body.directions_options = { language: opts?.language ?? 'en-US' }
+    const costingOptions = this.costingOptions?.[profile]
+    if (costingOptions && Object.keys(costingOptions).length)
+      body.costing_options = { [costing]: costingOptions }
     if (opts?.alternatives)
       body.alternates = 1
     const url = buildUrl(this.baseUrl, '/route', this.apiKey)

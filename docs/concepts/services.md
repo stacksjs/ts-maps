@@ -118,6 +118,8 @@ Options are `profile` (`'driving'`, `'walking'`, `'cycling'` or `'transit'`), `a
 
 The public OSRM server only routes cars; whatever profile you ask for, the route is a driving one. For walking and cycling, use `ValhallaDirections` or an OSRM of your own built with those profiles.
 
+Valhalla takes two more options on the provider: `costingOptions`, per profile, sent as Valhalla's `costing_options` (`{ walking: { use_tracks: 0.8, walkway_factor: 0.6 } }` favours paths and tracks to streets), and `directionsType: 'none'`, which asks for the line and totals only. A 150 km route then comes back without thousands of turn-by-turn steps.
+
 ### In traffic
 
 Where a provider knows today's traffic, routes say so: `duration` is the time in traffic, `typicalDuration` the time on a clear road, and `traffic` is true. The turn-by-turn preview shows the difference, "4 min delay", orange as it grows and red when it is heavy, or "Light traffic".

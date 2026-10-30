@@ -54,6 +54,29 @@ describe('ValhallaDirections', () => {
     expect(new ValhallaDirections().name).toBe('valhalla')
   })
 
+  test('sends the profile\'s costing options and can leave out the maneuvers', async () => {
+    const { calls } = mockRouter(() => ({ trip: { summary: { length: 1, time: 60 }, legs: [{ summary: { length: 1, time: 60 }, shape: '??_ibE_ibE' }] } }))
+    const v = new ValhallaDirections({ costingOptions: { walking: { use_tracks: 0.8, walkway_factor: 0.6 }, cycling: { use_roads: 0.2 } }, directionsType: 'none' })
+    const [route] = await v.getDirections([{ lat: 0, lng: 0 }, { lat: 1, lng: 1 }], { profile: 'walking' })
+    const body = calls[0].body as Record<string, any>
+    expect(body.costing).toBe('pedestrian')
+    expect(body.costing_options).toEqual({ pedestrian: { use_tracks: 0.8, walkway_factor: 0.6 } })
+    expect(body.directions_type).toBe('none')
+    expect(body.directions_options).toBeUndefined()
+    expect(route.steps).toEqual([])
+    expect(route.geometry.length).toBe(2)
+  })
+
+  test('without options the request is as it was', async () => {
+    const { calls } = mockRouter(() => ({ trip: { summary: { length: 1, time: 60 }, legs: [] } }))
+    await new ValhallaDirections().getDirections([{ lat: 0, lng: 0 }, { lat: 1, lng: 1 }], { profile: 'cycling' })
+    const body = calls[0].body as Record<string, any>
+    expect(body.costing).toBe('bicycle')
+    expect(body.costing_options).toBeUndefined()
+    expect(body.directions_type).toBeUndefined()
+    expect(body.directions_options).toEqual({ language: 'en-US' })
+  })
+
   test('decodes polyline precision-6 and composes route', async () => {
     mockRouter(() => ({
       trip: {
