@@ -1,5 +1,23 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.7...v0.5.8)
+
+## 🚀 Features
+
+- **services**: Valhalla costing options and a shape-only directions type ([542b763](https://github.com/stacksjs/ts-maps/commit/542b763)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 📚 Documentation
+
+- format live route usage guidance ([f97f196](https://github.com/stacksjs/ts-maps/commit/f97f196)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.8 ([b5eb989](https://github.com/stacksjs/ts-maps/commit/b5eb989)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.6...v0.5.7)
 
 ## 🚀 Features
