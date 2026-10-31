@@ -63,9 +63,9 @@
     "release:minor": "bunx --bun @stacksjs/bumpx minor --recursive --commit --tag --push --yes"
   },
   "devDependencies": {
-    "@stacksjs/bunpress": "^0.2.18",
-    "@stacksjs/ts-cloud": "^0.16.47",
-    "better-dx": "^0.2.15"
+    "@stacksjs/bunpress": "^0.2.31",
+    "@stacksjs/ts-cloud": "^0.16.91",
+    "better-dx": "^0.2.38"
   },
   "git-hooks": {
     "pre-commit": {
