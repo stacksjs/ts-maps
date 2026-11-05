@@ -36,7 +36,7 @@ jobs:
           fi
 
       - if: steps.secrets.outputs.ready == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - if: steps.secrets.outputs.ready == 'true'
         uses: oven-sh/setup-bun@v2
