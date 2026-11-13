@@ -80,7 +80,8 @@ as a variable, and `class` is a reserved word: the generated script fails to
 parse.
 
 The other `<Map>` props: `minZoom`, `maxZoom`, `bearing`, `pitch`, `maxPitch`,
-`minPitch`, `theme`
+`minPitch`, `dragRotate` and `pitchWithRotate` (the mouse gesture that turns
+and tilts the map, and whether it tilts), `theme`
 (`light`, `dark` or `auto`, for the map's own chrome), `locale`, `palette`
 (basemap colours per theme: `{ light: { water: '#bcd7ea' } }`),
 `cooperativeGestures` (two fingers or ⌘ + wheel move the map, so the page

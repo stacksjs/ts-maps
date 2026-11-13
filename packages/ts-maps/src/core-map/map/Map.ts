@@ -77,6 +77,20 @@ export interface MapOptions {
   */
   minPitch?: number
   /**
+  * Turn and tilt the map with a mouse: drag with the right button, or with
+  * the left button while Alt (Option) is held. Sideways turns the map, up and
+  * down tilts it. Default `true`. While it is on, a right-click on the map
+  * does not open the browser's context menu; the map's own `contextmenu`
+  * event still fires for a right-click that did not drag. See
+  * `DragRotateHandler`.
+  */
+  dragRotate?: boolean
+  /**
+  * Whether the `dragRotate` gesture also tilts the map. Default `true`;
+  * `false` leaves the pitch alone, so the drag only turns.
+  */
+  pitchWithRotate?: boolean
+  /**
   * Forces the map's zoom level to always be a multiple of this. A value of
   * `0` (the default) means no snapping — zoom can take any fractional value,
   * which yields a continuous, Mapbox-style zoom experience for wheel and
@@ -315,6 +329,7 @@ export class Map extends Evented {
   declare tapHold?: any
   declare touchRotate?: any
   declare touchPitch?: any
+  declare dragRotate?: any
   declare _popup?: any
   declare _style?: Style
   declare _featureState?: globalThis.Map<string, Record<string, unknown>>
@@ -1869,6 +1884,10 @@ export class Map extends Evented {
     if (type === 'pointerdown')
     DomUtil.preventOutline(el)
 
+    // A right-drag that turns the map is not a context-menu click.
+    if (type === 'contextmenu' && this.dragRotate?._interceptContextMenu(e))
+    return
+
     this._fireDOMEvent(e, type)
   }
 
@@ -1916,7 +1935,7 @@ export class Map extends Evented {
 
   _draggableMoved(obj: any): boolean {
     obj = obj.dragging?.enabled() ? obj : this
-    return obj.dragging?.moved() || this.boxZoom?.moved()
+    return obj.dragging?.moved() || this.boxZoom?.moved() || this.dragRotate?.moved()
   }
 
   _clearHandlers(): void {

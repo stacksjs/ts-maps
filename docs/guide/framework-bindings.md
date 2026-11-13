@@ -90,6 +90,11 @@ camera back on every render; Svelte and Solid compare the values.
 `maxPitch` and `minPitch` limit the tilt in every binding. They are read once,
 when the map is created.
 
+`dragRotate` and `pitchWithRotate` are passed through in every binding too, and
+read once as well. `dragRotate={false}` turns off the mouse gesture that turns
+and tilts the map (a right-drag, or Alt + drag); `pitchWithRotate={false}`
+keeps the gesture but stops it tilting.
+
 The per-framework pages show each of these in use.
 
 ## The basemap

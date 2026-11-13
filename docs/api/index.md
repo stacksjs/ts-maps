@@ -36,7 +36,7 @@ common ones in one object; in a browser, importing `ts-maps` also sets it as
 | `Map`, `Map` | The map class. See [`Map`](./Map.md). |
 | `createMap(container, options)`, `map(...)` | `new Map(...)` as a function. |
 | `MapOptions` | The options type. |
-| `DragHandler`, `ScrollWheelZoomHandler`, `PinchZoomHandler`, `BoxZoomHandler`, `DoubleClickZoomHandler`, `KeyboardHandler`, `TwoFingerRotateHandler`, `TwoFingerPitchHandler`, `TapHoldHandler`, `CooperativeGesturesHandler` | The interaction handlers, on every map as `map.dragging`, `map.scrollWheelZoom` and so on. |
+| `DragHandler`, `ScrollWheelZoomHandler`, `PinchZoomHandler`, `BoxZoomHandler`, `DragRotateHandler`, `DoubleClickZoomHandler`, `KeyboardHandler`, `TwoFingerRotateHandler`, `TwoFingerPitchHandler`, `TapHoldHandler`, `CooperativeGesturesHandler` | The interaction handlers, on every map as `map.dragging`, `map.scrollWheelZoom` and so on. |
 | `version` | The library's version string. |
 
 ## Layers

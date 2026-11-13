@@ -5,6 +5,7 @@ export { CooperativeGesturesHandler } from './handler/CooperativeGesturesHandler
 export type { CooperativeGesturesOptions } from './handler/CooperativeGesturesHandler'
 export { DoubleClickZoomHandler } from './handler/DoubleClickZoomHandler'
 export { DragHandler } from './handler/DragHandler'
+export { DragRotateHandler } from './handler/DragRotateHandler'
 export { KeyboardHandler } from './handler/KeyboardHandler'
 export { PinchZoomHandler } from './handler/PinchZoomHandler'
 export { ScrollWheelZoomHandler } from './handler/ScrollWheelZoomHandler'

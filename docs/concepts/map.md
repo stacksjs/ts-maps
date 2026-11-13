@@ -159,15 +159,36 @@ map.dragging.enable()
 | `scrollWheelZoom` | Wheel or trackpad to zoom, around the pointer. |
 | `doubleClickZoom` | Double-click to zoom in a level; with Shift, out. |
 | `boxZoom` | Shift-drag a box to zoom to it. |
+| `dragRotate` | Drag with the right mouse button, or the left with Alt (Option) held, to turn and tilt the map. |
 | `keyboard` | Once the map has focus: arrow keys pan (`keyboardPanDelta`, default 80 px), `+` and `−` zoom; Shift moves three times as far. Escape closes a popup. |
 | `pinchZoom` | Two fingers pinch to zoom. |
 | `touchRotate` | Two fingers twist to turn the map. |
 | `touchPitch` | Two fingers dragged up or down together to tilt it. |
 | `tapHold` | A long press opens the context menu. On by default only in mobile Safari, which does not fire `contextmenu` on a long press. |
 
-On a desktop, the map turns and tilts from code or from the compass in
-[`control.navigation()`](./controls.md#zoom-and-navigation); there is no mouse
-gesture for either.
+With a mouse, `dragRotate` turns and tilts the map: drag with the right button,
+or with the left button while Alt (Option) is held. Moving sideways changes the
+bearing, 0.3° a pixel; moving up tilts the camera further over and moving down
+brings it back, 0.25° a pixel, within `minPitch` and `maxPitch`. Pass
+`pitchWithRotate: false` and the drag only turns.
+
+```ts
+const map = new Map('map', { pitchWithRotate: false }) // turn, never tilt
+map.dragRotate.disable()                              // no mouse gesture at all
+```
+
+The drag fires `movestart`, then `rotate`, `pitch` and `move` as it goes, and
+`moveend` when the button is released, with `rotatestart` / `rotateend` and
+`pitchstart` / `pitchend` around whichever of the two changed. It never pans,
+and a plain left drag never turns.
+
+While `dragRotate` is on, a right-click on the map does not open the browser's
+context menu. The map's own `contextmenu` event still fires for a right-click
+that did not drag, and not for one that did. Disable the handler and the
+browser's menu is back.
+
+The compass in [`control.navigation()`](./controls.md#zoom-and-navigation)
+turns and tilts the map too, and so does code.
 
 ### Sharing the page
 

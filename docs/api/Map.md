@@ -84,6 +84,8 @@ Each of these is also a handler on the map, with `enable()` and `disable()`:
 | `wheelSmoothing` | `number` | `0.13` | Seconds for the camera to catch up with the wheel. |
 | `doubleClickZoom` | `boolean` | `true` | |
 | `boxZoom` | `boolean` | `true` | Shift-drag to zoom to a box. |
+| `dragRotate` | `boolean` | `true` | Drag with the right mouse button, or the left with Alt (Option) held, to turn and tilt. While it is on, a right-click on the map does not open the browser's context menu. |
+| `pitchWithRotate` | `boolean` | `true` | Whether the `dragRotate` drag also tilts. `false` makes it only turn. |
 | `keyboard` | `boolean` | `true` | Arrow keys pan, `+` and `-` zoom. |
 | `keyboardPanDelta` | `number` | `80` | Pixels per arrow key press. |
 | `pinchZoom` | `boolean` | `true` | Two-finger pinch. (`touchZoom` is the old name and still accepted.) |
