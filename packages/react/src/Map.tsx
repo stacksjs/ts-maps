@@ -15,6 +15,10 @@ export interface MapProps extends MapEventProps {
   maxPitch?: number
   /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
   minPitch?: number
+  /** Turn and tilt the map by dragging with the right mouse button, or the left with Alt held. The core's default is true. Read once, when the map is created. */
+  dragRotate?: boolean
+  /** Whether that drag also tilts the map. The core's default is true; false makes it only turn. Read once, when the map is created. */
+  pitchWithRotate?: boolean
   /** Style specification (object) or stylesheet URL. Followed when it changes. */
   style?: unknown
   /**
@@ -51,6 +55,8 @@ export function Map(props: MapProps): ReactElement {
     pitch,
     maxPitch,
     minPitch,
+    dragRotate,
+    pitchWithRotate,
     style,
     locale,
     containerStyle,
@@ -89,6 +95,10 @@ export function Map(props: MapProps): ReactElement {
       options.maxPitch = maxPitch
     if (minPitch !== undefined)
       options.minPitch = minPitch
+    if (dragRotate !== undefined)
+      options.dragRotate = dragRotate
+    if (pitchWithRotate !== undefined)
+      options.pitchWithRotate = pitchWithRotate
     if (style !== undefined) {
       options.style = style
       appliedStyle.current = styleKey(style)

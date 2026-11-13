@@ -9,6 +9,8 @@ export interface BuildHtmlOptions {
     pitch?: number
     maxPitch?: number
     minPitch?: number
+    dragRotate?: boolean
+    pitchWithRotate?: boolean
     styleSpec?: unknown
     /** The language the built-in controls speak. */
     locale?: string
@@ -119,6 +121,8 @@ const RUNTIME_SCRIPT = [
   '  if (initial.pitch != null) opts.pitch = initial.pitch;',
   '  if (initial.maxPitch != null) opts.maxPitch = initial.maxPitch;',
   '  if (initial.minPitch != null) opts.minPitch = initial.minPitch;',
+  '  if (initial.dragRotate != null) opts.dragRotate = initial.dragRotate;',
+  '  if (initial.pitchWithRotate != null) opts.pitchWithRotate = initial.pitchWithRotate;',
   '  if (initial.styleSpec) opts.style = initial.styleSpec;',
   '  let locale = initial.locale == null ? undefined : initial.locale;',
   '  if (locale) opts.locale = locale;',

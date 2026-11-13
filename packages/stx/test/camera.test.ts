@@ -11,4 +11,14 @@ describe('map camera limits', () => {
     expect('maxPitch' in plain).toBe(false)
     expect('minPitch' in plain).toBe(false)
   })
+
+  test('dragRotate and pitchWithRotate reach the map, and are left to its defaults when not given', () => {
+    const off = mapOptionsFrom({ dragRotate: false, pitchWithRotate: false })
+    expect(off.dragRotate).toBe(false)
+    expect(off.pitchWithRotate).toBe(false)
+
+    const plain = mapOptionsFrom({})
+    expect('dragRotate' in plain).toBe(false)
+    expect('pitchWithRotate' in plain).toBe(false)
+  })
 })

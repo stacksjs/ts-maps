@@ -32,6 +32,9 @@ export const pitch = $props.pitch
 /** How far the map can tilt, and the least it can, in degrees. */
 export const maxPitch = $props.maxPitch
 export const minPitch = $props.minPitch
+/** Turn and tilt with a right-drag or Alt + drag (default on), and whether that drag tilts too. */
+export const dragRotate = $props.dragRotate
+export const pitchWithRotate = $props.pitchWithRotate
 /** 'mercator' | 'globe', forwarded to the core renderer. */
 export const projection = $props.projection
 /** 'light' | 'dark' | 'auto' — the map's own chrome. */
@@ -79,6 +82,8 @@ export const mapPropsJson = JSON.stringify({
   pitch,
   maxPitch,
   minPitch,
+  dragRotate,
+  pitchWithRotate,
   projection,
   theme,
   locale,

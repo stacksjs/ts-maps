@@ -100,6 +100,10 @@ export interface MapProps {
   maxPitch?: number
   /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
   minPitch?: number
+  /** Turn and tilt the map by dragging with the right mouse button, or the left with Alt held. The core's default is true. Read once, when the map is created. */
+  dragRotate?: boolean
+  /** Whether that drag also tilts the map. The core's default is true; false makes it only turn. Read once, when the map is created. */
+  pitchWithRotate?: boolean
   /** Flat map or a globe. Defaults to the core map's mercator projection. */
   projection?: 'mercator' | 'globe'
   theme?: 'light' | 'dark' | 'auto'
@@ -139,6 +143,8 @@ export function mapOptionsFrom(props: MapProps): Record<string, unknown> {
     pitch: props.pitch ?? 0,
     maxPitch: props.maxPitch,
     minPitch: props.minPitch,
+    dragRotate: props.dragRotate,
+    pitchWithRotate: props.pitchWithRotate,
     projection: props.projection,
     theme: props.theme ?? (props.basemap === 'auto' ? pageTheme() : 'light'),
     locale: props.locale,

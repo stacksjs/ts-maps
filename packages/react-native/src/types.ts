@@ -419,6 +419,10 @@ export interface MapViewProps {
   maxPitch?: number
   /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
   minPitch?: number
+  /** Turn and tilt the map by dragging with the right mouse button, or the left with Alt held. The core's default is true. Read once, when the map is created. */
+  dragRotate?: boolean
+  /** Whether that drag also tilts the map. The core's default is true; false makes it only turn. Read once, when the map is created. */
+  pitchWithRotate?: boolean
 
   runtime: MapRuntime
 

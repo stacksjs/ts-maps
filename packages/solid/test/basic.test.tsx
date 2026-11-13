@@ -173,3 +173,18 @@ describe('<Map> pitch limits', () => {
     el.remove()
   })
 })
+
+describe('<Map> drag to rotate', () => {
+  test('dragRotate and pitchWithRotate reach the map', () => {
+    const el = host()
+    let received: any = null
+    const dispose = render(() => <Map center={[0, 0]} zoom={3} dragRotate={false} pitchWithRotate={false} onLoad={(m) => { received = m }} />, el)
+
+    expect(received.options.dragRotate).toBe(false)
+    expect(received.options.pitchWithRotate).toBe(false)
+    expect(received.dragRotate.enabled()).toBe(false)
+
+    dispose()
+    el.remove()
+  })
+})

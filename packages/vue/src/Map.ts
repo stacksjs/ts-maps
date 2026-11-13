@@ -94,6 +94,10 @@ export const Map = defineComponent({
     maxPitch: { type: Number, default: undefined },
     /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
     minPitch: { type: Number, default: undefined },
+    /** Turn and tilt the map by dragging with the right mouse button, or the left with Alt held. The core's default is true. Read once, when the map is created. */
+    dragRotate: { type: Boolean, default: undefined },
+    /** Whether that drag also tilts the map. The core's default is true; false makes it only turn. Read once, when the map is created. */
+    pitchWithRotate: { type: Boolean, default: undefined },
     style: { type: [Object, String] as PropType<unknown>, default: undefined },
     /**
      * The language the built-in controls speak, unless one has its own
@@ -129,6 +133,10 @@ export const Map = defineComponent({
         options.maxPitch = props.maxPitch
       if (props.minPitch !== undefined)
         options.minPitch = props.minPitch
+      if (props.dragRotate !== undefined)
+        options.dragRotate = props.dragRotate
+      if (props.pitchWithRotate !== undefined)
+        options.pitchWithRotate = props.pitchWithRotate
       if (props.style !== undefined)
         options.style = props.style
       if (props.locale !== undefined)

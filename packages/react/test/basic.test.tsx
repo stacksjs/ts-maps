@@ -115,3 +115,38 @@ describe('<Map> pitch limits', () => {
     host.remove()
   })
 })
+
+describe('<Map> drag to rotate', () => {
+  test('dragRotate and pitchWithRotate reach the map', async () => {
+    const host = document.createElement('div')
+    host.style.width = '800px'
+    host.style.height = '600px'
+    document.body.appendChild(host)
+
+    let received: any = null
+    const root = createRoot(host)
+    await act(async () => {
+      root.render(
+        createElement(Map, {
+          containerStyle: { width: '800px', height: '600px' },
+          center: [0, 0],
+          zoom: 3,
+          dragRotate: false,
+          pitchWithRotate: false,
+          onLoad: (m) => {
+            received = m
+          },
+        }),
+      )
+    })
+
+    expect(received.options.dragRotate).toBe(false)
+    expect(received.options.pitchWithRotate).toBe(false)
+    expect(received.dragRotate.enabled()).toBe(false)
+
+    await act(async () => {
+      root.unmount()
+    })
+    host.remove()
+  })
+})

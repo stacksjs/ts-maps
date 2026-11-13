@@ -104,3 +104,43 @@ describe('<Map> pitch limits', () => {
     host.remove()
   })
 })
+
+describe('<Map> drag to rotate', () => {
+  test('dragRotate and pitchWithRotate reach the map, and are left to its defaults when not given', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+
+    const mount = async (props: Record<string, unknown>): Promise<{ map: any, app: ReturnType<typeof createApp> }> => {
+      let map: any = null
+      const app = createApp({
+        render(): unknown {
+          return h(Map as unknown as any, {
+            center: [0, 0],
+            zoom: 3,
+            ...props,
+            'onLoad-map': (m: unknown): void => {
+              map = m
+            },
+          })
+        },
+      })
+      app.mount(host)
+      await nextTick()
+      return { map, app }
+    }
+
+    const off = await mount({ dragRotate: false, pitchWithRotate: false })
+    expect(off.map.options.dragRotate).toBe(false)
+    expect(off.map.options.pitchWithRotate).toBe(false)
+    expect(off.map.dragRotate.enabled()).toBe(false)
+    off.app.unmount()
+
+    // A Boolean prop left out must not arrive as `false`.
+    const plain = await mount({})
+    expect(plain.map.options.dragRotate).toBe(true)
+    expect(plain.map.options.pitchWithRotate).toBe(true)
+    plain.app.unmount()
+
+    host.remove()
+  })
+})

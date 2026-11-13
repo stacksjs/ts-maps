@@ -14,6 +14,10 @@
   export let maxPitch: number | undefined = undefined
   /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
   export let minPitch: number | undefined = undefined
+  /** Turn and tilt the map by dragging with the right mouse button, or the left with Alt held. The core's default is true. Read once, when the map is created. */
+  export let dragRotate: boolean | undefined = undefined
+  /** Whether that drag also tilts the map. The core's default is true; false makes it only turn. Read once, when the map is created. */
+  export let pitchWithRotate: boolean | undefined = undefined
   /**
    * The map's style: a style object, such as `styles.light({ url })`, or a
    * stylesheet URL. A new one is set with `setStyle`.
@@ -97,6 +101,8 @@
     if (pitch !== undefined) options.pitch = pitch
     if (maxPitch !== undefined) options.maxPitch = maxPitch
     if (minPitch !== undefined) options.minPitch = minPitch
+    if (dragRotate !== undefined) options.dragRotate = dragRotate
+    if (pitchWithRotate !== undefined) options.pitchWithRotate = pitchWithRotate
     if (style !== undefined) options.style = style
     if (locale !== undefined) options.locale = locale
     Object.assign(applied, { center, zoom, bearing, pitch, style })

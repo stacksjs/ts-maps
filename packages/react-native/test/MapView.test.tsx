@@ -88,6 +88,17 @@ describe('buildHtml', () => {
     expect(html).toContain('opts.minPitch = initial.minPitch')
   })
 
+  test('passes the drag-to-rotate options to the map it builds', () => {
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { dragRotate: false, pitchWithRotate: false },
+    })
+    expect(html).toContain('"dragRotate":false')
+    expect(html).toContain('"pitchWithRotate":false')
+    expect(html).toContain('opts.dragRotate = initial.dragRotate')
+    expect(html).toContain('opts.pitchWithRotate = initial.pitchWithRotate')
+  })
+
   test('serialises declared controls into the document', () => {
     const html = buildHtml({
       runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
