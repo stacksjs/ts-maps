@@ -141,6 +141,14 @@ jobs:
 
       - name: Publish Commit
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: pantry publish:commit './packages/ts-maps'
+        # The registry sometimes drops the upload before it answers, and the
+        # same tarball goes through a moment later.
+        run: |
+          for attempt in 1 2 3; do
+            pantry publish:commit './packages/ts-maps' && exit 0
+            echo "::warning::publish attempt $attempt failed"
+            sleep $((attempt * 20))
+          done
+          exit 1
         env:
           PANTRY_REGISTRY_TOKEN: ${{ secrets.PANTRY_TOKEN }}
