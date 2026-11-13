@@ -1,5 +1,28 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.8...v0.5.9)
+
+## 🚀 Features
+
+- **bindings**: pass maxPitch and minPitch through every binding ([e81fd09](https://github.com/stacksjs/ts-maps/commit/e81fd09)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **3d**: stand your own GeoJSON up as prisms, and pick, label and hover them ([f9645f1](https://github.com/stacksjs/ts-maps/commit/f9645f1)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 📚 Documentation
+
+- extruding your own data, with an example and a stress page ([8e77f3b](https://github.com/stacksjs/ts-maps/commit/8e77f3b)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🤖 Continuous Integration
+
+- build the package before the per-commit publish ([ca68c89](https://github.com/stacksjs/ts-maps/commit/ca68c89)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.9 ([62d5503](https://github.com/stacksjs/ts-maps/commit/62d5503)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.7...v0.5.8)
 
 ## 🚀 Features
