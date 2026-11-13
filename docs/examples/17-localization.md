@@ -14,4 +14,4 @@ control.mapType({ types: mapTypes({ url }) }).addTo(map)
 
 ---
 
-[← Look Around](./16-look-around.md) · [Examples →](./index.md)
+[← Look Around](./16-look-around.md) · [Extruded choropleth →](./18-extruded-choropleth.md)

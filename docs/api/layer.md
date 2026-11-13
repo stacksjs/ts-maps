@@ -54,10 +54,14 @@ map.fitBounds(stops.getBounds(), { padding: [40, 40] })
 
 Marker options: `icon`, `draggable` (`false`), `title`, `alt` (`'Marker'`),
 `opacity` (`1`), `zIndexOffset`, `riseOnHover`, `riseOffset`, `keyboard`
-(`true`), `interactive` (`true`), `autoPanOnFocus`, `pane` (`'markerPane'`).
+(`true`), `interactive` (`true`), `autoPanOnFocus`, `pane` (`'markerPane'`),
+`altitude` (`0`): metres above the map plane, for a marker on the roof of a
+`fill-extrusion` prism. A popup or tooltip takes `altitude` too, and
+otherwise opens at its marker's.
 
 Methods: `getLatLng()`, `setLatLng(latlng)`, `setIcon(icon)`, `getIcon()`,
-`setOpacity(n)`, `setZIndexOffset(n)`, `getElement()`. A draggable marker has
+`setOpacity(n)`, `setZIndexOffset(n)`, `getAltitude()`, `setAltitude(metres)`,
+`getElement()`. A draggable marker has
 `marker.dragging.enable()` / `disable()`, and fires `dragstart`, `drag`,
 `dragend` and `move`.
 

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+    <title>3D choropleth — ts-maps playground</title>
+    <meta name='description' content='Three thousand polygons of your own stood up as prisms, with no basemap: height and colour from data, hover and click on the prism under the pointer, and labels pinned to roofs.' />
+    <link rel='stylesheet' href='../../packages/ts-maps/src/core-map/ts-maps.css' />
+    <link rel='stylesheet' href='./shared.css' />
+    <style>
+      .roof-label {
+        transform: translate(-50%, -100%);
+        white-space: nowrap;
+        text-align: center;
+        font: 600 12px/1.25 system-ui, sans-serif;
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        pointer-events: none;
+      }
+      .roof-label small { display: block; font-weight: 500; opacity: 0.8; }
+      #readout { font: 12px/1.5 ui-monospace, monospace; white-space: pre; margin-top: 10px; }
+    </style>
+  </head>
+  <body class='demo'>
+  <div id='map'></div>
+  <details class='demo-info' open>
+    <summary>3D choropleth</summary>
+    <div class='demo-body'>
+      <p>Three thousand polygons from a GeoJSON source, stood up as <code>fill-extrusion</code> prisms with no basemap under them. Height and colour come from each feature's properties; the prism under the pointer is found by its face, not its footprint; and markers given an <code>altitude</code> stand on roofs.</p>
+      <nav class='demo-links'>
+        <a href='./index.html'>All demos</a>
+        <a href='https://github.com/stacksjs/ts-maps/blob/main/playground/core-map/18-choropleth-3d.ts' target='_blank' rel='noopener'>Source</a>
+      </nav>
+    </div>
+  </details>
+  <script type='module' src='./18-choropleth-3d.ts'></script>
+  </body>
+</html>

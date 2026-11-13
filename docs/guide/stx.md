@@ -79,7 +79,8 @@ Write `className`, never `class`. stx seeds every prop into the client scope
 as a variable, and `class` is a reserved word: the generated script fails to
 parse.
 
-The other `<Map>` props: `minZoom`, `maxZoom`, `bearing`, `pitch`, `theme`
+The other `<Map>` props: `minZoom`, `maxZoom`, `bearing`, `pitch`, `maxPitch`,
+`minPitch`, `theme`
 (`light`, `dark` or `auto`, for the map's own chrome), `locale`, `palette`
 (basemap colours per theme: `{ light: { water: '#bcd7ea' } }`),
 `cooperativeGestures` (two fingers or ⌘ + wheel move the map, so the page
@@ -105,7 +106,8 @@ default). All are read when the map is built.
 ```
 
 `<Marker>` takes `lat`, `lng`, `title`, `draggable`, `interactive`,
-`opacity`, `zIndexOffset`, and `html` for your own pin markup, with
+`opacity`, `zIndexOffset`, `altitude` (metres above the map, for a marker on
+the roof of a `fill-extrusion` prism), and `html` for your own pin markup, with
 `iconSize`, `iconAnchor` and `iconClass`.
 
 A `<Popup>` inside a marker binds to it and opens on click; with `:open="true"`

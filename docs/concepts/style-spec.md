@@ -80,7 +80,7 @@ style (see [swapping styles](#swapping-styles)).
 | `vector` | `tiles: [template]`, a TileJSON `url`, or `url: 'pmtiles://…'` | Mapbox Vector Tiles. A [PMTiles](./tile-server.md) archive is read in place with range requests. `minzoom`, `maxzoom` and `attribution` are honoured; past `maxzoom` the last level is overzoomed. |
 | `raster` | `tiles` or a TileJSON `url` | Image tiles. `tileSize` defaults to 256. |
 | `raster-dem` | `tiles` or a TileJSON `url` | Elevation, `encoding: 'mapbox'` or `'terrarium'`. Drawn by a `hillshade` layer, and used by `setTerrain`. |
-| `geojson` | `data`: a GeoJSON object or a URL | Cut into tiles in the page. `cluster`, `clusterRadius` (default 50), `clusterMaxZoom` (default 16) and `clusterMinPoints` (default 2) group points. |
+| `geojson` | `data`: a GeoJSON object or a URL | Cut into tiles in the page. `cluster`, `clusterRadius` (default 50), `clusterMaxZoom` (default 16) and `clusterMinPoints` (default 2) group points. `promoteId` names a property to use as each feature's id; `generateId` numbers the features instead. |
 
 `image`, `video` and `canvas` sources are not implemented, and a style that
 uses one throws. For a single image or video on the map, use an
@@ -98,7 +98,7 @@ shared cache that [offline maps](./offline.md) fill.
 | `line` | Lines, and polygon outlines. |
 | `circle` | Points as circles. |
 | `symbol` | Labels and icons, placed so they do not collide. |
-| `fill-extrusion` | Polygons raised into 3D. See [3D rendering](./3d.md#fill-extrusion). |
+| `fill-extrusion` | Polygons raised into 3D, from vector tiles or from GeoJSON of your own. See [3D rendering](./3d.md#fill-extrusion). `fill-extrusion-fade-range` is a ts-maps extension. |
 | `raster` | A raster source's images. |
 | `hillshade` | Shading from a `raster-dem` source. |
 | `heatmap` | The density of a GeoJSON source's points. |

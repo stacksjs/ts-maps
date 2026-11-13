@@ -48,7 +48,7 @@ const cards = examples.map(e => `  <a href='./${e.name}.md' style='display: flex
 
 writeFileSync(join(DIR, 'index.md'), `# Examples
 
-${examples.length} examples, each running on a real vector basemap. Every page shows the example live, with its source beside it to copy into your own project, and an editor to change it and run it again.
+${examples.length} examples, nearly all on a real vector basemap. Every page shows the example live, with its source beside it to copy into your own project, and an editor to change it and run it again.
 
 To see more of the library at once, open the [playground](/demos/): its demos go further, from offline maps to a whole navigation app.
 

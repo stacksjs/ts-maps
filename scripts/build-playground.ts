@@ -102,6 +102,7 @@ const PANELS: Record<string, string> = {
   '08-symbols': '<div class="panel" id="info"></div>',
   '15-landmarks': '<div class="panel"><button type="button" id="pyramid">Transamerica Pyramid</button><button type="button" id="presidio">Presidio woods</button></div>',
   '17-localization': '<div class="bottom panel"><a data-lang="de" href="?lang=de">Deutsch</a> · <a data-lang="en" href="?lang=en">English</a></div>',
+  '18-extruded-choropleth': '<div class="panel" id="info">Point at a prism.</div>',
 }
 
 const examples = existsSync(EXAMPLES) ? readdirSync(EXAMPLES).filter(f => /^\d+-.+\.ts$/.test(f)) : []

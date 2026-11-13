@@ -87,6 +87,9 @@ when the map loaded before the handler was bound, and `style.load` is
 call `setView` when the prop changes identity, so an inline array moves the
 camera back on every render; Svelte and Solid compare the values.
 
+`maxPitch` and `minPitch` limit the tilt in every binding. They are read once,
+when the map is created.
+
 The per-framework pages show each of these in use.
 
 ## The basemap

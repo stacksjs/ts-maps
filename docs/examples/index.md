@@ -1,6 +1,6 @@
 # Examples
 
-17 examples, each running on a real vector basemap. Every page shows the example live, with its source beside it to copy into your own project, and an editor to change it and run it again.
+18 examples, nearly all on a real vector basemap. Every page shows the example live, with its source beside it to copy into your own project, and an editor to change it and run it again.
 
 To see more of the library at once, open the [playground](/demos/): its demos go further, from offline maps to a whole navigation app.
 
@@ -89,5 +89,10 @@ To see more of the library at once, open the [playground](/demos/): its demos go
     <img src='/playground/examples/thumbs/17-localization.jpg' alt='' loading='lazy' style='display: block; width: 100%; aspect-ratio: 8 / 5; object-fit: cover; margin: 0;' />
     <span style='display: block; padding: 10px 12px 2px; font-weight: 600;'>17 · Localization</span>
     <span style='display: block; padding: 0 12px 12px; font-size: 0.86em; opacity: 0.75; line-height: 1.45;'>The same controls in German.</span>
+  </a>
+  <a href='./18-extruded-choropleth.md' style='display: flex; flex-direction: column; border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit;'>
+    <img src='/playground/examples/thumbs/18-extruded-choropleth.jpg' alt='' loading='lazy' style='display: block; width: 100%; aspect-ratio: 8 / 5; object-fit: cover; margin: 0;' />
+    <span style='display: block; padding: 10px 12px 2px; font-weight: 600;'>18 · Extruded choropleth</span>
+    <span style='display: block; padding: 0 12px 12px; font-size: 0.86em; opacity: 0.75; line-height: 1.45;'>Polygons of your own stood up as prisms, with no basemap.</span>
   </a>
 </div>

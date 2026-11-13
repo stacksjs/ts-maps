@@ -277,7 +277,7 @@ again on `style.load`.
 
 | Method | |
 | ------ | - |
-| `queryRenderedFeatures(point?, options?)` | Features drawn at a container point, in a box, or everywhere. |
+| `queryRenderedFeatures(point?, options?)` | Features drawn at a container point, in a box, or everywhere. At a point, `fill-extrusion` prisms are found by the face they show, nearest first, not by the ground under the point. |
 | `querySourceFeatures(sourceId, { sourceLayer?, filter? })` | Every feature of a source in the tiles loaded, drawn or not. |
 
 The first argument is a point or a box, in container pixels: a `Point`,
@@ -309,8 +309,10 @@ map.on('click', (e) => {
 ## Feature state
 
 State kept per feature, read by style expressions with
-`['feature-state', key]`. Changing it repaints the tiles already loaded; it
-does not refetch them.
+`['feature-state', key]`. Changing it repaints what reads it in the tiles
+already loaded; it does not refetch them. A `fill-extrusion` prism is
+recoloured or re-raised in place, and setting a state to what it already is
+does nothing.
 
 | Method | |
 | ------ | - |
@@ -497,7 +499,8 @@ Tiles from a server that sends no CORS headers taint the canvas, and
 
 | Method | |
 | ------ | - |
-| `latLngToContainerPoint(latlng)` / `containerPointToLatLng(point)` | Pixels from the container's top-left, allowing for bearing, pitch and the globe. |
+| `latLngToContainerPoint(latlng, altitude?)` / `containerPointToLatLng(point)` | Pixels from the container's top-left, allowing for bearing, pitch and the globe. `altitude`, in metres, lifts the point off the map plane through the camera the 3D buildings are drawn with, so a `fill-extrusion` prism's height puts it on that prism's roof. Not applied on the globe or over terrain. |
+| `getPixelsPerMetre()` | Screen pixels to a metre of height, at the centre of the view. Every 3D building and every elevated marker is raised by it. |
 | `latLngToLayerPoint(latlng)` / `layerPointToLatLng(point)` | Pixels in the map pane. |
 | `containerPointToLayerPoint(point)` / `layerPointToContainerPoint(point)` | |
 | `pointerEventToContainerPoint(e)` / `pointerEventToLayerPoint(e)` / `pointerEventToLatLng(e)` | From a DOM event. |
