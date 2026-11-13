@@ -31,6 +31,8 @@ export function MapView(props: MapViewProps): ReactElement {
     zoom,
     bearing,
     pitch,
+    maxPitch,
+    minPitch,
     runtime,
     styleSpec,
     locale,
@@ -67,7 +69,7 @@ export function MapView(props: MapViewProps): ReactElement {
   const readyRef = useRef(false)
 
   const html = useMemo(
-    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, styleSpec, locale, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, lookAround, landmarks, trees, nativeStore: !!offlineStore } }),
+    () => buildHtml({ runtime, initial: { center, zoom, bearing, pitch, maxPitch, minPitch, styleSpec, locale, controls, markers, territories, self, runTrail, turnByTurn, offlineMaps, search, mapType, indoor, lookAround, landmarks, trees, nativeStore: !!offlineStore } }),
     // We intentionally only rebuild the HTML on runtime identity changes —
     // camera + style updates flow over the bridge after load.
     // eslint-disable-next-line react-hooks/exhaustive-deps

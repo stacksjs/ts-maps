@@ -96,6 +96,10 @@ export interface MapProps {
   maxZoom?: number
   bearing?: number
   pitch?: number
+  /** How far the map can tilt, in degrees. The core's default is 85. Read once, when the map is created. */
+  maxPitch?: number
+  /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
+  minPitch?: number
   /** Flat map or a globe. Defaults to the core map's mercator projection. */
   projection?: 'mercator' | 'globe'
   theme?: 'light' | 'dark' | 'auto'
@@ -133,6 +137,8 @@ export function mapOptionsFrom(props: MapProps): Record<string, unknown> {
     maxZoom: props.maxZoom,
     bearing: props.bearing ?? 0,
     pitch: props.pitch ?? 0,
+    maxPitch: props.maxPitch,
+    minPitch: props.minPitch,
     projection: props.projection,
     theme: props.theme ?? (props.basemap === 'auto' ? pageTheme() : 'light'),
     locale: props.locale,

@@ -75,3 +75,32 @@ describe('<Map> client mount', () => {
     expect((caught as unknown as Error).message).toMatch(/useMap/)
   })
 })
+
+describe('<Map> pitch limits', () => {
+  test('maxPitch and minPitch reach the map', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+
+    let received: any = null
+    const app = createApp({
+      render(): unknown {
+        return h(Map as unknown as any, {
+          center: [0, 0],
+          zoom: 3,
+          maxPitch: 70,
+          minPitch: 10,
+          'onLoad-map': (m: unknown): void => {
+            received = m
+          },
+        })
+      },
+    })
+    app.mount(host)
+    await nextTick()
+    expect(received.options.maxPitch).toBe(70)
+    expect(received.options.minPitch).toBe(10)
+
+    app.unmount()
+    host.remove()
+  })
+})

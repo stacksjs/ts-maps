@@ -36,10 +36,12 @@ export const draggable = $props.draggable
 export const interactive = $props.interactive
 export const opacity = $props.opacity
 export const zIndexOffset = $props.zIndexOffset
+/** Metres above the map plane: on the roof of a `fill-extrusion` prism of that height, say. */
+export const altitude = $props.altitude
 /** Name of the DOM event dispatched when this marker is clicked. */
 export const clickEvent = $props.clickEvent || 'marker:click'
 
-export const markerJson = JSON.stringify({ title, draggable, interactive, opacity, zIndexOffset })
+export const markerJson = JSON.stringify({ title, draggable, interactive, opacity, zIndexOffset, altitude })
 export const iconJson = JSON.stringify({ html, iconSize, iconAnchor, className: iconClass })
 </script>
 

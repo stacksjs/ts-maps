@@ -11,6 +11,10 @@ export interface MapProps extends MapEventProps {
   zoom?: number
   bearing?: number
   pitch?: number
+  /** How far the map can tilt, in degrees. The core's default is 85. Read once, when the map is created. */
+  maxPitch?: number
+  /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
+  minPitch?: number
   /** Style specification (object) or stylesheet URL. Followed when it changes. */
   style?: unknown
   /**
@@ -45,6 +49,8 @@ export function Map(props: MapProps): ReactElement {
     zoom,
     bearing,
     pitch,
+    maxPitch,
+    minPitch,
     style,
     locale,
     containerStyle,
@@ -79,6 +85,10 @@ export function Map(props: MapProps): ReactElement {
       options.bearing = bearing
     if (pitch !== undefined)
       options.pitch = pitch
+    if (maxPitch !== undefined)
+      options.maxPitch = maxPitch
+    if (minPitch !== undefined)
+      options.minPitch = minPitch
     if (style !== undefined) {
       options.style = style
       appliedStyle.current = styleKey(style)

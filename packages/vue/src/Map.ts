@@ -90,6 +90,10 @@ export const Map = defineComponent({
     zoom: { type: Number, default: undefined },
     bearing: { type: Number, default: undefined },
     pitch: { type: Number, default: undefined },
+    /** How far the map can tilt, in degrees. The core's default is 85. Read once, when the map is created. */
+    maxPitch: { type: Number, default: undefined },
+    /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
+    minPitch: { type: Number, default: undefined },
     style: { type: [Object, String] as PropType<unknown>, default: undefined },
     /**
      * The language the built-in controls speak, unless one has its own
@@ -121,6 +125,10 @@ export const Map = defineComponent({
         options.bearing = props.bearing
       if (props.pitch !== undefined)
         options.pitch = props.pitch
+      if (props.maxPitch !== undefined)
+        options.maxPitch = props.maxPitch
+      if (props.minPitch !== undefined)
+        options.minPitch = props.minPitch
       if (props.style !== undefined)
         options.style = props.style
       if (props.locale !== undefined)

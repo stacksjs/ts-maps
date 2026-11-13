@@ -159,3 +159,17 @@ describe('<Marker>', () => {
     el.remove()
   })
 })
+
+describe('<Map> pitch limits', () => {
+  test('maxPitch and minPitch reach the map', () => {
+    const el = host()
+    let received: any = null
+    const dispose = render(() => <Map center={[0, 0]} zoom={3} maxPitch={70} minPitch={10} onLoad={(m) => { received = m }} />, el)
+
+    expect(received.options.maxPitch).toBe(70)
+    expect(received.options.minPitch).toBe(10)
+
+    dispose()
+    el.remove()
+  })
+})

@@ -415,6 +415,10 @@ export interface MapViewProps {
   zoom?: number
   bearing?: number
   pitch?: number
+  /** How far the map can tilt, in degrees. The core's default is 85. Read once, when the map is created. */
+  maxPitch?: number
+  /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
+  minPitch?: number
 
   runtime: MapRuntime
 

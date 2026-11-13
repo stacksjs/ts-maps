@@ -77,6 +77,17 @@ describe('buildHtml', () => {
     expect(html).toContain('<div id="map">')
   })
 
+  test('passes the pitch limits to the map it builds', () => {
+    const html = buildHtml({
+      runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },
+      initial: { pitch: 60, maxPitch: 75, minPitch: 20 },
+    })
+    expect(html).toContain('"maxPitch":75')
+    expect(html).toContain('"minPitch":20')
+    expect(html).toContain('opts.maxPitch = initial.maxPitch')
+    expect(html).toContain('opts.minPitch = initial.minPitch')
+  })
+
   test('serialises declared controls into the document', () => {
     const html = buildHtml({
       runtime: { source: 'cdn', url: 'https://unpkg.com/ts-maps' },

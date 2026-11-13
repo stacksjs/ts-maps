@@ -83,3 +83,17 @@ describe('context', () => {
     expect(typeof MAP_CONTEXT_KEY).toBe('symbol')
   })
 })
+
+describe('<Map> pitch limits', () => {
+  test('maxPitch and minPitch reach the map', () => {
+    const el = host()
+    let received: any = null
+    const app = mountSync(Map, el, { center: [0, 0], zoom: 3, maxPitch: 70, minPitch: 10, onLoad: (m: unknown) => { received = m } })
+
+    expect(received.options.maxPitch).toBe(70)
+    expect(received.options.minPitch).toBe(10)
+
+    unmountSync(app)
+    el.remove()
+  })
+})

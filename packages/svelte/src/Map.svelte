@@ -10,6 +10,10 @@
   export let zoom: number | undefined = undefined
   export let bearing: number | undefined = undefined
   export let pitch: number | undefined = undefined
+  /** How far the map can tilt, in degrees. The core's default is 85. Read once, when the map is created. */
+  export let maxPitch: number | undefined = undefined
+  /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
+  export let minPitch: number | undefined = undefined
   /**
    * The map's style: a style object, such as `styles.light({ url })`, or a
    * stylesheet URL. A new one is set with `setStyle`.
@@ -91,6 +95,8 @@
     if (zoom !== undefined) options.zoom = zoom
     if (bearing !== undefined) options.bearing = bearing
     if (pitch !== undefined) options.pitch = pitch
+    if (maxPitch !== undefined) options.maxPitch = maxPitch
+    if (minPitch !== undefined) options.minPitch = minPitch
     if (style !== undefined) options.style = style
     if (locale !== undefined) options.locale = locale
     Object.assign(applied, { center, zoom, bearing, pitch, style })

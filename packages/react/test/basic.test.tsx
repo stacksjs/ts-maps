@@ -81,3 +81,37 @@ describe('<Map> client mount', () => {
     host.remove()
   })
 })
+
+describe('<Map> pitch limits', () => {
+  test('maxPitch and minPitch reach the map', async () => {
+    const host = document.createElement('div')
+    host.style.width = '800px'
+    host.style.height = '600px'
+    document.body.appendChild(host)
+
+    let received: any = null
+    const root = createRoot(host)
+    await act(async () => {
+      root.render(
+        createElement(Map, {
+          containerStyle: { width: '800px', height: '600px' },
+          center: [0, 0],
+          zoom: 3,
+          maxPitch: 70,
+          minPitch: 10,
+          onLoad: (m) => {
+            received = m
+          },
+        }),
+      )
+    })
+
+    expect(received.options.maxPitch).toBe(70)
+    expect(received.options.minPitch).toBe(10)
+
+    await act(async () => {
+      root.unmount()
+    })
+    host.remove()
+  })
+})

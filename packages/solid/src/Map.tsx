@@ -13,6 +13,10 @@ export interface MapProps extends MapEventProps {
   zoom?: number
   bearing?: number
   pitch?: number
+  /** How far the map can tilt, in degrees. The core's default is 85. Read once, when the map is created. */
+  maxPitch?: number
+  /** The least the map can tilt, in degrees. Default 0. Read once, when the map is created. */
+  minPitch?: number
   /**
    * The map's style: a style object, such as `styles.light({ url })`, or a
    * stylesheet URL. A new one is set with `setStyle`.
@@ -71,6 +75,8 @@ export function Map(props: ParentProps<MapProps>): JSX.Element {
     if (props.zoom !== undefined) options.zoom = props.zoom
     if (props.bearing !== undefined) options.bearing = props.bearing
     if (props.pitch !== undefined) options.pitch = props.pitch
+    if (props.maxPitch !== undefined) options.maxPitch = props.maxPitch
+    if (props.minPitch !== undefined) options.minPitch = props.minPitch
     if (props.style !== undefined) options.style = props.style
     if (props.locale !== undefined) options.locale = props.locale
     Object.assign(applied, {
