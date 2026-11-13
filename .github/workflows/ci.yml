@@ -136,7 +136,8 @@ jobs:
       # own `prepublishOnly` to make it.
       - name: Build
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: bun --cwd packages/ts-maps run build
+        working-directory: packages/ts-maps
+        run: bun run build
 
       - name: Publish Commit
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
