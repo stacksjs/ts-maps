@@ -1,5 +1,26 @@
 # Changelog
 
+[Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.9...v0.5.10)
+
+## 🚀 Features
+
+- **bindings**: pass dragRotate and pitchWithRotate through every binding ([dd6642d](https://github.com/stacksjs/ts-maps/commit/dd6642d)) _(by Chris <chrisbreuer93@gmail.com>)_
+- **map**: turn and tilt the map with a mouse ([e7bad72](https://github.com/stacksjs/ts-maps/commit/e7bad72)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🤖 Continuous Integration
+
+- try the per-commit publish three times ([ec234e5](https://github.com/stacksjs/ts-maps/commit/ec234e5)) _(by Chris <chrisbreuer93@gmail.com>)_
+- run the package build from its own directory ([b0d5780](https://github.com/stacksjs/ts-maps/commit/b0d5780)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## 🧹 Chores
+
+- release v0.5.10 ([c87ef31](https://github.com/stacksjs/ts-maps/commit/c87ef31)) _(by Chris <chrisbreuer93@gmail.com>)_
+- bring the lockfiles up to date with package.json ([d92bd0d](https://github.com/stacksjs/ts-maps/commit/d92bd0d)) _(by Chris <chrisbreuer93@gmail.com>)_
+
+## Contributors
+
+- _Chris <chrisbreuer93@gmail.com>_
+
 [Compare changes](https://github.com/stacksjs/ts-maps/compare/v0.5.8...v0.5.9)
 
 ## 🚀 Features
