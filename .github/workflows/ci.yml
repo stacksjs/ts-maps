@@ -132,6 +132,12 @@ jobs:
       - name: Install Dependencies
         run: bun install
 
+      # The package ships `dist`, and the publish no longer runs the package's
+      # own `prepublishOnly` to make it.
+      - name: Build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: bun --cwd packages/ts-maps run build
+
       - name: Publish Commit
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: pantry publish:commit './packages/ts-maps'
