@@ -56,6 +56,11 @@ const fillExtrusionPaint: Record<string, PropertySchema> = {
   'fill-extrusion-height': { type: 'number', default: 0, minimum: 0, transition: true, sdk: 'gl' },
   'fill-extrusion-base': { type: 'number', default: 0, minimum: 0, transition: true, sdk: 'gl' },
   'fill-extrusion-vertical-gradient': { type: 'boolean', default: true, sdk: 'gl' },
+  // How far off prisms fade into the haze and stop being drawn, in camera
+  // heights: [start, end]. [0, 0] never fades them. Not Mapbox's
+  // `fill-extrusion-cutoff-fade-range`, which is a fraction of a cutoff this
+  // renderer does not have.
+  'fill-extrusion-fade-range': { type: 'array', length: 2, default: [3, 10], sdk: 'ts-maps' },
 }
 
 const linePaint: Record<string, PropertySchema> = {

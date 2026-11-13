@@ -96,7 +96,7 @@ export class Tooltip extends DivOverlay {
   }
 
   _updatePosition(): void {
-    const pos = this._map._latLngToUprightPoint(this._latlng!)
+    const pos = this._map._latLngToUprightPoint(this._latlng!, this._altitude())
     this._setPosition(pos)
   }
 

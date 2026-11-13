@@ -59,6 +59,23 @@ export class Marker extends Layer {
     return this.fire('move', { oldLatLng, latlng: this._latlng })
   }
 
+  /** Metres above the map plane the marker stands at; 0 on the ground. */
+  getAltitude(): number {
+    const altitude = Number(this.options!.altitude)
+    return Number.isFinite(altitude) ? altitude : 0
+  }
+
+  /**
+   * Stand the marker `altitude` metres above the map plane — on the roof of a
+   * `fill-extrusion` prism of that height, say. It is projected through the
+   * camera the prisms are drawn with, so it stays on the roof as the map
+   * moves, turns and tilts.
+   */
+  setAltitude(altitude: number): this {
+    this.options!.altitude = altitude
+    return this.update()
+  }
+
   setZIndexOffset(offset: number): this {
     this.options!.zIndexOffset = offset
     return this.update()
@@ -87,7 +104,7 @@ export class Marker extends Layer {
     if (this._icon && this._map) {
       // The icon stands upright at its projected point; the shadow lies on
       // the ground. On a flat north-up map these are the same point.
-      const pos = this._map._latLngToUprightPoint(this._latlng).round()
+      const pos = this._map._latLngToUprightPoint(this._latlng, this.getAltitude()).round()
       this._setPos(pos, this._map.latLngToLayerPoint(this._latlng).round())
     }
     return this
@@ -266,6 +283,8 @@ Marker.setDefaultOptions( {
   title: '',
   alt: 'Marker',
   zIndexOffset: 0,
+  // Metres above the map plane; see `setAltitude`.
+  altitude: 0,
   opacity: 1,
   riseOnHover: false,
   riseOffset: 250,

@@ -219,11 +219,24 @@ export class DivOverlay extends Layer {
     this.fire('contentupdate')
   }
 
+  /**
+   * Metres above the map plane this overlay is anchored at: its own
+   * `altitude` option, or else that of the marker it belongs to, so a popup
+   * opened from a marker standing on a roof opens up there with it.
+   */
+  _altitude(): number {
+    const own = Number(this.options?.altitude)
+    if (Number.isFinite(own) && this.options?.altitude != null)
+    return own
+    const source = Number(this._source?.getAltitude?.())
+    return Number.isFinite(source) ? source : 0
+  }
+
   _updatePosition(): void {
     if (!this._map)
     return
 
-    const pos = this._map._latLngToUprightPoint(this._latlng!)
+    const pos = this._map._latLngToUprightPoint(this._latlng!, this._altitude())
     const anchor = this._getAnchor()
     let offset = new Point(this.options!.offset)
 

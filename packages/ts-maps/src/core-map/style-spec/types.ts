@@ -212,7 +212,22 @@ export interface FillExtrusionPaintSpecification {
   'fill-extrusion-pattern'?: PropertyValueSpecification<ResolvedImageSpecification>
   'fill-extrusion-height'?: PropertyValueSpecification<number>
   'fill-extrusion-base'?: PropertyValueSpecification<number>
+  /**
+   * On (the default), a roof is drawn a little lighter than the layer's
+   * colour and a wall darkens towards its foot, which tells neighbouring
+   * buildings apart. Off, a roof is exactly `fill-extrusion-color` and a wall
+   * one shade of it — for prisms coloured by data and read against a legend.
+   */
   'fill-extrusion-vertical-gradient'?: PropertyValueSpecification<boolean>
+  /**
+   * ts-maps extension. Where prisms fade into the distance, as
+   * `[start, end]` in camera heights: fully drawn nearer than `start`, gone —
+   * and their tiles not built — past `end`. Defaults to `[3, 10]`, which
+   * keeps a city's far blocks from being meshed for a few pixels each.
+   * `[0, 0]` turns the fade off, for a layer that is the subject of the map
+   * and should stand to the horizon.
+   */
+  'fill-extrusion-fade-range'?: [number, number]
 }
 
 export interface FillExtrusionLayoutSpecification {

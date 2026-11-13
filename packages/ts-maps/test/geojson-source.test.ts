@@ -178,3 +178,42 @@ describe('geojson sources in setStyle', () => {
     expect((map as any)._geoJSONSources.incidents).toBeUndefined()
   })
 })
+
+describe('GeoJSONTileSource ids', () => {
+  const data = collection(
+    point(0.1, 0.1, { fips: '48201', name: 'Harris' }),
+    { ...point(0.2, 0.2, { name: 'no code' }), id: 7 },
+    { ...point(0.3, 0.3, { fips: 48113 }), id: 'own' },
+  )
+  const ids = (source: GeoJSONTileSource): unknown[] => {
+    const layer = source.getTile(0, 0, 0)!.layers.geojson
+    return Array.from({ length: layer.length }, (_, i) => layer.feature(i).id)
+  }
+
+  test('a feature\'s own id, by default', () => {
+    expect(ids(new GeoJSONTileSource(data))).toEqual([undefined, 7, 'own'])
+  })
+
+  test('promoteId takes a property as the id, where a feature has it', () => {
+    expect(ids(new GeoJSONTileSource(data, { promoteId: 'fips' }))).toEqual(['48201', 7, 48113])
+  })
+
+  test('generateId numbers the features, over any id they have', () => {
+    expect(ids(new GeoJSONTileSource(data, { generateId: true }))).toEqual([0, 1, 2])
+  })
+
+  test('a promoted property wins over a generated id', () => {
+    expect(ids(new GeoJSONTileSource(data, { promoteId: 'fips', generateId: true }))).toEqual(['48201', 1, 48113])
+  })
+
+  test('a style source passes both on', () => {
+    const map = makeMap()
+    map.setStyle({
+      version: 8,
+      sources: { counties: { type: 'geojson', data, promoteId: 'fips' } },
+      layers: [{ id: 'dots', type: 'circle', source: 'counties' }],
+    } as any)
+    const source = (map as any)._geoJSONSources.counties.index as GeoJSONTileSource
+    expect(source.getTile(0, 0, 0)!.layers.counties.feature(0).id).toBe('48201')
+  })
+})

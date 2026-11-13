@@ -130,6 +130,13 @@ function stampSize(map: Map, width: number, height: number): void {
     map._pixelOrigin = map._getNewPixelOrigin(map._lastCenter, map._zoom)
 }
 
+// Put the world's top-left corner — tile (0,0) — under the container's, so a
+// container pixel is also that tile's pixel and the numbers in a test read
+// straight off the fixture. Real maps are tested further down.
+function pinWorldCorner(map: Map): void {
+  map._pixelOrigin = new Point(0, 0)
+}
+
 // Build a layer ready for direct `createTile` invocation. We bypass `addTo`
 // because very-happy-dom's <canvas> doesn't expose the `classList` that
 // GridLayer._initTile touches, so the normal tile-add pipeline can't run in
@@ -567,6 +574,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -594,6 +602,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -629,6 +638,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -654,6 +664,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -681,6 +692,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -711,6 +723,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -732,6 +745,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -757,6 +771,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -799,6 +814,7 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
 
     const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
     stampSize(map, 512, 512)
+    pinWorldCorner(map)
 
     const layer = new VectorTileMapLayer({
       url: 'https://tiles/{z}/{x}/{y}.pbf',
@@ -813,6 +829,60 @@ describe('VectorTileMapLayer: queryRenderedFeatures (R-tree)', () => {
     const hit = layer.queryRenderedFeatures(new Point(250, 250))
     expect(hit.length).toBe(1)
     expect(hit[0].feature.properties.name).toBe('Ocean')
+  })
+})
+
+// The tests above pin tile (0,0) under the container's corner. A real map is
+// centred somewhere else, so its tiles sit at the map's pixel origin, and it
+// zooms between tile levels, so a tile is rarely drawn at its own scale.
+describe('VectorTileMapLayer: queryRenderedFeatures away from the world corner', () => {
+  let restoreFetch: (() => void) | undefined
+  afterEach(() => { restoreFetch?.(); restoreFetch = undefined })
+
+  function waterLayer(): VectorTileMapLayer {
+    return new VectorTileMapLayer({
+      url: 'https://tiles/{z}/{x}/{y}.pbf',
+      tileSize: 512,
+      layers: [{ id: 'water', type: 'fill', sourceLayer: 'water', paint: { 'fill-color': '#0af' } }],
+    })
+  }
+
+  test('a point query finds the feature in the tile that is under it', async () => {
+    restoreFetch = installFetchStub(async () => responseFrom(encodeWaterTile(), { status: 200 }))
+
+    // Centred on [0, 0] at zoom 4 in a 512px view, the pixel origin is
+    // (1792, 1792) and tile (3,3) covers world pixels 1536–2048, which is
+    // container pixels -256–256. Its polygon (125–375 within the tile) shows
+    // at container pixels -131–119.
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
+    stampSize(map, 512, 512)
+    const layer = waterLayer()
+    attachLayerForCreateTile(layer, map)
+    await createTileOnLayer(layer, tileCoords(3, 3, 4)).ready
+
+    const hit = layer.queryRenderedFeatures(new Point(60, 60))
+    expect(hit.length).toBe(1)
+    expect(hit[0].tile).toEqual({ x: 3, y: 3, z: 4 })
+    expect(layer.queryRenderedFeatures(new Point(200, 200))).toEqual([])
+    expect(layer.queryRenderedFeatures([[0, 0], [100, 100]]).length).toBe(1)
+    expect(layer.queryRenderedFeatures([[150, 150], [250, 250]])).toEqual([])
+  })
+
+  test('a tile shown a zoom level above its own is hit at its drawn size', async () => {
+    restoreFetch = installFetchStub(async () => responseFrom(encodeWaterTile(), { status: 200 }))
+
+    // At zoom 5 in a 2048px view the origin is (3072, 3072). The zoom-4 tile
+    // (4,4) is drawn twice its size, over world pixels 4096–5120, container
+    // pixels 1024–2048, and its polygon over container pixels 1274–1774.
+    const map = new Map(createContainer(), { center: [0, 0], zoom: 4 })
+    map._zoom = 5
+    stampSize(map, 2048, 2048)
+    const layer = waterLayer()
+    attachLayerForCreateTile(layer, map)
+    await createTileOnLayer(layer, tileCoords(4, 4, 4)).ready
+
+    expect(layer.queryRenderedFeatures(new Point(1500, 1500)).length).toBe(1)
+    expect(layer.queryRenderedFeatures(new Point(1100, 1100))).toEqual([])
   })
 })
 

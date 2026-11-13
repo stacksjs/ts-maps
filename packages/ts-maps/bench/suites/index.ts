@@ -21,6 +21,7 @@ GlobalRegistrator.register()
 /* eslint-disable import/first */
 import type { BenchmarkResult } from '../runner'
 import { collectMeta, formatTable, writeReport } from '../report'
+import { runExtrusionSuite } from './extrusion.bench'
 import { runGeometrySuite } from './geometry.bench'
 import { runMapSuite } from './map.bench'
 import { runPbfSuite } from './pbf.bench'
@@ -33,14 +34,17 @@ async function main(): Promise<void> {
   /* eslint-disable no-console */
   console.log('ts-maps benchmarks\n')
 
-  console.log('[1/3] geometry')
+  console.log('[1/4] geometry')
   all.push(...runGeometrySuite())
 
-  console.log('[2/3] map')
+  console.log('[2/4] map')
   all.push(...runMapSuite())
 
-  console.log('[3/3] pbf')
+  console.log('[3/4] pbf')
   all.push(...runPbfSuite())
+
+  console.log('[4/4] extrusion')
+  all.push(...await runExtrusionSuite())
 
   const wallEnd = performance.now()
   const wallMs = wallEnd - wallStart

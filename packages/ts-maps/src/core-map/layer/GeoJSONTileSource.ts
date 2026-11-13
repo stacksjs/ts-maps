@@ -25,6 +25,19 @@ export interface GeoJSONTileSourceOptions {
    * near an edge are not cut off mid-symbol. */
   buffer?: number
   maxZoom?: number
+  /**
+   * A property to use as each feature's id — a county's FIPS code, say —
+   * where the data carries its identity in `properties` rather than in `id`.
+   * Feature state, and telling a feature cut across tiles from two features,
+   * both go by id. A feature without the property keeps its own id.
+   */
+  promoteId?: string
+  /**
+   * Give every feature its place in the data as its id, over any it has.
+   * For data with no ids at all. The ids last only until the data is
+   * replaced by data in another order.
+   */
+  generateId?: boolean
 }
 
 type Ring = Array<{ x: number, y: number }>
@@ -254,11 +267,15 @@ export class GeoJSONTileSource {
   declare _features: IndexedFeature[]
   declare _layerName: string
   declare _buffer: number
+  declare _promoteId?: string
+  declare _generateId: boolean
 
   constructor(data?: unknown, options: GeoJSONTileSourceOptions = {}) {
     this._layerName = options.layerName ?? 'geojson'
     // In extent units of a tile; 64/4096 is the usual 1/64th margin.
     this._buffer = options.buffer ?? 64
+    this._promoteId = options.promoteId
+    this._generateId = !!options.generateId
     this._features = []
     if (data)
       this.setData(data)
@@ -276,7 +293,8 @@ export class GeoJSONTileSource {
           ? collection
           : []
 
-    for (const feature of features) {
+    for (let index = 0; index < features.length; index++) {
+      const feature = features[index]
       const geometry = feature?.geometry ?? feature
       const type = GEOMETRY_TYPES[geometry?.type]
       if (!type)
@@ -301,13 +319,21 @@ export class GeoJSONTileSource {
 
       this._features.push({
         type,
-        id: feature?.id,
+        id: this._idOf(feature, index),
         properties: feature?.properties ?? {},
         rings,
         bbox: [minX, minY, maxX, maxY],
       })
     }
     return this
+  }
+
+  /** A feature's id: the promoted property, else its place, else its own. */
+  _idOf(feature: any, index: number): number | string | undefined {
+    const promoted = this._promoteId === undefined ? undefined : feature?.properties?.[this._promoteId]
+    if (typeof promoted === 'number' || typeof promoted === 'string')
+      return promoted
+    return this._generateId ? index : feature?.id
   }
 
   /** How many features the source holds. */

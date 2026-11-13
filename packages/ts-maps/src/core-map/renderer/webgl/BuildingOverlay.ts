@@ -50,6 +50,35 @@ export interface BuildingMesh {
   data: ArrayBuffer
   /** Vertices, three per triangle. */
   count: number
+  /**
+   * Where each footprint's vertices are, as `[first, count]` pairs in the
+   * order the footprints were given — count 0 for one that made no prism.
+   * With it one prism can be recoloured or re-raised where it lies (see
+   * `patchPrism`) instead of the whole tile being meshed again.
+   */
+  ranges?: Uint32Array
+  /** Per footprint, 1 where the roof is pitched: its heights are not just top and bottom. */
+  pitched?: Uint8Array
+}
+
+/**
+ * Give the prism at `[first, first + count)` a new colour and new heights,
+ * in place. Only for flat-roofed prisms, whose every vertex is at the top or
+ * at the bottom — which its `t` byte says.
+ */
+export function patchPrism(mesh: BuildingMesh, first: number, count: number, top: number, bottom: number, color: [number, number, number, number]): void {
+  const f32 = new Float32Array(mesh.data)
+  const u8 = new Uint8Array(mesh.data)
+  const byte = (v: number): number => Math.max(0, Math.min(255, Math.round(v * 255)))
+  const rgba = [byte(color[0]), byte(color[1]), byte(color[2]), byte(color[3])]
+  for (let i = first; i < first + count; i++) {
+    const o = i * BUILDING_STRIDE
+    f32[(o >> 2) + 2] = u8[o + 14]! ? top : bottom
+    u8[o + 16] = rgba[0]!
+    u8[o + 17] = rgba[1]!
+    u8[o + 18] = rgba[2]!
+    u8[o + 19] = rgba[3]!
+  }
 }
 
 /** Read one vertex back out of a mesh, for tests and debugging. */
@@ -92,36 +121,32 @@ export function buildBuildingMesh(buildings: BuildingFootprint[], tileSize: numb
   const outside = (a: { x: number, y: number }, b: { x: number, y: number }): boolean =>
     (a.x <= 0 && b.x <= 0) || (a.y <= 0 && b.y <= 0) || (a.x >= tileSize && b.x >= tileSize) || (a.y >= tileSize && b.y >= tileSize)
 
+  const ranges = new Uint32Array(buildings.length * 2)
+  const pitched = new Uint8Array(buildings.length)
+  let nth = -1
+  const close = (first: number): void => {
+    ranges[nth * 2] = first
+    ranges[nth * 2 + 1] = out.count - first
+  }
+
   for (const building of buildings) {
+    nth++
     if (!(building.height > building.base))
       continue
+    const first = out.count
     out.color(building.color)
     const top = building.height
     const bottom = building.base
 
-    // Group rings into polygons: an outer ring, then its holes.
-    const polygons: Array<Array<Array<{ x: number, y: number }>>> = []
-    let outerSign = 0
-    for (const ring of building.rings) {
-      if (ring.length < 3)
-        continue
-      const area = ringArea(ring)
-      if (area === 0)
-        continue
-      const sign = Math.sign(area)
-      if (outerSign === 0)
-        outerSign = sign
-      if (sign === outerSign || polygons.length === 0)
-        polygons.push([ring])
-      else
-        polygons[polygons.length - 1]!.push(ring)
-    }
+    const { polygons, outerSign } = groupPolygons(building.rings)
 
     // A pitched roof is set out on the whole footprint: one ring, no
     // courtyard, not cut by the tile edge (each half would get its own ridge).
     const only = polygons.length === 1 && polygons[0]!.length === 1 ? polygons[0]![0]! : undefined
     if (building.roof && only && only.every(p => p.x > 0 && p.y > 0 && p.x < tileSize && p.y < tileSize)
       && writePitchedBuilding(out, only, building.roof, top, bottom, metresPerPixel)) {
+      pitched[nth] = 1
+      close(first)
       continue
     }
 
@@ -163,8 +188,39 @@ export function buildBuildingMesh(buildings: BuildingFootprint[], tileSize: numb
         }
       }
     }
+    close(first)
   }
-  return out.finish()
+  return { ...out.finish(), ranges, pitched }
+}
+
+/**
+ * A feature's rings as polygons: each outer ring with the holes that follow
+ * it. Winding tells them apart — the first ring is an outer one, and every
+ * ring wound the same way starts a new polygon — so a courtyard stays open
+ * and a multipolygon's parts stay separate. `outerSign` is the winding outer
+ * rings have, for facing walls outwards.
+ *
+ * Shared by the mesh and by what is kept for hit-testing, so a prism is
+ * picked by exactly the shape it is drawn with.
+ */
+export function groupPolygons<P extends { x: number, y: number }>(rings: P[][]): { polygons: P[][][], outerSign: number } {
+  const polygons: P[][][] = []
+  let outerSign = 0
+  for (const ring of rings) {
+    if (ring.length < 3)
+      continue
+    const area = ringArea(ring)
+    if (area === 0)
+      continue
+    const sign = Math.sign(area)
+    if (outerSign === 0)
+      outerSign = sign
+    if (sign === outerSign || polygons.length === 0)
+      polygons.push([ring])
+    else
+      polygons[polygons.length - 1]!.push(ring)
+  }
+  return { polygons, outerSign }
 }
 
 /** Appends vertices in `BUILDING_STRIDE` layout, doubling its buffer when full. */
@@ -367,6 +423,7 @@ uniform float u_heightScale;
 uniform vec2 u_light;
 uniform float u_opacity;
 uniform vec2 u_fog;
+uniform float u_gradient;
 varying vec4 v_color;
 void main() {
   vec4 clip = u_matrix * vec4(a_pos.xy, a_pos.z * u_heightScale, 1.0);
@@ -379,12 +436,16 @@ void main() {
   // landmark's model, which take some of each.
   float level = dot(a_normal, a_normal);
   float up = sqrt(clamp(1.0 - level, 0.0, 1.0));
-  vec3 roof = mix(a_color.rgb, vec3(1.0), 0.18);
-  float wall = level > 0.0001 ? (0.66 + 0.24 * (0.5 + 0.5 * dot(normalize(a_normal), u_light))) * mix(0.84, 1.0, a_t) : 1.0;
+  // u_gradient is fill-extrusion-vertical-gradient: off, a roof is the
+  // layer's colour exactly and a wall one shade from foot to top — what a
+  // map coloured by data wants, where the colour is read against a legend.
+  vec3 roof = mix(a_color.rgb, vec3(1.0), 0.18 * u_gradient);
+  float wall = level > 0.0001 ? (0.66 + 0.24 * (0.5 + 0.5 * dot(normalize(a_normal), u_light))) * mix(1.0, mix(0.84, 1.0, a_t), u_gradient) : 1.0;
   vec3 rgb = mix(a_color.rgb * wall, roof, up);
   float shade = 1.0;
-  // Distant buildings fade into the haze at the horizon.
-  float fog = 1.0 - smoothstep(u_fog.x, u_fog.y, clip.w);
+  // Distant buildings fade into the haze at the horizon — unless the layer
+  // has turned its fade off, with a range that is no range at all.
+  float fog = u_fog.y > u_fog.x ? 1.0 - smoothstep(u_fog.x, u_fog.y, clip.w) : 1.0;
   float alpha = a_color.a * u_opacity * fog;
   v_color = vec4(rgb * shade * alpha, alpha);
 }
@@ -406,6 +467,13 @@ export interface BuildingDraw {
   /** Pixels per metre at the map's zoom and the tile's latitude. */
   heightScale: number
   opacity: number
+  /**
+   * Where this draw fades into the haze, as camera distances in pixels:
+   * `[start, end]`. Left out, the frame's own; `[0, 0]`, never.
+   */
+  fog?: [number, number]
+  /** `fill-extrusion-vertical-gradient`; on unless false. */
+  gradient?: boolean
 }
 
 interface Program {
@@ -419,6 +487,7 @@ interface Program {
   u_light: WebGLUniformLocation | null
   u_opacity: WebGLUniformLocation | null
   u_fog: WebGLUniformLocation | null
+  u_gradient: WebGLUniformLocation | null
 }
 
 /**
@@ -507,7 +576,6 @@ export class BuildingOverlay {
     gl.enable(gl.DEPTH_TEST)
     gl.disable(gl.CULL_FACE)
     gl.uniform2f(p.u_light, options.light[0], options.light[1])
-    gl.uniform2f(p.u_fog, options.fog[0], options.fog[1])
 
     const stride = BUILDING_STRIDE
     const bind = (draw: BuildingDraw): number => {
@@ -524,6 +592,9 @@ export class BuildingOverlay {
       gl.uniformMatrix4fv(p.u_matrix, false, draw.matrix)
       gl.uniform1f(p.u_heightScale, draw.heightScale)
       gl.uniform1f(p.u_opacity, draw.opacity)
+      const fog = draw.fog ?? options.fog
+      gl.uniform2f(p.u_fog, fog[0], fog[1])
+      gl.uniform1f(p.u_gradient, draw.gradient === false ? 0 : 1)
       return draw.mesh.count
     }
 
@@ -567,6 +638,21 @@ export class BuildingOverlay {
     gl.bufferData(gl.ARRAY_BUFFER, draw.mesh.data, gl.STATIC_DRAW)
     this.buffers.set(draw.key, { buffer, mesh: draw.mesh })
     return buffer
+  }
+
+  /**
+   * Send again the part of a mesh that was changed in place — a prism
+   * recoloured for a hover — rather than the whole tile's vertices. A mesh
+   * not uploaded yet needs nothing: it goes up whole, changes and all, the
+   * first time it is drawn.
+   */
+  patch(key: object, mesh: BuildingMesh, first: number, count: number): void {
+    const gl = this.gl
+    const cached = this.buffers.get(key)
+    if (!gl || !cached || cached.mesh !== mesh || count <= 0)
+      return
+    gl.bindBuffer(gl.ARRAY_BUFFER, cached.buffer)
+    gl.bufferSubData(gl.ARRAY_BUFFER, first * BUILDING_STRIDE, new Uint8Array(mesh.data, first * BUILDING_STRIDE, count * BUILDING_STRIDE))
   }
 
   /** Free a mesh's GPU buffer, when its tile goes. */
@@ -623,5 +709,6 @@ function compile(gl: WebGLRenderingContext): Program | null {
     u_light: gl.getUniformLocation(program, 'u_light'),
     u_opacity: gl.getUniformLocation(program, 'u_opacity'),
     u_fog: gl.getUniformLocation(program, 'u_fog'),
+    u_gradient: gl.getUniformLocation(program, 'u_gradient'),
   }
 }

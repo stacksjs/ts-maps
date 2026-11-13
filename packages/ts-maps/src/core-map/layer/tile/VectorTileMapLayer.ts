@@ -36,7 +36,7 @@ import type { LabelCandidate, LabelGroup } from '../../symbols/LabelPlacer'
 import { LabelPlacer } from '../../symbols/LabelPlacer'
 import { builtinIcon } from '../../symbols/poiIcons'
 import type { BuildingDraw, BuildingFootprint, BuildingMesh } from '../../renderer/webgl/BuildingOverlay'
-import { BuildingOverlay, buildBuildingMesh, buildingMatrix } from '../../renderer/webgl/BuildingOverlay'
+import { BuildingOverlay, buildBuildingMesh, buildingMatrix, groupPolygons, patchPrism } from '../../renderer/webgl/BuildingOverlay'
 import type { Occluder, OcclusionSource } from '../../symbols/BuildingOcclusion'
 import { occluded, OccluderIndex } from '../../symbols/BuildingOcclusion'
 import { roofOf } from '../../renderer/webgl/roofs'
@@ -193,6 +193,10 @@ export interface VectorTilePaintProperties {
   'fill-extrusion-opacity'?: number
   'fill-extrusion-height'?: number | unknown
   'fill-extrusion-base'?: number | unknown
+  /** Off: roofs exactly the layer's colour, walls one shade. See the style spec. */
+  'fill-extrusion-vertical-gradient'?: boolean
+  /** `[start, end]` in camera heights; `[0, 0]` never fades. Default `[3, 10]`. */
+  'fill-extrusion-fade-range'?: [number, number]
 
   // Symbol paint props. `text-*` colors use CSS color strings.
   'text-color'?: string
@@ -317,6 +321,18 @@ interface RTreeItem {
 
 // Internal bookkeeping: alongside each Canvas we track the decoded tile so
 // `queryRenderedFeatures` can re-project hit-tests to tile-local coords.
+/** Where one feature's prism is: which mesh, and which of its footprints. */
+interface PrismRef {
+  item: { layer: string, mesh: BuildingMesh }
+  styleLayer: VectorTileStyleLayer
+  /** Index into the mesh's `ranges`. */
+  footprint: number
+  /** The feature's place in its tile layer. */
+  feature: number
+  /** Its polygons in the tile's occluder index. */
+  occluders: number[]
+}
+
 interface DecodedTileEntry {
   /** Ancestor this tile draws from, while it holds a claim on it. */
   sourceKey?: string
@@ -402,7 +418,30 @@ export class VectorTileMapLayer extends GridLayer {
    * grid tiles show parts of one source tile, and meshing it for each would
    * build — and draw — the same buildings a dozen times.
    */
-  declare _buildingMeshes?: globalThis.Map<string, { version: number, meshes: Array<{ layer: string, mesh: BuildingMesh }>, occluders: OccluderIndex }>
+  declare _buildingMeshes?: globalThis.Map<string, {
+    version: number
+    meshes: Array<{ layer: string, mesh: BuildingMesh }>
+    occluders: OccluderIndex
+    /** The source tile the meshes were built from, and which one it is. */
+    tile: DecodedTile | null
+    coords: { x: number, y: number, z: number }
+    /** Where each feature's prisms are in the meshes, by feature id. */
+    prisms: globalThis.Map<string, PrismRef[]>
+    /** Features with an id that made no prism — no height — and might yet. */
+    unraised: globalThis.Map<string, Array<{ styleLayer: VectorTileStyleLayer, feature: number }>>
+  }>
+
+  /**
+   * What the building meshes and trees were built against, as `_labelVersion`
+   * is for labels. Kept apart so that what only labels depend on — glyphs
+   * arriving, a text property — does not re-mesh a city.
+   */
+  declare _meshVersion: number
+  /** How many tiles' meshes have been built; for tests and for measuring. */
+  declare _meshBuilds: number
+
+  /** The source tiles whose prisms the last frame drew — what a pointer can be on. */
+  declare _extrusionDrawn?: Set<string>
   /** Each source tile's trees, built when they are first shown. */
   declare _treeMeshes?: globalThis.Map<string, { version: number, mesh: BuildingMesh }>
   /** This frame's buildings and camera, for hiding the labels behind them. */
@@ -431,6 +470,8 @@ export class VectorTileMapLayer extends GridLayer {
     this._sourceCache = new globalThis.Map()
     this._sourcePending = new globalThis.Map()
     this._labelVersion = 0
+    this._meshVersion = 0
+    this._meshBuilds = 0
     this._glyphAtlas = this.options!.glyphAtlas
     this._iconAtlas = this.options!.iconAtlas
 
@@ -589,6 +630,11 @@ export class VectorTileMapLayer extends GridLayer {
   // Map when feature-state changes — pure paint-side update.
   _repaintDecodedTiles(): void {
     this._invalidateLabels()
+    this._repaintTiles()
+  }
+
+  /** The tiles' own pictures, drawn again from what is decoded. */
+  _repaintTiles(): void {
     for (const entry of this._decodedTiles.values()) {
       if (!entry.tile)
         continue
@@ -678,6 +724,14 @@ export class VectorTileMapLayer extends GridLayer {
     const passes = (styleLayer: VectorTileStyleLayer, feature: DecodedFeature, coords: { x: number, y: number, z: number }): boolean =>
       filterPasses(styleLayer, feature, queryZoom, coords) && (!extraFilter || filterPasses(extraFilter, feature, queryZoom, coords))
 
+    // Standing prisms are picked by the face under the pointer rather than by
+    // the ground under it; everything else, and prisms too where there is no
+    // 3D pass to have stood them up, by footprint.
+    const standing = queryPoint && this._buildingOverlay?.active ? this._extrusionLayers(queryZoom) : []
+    const picked = new Set(standing.map(l => l.id))
+    // A feature cut by tile edges is in each tile it touches.
+    const seenIds = new Set<string>()
+
     for (const entry of this._decodedTiles.values()) {
       if (!entry.tile)
         continue
@@ -718,7 +772,7 @@ export class VectorTileMapLayer extends GridLayer {
       for (const styleLayer of this._styleLayers) {
         if (layerFilter && !layerFilter.includes(styleLayer.id))
           continue
-        if (styleLayer.layout?.visibility === 'none')
+        if (styleLayer.layout?.visibility === 'none' || picked.has(styleLayer.id))
           continue
 
         const mvtLayer = entry.tile.layers[styleLayer.sourceLayer]
@@ -739,10 +793,24 @@ export class VectorTileMapLayer extends GridLayer {
           if (!passes(styleLayer, feature, entry.coords))
             continue
 
-          if (featurePreciseHit(feature, localQuery, styleLayer, tileSize))
-            out.push({ feature, layer: styleLayer, tile: entry.coords })
+          if (!featurePreciseHit(feature, localQuery, styleLayer, tileSize))
+            continue
+          // Once per feature, however many tiles it is cut across — or held
+          // at, when a parent level is still decoded under the current one.
+          if (feature.id !== undefined) {
+            const id = `${styleLayer.id}|${typeof feature.id}:${feature.id}`
+            if (seenIds.has(id))
+              continue
+            seenIds.add(id)
+          }
+          out.push({ feature, layer: styleLayer, tile: entry.coords })
         }
       }
+    }
+
+    if (standing.length) {
+      const wanted = layerFilter ? standing.filter(l => layerFilter.includes(l.id)) : standing
+      out.unshift(...this._pickExtrusions(queryPoint!, wanted, passes))
     }
 
     return out
@@ -1042,14 +1110,41 @@ export class VectorTileMapLayer extends GridLayer {
     this._buildingOverlay = undefined
   }
 
+  /**
+   * Remake every tile. What was built from the old ones goes with them: a
+   * building mesh is kept by source tile, and new data arrives under the same
+   * tile numbers, so without this a geojson source given new data kept
+   * standing the prisms of the old.
+   */
+  redraw(): this {
+    this._invalidateLabels()
+    return super.redraw()
+  }
+
   /** Ask for a label repaint — after tiles decode, or a style change. */
   _refreshSymbols(): void {
     this._symbolOverlay?.schedule()
   }
 
-  /** Throw away every tile's resolved labels and repaint. */
+  /**
+   * Throw away everything built from the tiles under the old style or data —
+   * every tile's resolved labels, building meshes and trees — and repaint.
+   */
   _invalidateLabels(): void {
     this._labelVersion = (this._labelVersion ?? 0) + 1
+    this._meshVersion = (this._meshVersion ?? 0) + 1
+    this._refreshSymbols()
+  }
+
+  /** The labels alone, where nothing the meshes are built from has changed. */
+  _invalidateLabelsOnly(): void {
+    this._labelVersion = (this._labelVersion ?? 0) + 1
+    this._refreshSymbols()
+  }
+
+  /** The building meshes and trees alone. */
+  _invalidateMeshes(): void {
+    this._meshVersion = (this._meshVersion ?? 0) + 1
     this._refreshSymbols()
   }
 
@@ -1221,20 +1316,21 @@ export class VectorTileMapLayer extends GridLayer {
     const key = this._sourceKey(entry.coords)
     this._buildingMeshes ??= new globalThis.Map()
     const cached = this._buildingMeshes.get(key)
-    if (cached && cached.version === this._labelVersion)
+    if (cached && cached.version === this._meshVersion)
       return cached.meshes
     for (const item of cached?.meshes ?? [])
       this._buildingOverlay?.release(item)
 
     const meshes: Array<{ layer: string, mesh: BuildingMesh }> = []
     const occluders: Occluder[] = []
+    const prisms = new globalThis.Map<string, PrismRef[]>()
+    const unraised = new globalThis.Map<string, Array<{ styleLayer: VectorTileStyleLayer, feature: number }>>()
     const tile = entry.tile
+    this._meshBuilds = (this._meshBuilds ?? 0) + 1
     if (tile) {
       const sub = this._subTile(entry.coords)
       const source = { x: sub.x, y: sub.y, z: sub.z }
       const size = this.getTileSize().x
-      const sourceId = this._sourceId ?? ''
-      const lookup = this._featureStateLookup
       const map = this._map
       // Landmarks standing in for a building take its place.
       const replaced = map && isSceneHost(map, this) ? replacedPoints(map, sceneOf(map).landmarks, source, size) : []
@@ -1247,59 +1343,209 @@ export class VectorTileMapLayer extends GridLayer {
         if (!mvtLayer)
           continue
         const scale = size / (mvtLayer.extent || 4096)
-        const paint = styleLayer.paint
         const footprints: BuildingFootprint[] = []
+        // This layer's prisms, to be pointed at its mesh once that is built.
+        const placed: Array<{ key: string, ref: Omit<PrismRef, 'item'> }> = []
 
         for (let i = 0; i < mvtLayer.length; i++) {
           const feature = mvtLayer.feature(i)
           if (feature.type !== 3 || !filterPasses(styleLayer, feature, source.z, source))
             continue
-          let featureState: Record<string, unknown> | undefined
-          if (lookup && feature.id !== undefined)
-            featureState = lookup(sourceId, styleLayer.sourceLayer, feature.id as number | string)
+          const key = feature.id === undefined ? undefined : prismKey(feature.id as number | string)
 
-          const resolve = (value: unknown): unknown => resolvePaintExpression(value, source.z, feature, featureState)
-          const height = Number(resolve(paint?.['fill-extrusion-height']) ?? 0)
-          const base = Number(resolve(paint?.['fill-extrusion-base']) ?? 0)
-          if (!(height > base))
+          const { height, base, color } = this._prismPaint(styleLayer, feature, source.z)
+          if (!(height > base)) {
+            // No prism now; a feature-state change may raise one.
+            if (key !== undefined)
+              unraised.set(key, [...(unraised.get(key) ?? []), { styleLayer, feature: i }])
             continue
-          const color = parseCssColor((resolve(paint?.['fill-extrusion-color']) as string | undefined) ?? '#000', 1)
+          }
           const rings = feature.loadGeometry().map(ring => ring.map(pt => ({ x: pt.x * scale, y: pt.y * scale })))
           if (replaced.length && rings[0] && replaced.some(([x, y]) => insideRing(rings[0]!, x, y)))
             continue
           if (cleared.length && rings[0] && clearedBy(rings[0], cleared))
             continue
           const roof = roofOf(feature.properties as Record<string, unknown>)
-          footprints.push({ rings, height, base, color: [color[0], color[1], color[2], color[3]], ...(roof ? { roof } : {}) })
+          footprints.push({ rings, height, base, color, ...(roof ? { roof } : {}) })
+          const ref = { styleLayer, footprint: footprints.length - 1, feature: i, occluders: [] as number[] }
+          if (key !== undefined)
+            placed.push({ key, ref })
 
-          // The outer ring stands in for the building when hiding labels;
-          // a courtyard is too small to see a street name through.
-          const outer = rings[0]
-          if (outer && outer.length >= 3) {
-            const ring = new Float64Array(outer.length * 2)
+          // What labels are hidden behind, and what a pointer picks: each of
+          // the feature's polygons, as the mesh has them. The outer ring alone
+          // hides a label — a courtyard is too small to see a street name
+          // through — but a pointer over one is on whatever stands behind it.
+          for (const polygon of groupPolygons(rings).polygons) {
+            const outer = polygon[0]!
             let minX = Infinity
             let minY = Infinity
             let maxX = -Infinity
             let maxY = -Infinity
-            outer.forEach((p, n) => {
-              ring[n * 2] = p.x
-              ring[n * 2 + 1] = p.y
+            for (const p of outer) {
               minX = Math.min(minX, p.x)
               minY = Math.min(minY, p.y)
               maxX = Math.max(maxX, p.x)
               maxY = Math.max(maxY, p.y)
+            }
+            ref.occluders.push(occluders.length)
+            occluders.push({
+              ring: flatRing(outer),
+              minX,
+              minY,
+              maxX,
+              maxY,
+              top: height,
+              base,
+              ...(polygon.length > 1 ? { holes: polygon.slice(1).map(flatRing) } : {}),
+              layer: styleLayer.id,
+              feature: i,
+              ...(feature.id !== undefined ? { id: feature.id as number | string } : {}),
             })
-            occluders.push({ ring, minX, minY, maxX, maxY, top: height, base })
           }
         }
 
-        if (footprints.length)
-          meshes.push({ layer: styleLayer.id, mesh: buildBuildingMesh(footprints, size, mpp) })
+        if (footprints.length) {
+          const item = { layer: styleLayer.id, mesh: buildBuildingMesh(footprints, size, mpp) }
+          meshes.push(item)
+          for (const { key, ref } of placed)
+            prisms.set(key, [...(prisms.get(key) ?? []), { ...ref, item }])
+        }
       }
     }
 
-    this._buildingMeshes.set(key, { version: this._labelVersion, meshes, occluders: new OccluderIndex(occluders, this.getTileSize().x) })
+    const sub = this._subTile(entry.coords)
+    this._buildingMeshes.set(key, {
+      version: this._meshVersion,
+      meshes,
+      occluders: new OccluderIndex(occluders, this.getTileSize().x),
+      tile: tile ?? null,
+      coords: { x: sub.x, y: sub.y, z: sub.z },
+      prisms,
+      unraised,
+    })
     return meshes
+  }
+
+  /** A feature's height, base and colour as a `fill-extrusion` layer paints it. */
+  _prismPaint(styleLayer: VectorTileStyleLayer, feature: DecodedFeature, zoom: number): { height: number, base: number, color: [number, number, number, number] } {
+    const paint = styleLayer.paint
+    const lookup = this._featureStateLookup
+    const featureState = lookup && feature.id !== undefined
+      ? lookup(this._sourceId ?? '', styleLayer.sourceLayer, feature.id as number | string)
+      : undefined
+    const resolve = (value: unknown): unknown => resolvePaintExpression(value, zoom, feature, featureState)
+    const color = parseCssColor((resolve(paint?.['fill-extrusion-color']) as string | undefined) ?? '#000', 1)
+    return {
+      height: Number(resolve(paint?.['fill-extrusion-height']) ?? 0),
+      base: Number(resolve(paint?.['fill-extrusion-base']) ?? 0),
+      color: [color[0], color[1], color[2], color[3]],
+    }
+  }
+
+  /**
+   * What a change of feature state can alter in what this layer draws: the
+   * tiles' own pictures, the labels, the standing prisms. Asked of the style
+   * as it is now; compiled expressions are cached, so it is a few lookups.
+   */
+  _stateDependencies(): { tiles: boolean, symbols: boolean, extrusions: boolean } {
+    const deps = { tiles: false, symbols: false, extrusions: false }
+    const reads = (values: object | undefined): boolean => !!values && Object.values(values).some(readsFeatureState)
+    for (const l of this._styleLayers) {
+      if (l.layout?.visibility === 'none' || !(reads(l.paint) || reads(l.layout)))
+        continue
+      if (l.type === 'symbol')
+        deps.symbols = true
+      else if (l.type === 'fill-extrusion' && this._buildingsActive())
+        deps.extrusions = true
+      else
+        deps.tiles = true
+    }
+    return deps
+  }
+
+  /**
+   * A feature's state has changed: redo what that touches, and no more.
+   *
+   * The whole of it used to be redone on every change — each decoded tile
+   * redrawn, every label resolved again, every tile's prisms meshed again
+   * over several frames, blinking as they went — so hovering over a map of
+   * three thousand prisms rebuilt three thousand prisms per pointer move.
+   * Most styles read feature state in one place; a style that reads it
+   * nowhere is not touched at all.
+   *
+   * `id` is the feature that changed. Without one, everything that reads
+   * feature state is redone.
+   */
+  _featureStateChanged(id?: number | string): void {
+    const deps = this._stateDependencies()
+    if (deps.tiles)
+      this._repaintTiles()
+    if (deps.symbols)
+      this._invalidateLabelsOnly()
+    if (deps.extrusions) {
+      if (id === undefined)
+        this._invalidateMeshes()
+      else
+        this._restatePrisms(id)
+    }
+    if (deps.tiles || deps.symbols || deps.extrusions)
+      this._refreshSymbols()
+  }
+
+  /**
+   * Give the prisms of feature `id` the height, base and colour its state
+   * now makes them, where they lie in their tiles' meshes.
+   *
+   * A prism that appears or disappears, or one with a pitched roof — whose
+   * vertices are not simply at the top or the bottom — is beyond patching:
+   * the one tile it is in is meshed again.
+   */
+  _restatePrisms(id: number | string): void {
+    const key = prismKey(id)
+    for (const cached of this._buildingMeshes?.values() ?? []) {
+      // Already due a rebuild, which will read the state as it is.
+      if (cached.version !== this._meshVersion || !cached.tile)
+        continue
+      const zoom = cached.coords.z
+      const featureOf = (styleLayer: VectorTileStyleLayer, index: number): DecodedFeature | undefined =>
+        cached.tile!.layers[styleLayer.sourceLayer]?.feature(index)
+
+      let rebuild = (cached.unraised.get(key) ?? []).some(({ styleLayer, feature }) => {
+        const f = featureOf(styleLayer, feature)
+        if (!f)
+          return false
+        const { height, base } = this._prismPaint(styleLayer, f, zoom)
+        return height > base
+      })
+
+      for (const ref of rebuild ? [] : cached.prisms.get(key) ?? []) {
+        const feature = featureOf(ref.styleLayer, ref.feature)
+        const mesh = ref.item.mesh
+        if (!feature || !mesh.ranges)
+          continue
+        const { height, base, color } = this._prismPaint(ref.styleLayer, feature, zoom)
+        if (!(height > base) || mesh.pitched?.[ref.footprint]) {
+          rebuild = true
+          break
+        }
+        const first = mesh.ranges[ref.footprint * 2]!
+        const count = mesh.ranges[ref.footprint * 2 + 1]!
+        patchPrism(mesh, first, count, height, base, color)
+        this._buildingOverlay?.patch(ref.item, mesh, first, count)
+        // Picked, and hiding labels, at the height it now stands.
+        for (const n of ref.occluders) {
+          const occluder = cached.occluders.buildings[n]!
+          occluder.top = height
+          occluder.base = base
+        }
+        cached.occluders.maxTop = Math.max(cached.occluders.maxTop, height)
+      }
+
+      if (rebuild)
+        cached.version = -1
+    }
+    // What labels are behind may have changed with the heights.
+    this._occlusionMemo = undefined
   }
 
   /** Metres to a pixel of a source tile, at its middle. */
@@ -1325,7 +1571,7 @@ export class VectorTileMapLayer extends GridLayer {
     const key = treeKey(entry.coords)
     this._treeMeshes ??= new globalThis.Map()
     const cached = this._treeMeshes.get(key)
-    if (cached && cached.version === this._labelVersion)
+    if (cached && cached.version === this._meshVersion)
       return cached
     if (cached)
       this._buildingOverlay?.release(cached)
@@ -1353,7 +1599,7 @@ export class VectorTileMapLayer extends GridLayer {
     const shown = { ...entry.coords, size, mpp: mpp / f }
     // Drawn with the source tile's matrix, so back into its pixels.
     const planted = plantTrees(features, shown, options).map(t => ({ x: (t.x + sx * size) / f, y: (t.y + sy * size) / f, seed: t.seed }))
-    const built = { version: this._labelVersion, mesh: buildTreeMesh(planted, { x: sub.x, y: sub.y, z: sub.z, size, mpp }, options) }
+    const built = { version: this._meshVersion, mesh: buildTreeMesh(planted, { x: sub.x, y: sub.y, z: sub.z, size, mpp }, options) }
     this._treeMeshes.set(key, built)
     return built
   }
@@ -1365,7 +1611,7 @@ export class VectorTileMapLayer extends GridLayer {
    */
   _occlusionTest(occlusion: NonNullable<VectorTileMapLayer['_occlusion']>): (x: number, y: number, key: string) => boolean {
     const map = this._map
-    const signature = `${occlusion.camera.x.toFixed(1)},${occlusion.camera.y.toFixed(1)},${occlusion.rise.toFixed(1)},${map.getZoom()},${occlusion.sources.length},${this._labelVersion}`
+    const signature = `${occlusion.camera.x.toFixed(1)},${occlusion.camera.y.toFixed(1)},${occlusion.rise.toFixed(1)},${map.getZoom()},${occlusion.sources.length},${this._labelVersion},${this._meshVersion}`
     let memo = this._occlusionMemo
     if (!memo || memo.signature !== signature)
       memo = this._occlusionMemo = { signature, results: new globalThis.Map() }
@@ -1378,6 +1624,108 @@ export class VectorTileMapLayer extends GridLayer {
       }
       return hidden
     }
+  }
+
+  /**
+   * Where the camera stands: the ground under it in layer pixels, and how
+   * high above that it is, `rise`.
+   *
+   * It looks down the view axis from `h` away, at the middle of the view —
+   * layer point (W/2, H/2), which the camera transform turns about. Tilted,
+   * the axis leans towards the viewer, so the camera stands back from that
+   * point by `h·sin(pitch)`, towards the bottom of the screen, and
+   * `h·cos(pitch)` up. A sight line from a point on the ground to here is the
+   * line of whatever is drawn at that point on screen.
+   */
+  _cameraGround(): { x: number, y: number, rise: number } {
+    const map = this._map
+    const size = map.getSize()
+    const { h } = map._cameraGeometry()
+    const theta = ((map._pitch ?? 0) * Math.PI) / 180
+    const toward = map._rotatePoint(new Point(0, 1), map._bearing ?? 0, new Point(0, 0))
+    return {
+      x: size.x / 2 + toward.x * h * Math.sin(theta),
+      y: size.y / 2 + toward.y * h * Math.sin(theta),
+      rise: h * Math.cos(theta),
+    }
+  }
+
+  /** The `fill-extrusion` layers that are showing at `zoom`. */
+  _extrusionLayers(zoom: number): VectorTileStyleLayer[] {
+    return this._styleLayers.filter((l) => {
+      if (l.type !== 'fill-extrusion' || l.layout?.visibility === 'none')
+        return false
+      if ((l.minzoom !== undefined && zoom < l.minzoom) || (l.maxzoom !== undefined && zoom > l.maxzoom))
+        return false
+      const opacity = resolvePaintExpression(l.paint?.['fill-extrusion-opacity'], zoom, undefined, undefined)
+      return typeof opacity !== 'number' || opacity > 0
+    })
+  }
+
+  /**
+   * The prisms under a pointer, nearest the eye first.
+   *
+   * A prism stands up off its footprint, so on a tilted map the pointer is
+   * on its wall or its roof long before it is over the ground it stands on —
+   * and that ground is somewhere else's, often another prism's entirely.
+   * Hit-testing footprints picked the county behind the tower being pointed
+   * at. Instead the pointer's sight line is followed from the ground under it
+   * up to the camera, through the same prisms the building pass drew (see
+   * `OccluderIndex.pick`); the one it leaves last is the one on screen there.
+   *
+   * A prism cut by tile edges is in several tiles; it is reported once, by
+   * id, at its nearest hit.
+   */
+  _pickExtrusions(
+    point: Point,
+    layers: VectorTileStyleLayer[],
+    accept: (layer: VectorTileStyleLayer, feature: DecodedFeature, coords: { x: number, y: number, z: number }) => boolean,
+  ): QueryRenderedFeature[] {
+    const map = this._map
+    const meshes = this._buildingMeshes
+    if (!map || !meshes?.size || !layers.length)
+      return []
+    // At or above the horizon there is no ground under the pointer to sight
+    // from. (A tower tall enough to stand against the sky is taller than the
+    // camera is high, and is picked by pointing at it lower down.)
+    if (map._pitch && point.y <= map.getSize().y / 2 - map._horizonDistance())
+      return []
+
+    const ground = map.containerPointToLayerPoint(point)
+    const eye = this._cameraGround()
+    const ppm = map.getPixelsPerMetre()
+    const tileSize = this.getTileSize().x
+    const origin = map.getPixelOrigin()
+    const mapZoom = map.getZoom()
+    const byId = new globalThis.Map<string, VectorTileStyleLayer>(layers.map(l => [l.id, l]))
+    const nearest = new globalThis.Map<string, { t: number, hit: QueryRenderedFeature }>()
+
+    for (const [key, cached] of meshes) {
+      if (cached.version !== this._meshVersion || !cached.tile)
+        continue
+      if (this._extrusionDrawn && !this._extrusionDrawn.has(key))
+        continue
+      const { x, y, z } = cached.coords
+      // Layer pixels to this tile's own, as the frame placed it.
+      const k = map.getZoomScale(mapZoom, z)
+      const ox = x * tileSize * k - origin.x
+      const oy = y * tileSize * k - origin.y
+      const hits = cached.occluders.pick((ground.x - ox) / k, (ground.y - oy) / k, (eye.x - ox) / k, (eye.y - oy) / k, eye.rise / k, ppm / k)
+      for (const { index, t } of hits) {
+        const prism = cached.occluders.buildings[index]!
+        const styleLayer = prism.layer === undefined ? undefined : byId.get(prism.layer)
+        if (!styleLayer || prism.feature === undefined)
+          continue
+        const feature = cached.tile.layers[styleLayer.sourceLayer]?.feature(prism.feature)
+        if (!feature || !accept(styleLayer, feature, cached.coords))
+          continue
+        const id = prism.id !== undefined ? `${styleLayer.id}|${typeof prism.id}:${prism.id}` : `${styleLayer.id}|${key}|${prism.feature}`
+        const known = nearest.get(id)
+        if (!known || t > known.t)
+          nearest.set(id, { t, hit: { feature, layer: styleLayer, tile: cached.coords } })
+      }
+    }
+    return [...nearest.values()].sort((a, b) => b.t - a.t).map(n => n.hit)
   }
 
   /**
@@ -1409,18 +1757,35 @@ export class VectorTileMapLayer extends GridLayer {
       return false
     }
 
+    const { h } = map._cameraGeometry()
     const opacity = new globalThis.Map<string, number>()
+    // Each layer's own fade into the distance, and whether its shading runs
+    // down the walls; the furthest any of them reaches is how far tiles are
+    // worth building.
+    const look = new globalThis.Map<string, { fog: [number, number], gradient: boolean }>()
+    let reach = 0
     for (const l of active) {
       const value = resolvePaintExpression(l.paint?.['fill-extrusion-opacity'], mapZoom, undefined, undefined)
       opacity.set(l.id, typeof value === 'number' ? Math.max(0, Math.min(1, value)) : 1)
+      const [start, end] = fadeRange(l.paint?.['fill-extrusion-fade-range'])
+      reach = Math.max(reach, end > start ? end : Infinity)
+      look.set(l.id, {
+        fog: [h * start, h * end],
+        gradient: resolvePaintExpression(l.paint?.['fill-extrusion-vertical-gradient'], mapZoom, undefined, undefined) !== false,
+      })
     }
 
-    const { h } = map._cameraGeometry()
     const camera = { width: size.x, height: size.y, bearing: map._bearing ?? 0, pitch: map._pitch ?? 0, h, pos: [pos.x, pos.y] as [number, number] }
     const tileSize = this.getTileSize().x
     const origin = map.getPixelOrigin()
-    const crs = map.options.crs
-    const worldSize = crs?.scale ? crs.scale(mapZoom) : 256 * 2 ** mapZoom
+    // Pixels per metre, once for the frame, where the view is centred.
+    // Mercator stretches the ground by 1/cos(latitude) and a building's height
+    // with it — but taken tile by tile, as it was, a prism crossing a tile
+    // edge had its two halves drawn to different heights, with a step along
+    // the seam, and nothing outside this pass could say how high a roof was
+    // drawn. One scale is what `Map.latLngToContainerPoint(latlng, altitude)`
+    // uses too, so a marker given a prism's height stands on its roof.
+    const heightScale = map.getPixelsPerMetre()
 
     // Meshes are the one expensive step, and a zoom can land a dozen tiles at
     // once; spread them over frames, with stand-in tiles covering meanwhile.
@@ -1431,10 +1796,13 @@ export class VectorTileMapLayer extends GridLayer {
     // Trees stop short of the haze: past a few camera heights each is a
     // pixel or two, and a tile of them is thousands of triangles.
     const treeEnd = h * 4
+    // Past this a tile has nothing to show. A layer that never fades reaches
+    // as far as there are tiles.
+    const cutoff = active.length ? Math.max(h * reach, treeOpacity > 0 ? treeEnd : 0) : fogEnd
     const occlusionSources: OcclusionSource[] = []
     const meshes = this._buildingMeshes ??= new globalThis.Map()
     const drawn = new Set<string>()
-    const ready = (e: DecodedTileEntry): boolean => meshes.get(this._sourceKey(e.coords))?.version === this._labelVersion
+    const ready = (e: DecodedTileEntry): boolean => meshes.get(this._sourceKey(e.coords))?.version === this._meshVersion
     const entries = this._labelEntries(ready)
     // The shown tiles of each source tile, for their trees.
     const shown = new globalThis.Map<string, DecodedTileEntry[]>()
@@ -1459,31 +1827,28 @@ export class VectorTileMapLayer extends GridLayer {
       let nearest = Infinity
       for (const [cx, cy] of [[0, 0], [tileSize, 0], [0, tileSize], [tileSize, tileSize]])
         nearest = Math.min(nearest, matrix[3]! * cx! + matrix[7]! * cy! + matrix[15]!)
-      if (nearest > fogEnd)
+      if (nearest > cutoff)
         continue
 
       const wantsTrees = treeOpacity > 0 && nearest < treeEnd
-      const treesReady = !wantsTrees || shown.get(key)!.every(e => this._treeMeshes?.get(treeKey(e.coords))?.version === this._labelVersion)
-      if ((!ready(entry) || !treesReady) && now() - started > 6) {
+      const treesReady = !wantsTrees || shown.get(key)!.every(e => this._treeMeshes?.get(treeKey(e.coords))?.version === this._meshVersion)
+      // Out of time this frame. What the tile last showed stays up until its
+      // turn comes, where it used to be left out — and a map re-meshing after
+      // a change of style or data blinked out tile by tile while it did.
+      const late = (!ready(entry) || !treesReady) && now() - started > 6
+      if (late)
         pending = true
-        continue
-      }
-      const tileMeshes = this._buildingsFor(entry, all)
-      const treeMeshes = wantsTrees ? shown.get(key)!.map(e => this._treesFor(e)).filter(t => !!t?.mesh.count) as Array<{ version: number, mesh: BuildingMesh }> : []
+      const tileMeshes = late ? (meshes.get(key)?.meshes ?? []) : this._buildingsFor(entry, all)
+      const treeMeshes = late ? [] : wantsTrees ? shown.get(key)!.map(e => this._treesFor(e)).filter(t => !!t?.mesh.count) as Array<{ version: number, mesh: BuildingMesh }> : []
       if (!tileMeshes.length && !treeMeshes.length)
         continue
-
-      // Pixels per metre where this tile is: Mercator stretches the ground
-      // by 1/cos(latitude), and a building's height with it.
-      const lat = map.unproject([(x + 0.5) * tileSize, (y + 0.5) * tileSize], z).lat
-      const heightScale = worldSize / (40075016.686 * Math.cos((lat * Math.PI) / 180))
 
       let solid = false
       for (const item of tileMeshes) {
         const layerOpacity = opacity.get(item.layer)
         if (layerOpacity === undefined || layerOpacity <= 0 || !item.mesh.count)
           continue
-        draws.push({ key: item, mesh: item.mesh, matrix, heightScale, opacity: layerOpacity })
+        draws.push({ key: item, mesh: item.mesh, matrix, heightScale, opacity: layerOpacity, ...look.get(item.layer) })
         if (layerOpacity >= 0.5)
           solid = true
       }
@@ -1506,18 +1871,13 @@ export class VectorTileMapLayer extends GridLayer {
     // fade out into the haze over a few camera heights.
     overlay.render(draws, { light: [-Math.SQRT1_2, -Math.SQRT1_2], fog: [h * 3, fogEnd] })
 
-    // Where the camera stands, for the labels' lines of sight: `h` from the
-    // view centre along the view axis, which tilts towards the viewer — the
-    // bottom of the screen — with the pitch.
+    // What a pointer can be on is what this frame drew.
+    this._extrusionDrawn = drawn
+
+    // Where the camera stands, for the labels' lines of sight.
     if (occlusionSources.length) {
-      const theta = ((map._pitch ?? 0) * Math.PI) / 180
-      const center = map.containerPointToLayerPoint(size.divideBy(2))
-      const toward = map._rotatePoint(new Point(0, 1), map._bearing ?? 0, new Point(0, 0))
-      this._occlusion = {
-        sources: occlusionSources,
-        camera: { x: center.x + toward.x * h * Math.sin(theta), y: center.y + toward.y * h * Math.sin(theta) },
-        rise: h * Math.cos(theta),
-      }
+      const eye = this._cameraGround()
+      this._occlusion = { sources: occlusionSources, camera: { x: eye.x, y: eye.y }, rise: eye.rise }
     }
 
     // Meshes whose source tile no tile holds any more go, with their buffers.
@@ -1730,6 +2090,9 @@ export class VectorTileMapLayer extends GridLayer {
       return
     }
 
+    // New features on screen: labels and buildings are drawn from the tiles
+    // by the overlay, which otherwise waits for the camera to move.
+    this._refreshSymbols()
     done(null, canvas)
   }
 
@@ -1756,7 +2119,8 @@ export class VectorTileMapLayer extends GridLayer {
       isFontAvailable: (stack: string | string[] | undefined) => map.isFontAvailable?.(stack) ?? true,
       // A range arriving is the moment the labels waiting on it can be drawn,
       // and nothing else will prompt a redraw.
-      onLoad: () => this._invalidateLabels(),
+      // Glyphs are for labels; no building is made of them.
+      onLoad: () => this._invalidateLabelsOnly(),
     })
     this._glyphs = { source, provider }
     return provider
@@ -2188,7 +2552,9 @@ function resolvePaintExpression(
   if (!isExpression(value))
     return value
   try {
-    const compiled = compileExpression(value as any, 'value')
+    const compiled = compiledPaint(value as object)
+    if (!compiled)
+      return undefined
     const ctx: EvaluationContext = {
       zoom,
       feature: feature
@@ -2209,6 +2575,56 @@ function resolvePaintExpression(
   catch {
     return undefined
   }
+}
+
+/**
+ * A paint expression, compiled once. The same array is asked about for every
+ * feature of every tile — three thousand counties each resolving a height, a
+ * base and a colour — and compiling it afresh each time was most of the cost
+ * of a repaint. Keyed by the array itself: a style that changes hands a new
+ * one over. `null` remembers an expression that does not compile.
+ */
+const paintCache = new WeakMap<object, ReturnType<typeof compileExpression> | null>()
+
+function compiledPaint(expression: object): ReturnType<typeof compileExpression> | null {
+  let compiled = paintCache.get(expression)
+  if (compiled === undefined) {
+    try {
+      compiled = compileExpression(expression as any, 'value')
+    }
+    catch {
+      compiled = null
+    }
+    paintCache.set(expression, compiled)
+  }
+  return compiled
+}
+
+/** Whether a paint value reads `feature-state`, so a state change can alter it. */
+function readsFeatureState(value: unknown): boolean {
+  return isExpression(value) && !!(compiledPaint(value as object) as { dependsOnFeatureState?: boolean } | null)?.dependsOnFeatureState
+}
+
+/** A feature id as a key: the number 1 and the string "1" are different features. */
+function prismKey(id: number | string): string {
+  return `${typeof id}:${id}`
+}
+
+/** A layer's `fill-extrusion-fade-range`, or the default for one that names none. */
+function fadeRange(value: unknown): [number, number] {
+  if (Array.isArray(value) && value.length === 2 && value.every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0))
+    return [value[0] as number, value[1] as number]
+  return [3, 10]
+}
+
+/** A ring as flat [x0, y0, x1, y1, …], which the occluder index walks. */
+function flatRing(ring: Array<{ x: number, y: number }>): Float64Array {
+  const flat = new Float64Array(ring.length * 2)
+  for (let n = 0; n < ring.length; n++) {
+    flat[n * 2] = ring[n]!.x
+    flat[n * 2 + 1] = ring[n]!.y
+  }
+  return flat
 }
 
 /** A `geometry()` accessor that projects once, however many operators ask. */
@@ -3062,29 +3478,42 @@ function projectQueryToTile(
   if (!map)
     return null
 
+  // Layer pixels are measured from the map's pixel origin, at the live zoom;
+  // a tile's own from the world's corner, at the tile's zoom. `k` is how much
+  // larger than itself the tile is drawn — 1 only on its own whole level.
+  const origin = map._pixelOrigin ?? { x: 0, y: 0 }
+  const k = typeof map.getZoomScale === 'function' && typeof map.getZoom === 'function'
+    ? map.getZoomScale(map.getZoom(), coords.z) || 1
+    : 1
+  const toTile = (container: Point): { x: number, y: number } => {
+    const p = map.containerPointToLayerPoint?.(container) ?? container
+    return { x: (p.x + origin.x) / k - coords.x * tileSize, y: (p.y + origin.y) / k - coords.y * tileSize }
+  }
+
+  // At this stage we don't have a feature yet, so we need a representative
+  // extent for scaling. Every feature in a given tile shares a layer-level
+  // extent that we can't know here without the layer; fall back to 4096
+  // (the MVT default) and let the precise hit-test rescale per feature.
+  const extent = 4096
+  // Indexed geometry is the ancestor's, so a pixel in this tile has to be
+  // mapped back into the ancestor's extent — a scale and an offset when
+  // overzoomed, and the plain case when not.
+  const scale = extent / (tileSize * sub.f)
+  const offX = (sub.sx * extent) / sub.f
+  const offY = (sub.sy * extent) / sub.f
+
   if (queryBBox) {
     const [[cx0, cy0], [cx1, cy1]] = queryBBox
-    const p0 = map.containerPointToLayerPoint?.({ x: cx0, y: cy0 } as Point) ?? { x: cx0, y: cy0 }
-    const p1 = map.containerPointToLayerPoint?.({ x: cx1, y: cy1 } as Point) ?? { x: cx1, y: cy1 }
-    const localMinX = Math.min(p0.x, p1.x) - coords.x * tileSize
-    const localMinY = Math.min(p0.y, p1.y) - coords.y * tileSize
-    const localMaxX = Math.max(p0.x, p1.x) - coords.x * tileSize
-    const localMaxY = Math.max(p0.y, p1.y) - coords.y * tileSize
+    const p0 = toTile({ x: cx0, y: cy0 } as Point)
+    const p1 = toTile({ x: cx1, y: cy1 } as Point)
+    const localMinX = Math.min(p0.x, p1.x)
+    const localMinY = Math.min(p0.y, p1.y)
+    const localMaxX = Math.max(p0.x, p1.x)
+    const localMaxY = Math.max(p0.y, p1.y)
     // Reject bboxes that don't intersect the tile rectangle at all.
     if (localMaxX < 0 || localMaxY < 0 || localMinX > tileSize || localMinY > tileSize)
       return null
 
-    // At this stage we don't have a feature yet, so we need a representative
-    // extent for scaling. Every feature in a given tile shares a layer-level
-    // extent that we can't know here without the layer; fall back to 4096
-    // (the MVT default) and let the precise hit-test rescale per feature.
-    const extent = 4096
-    // Indexed geometry is the ancestor's, so a pixel in this tile has to be
-    // mapped back into the ancestor's extent — a scale and an offset when
-    // overzoomed, and the plain case when not.
-    const scale = extent / (tileSize * sub.f)
-    const offX = (sub.sx * extent) / sub.f
-    const offY = (sub.sy * extent) / sub.f
     return {
       kind: 'bbox',
       px: (localMinX + localMaxX) * 0.5 * scale + offX,
@@ -3100,18 +3529,15 @@ function projectQueryToTile(
   }
 
   if (queryPoint) {
-    const layerPoint = map.containerPointToLayerPoint?.(queryPoint) ?? queryPoint
-    const lx = layerPoint.x - coords.x * tileSize
-    const ly = layerPoint.y - coords.y * tileSize
+    const { x: lx, y: ly } = toTile(queryPoint)
     if (lx < 0 || ly < 0 || lx > tileSize || ly > tileSize)
       return null
-    const extent = 4096
-    const scale = extent / (tileSize * sub.f)
-    const px = lx * scale + (sub.sx * extent) / sub.f
-    const py = ly * scale + (sub.sy * extent) / sub.f
+    const px = lx * scale + offX
+    const py = ly * scale + offY
     // Pad the point bbox by a small tolerance so line/circle features whose
-    // exact geometry just misses the pixel still get candidate-ed.
-    const tol = 8 * scale
+    // exact geometry just misses the pixel still get candidate-ed. Eight
+    // pixels on screen, whatever size the tile is drawn at.
+    const tol = (8 / k) * scale
     return {
       kind: 'point',
       px,

@@ -1546,8 +1546,69 @@ export class Map extends Evented {
     return this.layerPointToLatLng(layerPoint)
   }
 
-  latLngToContainerPoint(latlng: any): Point {
-    return this.layerPointToContainerPoint(this.latLngToLayerPoint(new LatLng(latlng)))
+  /**
+   * Where `latlng` is on screen, in container pixels.
+   *
+   * `altitude`, in metres, lifts the point off the map plane through the same
+   * camera the 3D buildings are drawn with, so a point given a prism's
+   * `fill-extrusion-height` lands on that prism's roof — which is how a label
+   * or a marker is pinned to the top of one. Left out or zero, this is the
+   * point on the ground, as it always was. Altitude is not applied round the
+   * globe or on terrain, where the ground itself is not the map plane.
+   */
+  latLngToContainerPoint(latlng: any, altitude: number = 0): Point {
+    const ll = new LatLng(latlng)
+    if (!altitude || !Number.isFinite(altitude) || this._globeActive() || this._terrainView?.active())
+    return this.layerPointToContainerPoint(this.latLngToLayerPoint(ll))
+    // Unrounded: a roof corner is drawn where it is, not on the nearest pixel.
+    const ground = this.project(ll)._subtract(this.getPixelOrigin())
+    return this._elevatedContainerPoint(ground, altitude * this.getPixelsPerMetre())
+  }
+
+  /**
+   * How many screen pixels a metre of height stands, where the view is
+   * centred: the map's scale there, stretched as Mercator stretches the
+   * ground by 1/cos(latitude).
+   *
+   * One number for the whole frame. Every 3D building and every elevated
+   * marker is raised by it, so they agree with each other exactly — and a
+   * row of equal heights is drawn equal, where a scale taken tile by tile
+   * stepped at each row of tiles.
+   */
+  getPixelsPerMetre(): number {
+    const crs = this.options.crs
+    const world = crs?.scale ? crs.scale(this._zoom) : 256 * 2 ** this._zoom
+    const lat = Math.max(-85.05112878, Math.min(85.05112878, this.getCenter().lat))
+    return world / (40075016.686 * Math.cos((lat * Math.PI) / 180))
+  }
+
+  /**
+   * A point `z` pixels above the ground at `layerPoint`, in container pixels.
+   *
+   * Term for term the projection `buildingMatrix` gives the building pass
+   * (renderer/webgl/BuildingOverlay.ts): about the view centre, turned by the
+   * bearing, tilted by the pitch with height rising towards the camera, and
+   * seen from `h` pixels up. At `z = 0` it is `layerPointToContainerPoint`.
+   */
+  _elevatedContainerPoint(layerPoint: Point, z: number): Point {
+    const size = this.getSize()
+    const pos = this._getMapPanePos()
+    const { h } = this._cameraGeometry()
+    // The map turns counter-clockwise by its bearing.
+    const b = (-(this._bearing ?? 0) * Math.PI) / 180
+    const t = ((this._pitch ?? 0) * Math.PI) / 180
+    const dx = layerPoint.x - size.x / 2
+    const dy = layerPoint.y - size.y / 2
+    const rx = dx * Math.cos(b) - dy * Math.sin(b)
+    const ry = dx * Math.sin(b) + dy * Math.cos(b)
+    const w = h - ry * Math.sin(t) - z * Math.cos(t)
+    // At or behind the camera: nowhere on screen, as `_pitchPoint` has it.
+    if (w <= h * 1e-3)
+    return new Point(rx < 0 ? -1e7 : 1e7, 1e7)
+    return new Point(
+      size.x / 2 + pos.x + (h * rx) / w,
+      size.y / 2 + pos.y + (h * (ry * Math.cos(t) - z * Math.sin(t))) / w,
+    )
   }
 
   pointerEventToContainerPoint(e: any): Point {
@@ -2061,11 +2122,14 @@ export class Map extends Evented {
   * is the projected screen point, not the ground point. On a flat, north-up
   * map the two are the same thing.
   */
-  _latLngToUprightPoint(latlng: any): Point {
+  _latLngToUprightPoint(latlng: any, altitude: number = 0): Point {
     // Terrain raises the ground even flat and north-up (see `_terrainActive`).
-    if (!this._bearing && !this._pitch && !this._globeActive() && !this._terrainActive())
+    // So does an altitude: seen from straight above, a roof still stands
+    // nearer the camera than its footprint, and is drawn further from the
+    // view's centre.
+    if (!altitude && !this._bearing && !this._pitch && !this._globeActive() && !this._terrainActive())
     return this.latLngToLayerPoint(latlng)
-    return this.latLngToContainerPoint(latlng).subtract(this._getMapPanePos())
+    return this.latLngToContainerPoint(latlng, altitude).subtract(this._getMapPanePos())
   }
 
   /** Inverse of `_latLngToUprightPoint`. */
@@ -3046,7 +3110,10 @@ export class Map extends Evented {
         local = clusterTileSource(index, layerName)
       }
       else {
-        index = new GeoJSONTileSource(undefined, { layerName, buffer: geojson.buffer })
+        // The spec lets `promoteId` name a property per source layer; a
+        // geojson source has the one, under its own id.
+        const promoteId = typeof geojson.promoteId === 'string' ? geojson.promoteId : geojson.promoteId?.[sourceId]
+        index = new GeoJSONTileSource(undefined, { layerName, buffer: geojson.buffer, promoteId, generateId: geojson.generateId })
         local = index
       }
 
@@ -3474,13 +3541,17 @@ export class Map extends Evented {
     return this._featureState
   }
 
-  _repaintSource(sourceId: string): void {
+  _repaintSource(sourceId: string, id?: number | string): void {
     // Light repaint: re-rasterize tiles we already have rather than the full
     // refetch `redraw()` does. Only VectorTileMapLayer tracks decoded tiles.
     const host: any = this._style?.sourceLayers.get(sourceId)
     if (!host)
       return
-    if (typeof host._repaintDecodedTiles === 'function')
+    // A layer that can tell what one feature's state touches redoes only
+    // that: a hover is one prism's colour, not every tile on the map.
+    if (typeof host._featureStateChanged === 'function')
+      host._featureStateChanged(id)
+    else if (typeof host._repaintDecodedTiles === 'function')
       host._repaintDecodedTiles()
   }
 
@@ -3491,11 +3562,16 @@ export class Map extends Evented {
     const store = this._ensureFeatureStateMap()
     const key = this._featureStateKey(lookup)
     const existing = store.get(key)
+    // Nothing new: a pointer moving within the feature it is already over
+    // sets the same hover again on every move.
+    const entries = Object.entries(state)
+    if (existing ? entries.every(([name, value]) => name in existing && Object.is(existing[name], value)) : entries.length === 0)
+      return this
     if (existing)
       Object.assign(existing, state)
     else
       store.set(key, { ...state })
-    this._repaintSource(lookup.source)
+    this._repaintSource(lookup.source, lookup.id)
     return this
   }
 
@@ -3515,18 +3591,19 @@ export class Map extends Evented {
     if (!store)
       return this
     const fullKey = this._featureStateKey(lookup)
+    const existing = store.get(fullKey)
+    // Nothing there to remove, so nothing to repaint.
+    if (!existing || (key !== undefined && !(key in existing)))
+      return this
     if (key === undefined) {
       store.delete(fullKey)
     }
     else {
-      const existing = store.get(fullKey)
-      if (existing) {
-        delete existing[key]
-        if (Object.keys(existing).length === 0)
-          store.delete(fullKey)
-      }
+      delete existing[key]
+      if (Object.keys(existing).length === 0)
+        store.delete(fullKey)
     }
-    this._repaintSource(lookup.source)
+    this._repaintSource(lookup.source, lookup.id)
     return this
   }
 
