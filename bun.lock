@@ -12,7 +12,7 @@
     },
     "packages/nuxt": {
       "name": "ts-maps-nuxt",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "@ts-maps/vue": "workspace:*",
         "ts-maps": "workspace:*",
@@ -28,7 +28,7 @@
     },
     "packages/react": {
       "name": "@ts-maps/react",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -47,7 +47,7 @@
     },
     "packages/react-native": {
       "name": "@ts-maps/react-native",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -65,7 +65,7 @@
     },
     "packages/solid": {
       "name": "@ts-maps/solid",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -73,7 +73,7 @@
         "@babel/core": "^7",
         "@babel/preset-typescript": "^7",
         "babel-preset-solid": "^1.9.15",
-        "solid-js": "^1.8.0",
+        "solid-js": "^2.0.3",
         "typescript": "^7.0.2",
       },
       "peerDependencies": {
@@ -82,7 +82,7 @@
     },
     "packages/stx": {
       "name": "@ts-maps/stx",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -95,7 +95,7 @@
     },
     "packages/svelte": {
       "name": "@ts-maps/svelte",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -109,7 +109,7 @@
     },
     "packages/ts-maps": {
       "name": "ts-maps",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "devDependencies": {
         "bun-plugin-dtsx": "^0.11.5",
         "bunfig": "^0.15.6",
@@ -119,7 +119,7 @@
     },
     "packages/vue": {
       "name": "@ts-maps/vue",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -134,7 +134,7 @@
     },
     "playground/core-map": {
       "name": "@ts-maps/playground-core-map",
-      "version": "0.5.8",
+      "version": "0.5.10",
       "dependencies": {
         "ts-maps": "workspace:*",
       },
@@ -246,6 +246,8 @@
     "@react-native/virtualized-lists": ["@react-native/virtualized-lists@0.86.0", "", { "dependencies": { "invariant": "^2.2.4", "nullthrows": "^1.1.1" }, "peerDependencies": { "@types/react": "^19.2.0", "react": "*", "react-native": "0.86.0" }, "optionalPeers": ["@types/react"] }, "sha512-4/ZLXdf/OSpPDVO0AsQ1SJdRIzt5t9BNQ46QwGgxvX7/cirYR5k8KXctNGGgW8lQo2gZChEfY2zFCZg9nM/jiw=="],
 
     "@sinclair/typebox": ["@sinclair/typebox@0.27.10", "", {}, "sha512-MTBk/3jGLNB2tVxv6uLlFh1iu64iYOQ2PbdOSK3NW8JZsmlaOh2q6sdtKowBhfw8QFLmYNzTW4/oK4uATIi6ZA=="],
+
+    "@solidjs/signals": ["@solidjs/signals@2.0.3", "", {}, "sha512-M6+kiJflqSvJRHRcmdsdIXpPLPkQrY817zWKKfxZ3z3ZRE5eEtddtWPrDXY4IM1Wz3zAqG+3Fx/HQIkAtpRwnA=="],
 
     "@stacksjs/bumpx": ["@stacksjs/bumpx@0.2.6", "", { "dependencies": { "@stacksjs/clapp": "^0.2.0", "@stacksjs/logsmith": "^0.2.1", "bunfig": "^0.15.6" }, "bin": { "bumpx": "./dist/bin/cli.js" } }, "sha512-y4Jz8WKTJtes6/o1vsIbOeuIoqKItfnbeel94qrJKNKsY2CBzU3FT3YwKjs8K52JFfyACCdQa1tGx+lQWtpyTA=="],
 
@@ -841,9 +843,9 @@
 
     "serialize-error": ["serialize-error@2.1.0", "", {}, "sha512-ghgmKt5o4Tly5yEG/UJp8qTd0AN7Xalw4XBtDEKP655B699qMEtra1WlXeE6WIvdEG481JvRxULKsInq/iNysw=="],
 
-    "seroval": ["seroval@1.5.4", "", {}, "sha512-46uFvgrXTVxZcUorgSSRZ4y+ieqLLQRMlG4bnCZKW3qI6BZm7Rg4ntMW4p1mILEEBZWrFlcpp0AyIIlM6jD9iw=="],
+    "seroval": ["seroval@1.8.2", "", {}, "sha512-zmMxi/9MdLK1MKazLmIP6Rk39RuK0Xydd+QHeOYntS37olJeTjB3+nwVj4ce/ZWiZJeRhcO5htfxt0mUzQBscQ=="],
 
-    "seroval-plugins": ["seroval-plugins@1.5.4", "", { "peerDependencies": { "seroval": "^1.0" } }, "sha512-S0xQPhUTefAhNvNWFg0c1J8qJArHt5KdtJ/cFAofo06KD1MVSeFWyl4iiu+ApDIuw0WhjpOfCdgConOfAnLgkw=="],
+    "seroval-plugins": ["seroval-plugins@1.8.0", "", { "peerDependencies": { "seroval": "^1.8.0" } }, "sha512-96vBb12rDvPPwdKUgWw1op3fGq8AVBFOr0IllbnM72yR5J9WWXF18cQ4g1XfDO7HCyh2dt70P3XdtyRayP8FWg=="],
 
     "serve-static": ["serve-static@1.16.3", "", { "dependencies": { "encodeurl": "~2.0.0", "escape-html": "~1.0.3", "parseurl": "~1.3.3", "send": "~0.19.1" } }, "sha512-x0RTqQel6g5SY7Lg6ZreMmsOzncHFU7nhnRWkKgWuMTu5NN0DR5oruckMqRvacAN9d5w6ARnRBXl9xhDCgfMeA=="],
 
@@ -859,7 +861,7 @@
 
     "sisteransi": ["sisteransi@1.0.5", "", {}, "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg=="],
 
-    "solid-js": ["solid-js@1.9.14", "", { "dependencies": { "csstype": "^3.1.0", "seroval": "~1.5.4", "seroval-plugins": "~1.5.4" } }, "sha512-sAEXC0Kk0S1EDg+8ysEWJDbYhA3RRoEjwuySUGlKIemeo0I5YZfOyumNjNs9Sv3y2nmhD+0rW66ag2HsMuQiGQ=="],
+    "solid-js": ["solid-js@2.0.3", "", { "dependencies": { "@solidjs/signals": "^2.0.3", "seroval": "^1.8.0", "seroval-plugins": "^1.8.0" } }, "sha512-XOHstv+GAJjfcSGZU9xfX5q6Mbqmv72IcdWh2JuMx3KvBbfpQPdy/Yl00A1ouk7A0etjqhNe799CPdr6i7koWg=="],
 
     "source-map": ["source-map@0.5.7", "", {}, "sha512-LbrmJOMUSdEVxIKvdcJzQC+nQhe8FUZQTXQy6+I75skNgn3OoQ0DZA8YnFa7gp8tqtL3KPf1kmo0R5DoApeSGQ=="],
 
